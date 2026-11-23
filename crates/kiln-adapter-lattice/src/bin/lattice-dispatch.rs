@@ -1,5 +1,28 @@
 //! Dispatch one operator-admitted Lattice implementation request under a
 //! reserved implementation attempt.
+//!
+//! Usage:
+//!
+//! ```text
+//! kiln-lattice-dispatch --database DB --enrollment FILE --dispatch-plan PLAN \
+//!   --request FILE --lattice-profile FILE --transport-profile FILE \
+//!   --socket PATH --maximum-records N [--admission-observations FILE] \
+//!   [--recover true]                                   (workflow exchange)
+//! kiln-lattice-dispatch --database DB --enrollment FILE --dispatch-plan PLAN \
+//!   --worker-request ADMITTED --worker-transport-profile FILE \
+//!   [--admission-observations FILE] [--recover true]   (implementation worker)
+//! kiln-lattice-dispatch --database DB --enrollment FILE \
+//!   --worker-request ADMITTED --worker-transport-profile FILE \
+//!   --sent-request true                                (sent-request report)
+//! ```
+//!
+//! `--sent-request true` dispatches nothing and writes nothing. It prints one
+//! `kiln.lattice-sent-request.v1` object,
+//! `{"schema","attempt","fence","recorded","request","request_blake3","state_directory"}`,
+//! naming the verified request file and state root the attempt's recorded
+//! launch ran, which Lattice `recover`, `cancel`, `inspect` and
+//! `export-candidate` must name; on any refusal stdout is empty and the exit
+//! status is non-zero.
 
 #[cfg(target_os = "linux")]
 use kiln_adapter_lattice::worker;
@@ -41,6 +64,16 @@ fn run() -> Result<(), ()> {
         Ok(flags) => flags,
         Err(error) => return fail(&error),
     };
+    // Checked first: the report must never fall through to a dispatch route.
+    if flags.contains_key("--sent-request") {
+        return match worker::sent_request(&flags) {
+            Ok(report) => {
+                println!("{report}");
+                Ok(())
+            }
+            Err(error) => fail(&error),
+        };
+    }
     if flags.contains_key("--worker-request") {
         return match worker::run(&flags) {
             Ok(observation) => {

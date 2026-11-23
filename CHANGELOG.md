@@ -101,6 +101,21 @@ entry describes the source tree prepared for the first tagged release.
   start. The qualification crash barrier finds Lattice's intent by the sent
   digest. (Lattice #6; golden bytes, Lattice's published schema as data and
   durable-store fixtures; no live Lattice worker)
+- `kiln-lattice-dispatch --worker-request ADMITTED --sent-request true`
+  reports, to callers in another process, the request file and state root an
+  attempt's recorded launch ran. Lattice `recover`, `cancel`, `inspect` and
+  `export-candidate` must name these, not the admitted request. It prints
+  one `kiln.lattice-sent-request.v1` object (`schema`, `attempt`, `fence`,
+  `recorded`, `request`, `request_blake3`, `state_directory`), with the paths
+  exactly as recorded. It prints only after checking the attempt and fence,
+  the request sealed at bind-dispatch, the transport intent, and that the
+  file is bounded, hashes to the reported BLAKE3 and passes
+  `verify_frozen`. Any refusal leaves stdout empty. The ledger is opened
+  read-only (`Implementer::open_read_only`) and read in one
+  `Implementer::dispatch_record` snapshot, so the mode writes nothing.
+  Campaign export now shares the resolver, `worker::sent_request_and_state`.
+  (#49 live pilot run 6; durable-store, unit and process tests; no live
+  Lattice recover or export)
 - Default-off, exact-revision session-trace pointer observations freeze locally
   admitted Git notes in the existing review journal. BLAKE3 pointer/note
   identities remain distinct from external IDs and URL hosts; missing,

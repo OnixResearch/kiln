@@ -1702,6 +1702,140 @@ fn the_sent_request_is_recorded_beside_launches_an_older_binary_still_reads()
     Ok(())
 }
 
+// r[verify kiln.admission.lattice_lineage.scenario.reported]
+#[test]
+fn a_read_only_ledger_reads_the_dispatch_record_and_never_writes()
+-> Result<(), Box<dyn std::error::Error>> {
+    use kiln_core::implementation::{
+        DISPATCH_PLAN_SCHEMA, DispatchControls, DispatchWorkspace, FrozenRequest,
+        ImplementationDispatchPlan, TransportLaunch, TransportStart, WorkspaceIsolation,
+    };
+    fn rows(path: &Path) -> rusqlite::Result<Vec<(String, i64, Vec<u8>)>> {
+        let connection = rusqlite::Connection::open_with_flags(
+            path,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )?;
+        let mut statement = connection
+            .prepare("SELECT kind, version, bytes FROM implementation_state ORDER BY kind")?;
+        let rows = statement.query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?;
+        rows.collect()
+    }
+    let directory = tempfile::tempdir()?;
+    let path = directory.path().join("implementation.db");
+
+    // Unlike `open`, a read-only open never creates a missing ledger.
+    assert!(Implementer::open_read_only(&path, enrollment()).is_err());
+    assert!(!path.exists());
+
+    let mut store = open(&path);
+    let mut work = work();
+    work.base =
+        Some(ExternalRef::new("git", "commit", &"a".repeat(40)).map_err(|error| error.message)?);
+    store.admit(&work, None)?;
+    let attempt = store.claim_next(0, LEASE)?.ok_or("missing attempt")?;
+    let dispatch = ImplementationDispatchPlan {
+        schema: DISPATCH_PLAN_SCHEMA.into(),
+        work_identity: attempt.work_identity.clone(),
+        work_revision: work.revision,
+        attempt_identity: attempt.identity.clone(),
+        fence: attempt.fence,
+        repository: work.repository.clone(),
+        base: work.base.clone(),
+        workspace: DispatchWorkspace {
+            identity: content('e'),
+            isolation: WorkspaceIsolation::IsolatedSnapshot,
+            network: false,
+            credentials: false,
+            projection: None,
+        },
+        provider_profile: provider(),
+        permitted_paths: work.permitted_paths.clone(),
+        permitted_effects: work.permitted_effects.clone(),
+        controls: DispatchControls {
+            cancel: true,
+            pause: false,
+            resume: false,
+        },
+        deadline_minutes: 1,
+        token_budget: 1000,
+        invocation_budget: 1,
+        expected_output: content('f'),
+        execution: None,
+    };
+    let plan = store
+        .reserve_dispatch_plan(&work, &attempt.identity, attempt.fence, 1, &dispatch)?
+        .plan;
+    let binding =
+        store.bind_campaign_request(&work, &attempt.identity, attempt.fence, 1, b"request")?;
+    let launch = TransportLaunch {
+        lattice_program: "/nix/store/a-lattice/bin/lattice".into(),
+        executable_blake3: content('b'),
+        state_directory: "/var/lib/lattice/a".into(),
+    };
+    let sent = FrozenRequest {
+        path: "/var/lib/kiln/out/request-sent.json".into(),
+        blake3: content('c'),
+    };
+
+    // Before the transport intent the record says nothing was dispatched.
+    let before = rows(&path)?;
+    let mut reader = Implementer::open_read_only(&path, enrollment())?;
+    let record = reader
+        .dispatch_record(&attempt.identity)?
+        .ok_or("missing record")?;
+    assert!(!record.transport_started);
+    assert_eq!((record.launch, record.request), (None, None));
+    assert_eq!(rows(&path)?, before);
+    drop(reader);
+
+    assert_eq!(
+        store.begin_dispatch_transport_sending(
+            &attempt.identity,
+            attempt.fence,
+            1,
+            &plan,
+            Some(&launch),
+            Some(&sent)
+        )?,
+        TransportStart::Fresh
+    );
+    drop(store);
+    let before = rows(&path)?;
+    let file = std::fs::read(&path)?;
+    let mut reader = Implementer::open_read_only(&path, enrollment())?;
+    let record = reader
+        .dispatch_record(&attempt.identity)?
+        .ok_or("missing record")?;
+    assert!(record.transport_started);
+    assert_eq!(record.attempt.dispatch_request_binding, Some(binding));
+    assert_eq!(record.launch.as_ref(), Some(&launch));
+    assert_eq!(record.request.as_ref(), Some(&sent));
+    // The existing readers agree and work on the read-only ledger.
+    assert_eq!(reader.dispatch_launch(&attempt.identity)?, Some(launch));
+    assert_eq!(reader.dispatch_request(&attempt.identity)?, Some(sent));
+    assert_eq!(reader.dispatch_record(&content('7'))?, None);
+    // Readers that save the ledgers, and every mutation, are refused by
+    // SQLite before any change.
+    assert!(
+        reader
+            .dispatch_requires_recovery(&attempt.identity)
+            .is_err()
+    );
+    assert!(reader.attempt(&attempt.identity).is_err());
+    assert!(reader.admit(&work, None).is_err());
+    assert!(
+        reader
+            .begin_dispatch_transport(&attempt.identity, attempt.fence, 2, &plan, None)
+            .is_err()
+    );
+    drop(reader);
+    assert_eq!(rows(&path)?, before, "versions and bytes are unchanged");
+    assert_eq!(std::fs::read(&path)?, file);
+    let entries = std::fs::read_dir(directory.path())?.count();
+    assert_eq!(entries, 1, "no journal or other file was left");
+    Ok(())
+}
+
 // r[verify kiln.implementation.lattice_cli.scenario.refusal]
 #[test]
 fn before_effect_settlement_survives_restart_without_reconciliation()

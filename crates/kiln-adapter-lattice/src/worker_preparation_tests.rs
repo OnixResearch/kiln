@@ -24,7 +24,7 @@ const PROVIDER: &str = "scripted-local-omp";
 const LEASE_MS: u64 = 1_200_000;
 const WINDOW_MS: u64 = 1_800_000;
 
-fn content(character: char) -> ContentId {
+pub(super) fn content(character: char) -> ContentId {
     ContentId::from_blake3_hex(character.to_string().repeat(64)).unwrap_or_else(|_| unreachable!())
 }
 
@@ -40,7 +40,7 @@ fn amounts() -> Amounts {
     BTreeMap::from([(alias("worker_requests"), 1)])
 }
 
-fn enrollment() -> Enrollment {
+pub(super) fn enrollment() -> Enrollment {
     Enrollment {
         repositories: BTreeSet::from(["onix/kiln".to_string()]),
         actors: BTreeSet::from(["operator".to_string()]),
@@ -299,7 +299,7 @@ fn grants(
     (states, phase)
 }
 
-fn profile(root: &Path, output: &str, state: &Path) -> WorkerTransportProfile {
+pub(super) fn profile(root: &Path, output: &str, state: &Path) -> WorkerTransportProfile {
     WorkerTransportProfile {
         schema: "kiln.lattice-implementation-cli.v2".into(),
         lattice_program: "/nix/store/00000000000000000000000000000000-lattice/bin/lattice".into(),
@@ -309,7 +309,7 @@ fn profile(root: &Path, output: &str, state: &Path) -> WorkerTransportProfile {
     }
 }
 
-fn frozen(profile: &WorkerTransportProfile, bytes: &[u8]) -> LaunchRequest {
+pub(super) fn frozen(profile: &WorkerTransportProfile, bytes: &[u8]) -> LaunchRequest {
     LaunchRequest::new(&profile.output_directory, bytes.to_vec())
         .unwrap_or_else(|error| unreachable!("{error}"))
 }
@@ -317,6 +317,16 @@ fn frozen(profile: &WorkerTransportProfile, bytes: &[u8]) -> LaunchRequest {
 /// One claimed attempt with committed owner grants, a reserved plan and a
 /// sealed request, ready for the owner-grant gate and transport intent.
 fn ready(root: &Path) -> (Implementer, ImplementationAttempt, ContentId, u64) {
+    let (owner, attempt, plan, now, _) = ready_with(root, |_| b"request".to_vec());
+    (owner, attempt, plan, now)
+}
+
+/// [`ready`] whose sealed request is `admitted` for the claimed attempt;
+/// also returns those bytes.
+pub(super) fn ready_with(
+    root: &Path,
+    admitted: impl FnOnce(&ImplementationAttempt) -> Vec<u8>,
+) -> (Implementer, ImplementationAttempt, ContentId, u64, Vec<u8>) {
     let mut owner = Implementer::open_with_local_operator(
         &root.join("kiln.sqlite"),
         enrollment(),
@@ -359,13 +369,14 @@ fn ready(root: &Path) -> (Implementer, ImplementationAttempt, ContentId, u64) {
         .reserve_dispatch_plan(&work, &attempt.identity, attempt.fence, now, &plan)
         .unwrap_or_else(|error| unreachable!("{error}"))
         .plan;
+    let admitted = admitted(&attempt);
     owner
-        .bind_campaign_request(&work, &attempt.identity, attempt.fence, now, b"request")
+        .bind_campaign_request(&work, &attempt.identity, attempt.fence, now, &admitted)
         .unwrap_or_else(|error| unreachable!("{error}"));
-    (owner, attempt, digest, now)
+    (owner, attempt, digest, now, admitted)
 }
 
-fn fresh_observations(owner: &mut Implementer) -> Vec<EligibilityInput> {
+pub(super) fn fresh_observations(owner: &mut Implementer) -> Vec<EligibilityInput> {
     owner
         .admission_snapshot()
         .unwrap_or_else(|error| unreachable!("{error}"))

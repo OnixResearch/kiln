@@ -113,6 +113,21 @@ pub struct ClaimSelection {
     pub deferred: Vec<(String, String)>,
 }
 
+/// One attempt's dispatch state, read by [`Implementer::dispatch_record`]
+/// from a single ledger snapshot.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DispatchRecord {
+    pub attempt: ImplementationAttempt,
+    /// Whether the attempt's transport intent is recorded, as
+    /// [`Implementer::dispatch_requires_recovery`] answers.
+    pub transport_started: bool,
+    /// The launch recorded for the attempt, as [`Implementer::dispatch_launch`] answers.
+    pub launch: Option<kiln_core::implementation::TransportLaunch>,
+    /// The request that launch sent, as [`Implementer::dispatch_request`]
+    /// answers: `None` for a launch an earlier binary recorded.
+    pub request: Option<kiln_core::implementation::FrozenRequest>,
+}
+
 impl Implementer {
     /// Open or create the durable ledger. The caller owns single-writer
     /// placement; conditional claims still serialize through SQLite.
@@ -122,7 +137,33 @@ impl Implementer {
             .busy_timeout(Duration::from_millis(BUSY_TIMEOUT_MS))
             .map_err(text)?;
         connection.execute_batch(SCHEMA).map_err(text)?;
-        Ok(Self {
+        Ok(Self::with_connection(connection, enrollment))
+    }
+
+    /// Open an existing ledger only to read it. [`Self::open`] creates a
+    /// missing database file and its schema; this opens the file read-only
+    /// with `query_only` set and never creates or initializes anything, so
+    /// every mutating method fails inside SQLite before any change.
+    ///
+    /// # Errors
+    /// Returns a message when the database is missing or unreadable.
+    pub fn open_read_only(path: &Path, enrollment: Enrollment) -> Result<Self, String> {
+        let connection = Connection::open_with_flags(
+            path,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .map_err(text)?;
+        connection
+            .busy_timeout(Duration::from_millis(BUSY_TIMEOUT_MS))
+            .map_err(text)?;
+        connection
+            .pragma_update(None, "query_only", true)
+            .map_err(text)?;
+        Ok(Self::with_connection(connection, enrollment))
+    }
+
+    fn with_connection(connection: Connection, enrollment: Enrollment) -> Self {
+        Self {
             connection,
             enrollment,
             mirror: None,
@@ -131,7 +172,7 @@ impl Implementer {
             authority_profile: AuthorityProfile::Missing,
             authority_last: None,
             clock_ms: None,
-        })
+        }
     }
 
     /// Select the explicit authority profile used by every protected operation.
@@ -494,6 +535,39 @@ impl Implementer {
             launches.recall(identity).as_ref(),
             attempts.dispatch_requires_recovery(identity),
         ))
+    }
+
+    /// The attempt, its transport intent, recorded launch and sent request
+    /// from one read transaction that saves nothing, so a read-only ledger
+    /// ([`Self::open_read_only`]) answers it. `None` for an attempt the
+    /// ledger does not hold.
+    pub fn dispatch_record(
+        &mut self,
+        identity: &ContentId,
+    ) -> Result<Option<DispatchRecord>, String> {
+        let transaction = self.connection.transaction().map_err(text)?;
+        let (attempts, _) = load::<AttemptLedger>(&transaction, ATTEMPT_KIND)?;
+        let (launches, _) = load::<kiln_core::implementation::TransportLaunches>(
+            &transaction,
+            TRANSPORT_LAUNCH_KIND,
+        )?;
+        let (requests, _) = load::<kiln_core::implementation::TransportRequests>(
+            &transaction,
+            TRANSPORT_REQUEST_KIND,
+        )?;
+        transaction.commit().map_err(text)?;
+        let Some(attempt) = attempts.get(identity).cloned() else {
+            return Ok(None);
+        };
+        let transport_started = attempts.dispatch_requires_recovery(identity);
+        let launch = launches.recall(identity);
+        let request = requests.recall(identity, launch.as_ref(), transport_started);
+        Ok(Some(DispatchRecord {
+            attempt,
+            transport_started,
+            launch,
+            request,
+        }))
     }
 
     /// Install or remove the optional mirror observer.

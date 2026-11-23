@@ -387,7 +387,8 @@ identities. The two routes differ:
   record still reads it. Lattice binds its state to the sent bytes, so
   `recover`, `cancel` and campaign `export-candidate` name exactly the file
   recorded for the launch (`Implementer::dispatch_request`,
-  `worker::sent_request_path`), whatever the current profile's
+  `worker::sent_request_path`, `worker::sent_request_and_state` for the file
+  and the launch's state root), whatever the current profile's
   `output_directory`; the record answers only while the transport intent and
   that exact launch are recorded. `--recover` never derives the lineage
   again, because the grants are unknown by then. It accepts the recorded
@@ -397,6 +398,22 @@ identities. The two routes differ:
   launch may have run; retain the unknown outcome and reconcile". A launch
   with no request record (recorded by an earlier binary) sent the admitted
   bytes, so its recovery uses them.
+- `--worker-request ADMITTED --sent-request true` (with `--database`,
+  `--enrollment` and `--worker-transport-profile`) reports that file to a
+  caller in another process. It prints one `kiln.lattice-sent-request.v1`
+  object with exactly `schema`, `attempt`, `fence`, `recorded`, `request`,
+  `request_blake3` and `state_directory`. `request` and `state_directory`
+  are exactly as recorded, never canonicalized; `recorded: false` names the
+  admitted request frozen in the profile's output directory, for a launch an
+  earlier binary recorded. Before printing, it requires the attempt and
+  fence named by the admitted request's envelope, admitted bytes equal to
+  the request sealed at bind-dispatch, and a recorded transport intent. It
+  also checks the file as recovery does: a bounded ordinary file hashing to
+  `request_blake3` that `verify_frozen` accepts. Any refusal exits non-zero
+  with nothing on stdout. The mode opens the ledger read-only
+  (`Implementer::open_read_only`, one `Implementer::dispatch_record`
+  snapshot) and writes, grants, reads and starts nothing; `--local-operator`,
+  `--dispatch-plan` and `--admission-observations` are not consulted.
 - `--dispatch-plan` (workflow exchange) sends a `lattice.workflow-request`,
   which has no lineage field and denies unknown fields. It runs the same
   derivation and refusals before the transport start, but its request bytes

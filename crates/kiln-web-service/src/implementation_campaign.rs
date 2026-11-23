@@ -673,8 +673,12 @@ impl NativeCampaignConsumer {
         )?;
         let launch = owner.dispatch_launch(&attempt.identity)?;
         let sent = owner.dispatch_request(&attempt.identity)?;
-        let (request, state) =
-            exported_request(launch.as_ref(), sent.as_ref(), &transport, &worker.request)?;
+        let (request, state) = kiln_adapter_lattice::worker::sent_request_and_state(
+            launch.as_ref(),
+            sent.as_ref(),
+            &transport,
+            &fs::read(&worker.request).map_err(text)?,
+        )?;
         let raw = run_role(
             &self.profile,
             &self.profile.roles.exporter,
@@ -1392,76 +1396,9 @@ fn attach_swarm_mirror(
     Ok(())
 }
 
-/// The request file and state root `export-candidate` names: exactly the
-/// ones the attempt's recorded launch ran, since Lattice binds the attempt to
-/// those bytes (the admitted request plus Kiln's budget lineage for an
-/// admitted attempt). `sent` is the request recorded for that launch; a
-/// launch recorded before Kiln recorded its request sent the admitted bytes,
-/// frozen in the profile's output directory.
-fn exported_request(
-    launch: Option<&kiln_core::implementation::TransportLaunch>,
-    sent: Option<&kiln_core::implementation::FrozenRequest>,
-    transport: &kiln_adapter_lattice::worker::WorkerTransportProfile,
-    admitted: &Path,
-) -> Result<(PathBuf, PathBuf), String> {
-    let request = kiln_adapter_lattice::worker::sent_request_path(
-        sent,
-        transport,
-        &fs::read(admitted).map_err(text)?,
-    )?;
-    let state = launch.map_or_else(
-        || transport.state_directory.clone(),
-        |launch| PathBuf::from(&launch.state_directory),
-    );
-    Ok((request, state))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    // r[verify kiln.admission.lattice_lineage.scenario.carried]
-    #[test]
-    fn export_names_the_request_and_root_the_recorded_launch_ran() {
-        use kiln_core::implementation::{FrozenRequest, TransportLaunch};
-        let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
-        let admitted = directory.path().join("worker-request.json");
-        fs::write(&admitted, b"{\"schema\":\"x\"}").unwrap_or_else(|_| unreachable!());
-        let digest = blake3::hash(b"{\"schema\":\"x\"}").to_hex().to_string();
-        let transport = kiln_adapter_lattice::worker::WorkerTransportProfile {
-            schema: "kiln.lattice-implementation-cli.v2".into(),
-            lattice_program: "/nix/store/0-lattice/bin/lattice".into(),
-            executable_blake3: id(&"b".repeat(64)).unwrap_or_else(|_| unreachable!()),
-            state_directory: "/current/state".into(),
-            output_directory: "/current/output".into(),
-        };
-        let launch = TransportLaunch {
-            lattice_program: "/nix/store/0-lattice/bin/lattice".into(),
-            executable_blake3: id(&"b".repeat(64)).unwrap_or_else(|_| unreachable!()),
-            state_directory: "/recorded/state".into(),
-        };
-        let sent = FrozenRequest {
-            path: "/recorded/output/request-sent.json".into(),
-            blake3: id(&"c".repeat(64)).unwrap_or_else(|_| unreachable!()),
-        };
-        assert_eq!(
-            exported_request(Some(&launch), Some(&sent), &transport, &admitted),
-            Ok((
-                PathBuf::from("/recorded/output/request-sent.json"),
-                PathBuf::from("/recorded/state")
-            ))
-        );
-        // A launch recorded before its request was: it sent the admitted bytes.
-        let legacy = PathBuf::from(format!("/current/output/request-{digest}.json"));
-        assert_eq!(
-            exported_request(Some(&launch), None, &transport, &admitted),
-            Ok((legacy.clone(), PathBuf::from("/recorded/state")))
-        );
-        assert_eq!(
-            exported_request(None, None, &transport, &admitted),
-            Ok((legacy, PathBuf::from("/current/state")))
-        );
-    }
 
     #[test]
     fn selected_required_checks_need_the_exact_passing_canonical_checks() {

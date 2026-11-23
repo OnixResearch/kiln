@@ -1,0 +1,34 @@
+{
+  "change": "report-lattice-sent-request",
+  "date": "2026-11-22",
+  "base": "90a9fb64 (main), branch sent-request-cli",
+  "scope": "SQLite implementation ledgers, frozen request files and the real kiln-lattice-dispatch binary as a process; no live Lattice recover or export",
+  "toolchain": "Kiln's pinned Rust 1.97.1 from /nix/store/nkkpiil0kdlyfkwcapl6gfav1i2ycg1f-rust-1.97.1-with-components-2026-07-16 on PATH (nix develop was held for the datapool); CARGO_TARGET_DIR and TMPDIR under /var/tmp/agents, CARGO_BUILD_JOBS=4, nice -n 10",
+  "commands": [
+    { "command": "cargo fmt --all -- --check", "exit": 0 },
+    { "command": "cargo test --locked -p kiln-adapter-lattice", "exit": 0, "result": "lib 89, bin 2, tests/sent_request_cli 2 passed" },
+    { "command": "cargo test --locked -p kiln-implementer", "exit": 0, "result": "lib 53 (7 ignored), admission 18, admission_host_owner 22, admission_lineage 2, durable 24, fleet 6, observation 2 passed" },
+    { "command": "cargo test --locked -p kiln-web-service --no-fail-fast", "exit": 0, "result": "lib 319 passed (2 ignored) and every integration test binary passed; a first run failed only worker::client::deadline_tests::execution_lookup_deadline_covers_both_response_bodies_and_keeps_http_timeout (a wall-clock deadline fixture under load, untouched here), which passed on the rerun and alone (12 deadline tests)" },
+    { "command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0 },
+    { "command": "cargo test --locked --workspace --no-fail-fast", "exit": 0, "result": "2525 passed, 0 failed, 16 ignored; an earlier run was terminated externally (exit 143) while compiling and was rerun" },
+    { "command": "cairn gate proposal|design|tasks report-lattice-sent-request --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "result": "PASS, 0 issues each" },
+    { "command": "cairn validate --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "result": "0 issues" },
+    { "command": "cairn traceability coverage --policy <nickel export cairn-policy/development-coverage.ncl> --profile kiln-active-development --json", "exit": 0, "result": "pass, 0 dangling, 0 missing" },
+    { "command": "cairn traceability coverage --policy cairn-policy/generated/cairn-policy.json --json", "exit": 1, "result": "accepted-only: the one dangling ID is this change's kiln.admission.lattice_lineage.scenario.reported, which the accepted spec gains when the change is synced and archived; 0 missing" }
+  ],
+  "mutations": [
+    { "mutation": "transport-intent check removed", "failed": "a_legacy_launch_reports_the_admitted_request_and_no_intent_is_refused, the_process_prints_one_object_or_nothing_and_writes_nothing" },
+    { "mutation": "verify_frozen result ignored", "failed": "a_record_naming_other_bytes_is_crossed" },
+    { "mutation": "recorded-BLAKE3 check removed", "failed": "the_report_names_the_recorded_lineage_request_and_root_without_writing" },
+    { "mutation": "request-seal digest check removed (run together with the open_read_only mutation below)", "failed": "the refusal assertions of the_report_names_the_recorded_lineage_request_and_root_without_writing and the_process_prints_one_object_or_nothing_and_writes_nothing" },
+    { "mutation": "Implementer::open instead of open_read_only", "failed": "the_report_names_the_recorded_lineage_request_and_root_without_writing, the_process_prints_one_object_or_nothing_and_writes_nothing (absent.sqlite created)" }
+  ],
+  "example_output": "{\"schema\":\"kiln.lattice-sent-request.v1\",\"attempt\":\"78d9e7d472c410d499cd360516b7c2cc8eaa13c7c2d3d1acc23459de3eb5158d\",\"fence\":1,\"recorded\":true,\"request\":\"/var/tmp/agents/kiln-sent-request-tmp/.tmps8y33X/recorded-output/./request-e6310f745c9faf1916323b335dbca0cb12e318be8cd2827dc48a4d710bdbd8b4.json\",\"request_blake3\":\"e6310f745c9faf1916323b335dbca0cb12e318be8cd2827dc48a4d710bdbd8b4\",\"state_directory\":\"/var/tmp/agents/kiln-sent-request-tmp/.tmps8y33X/recorded-state/\"}",
+  "not_run": [
+    "nix flake check: held while /nix and /tmp on the datapool are full; to be run and recorded before the last task is ticked"
+  ],
+  "non_claims": [
+    "no live Lattice recover, cancel, inspect or export ran against a reported file",
+    "the report does not show that Lattice's retained state still exists in the reported root"
+  ]
+}

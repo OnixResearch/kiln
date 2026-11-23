@@ -168,7 +168,10 @@ pub fn frozen_request_path(output_directory: &Path, digest: &ContentId) -> PathB
 /// before Kiln recorded its sent request, the admitted request frozen in the
 /// profile's output directory. Lattice binds its state to these exact bytes,
 /// so `recover`, `cancel`, `inspect` and `export-candidate` must name this
-/// file, not the admitted request.
+/// file, not the admitted request. [`sent_request_and_state`] pairs it with
+/// the launch's state root; callers in another process read both, verified,
+/// from `kiln-lattice-dispatch --worker-request <admitted> --sent-request
+/// true` ([`sent_request`], schema [`SENT_REQUEST_SCHEMA`]).
 ///
 /// # Errors
 /// Only if BLAKE3 hex were not a content identity.
@@ -184,6 +187,171 @@ pub fn sent_request_path(
             &blake3_identity(admitted)?,
         )),
     }
+}
+
+/// The request file and state root an attempt's recorded launch ran, which
+/// `recover`, `cancel`, `inspect` and `export-candidate` must name: the
+/// request is [`sent_request_path`]; the state root is the recorded launch's
+/// (`Implementer::dispatch_launch`), or the profile's for a transport intent
+/// recorded without a launch. `sent` is the request recorded for that
+/// launch and `admitted` the admitted request's bytes.
+///
+/// # Errors
+/// Only if BLAKE3 hex were not a content identity.
+pub fn sent_request_and_state(
+    launch: Option<&TransportLaunch>,
+    sent: Option<&FrozenRequest>,
+    profile: &WorkerTransportProfile,
+    admitted: &[u8],
+) -> Result<(PathBuf, PathBuf), String> {
+    let request = sent_request_path(sent, profile, admitted)?;
+    let state = launch.map_or_else(
+        || profile.state_directory.clone(),
+        |launch| PathBuf::from(&launch.state_directory),
+    );
+    Ok((request, state))
+}
+
+/// `schema` of the one object `--sent-request true` prints.
+pub const SENT_REQUEST_SCHEMA: &str = "kiln.lattice-sent-request.v1";
+
+/// What `--sent-request true` prints. `request` and `state_directory` are
+/// exactly as recorded (or resolved for a legacy launch), never
+/// canonicalized.
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SentRequestReport {
+    schema: String,
+    attempt: String,
+    fence: u64,
+    recorded: bool,
+    request: String,
+    request_blake3: String,
+    state_directory: String,
+}
+
+/// Whether `record` speaks for the admitted request: the attempt holds
+/// `fence`, its request seal from bind-dispatch is these exact bytes
+/// (`admitted`, their BLAKE3), and its transport intent is recorded.
+fn sent_request_admitted(
+    record: &kiln_implementer::DispatchRecord,
+    fence: u64,
+    admitted: &ContentId,
+) -> Result<(), String> {
+    let attempt = &record.attempt;
+    if attempt.fence != fence {
+        return Err(format!(
+            "fence {fence} is unknown to the ledger for attempt {}",
+            attempt.identity.as_str()
+        ));
+    }
+    let bound = attempt
+        .dispatch_request_binding
+        .as_ref()
+        .is_some_and(|binding| {
+            binding.attempt == attempt.identity
+                && binding.fence == fence
+                && binding.request_digest == *admitted
+        });
+    if !bound {
+        return Err("the admitted request is not the request bound at bind-dispatch".into());
+    }
+    if !record.transport_started {
+        return Err(
+            "no dispatch transport intent is recorded for the attempt; nothing was dispatched"
+                .into(),
+        );
+    }
+    Ok(())
+}
+
+// r[impl kiln.admission.lattice_lineage.scenario.reported]
+/// `kiln-lattice-dispatch --database DB --enrollment FILE --worker-request
+/// ADMITTED --worker-transport-profile FILE --sent-request true`: one
+/// [`SENT_REQUEST_SCHEMA`] object naming the request file and state root the
+/// attempt's recorded launch ran, for callers in another process that must
+/// name them ([`sent_request_path`]). The attempt and fence are the admitted
+/// request's `envelope.attempt_id` and `envelope.fence`. The ledger is opened
+/// read-only (`Implementer::open_read_only`) and read in one snapshot; the
+/// file is checked as recovery checks it (a bounded ordinary file hashing to
+/// the recorded BLAKE3, or the admitted bytes' for a legacy launch, that
+/// `verify_frozen` accepts). Nothing is written, no credential is read and
+/// Lattice is not started; `--local-operator`, `--dispatch-plan` and
+/// `--admission-observations` are not consulted.
+///
+/// # Errors
+/// A flag other than `--sent-request true`, an unreadable input, an attempt
+/// or fence unknown to the ledger, admitted bytes that are not the request
+/// bound at bind-dispatch, no recorded transport intent, or a recorded file
+/// that is missing, not a bounded ordinary file or crossed.
+pub fn sent_request(flags: &BTreeMap<String, String>) -> Result<String, String> {
+    if flags.get("--sent-request").map(String::as_str) != Some("true") {
+        return Err("--sent-request accepts only true".into());
+    }
+    let admitted = read_bounded(&required(flags, "--worker-request")?)
+        .map_err(|error| format!("the admitted worker request is unreadable ({error})"))?;
+    let request: serde_json::Value =
+        serde_json::from_slice(&admitted).map_err(|error| error.to_string())?;
+    let envelope = binding(&request, "envelope")?;
+    let attempt = envelope
+        .get("attempt_id")
+        .and_then(serde_json::Value::as_str)
+        .ok_or("worker request lacks envelope.attempt_id")?;
+    let attempt = ContentId::from_blake3_hex(attempt).map_err(|error| format!("{error:?}"))?;
+    let fence = envelope
+        .get("fence")
+        .and_then(serde_json::Value::as_u64)
+        .ok_or("worker request lacks envelope.fence")?;
+    let profile: WorkerTransportProfile =
+        read_json(&required(flags, "--worker-transport-profile")?)?;
+    let enrollment: Enrollment = read_json(&required(flags, "--enrollment")?)?;
+    let record = Implementer::open_read_only(&required(flags, "--database")?, enrollment)?
+        .dispatch_record(&attempt)?
+        .ok_or_else(|| format!("attempt {} is unknown to the ledger", attempt.as_str()))?;
+    let admitted_blake3 = blake3_identity(&admitted)?;
+    sent_request_admitted(&record, fence, &admitted_blake3)?;
+    let (path, state) = sent_request_and_state(
+        record.launch.as_ref(),
+        record.request.as_ref(),
+        &profile,
+        &admitted,
+    )?;
+    let expected = record
+        .request
+        .as_ref()
+        .map_or(&admitted_blake3, |sent| &sent.blake3);
+    let bytes = read_bounded(&path).map_err(|error| {
+        format!(
+            "the recorded request {} is unavailable ({error})",
+            path.display()
+        )
+    })?;
+    let crossed = || {
+        format!(
+            "the recorded request {} is crossed ({})",
+            path.display(),
+            lineage::LineageRefusal::FrozenRequestCrossed.code()
+        )
+    };
+    if blake3_identity(&bytes)? != *expected {
+        return Err(crossed());
+    }
+    lineage::verify_frozen(&admitted, &bytes).map_err(|_| crossed())?;
+    let text = |path: &Path| {
+        path.to_str()
+            .map(str::to_owned)
+            .ok_or_else(|| "the recorded request and state paths must be UTF-8".to_string())
+    };
+    serde_json::to_string(&SentRequestReport {
+        schema: SENT_REQUEST_SCHEMA.into(),
+        attempt: attempt.as_str().to_owned(),
+        fence,
+        recorded: record.request.is_some(),
+        request: text(&path)?,
+        request_blake3: expected.as_str().to_owned(),
+        state_directory: text(&state)?,
+    })
+    .map_err(|error| error.to_string())
 }
 
 fn blake3_identity(bytes: &[u8]) -> Result<ContentId, String> {
@@ -1271,3 +1439,7 @@ mod credential_ordering_tests {
 #[cfg(test)]
 #[path = "worker_preparation_tests.rs"]
 mod preparation_tests;
+
+#[cfg(test)]
+#[path = "worker_sent_request_tests.rs"]
+mod sent_request_tests;
