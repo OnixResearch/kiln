@@ -604,12 +604,22 @@ fn validate_source_profile(
         }
         NativeTransport::Https => {
             let (owner, repository) = repository_parts(&plan.repository)?;
-            let expected_url = format!("https://github.com/{owner}/{repository}.git");
-            if source.fixture || source.remote.remote_url != expected_url || endpoint != API {
+            let expected_url = format!(
+                "https://github.com/{}/{}.git",
+                owner.to_ascii_lowercase(),
+                repository.to_ascii_lowercase()
+            );
+            if source.fixture
+                || !https_remote_matches_repository(&source.remote.remote_url, owner, repository)
+                || endpoint != API
+            {
                 return Err(domain(
                     "github_publication_remote_mismatch",
                     "publication.remote",
-                    "GitHub token may only publish to the enrolled HTTPS repository",
+                    &format!(
+                        "GitHub token may only publish to the enrolled HTTPS repository (expected {expected_url}, configured {})",
+                        source.remote.remote_url
+                    ),
                 ));
             }
         }
@@ -806,6 +816,21 @@ fn repository_parts(repository: &str) -> PortResult<(&str, &str)> {
         ));
     }
     Ok((owner, name))
+}
+
+fn https_remote_matches_repository(remote_url: &str, owner: &str, repository: &str) -> bool {
+    let Some(rest) = remote_url
+        .strip_prefix("https://github.com/")
+        .and_then(|value| value.strip_suffix(".git"))
+    else {
+        return false;
+    };
+    let Some((remote_owner, remote_repo)) = rest.split_once('/') else {
+        return false;
+    };
+    !remote_repo.contains('/')
+        && remote_owner.eq_ignore_ascii_case(owner)
+        && remote_repo.eq_ignore_ascii_case(repository)
 }
 
 fn has_next_link(link: Option<&str>) -> PortResult<bool> {
@@ -1414,5 +1439,71 @@ mod tests {
                 .iter()
                 .all(|request| request.starts_with("GET "))
         );
+    }
+
+    #[test]
+    fn https_remote_compares_owner_and_repository_case_insensitively_only() {
+        let (_directory, mut plan, mut source, _remote_path) = captured_fixture();
+        plan.repository = "onixresearch/implementer-sandbox".to_string();
+        let make_https = |source: &mut PublicationSourceProfile, url: &str| {
+            source.fixture = false;
+            source.remote.transport = NativeTransport::Https;
+            source.remote.remote_url = url.to_string();
+            source.remote_identity =
+                remote_identity(&source.remote).unwrap_or_else(|_| unreachable!());
+        };
+
+        for valid in [
+            "https://github.com/onixresearch/implementer-sandbox.git",
+            "https://github.com/OnixResearch/implementer-sandbox.git",
+            "https://github.com/ONIXRESEARCH/Implementer-Sandbox.git",
+        ] {
+            make_https(&mut source, valid);
+            assert!(
+                validate_source_profile(&plan, &source, API).is_ok(),
+                "expected {valid} to be admitted"
+            );
+        }
+
+        for invalid in [
+            "https://github.com/other/implementer-sandbox.git",
+            "https://github.com/OnixResearch/other-repo.git",
+            "https://GITHUB.COM/OnixResearch/implementer-sandbox.git",
+            "https://example.com/OnixResearch/implementer-sandbox.git",
+            "https://github.com/OnixResearch/implementer-sandbox",
+            "https://github.com/OnixResearch/implementer-sandbox.GIT",
+            "https://github.com/OnixResearch/implementer-sandbox/extra.git",
+        ] {
+            make_https(&mut source, invalid);
+            let error = validate_source_profile(&plan, &source, API)
+                .err()
+                .unwrap_or_else(|| unreachable!("expected {invalid} to be refused"));
+            let rendered = format!("{error:?}");
+            assert!(
+                rendered.contains("https://github.com/onixresearch/implementer-sandbox.git"),
+                "missing expected URL in diagnostic for {invalid}: {rendered}"
+            );
+            assert!(
+                rendered.contains(invalid),
+                "missing configured URL in diagnostic for {invalid}: {rendered}"
+            );
+        }
+
+        // Non-HTTPS schemes are refused both by remote identity admission and
+        // by the HTTPS remote matcher itself.
+        for non_https in [
+            "http://github.com/OnixResearch/implementer-sandbox.git",
+            "HTTPS://github.com/OnixResearch/implementer-sandbox.git",
+        ] {
+            assert!(!https_remote_matches_repository(
+                non_https,
+                "onixresearch",
+                "implementer-sandbox"
+            ));
+            source.fixture = false;
+            source.remote.transport = NativeTransport::Https;
+            source.remote.remote_url = non_https.to_string();
+            assert!(remote_identity(&source.remote).is_err());
+        }
     }
 }
