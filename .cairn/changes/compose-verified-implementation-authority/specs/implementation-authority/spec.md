@@ -27,6 +27,44 @@ r[kiln.implementation.authority.coverage.entry_points.scenario.claim]
 - THEN the claim MUST deny inside the claim transaction
 - AND no attempt MUST be committed
 
+### Requirement: Dispatch admitted before reservation, launch and credentials
+
+r[kiln.implementation.authority.dispatch] Every dispatch reservation
+(`reserve_dispatch`, `reserve_dispatch_plan`), every durable launch record
+(`start_execution`, the fleet session bind) and every fleet launch effect MUST
+admit the exact `Dispatch` request for the attempt, fence and reservation
+effect identity before it saves a record or starts an effect. The decision MUST
+run inside the transaction that would save the record, after the attempt
+ledger's fence and phase checks. A shell that reads a credential before
+reserving MUST first admit the same request without changing state, and the
+reservation MUST then revalidate that session rather than admit a second
+grant. The transport-time recheck MUST remain.
+
+#### Scenario: Admitted principal reserves and launches
+
+r[kiln.implementation.authority.dispatch.scenario.admitted]
+- GIVEN a claimed attempt under the verified profile or the local operator
+- WHEN it is reserved, bound to a fleet session, rechecked before launch and started
+- THEN each step MUST admit
+- AND the pre-check and the reservation MUST consume one invocation together
+
+#### Scenario: Denied dispatch commits and starts nothing
+
+r[kiln.implementation.authority.dispatch.scenario.denied]
+- GIVEN the absent profile, a revoked grant, a stale revocation view, or a wrong attempt or fence
+- WHEN the fleet launch, `reserve`, `reserve-plan`, the pre-check or the CLI `start` runs
+- THEN it MUST deny
+- AND no reservation, plan, session or execution MUST be recorded
+- AND no invocation MUST be consumed
+
+#### Scenario: Denial precedes the credential read
+
+r[kiln.implementation.authority.dispatch.scenario.credential]
+- GIVEN a worker run whose admitted request names one credential variable
+- WHEN its Dispatch pre-check denies
+- THEN the credential source MUST NOT be read
+- AND no reservation MUST be recorded
+
 ### Requirement: Canonical payload binding
 
 r[kiln.implementation.authority.payload] The request digest MUST be the
@@ -59,12 +97,23 @@ r[kiln.implementation.authority.config.scenario.refused]
 - THEN selection MUST fail
 - AND the ledger MUST keep the absent profile and deny claims
 
+#### Scenario: Campaign roles select the drive's profile
+
+r[kiln.implementation.authority.config.scenario.roles]
+- GIVEN a campaign drive that selected a local operator, an exported configuration or neither
+- WHEN it launches its worker, capture or verifier role
+- THEN the role MUST receive exactly that source and resolve the same profile
+- AND an admitted worker MUST reach its transport check while the absent profile is refused before any credential read or reservation
+
 ### Requirement: Role-separated holder signing
 
 r[kiln.implementation.authority.selection] The verified profile MUST sign each
 holder invocation with the key of the role that owns the operation. The
-coordinator, verifier and publisher keys are distinct. The local-operator profile
-MUST carry no signer.
+coordinator, verifier and publisher keys are distinct. Each entry point MUST
+load only the holder seeds of the roles its own protected operations need,
+fixed by the entry point and never widened by a flag, and MUST refuse an
+operation of any other role before it signs, records or uses a credential.
+The local-operator profile MUST carry no signer.
 
 #### Scenario: A role key cannot sign another role's operation
 
@@ -72,6 +121,14 @@ r[kiln.implementation.authority.selection.scenario.roles]
 - GIVEN a coordinator, verifier or publisher holder key
 - WHEN it signs an operation owned by another role
 - THEN verification MUST deny
+
+#### Scenario: An entry point loads only its own holder seeds
+
+r[kiln.implementation.authority.selection.scenario.scoped]
+- GIVEN the worker or capture role with the verifier and publisher seed files absent or unreadable, or the verifier with only its own seed
+- WHEN the role selects the verified profile and runs its own operations
+- THEN selection MUST succeed without opening the other seeds and its operations MUST admit
+- AND an operation of another role MUST be refused as holder-not-loaded, consuming no invocation and recording nothing
 
 ### Requirement: Durable replay, revocation and decisions
 

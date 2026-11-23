@@ -32,6 +32,16 @@ fence between an authority check and its commit.
 - **Claim path.** `claim_next` and `claim_next_deferred` admit the claimed
   attempt as an exact `ClaimAcquire` invocation inside the claim transaction.
   They previously claimed without authority.
+- **Dispatch path.** `reserve_dispatch`, `reserve_dispatch_plan`,
+  `start_execution` and the fleet session bind admit the exact `Dispatch`
+  request inside the transaction that saves their record, and the fleet tick
+  rechecks it before starting the worker session. The GitHub CLI `reserve`,
+  `reserve-plan` and `start` reach these checks. The Lattice worker admits the
+  reservation's request before it reads its credential. They previously
+  reserved and launched without a `Dispatch` decision.
+- **Campaign roles.** The web campaign drive passes its worker, capture and
+  verifier roles exactly the authority source it selected. They previously
+  received none and always ran under the absent profile.
 - **Reconciliation.** Adopting an observed dispatch is a fresh `Dispatch`
   invocation bound to the original reservation's effect identity.
 - **Tests.** Verified positives and negatives for every operation in the

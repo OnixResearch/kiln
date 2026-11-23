@@ -66,7 +66,7 @@ At selection Kiln reads, once and within fixed size bounds:
 - a static Ed25519 key resolver built from `keys` (`did:key` to public key);
 - the proof store: at most 256 compact `*.ucan` tokens from `proofs_dir`;
 - the revocation feed (below), imported into the durable view;
-- the three holder seed files.
+- the holder seed files of the calling entry point's own roles, and no other.
 
 Unknown caveats deny. Basalt's `durable-authority` feature stays off; Kiln owns
 the replay, revocation and decision stores.
@@ -74,8 +74,9 @@ the replay, revocation and decision stores.
 **Role-separated holders.** `holders.coordinator`, `holders.verifier` and
 `holders.publisher` each name a distinct owner-only (`0600`) file holding one raw
 32-byte Ed25519 seed. Selection refuses a shared path, a group- or
-world-readable file, a wrong length, or a holder DID without exactly one current
-grant in the proof directory. The seed never enters argv, logs or a request.
+world-readable file, a wrong length, or a loaded holder DID without exactly one
+current grant in the proof directory. The seed never enters argv, logs or a
+request.
 Roles follow `GrantRole::of`. The coordinator (coding role) signs
 `claim-acquire`, `claim-renew`, `dispatch`, `candidate-submit` and
 `attempt-cancel`. The verifier signs `verification-admit`. The publisher signs
@@ -83,6 +84,31 @@ Roles follow `GrantRole::of`. The coordinator (coding role) signs
 afresh with a new nonce over its exact canonical resource. A grant addressed to
 one holder DID cannot be used by another holder, so a compromised coordinator
 key cannot sign verification or publication requests.
+
+**Per-role seed ownership.** Each process opens only the seeds of the roles its
+own entry point signs, fixed by the entry point and never by a flag:
+
+| Entry point | Seed it opens |
+|---|---|
+| Lattice worker (`kiln-lattice-dispatch`), fleet service | coordinator |
+| `kiln-implementer capture-candidate`, `claim`, `reserve`, `start`, … | coordinator |
+| `kiln-implementer publish`, `prepare-publication`, `close-source`, … | publisher |
+| `kiln-web-service verify-implementation` | verifier |
+| campaign drive | coordinator for its claim, publisher for native delivery |
+| observation and operator commands (`status`, `drain`, …) | none |
+
+Own each seed by its role's user, mode `0600`: the coordinator seed by the
+worker and fleet user, the verifier seed by the verifier user, the publisher
+seed by the publishing user. The campaign drive runs as root and reads the
+coordinator and publisher seeds at its own claim and delivery. Its launcher
+runs `capture-candidate` under the verifier's UID, so in a campaign deployment
+that UID holds both the coordinator and the verifier seeds. Separating capture
+into its own UID is a residual for S7's verifier separation, so #69 row 5 is
+met for the worker against the verifier, not in full. A process asked for an
+operation of a role it did not load refuses it as
+`authority: holder-not-loaded` before signing, recording or using a
+credential, so the worker cannot verify or publish even if it can reach the
+verifier's ledger.
 
 **Durable state.** The verified profile keeps its state in the SQLite file
 `<ledger>.authority` beside the implementer ledger. It is a separate file because
@@ -134,10 +160,24 @@ every `Implementer` public function, `kiln-implementer` subcommand, fleet API
 route and campaign control route as protected, reconciling, observation-only or
 operator configuration. `crates/kiln-implementer/tests/authority_coverage.rs`
 fails when an entry point has no row or a protected row never reaches its
-check. **Known gap:** the fleet tick launches the worker session after
-`fleet_bind_session` without a `dispatch` admission; only its claim is admitted.
-The GitHub CLI `reserve`/`start` path is operator-driven and also records no
-`dispatch` admission.
+check.
+
+**Dispatch before reservation, launch and credentials.** `reserve_dispatch`,
+`reserve_dispatch_plan` (the `reserve` and `reserve-plan` commands, the fleet
+tick and the Lattice worker), `start_execution` (the `start` command and every
+recorded workflow start) and the fleet session bind admit the exact `dispatch`
+request for the attempt, fence and reservation effect inside the transaction
+that saves their record; a denial saves nothing. The fleet tick admits the
+bound session's request again before it creates the worktree and starts the
+agent. The Lattice worker calls `authorize_dispatch_plan` before it reads its
+credential variable; that pre-check saves nothing, and the reservation
+revalidates its session instead of consuming a second grant.
+`admission_before_transport` still rechecks at transport. A command run with
+neither `--local-operator` nor `--authority-config` runs under the absent
+profile and is refused. The campaign drive passes its worker, capture and
+verifier roles exactly the source it selected itself; under the verified
+profile each role's user reads that configuration, the proofs, the revocation
+feed and `<ledger>.authority`, and only its own seed.
 
 The adapter records bounded redacted decisions and revalidates immediately
 before every protected commit or transport. Missing authority, cancelled or

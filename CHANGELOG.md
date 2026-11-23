@@ -714,8 +714,18 @@ entry describes the source tree prepared for the first tagged release.
   public function, CLI subcommand, fleet route and campaign control route, and a
   source-scanning test fails on an unclassified entry point. `claim_next` and
   `claim_next_deferred` now admit `claim-acquire`; they previously claimed
-  without authority. The fleet's worker launch still has no `dispatch`
-  admission (recorded gap). The
+  without authority. Dispatch reservations, `start_execution`, the fleet
+  session bind and the fleet's worker launch now admit `dispatch` before they
+  save or start anything, and the Lattice worker admits it before reading its
+  credential; they previously reserved and launched without a `dispatch`
+  decision. The campaign drive now passes its own authority selection to its
+  worker, capture and verifier roles, which previously always ran under the
+  absent profile. Each entry point now opens only the holder seeds of its own
+  roles (the worker and capture role the coordinator's, the verifier its own)
+  and refuses another role's operation as `holder-not-loaded`; previously every
+  process loaded all three seeds. The revocation view is recorded at the
+  whole second decisions read it at; a view recorded with milliseconds denied
+  whatever a shell did in the second it selected the profile. The
   runbook records which GitHub effects are remotely conditional; those
   guarantees remain live-only qualification. (#69; no live GitHub or Basalt
   deployment)
