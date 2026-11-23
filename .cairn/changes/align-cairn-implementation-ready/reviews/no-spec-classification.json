@@ -1,0 +1,28 @@
+{
+  "schema_version": "cairn.semantic-review.review-receipt.v1",
+  "review_kind": "plan",
+  "decision": "approved",
+  "findings": [],
+  "reviewed_inputs": [
+    {
+      "path": "proposal.md",
+      "hash": "05ec4fa9f99b091326f8fce7639312f3f9d57560088192ac10d2882f47554645"
+    },
+    {
+      "path": "design.md",
+      "hash": "13317b85eed8f8f7327126779a6bc95e2e4a48e8b5e9fcfb5bfe79729c61ee4e"
+    },
+    {
+      "path": "acceptance.md",
+      "hash": "b61d8f8739c1c473ed0afadd7f8502a2656501aec428412fcaa9511a9fb1e7b3"
+    },
+    {
+      "path": "tasks.md",
+      "hash": "cdec0a41667bfaff755fca84db92dadf3e93a19d82a9144e6f146b7218fc58ef"
+    }
+  ],
+  "reviewer": {
+    "id": "omp-cairn-align-plan-review",
+    "source": "agentic"
+  }
+}

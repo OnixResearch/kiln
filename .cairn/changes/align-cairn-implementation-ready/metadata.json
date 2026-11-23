@@ -1,0 +1,9 @@
+{
+  "spec_effect": "none",
+  "spec_effect_rationale": "Re-import pinned Cairn sources and the producer policy snapshot at 9082e1ae and re-export the generated policy. No accepted Kiln requirement, stable ID or normative meaning changes; a needed normative change requires reclassification before implementation.",
+  "workflow_profile": {
+    "id": "no-spec-delta",
+    "source": "change_create",
+    "version": 1
+  }
+}

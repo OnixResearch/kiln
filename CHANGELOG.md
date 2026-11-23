@@ -713,6 +713,19 @@ entry describes the source tree prepared for the first tagged release.
 
 ### Changed
 
+- Kiln's Cairn gate contract and `cairn-core` imports move to Cairn
+  `9082e1aece4f04bcbead5eeea087e496bc48a675`, the revision Lattice also locks
+  and the first shared one with `cairn implementation-ready`. Both come from one
+  `scripts/import-pinned-source.sh` revision; Cairn's `kiln-core` dependency
+  stays at `5d99f4e9`. The gate contract changed only its module layout, and its
+  wire fixtures and Nickel contract are byte-identical. The gate executable
+  profile stays at its reviewed `15f00875` binary. `cairn-core` added
+  convergence, delta-merge and assurance-target changes that Kiln does not call.
+  The lock changes only `cairn-gate-contract` 0.1.0 to 0.2.1. The `kiln-default`
+  policy snapshot is re-imported at the same revision and re-exported, because
+  a `9082e1ae` `cairn` refuses the old export: only its generated agent
+  workflow section changes, adding the command catalog, the entry guide and
+  `cairn readiness` routes.
 - `poll` now refuses an invalid repository policy (for example
   `repository_id` 0) or base reference before any GitHub call, as webhook
   intake already did. It previously checked only the selection, so such a
