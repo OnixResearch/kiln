@@ -182,7 +182,7 @@ pub const COVERAGE: [CoverageEntry; 9] = [
         operation: ProtectedOperation::ClaimRenew,
         basalt_operation: "claim-renew",
         owner: EnforcementBoundary::Admission,
-        owner_path: "crates/kiln-implementer/src/admission.rs",
+        owner_path: "crates/kiln-implementer/src/lib.rs",
         effect: AuthorityEffect::Mutation,
         candidate_bound: false,
     },
@@ -404,7 +404,9 @@ impl EntryClass {
 
 /// One reviewed externally reachable entry point: an `Implementer` public
 /// function, an implementer CLI subcommand, a fleet API route or a web control
-/// route.
+/// route. An entry point that multiplexes several commands lists one row per
+/// class it reaches, for example `admission_apply` admits claims, admits
+/// dispatch requests and applies operator ledger configuration.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct EntryPoint {
     /// Repository path of the item.
@@ -421,8 +423,8 @@ pub struct EntryPoint {
 ///
 /// # Errors
 /// Returns a diagnostic for an empty or oversized table, an invalid path or
-/// item, a duplicate `(path, item)` pair, or a protected operation with no
-/// `Protected` entry at its coverage owner path.
+/// item, a duplicate `(path, item, class)` row, or a protected operation with
+/// no `Protected` entry at its coverage owner path.
 pub fn validate_entry_points(entries: &[EntryPoint]) -> CoreResult<()> {
     if entries.is_empty() || entries.len() > MAX_ENTRY_POINTS {
         return Err(Diagnostic::new(
@@ -445,15 +447,13 @@ pub fn validate_entry_points(entries: &[EntryPoint]) -> CoreResult<()> {
                 "entry point path and item must be bounded non-empty trimmed text",
             ));
         }
-        if entries
-            .iter()
-            .skip(index + 1)
-            .any(|other| other.path == entry.path && other.item == entry.item)
-        {
+        if entries.iter().skip(index + 1).any(|other| {
+            other.path == entry.path && other.item == entry.item && other.class == entry.class
+        }) {
             return Err(Diagnostic::new(
                 "authority_entry_point_duplicate",
                 "entry_points.item",
-                "entry point appears more than once",
+                "entry point row appears more than once",
             ));
         }
     }
@@ -1395,6 +1395,93 @@ mod tests {
         assert_eq!(
             validate_coverage(&[]).err().map(|error| error.code),
             Some("authority_coverage_incomplete".into())
+        );
+    }
+
+    #[test]
+    // r[verify kiln.implementation.authority.coverage.entry_points]
+    fn reviewed_entry_points_cover_every_operation_owner() {
+        validate_entry_points(ENTRY_POINTS).unwrap_or_else(|error| unreachable!("{error:?}"));
+        for operation in ProtectedOperation::ALL {
+            assert!(
+                ENTRY_POINTS
+                    .iter()
+                    .any(|entry| entry.class == EntryClass::Protected(operation)),
+                "{operation:?}"
+            );
+        }
+        let mut duplicate = ENTRY_POINTS.to_vec();
+        duplicate.push(ENTRY_POINTS[0]);
+        assert_eq!(
+            validate_entry_points(&duplicate)
+                .err()
+                .map(|error| error.code),
+            Some("authority_entry_point_duplicate".into())
+        );
+        let unowned: alloc::vec::Vec<_> = ENTRY_POINTS
+            .iter()
+            .copied()
+            .filter(|entry| entry.class != EntryClass::Protected(ProtectedOperation::ClaimRenew))
+            .collect();
+        assert_eq!(
+            validate_entry_points(&unowned)
+                .err()
+                .map(|error| error.code),
+            Some("authority_entry_point_unowned".into())
+        );
+        let mut unnamed = ENTRY_POINTS.to_vec();
+        unnamed[0].item = " open";
+        assert_eq!(
+            validate_entry_points(&unnamed)
+                .err()
+                .map(|error| error.code),
+            Some("authority_entry_point_name".into())
+        );
+        assert_eq!(
+            validate_entry_points(&[]).err().map(|error| error.code),
+            Some("authority_entry_points_bound".into())
+        );
+    }
+
+    #[test]
+    // r[verify kiln.implementation.authority.payload]
+    // r[verify kiln.implementation.authority.payload.scenario.fields]
+    fn payload_v2_binds_every_field_with_length_framing() {
+        let launch = ContentId::from_blake3_hex("ab".repeat(32))
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let digest = |operation, incarnation, effect, target, parts: &[&str]| {
+            payload_digest_v2(operation, incarnation, effect, target, parts)
+        };
+        let publish = ProtectedOperation::PublicationPublish;
+        let target = "refs/heads/kiln@absent";
+        let base = digest(publish, Some(&launch), "effect-1", target, &["ab", "c"]);
+        let variants = [
+            digest(
+                ProtectedOperation::IntegrationLand,
+                Some(&launch),
+                "effect-1",
+                target,
+                &["ab", "c"],
+            ),
+            digest(publish, None, "effect-1", target, &["ab", "c"]),
+            digest(publish, Some(&launch), "effect-2", target, &["ab", "c"]),
+            digest(
+                publish,
+                Some(&launch),
+                "effect-1",
+                "refs/heads/kiln@0123",
+                &["ab", "c"],
+            ),
+            digest(publish, Some(&launch), "effect-1", target, &["a", "bc"]),
+            digest(publish, Some(&launch), "effect-1", target, &["ab", "c", ""]),
+        ];
+        for variant in variants {
+            assert_ne!(variant, base);
+        }
+        assert_eq!(
+            digest(publish, Some(&launch), "effect-1", target, &["ab", "c"]),
+            base,
+            "a fresh invocation of the same effect recomputes the same digest"
         );
     }
 

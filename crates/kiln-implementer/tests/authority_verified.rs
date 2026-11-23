@@ -98,7 +98,7 @@ fn verified_profile_from_config_admits_coordinator_operations_through_durable_st
 }
 
 #[test]
-// r[verify kiln.implementation.authority.coverage.entry_points]
+// r[verify kiln.implementation.authority.coverage.entry_points.scenario.claim]
 fn verified_profile_admits_claim_next_as_an_exact_claim_acquire() {
     let dir = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
     let db = dir.path().join("ledger.db");
@@ -128,7 +128,7 @@ fn verified_profile_admits_claim_next_as_an_exact_claim_acquire() {
 }
 
 #[test]
-// r[verify kiln.implementation.authority.coverage.entry_points]
+// r[verify kiln.implementation.authority.coverage.entry_points.scenario.claim]
 fn absent_profile_refuses_claim_next_and_commits_no_attempt() {
     let dir = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
     let db = dir.path().join("ledger.db");
@@ -153,7 +153,7 @@ fn absent_profile_refuses_claim_next_and_commits_no_attempt() {
 }
 
 #[test]
-// r[verify kiln.implementation.authority.state]
+// r[verify kiln.implementation.authority.state.scenario.revoked]
 fn revoked_grant_in_the_configured_feed_refuses_the_claim_and_commits_nothing() {
     let dir = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
     let db = dir.path().join("ledger.db");
@@ -181,7 +181,7 @@ fn revoked_grant_in_the_configured_feed_refuses_the_claim_and_commits_nothing() 
 }
 
 #[test]
-// r[verify kiln.implementation.authority.state]
+// r[verify kiln.implementation.authority.state.scenario.stale]
 fn stale_revocation_view_refuses_the_claim_and_commits_nothing() {
     let dir = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
     let db = dir.path().join("ledger.db");
@@ -200,7 +200,7 @@ fn stale_revocation_view_refuses_the_claim_and_commits_nothing() {
 }
 
 #[test]
-// r[verify kiln.implementation.authority.config]
+// r[verify kiln.implementation.authority.config.scenario.refused]
 fn expired_or_untrusted_grants_are_never_selected_from_config() {
     for (name, fixture, now_ms) in [
         (

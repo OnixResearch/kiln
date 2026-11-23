@@ -187,6 +187,7 @@ fn fence_cannot_change_inside_the_admission_apply_transaction() {
 #[test]
 // r[verify kiln.implementation.authority.reconcile]
 // r[verify kiln.implementation.authority.state.scenario.replay]
+// r[verify kiln.implementation.authority.reconcile.scenario.fresh_nonce]
 fn reconciliation_reuses_the_dispatch_effect_identity_with_a_fresh_nonce() {
     let dir = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
     let db = dir.path().join("ledger.db");

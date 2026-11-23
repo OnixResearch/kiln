@@ -154,6 +154,7 @@ fn every_bound_field_substitution_denies_before_replay() {
 
 #[test]
 // r[verify kiln.implementation.authority.separation.scenario.widen]
+// r[verify kiln.implementation.authority.selection.scenario.roles]
 fn a_role_key_cannot_sign_another_roles_operation() {
     let fixture = Fixture::direct();
     for operation in ProtectedOperation::ALL {
