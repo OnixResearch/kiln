@@ -800,6 +800,11 @@ entry describes the source tree prepared for the first tagged release.
   by Nix; Lattice's own Cairn pin (`47ea1b86`) is unchanged. The bubblewrap
   provider's mounted roots are byte-identical. The single-host KVM guest run
   was recorded with `661499d2`.
+- The Lattice workflow-intent fixtures (`fixtures/lattice/workflow-intent/`)
+  are regenerated with the `runtime/lattice-worker-cohort` release `lattice`
+  at `5a8e1d51`; the compile request binds its measured compiler identity
+  `b3:e0740dca…` and a runtime fixture identity naming `5a8e1d51`. The
+  normalized intent is unchanged.
 
 ### Fixed
 

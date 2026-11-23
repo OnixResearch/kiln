@@ -103,12 +103,17 @@ changed-policy and interrupted-observation. `fixtures/lattice/workflow-intent/`
 retains the normalized intent, its compile request, the plan from one local
 `lattice workflow-intent compile` run and one `compare` result
 (`verify.compare-dropped.json`: dropping an obligation yields
-`owner_readmission_required`). The executable was a release `lattice` built from
-Lattice `661499d282c2e79ebefbd0f9b35beb5f8d7795cd`; its measured compiler identity
-is the request's `compiler_artifact_identity`, so a different executable is
-refused. The request's `runtime_profile_identity` is a synthetic fixture value
-(`b3:` BLAKE3 of
-`kiln.lattice-runtime-profile.fixture.v1:lattice@661499d282c2e79ebefbd0f9b35beb5f8d7795cd`),
+`owner_readmission_required`). The executable was the release `lattice` of the
+`runtime/lattice-worker-cohort` package, Lattice
+`5a8e1d51c2e36100424b761c4fef65e6cd4c68dc`
+(`/nix/store/fh04cadrj2f3xxjr8ga8rm966jpzy9bp-lattice-0.1.0/bin/lattice`);
+its measured compiler identity
+(`lattice workflow-intent compiler-identity`:
+`b3:e0740dca6c96238dd531e1d4a46a617ee649c91156f2e5f4b8c3442885b22d7e`) is the
+request's `compiler_artifact_identity`, so a different executable is refused.
+The request's `runtime_profile_identity` is a synthetic fixture value (`b3:`
+BLAKE3 of
+`kiln.lattice-runtime-profile.fixture.v1:lattice@5a8e1d51c2e36100424b761c4fef65e6cd4c68dc`),
 not a qualified runtime profile. The same executable refuses the request with
 `coverage = incomplete` (`IncompleteContext`). Set
 `KILN_UPDATE_SELECTED_WORK_FIXTURES=1` or `KILN_UPDATE_LATTICE_INTENT_FIXTURES=1`
