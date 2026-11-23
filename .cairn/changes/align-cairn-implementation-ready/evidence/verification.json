@@ -1,0 +1,43 @@
+{
+  "change": "align-cairn-implementation-ready",
+  "issue": 49,
+  "date": "2026-11-22",
+  "base": "90a9fb64",
+  "producer": {
+    "repository": "https://github.com/OnixResearch/cairn.git",
+    "commit": "9082e1aece4f04bcbead5eeea087e496bc48a675",
+    "vendor_cairn_archive_blake3": "34d5bc3d335c23161b0a832727866d5d4d3cd309f459e5f1db1cbbb3c777ef3c",
+    "vendor_cairn_verifier_archive_blake3": "cb6b7a2f7fe2f39ba3b814803cd0c609be436c1854a6205faf301f0302cd10ed",
+    "full_archive_blake3": "5ad172aded6f574deca11e1274c5a754b8a4e050ff49d17e319022d8c2e21779",
+    "policy_source_nar": "sha256-MupXo6ha88a5GtCWyurc6ogIw5N0i7nat2BQ3btglnA=",
+    "tree_equality": "diff -r of each import against git archive 9082e1ae of its recorded paths differs only in the importer's pruned root-manifest members and added rustfmt.toml"
+  },
+  "cairn_executable": {
+    "path": "/nix/store/pdj2rrxcxwwdnkjkhmxfn9vxc5rb3d74-cairn-0.2.1/bin/cairn",
+    "built_from": "git+file:<cairn clone>?rev=9082e1aece4f04bcbead5eeea087e496bc48a675#cairn",
+    "note": "used with --policy and CAIRN_POLICY set to cairn-policy/generated/cairn-policy.json"
+  },
+  "commands": [
+    {"command": "scripts/import-pinned-source.sh cairn|cairn-verifier <cairn clone>", "exit": 0},
+    {"command": "scripts/import-pinned-source.sh cairn-kiln-core <kiln clone>", "exit": 0, "result": "verified existing at 5d99f4e9"},
+    {"command": "scripts/import-cairn-policy.sh", "exit": 0},
+    {"command": "cairn policy export --source cairn-policy/default.ncl --output cairn-policy/generated/cairn-policy.json", "exit": 0, "changed_sections": ["generated_agent_workflow_policy"]},
+    {"command": "cairn validate (9082e1ae) with the previous export", "exit": 1, "result": "policy has invalid field generated_agent_workflow_policy (negative)"},
+    {"command": "cargo fmt --all --check", "exit": 0},
+    {"command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0},
+    {"command": "cargo clippy --locked --workspace --all-targets --all-features -- -D warnings", "exit": 0},
+    {"command": "cargo test --locked --workspace", "exit": 0, "passed": 2520, "failed": 0, "ignored": 16, "suites": 199, "note": "run on the imported sources before the policy re-export; no Rust source reads the re-exported policy or agent-completion fixtures"},
+    {"command": "scripts/check-nickel-fixtures.sh", "exit": 0, "result": "103 positive, 655 negative"},
+    {"command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "valid": true, "issues": 0},
+    {"command": "cairn traceability coverage --root . --policy cairn-policy/generated/cairn-policy.json --json", "exit": 0, "verdict": "pass", "referenced": 2256, "missing": 0, "dangling": 0},
+    {"command": "cairn release-readiness --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "verdict": "pass", "checks_passed": 14, "checks": 14},
+    {"command": "nix build path:$PWD#checks.x86_64-linux.cairn-gate-cohort", "exit": 0},
+    {"command": "nix build path:$PWD#packages.x86_64-linux.kiln-cairn-intake", "exit": 0},
+    {"command": "nix build path:$PWD#packages.x86_64-linux.implementation-fixtures", "exit": 0, "passed": 799, "failed": 0, "ignored": 2, "suites": 41},
+    {"command": "cairn implementation-ready --root . | kiln-cairn-intake --sequence 1 then 2", "exit": 0, "result": "selected 6, admitted 6; replay superseded 6"}
+  ],
+  "known_unrelated": [
+    "tests/cairn-workflow-policy.sh exits 4 at base and here: change prepare-public-release is archived",
+    "scripts/import-pinned-source.sh lattice, valence and bounded-exec pins carry a stale digest copied from mantle"
+  ]
+}
