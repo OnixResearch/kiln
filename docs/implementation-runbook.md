@@ -174,7 +174,13 @@ before every first prompt, including one reconciled for an agent whose start
 was recorded but whose prompt was not; a denial starts and prompts nothing. The
 Lattice worker calls `authorize_dispatch_plan` before it reads its
 credential variable; that pre-check saves nothing, and the reservation
-revalidates its session instead of consuming a second grant.
+revalidates its session instead of consuming a second grant. An owner
+reservation (`admission_reserve_with_owner`, `host-owner-reserve`) admits a
+fresh `dispatch` invocation for its original effect before the owner can
+commit it: a new request inside the transaction that records it, and a
+tentative request left by an interrupted reserve, or retained and retried,
+before the owner resolves it. A denial leaves the request tentative and commits
+nothing.
 `admission_before_transport` still rechecks at transport. A command run with
 neither `--local-operator` nor `--authority-config` runs under the absent
 profile and is refused. The campaign drive passes its worker, capture and

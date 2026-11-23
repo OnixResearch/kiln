@@ -514,6 +514,28 @@ impl Implementer {
                                 "retained operation differs from requested identity",
                             ));
                         }
+                        // A tentative request left by an interrupted reserve
+                        // is resolved by the owner after this returns; that
+                        // can commit it, so it presents a fresh invocation
+                        // for the original effect first.
+                        if retained.state == ReservationState::Tentative {
+                            if !attempts.is_current(
+                                &retained.claim.attempt,
+                                retained.claim.fence,
+                                now_ms,
+                            ) {
+                                return Err(refusal("reservation claim/fence expired"));
+                            }
+                            authorize_owner_request(
+                                &work,
+                                &attempts,
+                                &launches,
+                                authority_slot,
+                                authority_profile,
+                                retained,
+                                now_ms,
+                            )?;
+                        }
                         return Ok(AdmissionResult::Retained {
                             reservation: Box::new(retained.clone()),
                         });
@@ -566,58 +588,15 @@ impl Implementer {
                     {
                         return Err(refusal("request generation differs from ranked offer"));
                     }
-                    let reservation_attempt = attempts
-                        .get(&reservation.claim.attempt)
-                        .ok_or_else(|| refusal("reservation attempt missing"))?;
-                    let reservation_work = work
-                        .current()
-                        .find(|candidate| {
-                            candidate
-                                .identity()
-                                .is_ok_and(|identity| identity == reservation.work_version)
-                        })
-                        .ok_or_else(|| refusal("reservation work missing"))?;
-                    // The stable effect is the attempt's dispatch reservation
-                    // when one exists, else this owner reservation.
-                    let effect = reservation_attempt
-                        .dispatch
-                        .as_ref()
-                        .map_or(reservation.operation.as_str(), |dispatch| {
-                            dispatch.effect_id.as_str()
-                        });
-                    let incarnation = super::authority_bridge::incarnation(
-                        launches.recall(&reservation_attempt.identity).as_ref(),
-                    );
-                    let request = super::authority_bridge::request_for(
-                        kiln_core::implementation::authority::ProtectedOperation::Dispatch,
-                        reservation_work,
-                        reservation_attempt,
-                        super::authority_bridge::PayloadBinding {
-                            incarnation: incarnation.as_ref(),
-                            effect,
-                            expected_target:
-                                kiln_core::implementation::authority::NO_EXPECTED_TARGET,
-                        },
-                        &[reservation.operation.as_str()],
-                        None,
-                    )
-                    .map_err(|message| refusal(&message))?;
-                    let session = super::authority_bridge::admit_with(
+                    authorize_owner_request(
+                        &work,
+                        &attempts,
+                        &launches,
                         authority_slot,
                         authority_profile,
-                        &request,
-                        kiln_core::implementation::authority::AttemptCurrentness::Current,
+                        &reservation,
                         now_ms,
-                    )
-                    .map_err(|message| refusal(&message))?;
-                    super::authority_bridge::revalidate_with(
-                        authority_slot,
-                        session,
-                        &request,
-                        kiln_core::implementation::authority::AttemptCurrentness::Current,
-                        now_ms,
-                    )
-                    .map_err(|message| refusal(&message))?;
+                    )?;
                     ledger.request(reservation, now_ms)?;
                     AdmissionResult::Updated
                 }
@@ -1183,6 +1162,107 @@ fn eligible_inputs(
         })
         .collect()
 }
+// r[impl kiln.implementation.authority.dispatch]
+/// Admit a fresh exact `Dispatch` invocation for one owner reservation before
+/// the owner may commit it: a new request, a retried one, or a tentative one
+/// resumed after an interrupted reserve. The effect identity is the attempt's
+/// dispatch reservation when one exists, else the owner operation itself, so
+/// every invocation for the same request names the same effect.
+fn authorize_owner_request(
+    work: &WorkLedger,
+    attempts: &AttemptLedger,
+    launches: &kiln_core::implementation::TransportLaunches,
+    authority: &mut Option<Box<dyn ProtectedAuthority>>,
+    profile: &AuthoritySelection,
+    reservation: &OwnerReservation,
+    now_ms: u64,
+) -> Result<(), Diagnostic> {
+    let reservation_attempt = attempts
+        .get(&reservation.claim.attempt)
+        .ok_or_else(|| refusal("reservation attempt missing"))?;
+    let reservation_work = work
+        .current()
+        .find(|candidate| {
+            candidate
+                .identity()
+                .is_ok_and(|identity| identity == reservation.work_version)
+        })
+        .ok_or_else(|| refusal("reservation work missing"))?;
+    let effect = reservation_attempt
+        .dispatch
+        .as_ref()
+        .map_or(reservation.operation.as_str(), |dispatch| {
+            dispatch.effect_id.as_str()
+        });
+    let incarnation = super::authority_bridge::incarnation(
+        launches.recall(&reservation_attempt.identity).as_ref(),
+    );
+    let request = super::authority_bridge::request_for(
+        kiln_core::implementation::authority::ProtectedOperation::Dispatch,
+        reservation_work,
+        reservation_attempt,
+        super::authority_bridge::PayloadBinding {
+            incarnation: incarnation.as_ref(),
+            effect,
+            expected_target: kiln_core::implementation::authority::NO_EXPECTED_TARGET,
+        },
+        &[reservation.operation.as_str()],
+        None,
+    )
+    .map_err(|message| refusal(&message))?;
+    let session = super::authority_bridge::admit_with(
+        authority,
+        profile,
+        &request,
+        kiln_core::implementation::authority::AttemptCurrentness::Current,
+        now_ms,
+    )
+    .map_err(|message| refusal(&message))?;
+    super::authority_bridge::revalidate_with(
+        authority,
+        session,
+        &request,
+        kiln_core::implementation::authority::AttemptCurrentness::Current,
+        now_ms,
+    )
+    .map_err(|message| refusal(&message))
+}
+
+impl Implementer {
+    /// Admit a fresh `Dispatch` invocation for a tentative owner reservation
+    /// before the owner port resolves it; nothing is saved.
+    ///
+    /// # Errors
+    /// Returns the ledger refusal or the redacted authority denial.
+    pub(crate) fn authorize_owner_reservation(
+        &mut self,
+        reservation: &OwnerReservation,
+        now_ms: u64,
+    ) -> Result<(), String> {
+        let tx = self.connection.transaction().map_err(text)?;
+        let (work, _) = load::<WorkLedger>(&tx, WORK_KIND)?;
+        let (attempts, _) = load::<AttemptLedger>(&tx, ATTEMPT_KIND)?;
+        let (launches, _) = load::<kiln_core::implementation::TransportLaunches>(
+            &tx,
+            crate::TRANSPORT_LAUNCH_KIND,
+        )?;
+        drop(tx);
+        if !attempts.is_current(&reservation.claim.attempt, reservation.claim.fence, now_ms) {
+            return Err(diagnostic(refusal("reservation claim/fence expired")));
+        }
+        authorize_owner_request(
+            &work,
+            &attempts,
+            &launches,
+            &mut self.authority,
+            &self.authority_profile,
+            reservation,
+            now_ms,
+        )
+        .map_err(diagnostic)
+    }
+}
+
 pub(crate) fn authorize_claim(
     work: &WorkLedger,
     authority: &mut Option<Box<dyn ProtectedAuthority>>,
