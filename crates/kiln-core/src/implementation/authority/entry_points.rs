@@ -92,6 +92,9 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     operator(LIB, "select_local_operator"),
     operator(LIB, "open_with_local_operator"),
     operator(LIB, "open_with_authority"),
+    // A query-only connection under the absent profile: every mutating method
+    // fails inside SQLite, and no protected operation can admit.
+    observe(LIB, "open_read_only"),
     operator(CONFIG, "select_authority"),
     // A fixed clock only makes currentness reproducible; it never creates authority.
     operator(LIB, "set_clock_ms"),
@@ -171,6 +174,8 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     observe(LIB, "swarm_snapshots"),
     observe(LIB, "metrics"),
     observe(LIB, "metrics_report"),
+    // The sent-request report's single read transaction; it saves nothing.
+    observe(LIB, "dispatch_record"),
     observe(CAMPAIGN, "campaign_request_binding"),
     // ── Implementer: candidate, verification and cancellation ──
     protected(LIB, "admit_candidate_handoff", Op::CandidateSubmit),
