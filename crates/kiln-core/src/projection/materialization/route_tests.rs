@@ -60,6 +60,10 @@ const SOURCE: [&str; 7] = [
 ];
 
 fn facts() -> ProjectionFacts {
+    facts_of(&SOURCE)
+}
+
+fn facts_of(paths: &[&str]) -> ProjectionFacts {
     ProjectionFacts {
         repository: repository().identity().clone(),
         exact_revision: ok(ExternalRef::new("git", "commit", &"a".repeat(40))),
@@ -74,7 +78,7 @@ fn facts() -> ProjectionFacts {
         },
         source_capabilities: vec![SourceCapability::ExactTree, SourceCapability::ExecutableBit],
         coverage: Coverage::Complete,
-        entries: SOURCE
+        entries: paths
             .iter()
             .map(|path| SourceEntry {
                 path: (*path).into(),
@@ -130,9 +134,16 @@ struct View {
 }
 
 fn view_for(definition: &ProjectionDefinition, operation: ProjectionOperation) -> View {
+    view_over(definition, operation, &facts())
+}
+
+fn view_over(
+    definition: &ProjectionDefinition,
+    operation: ProjectionOperation,
+    facts: &ProjectionFacts,
+) -> View {
     let definition = ok(admit_definition(definition));
-    let complete =
-        ok(ok(resolve(&definition, &repository(), &facts())).require_complete(operation));
+    let complete = ok(ok(resolve(&definition, &repository(), facts)).require_complete(operation));
     let profile = MaterializerProfile {
         schema: MATERIALIZER_PROFILE_SCHEMA.into(),
         kind: MaterializerKind::EagerLocalDirectory,
@@ -386,6 +397,23 @@ fn a_recorded_route_verifies_only_unchanged() {
         |route| route.build_plan = Some(digest("other-plan")),
         "route_identity",
     );
+    // The definition and manifest the route carries are the pin's.
+    refused(
+        |route| {
+            route.manifest.entries.pop();
+        },
+        "route_evidence",
+    );
+    refused(
+        |route| {
+            route.definition.mounts.pop();
+        },
+        "route_evidence",
+    );
+    refused(
+        |route| route.read_paths.insert(0, ".git".into()),
+        "route_vcs_metadata",
+    );
     // A request that differs in any path is not admitted.
     let mut wider = derived.write_paths.clone();
     wider.push("vendor".into());
@@ -398,4 +426,174 @@ fn a_recorded_route_verifies_only_unchanged() {
     let mut fewer = derived.read_paths.clone();
     fewer.pop();
     assert!(!derived.admits(&derived.overlay_root, &fewer, &derived.write_paths));
+}
+
+// r[verify kiln.source.projection.route.scenario.dispatch]
+#[test]
+fn a_route_derives_again_only_for_its_own_permitted_paths() {
+    let view = view_for(&writable(), ProjectionOperation::Write);
+    let permitted = strings(&["projects/alpha/src", "shared/proto/lib.rs"]);
+    let derived = ok(derive(
+        &view,
+        &["projects/alpha/src", "shared/proto/lib.rs"],
+    ));
+    ok(derived.verify_permitted(&permitted));
+    ok(derived.verify_permitted(&strings(&["shared/proto/lib.rs", "projects/alpha/src"])));
+    // The same pin's route derived for wider paths than the plan permits.
+    assert_eq!(
+        codes(derived.verify_permitted(&strings(&["projects/alpha/src"]))),
+        BTreeSet::from(["route_permission_mismatch".to_string()])
+    );
+    // Equality, not a subset: a narrower route for the wider plan.
+    let narrower = ok(derive(&view, &["projects/alpha/src"]));
+    assert_eq!(
+        codes(narrower.verify_permitted(&permitted)),
+        BTreeSet::from(["route_permission_mismatch".to_string()])
+    );
+    // A build route never runs a projected dispatch, and a plan permits at
+    // least one path.
+    let build = ok(derive(
+        &view_for(&writable(), ProjectionOperation::Build),
+        &[],
+    ));
+    assert!(codes(build.verify_permitted(&permitted)).contains("route_permission_mismatch"));
+    assert!(codes(derived.verify_permitted(&[])).contains("route_permitted_paths"));
+}
+
+// r[verify kiln.source.projection.route.scenario.derived]
+#[test]
+fn a_creation_directory_holding_an_unwritable_alias_is_not_granted_whole() {
+    // `private` is also mounted inside the creation destination `src`.
+    let definition = ProjectionDefinition {
+        schema: DEFINITION_SCHEMA.into(),
+        id: "nested-alias".into(),
+        profile: ProjectionProfile::Writable,
+        selection: Selection {
+            root: String::new(),
+            include: vec!["src/**".into(), "private/**".into()],
+            exclude: Vec::new(),
+        },
+        mounts: vec![
+            Mount {
+                source_prefix: String::new(),
+                destination_prefix: String::new(),
+            },
+            Mount {
+                source_prefix: "private".into(),
+                destination_prefix: "src/private".into(),
+            },
+        ],
+        dependencies: Vec::new(),
+        creation_destinations: vec!["src".into()],
+        required_capabilities: vec![SourceCapability::ExactTree],
+        generated_inputs: GeneratedInputs::Refused,
+        target: TargetProfile::POSIX,
+        compatibility: None,
+    };
+    let view = view_over(
+        &definition,
+        ProjectionOperation::Write,
+        &facts_of(&["private/secret.rs", "src/lib.rs"]),
+    );
+    // Only `src` is writable: `src/private/secret.rs` keeps its unwritable
+    // origin `private/secret.rs`, so `src` is not granted whole.
+    let narrow = ok(derive(&view, &["src"]));
+    assert_eq!(narrow.write_paths, strings(&["src/lib.rs"]));
+    ok(narrow.verify_permitted(&strings(&["src"])));
+    // With the aliased origin writable too, the directory is granted.
+    let wide = ok(derive(&view, &["private", "src"]));
+    assert_eq!(wide.write_paths, strings(&["private/secret.rs", "src"]));
+    // A mount placed inside the directory refuses the grant even with no
+    // planned entry below it.
+    let mut mounted = definition.clone();
+    mounted.mounts.push(Mount {
+        source_prefix: "tools".into(),
+        destination_prefix: "src/tools".into(),
+    });
+    let view = view_over(
+        &mounted,
+        ProjectionOperation::Write,
+        &facts_of(&["private/secret.rs", "src/lib.rs", "tools/release.sh"]),
+    );
+    assert_eq!(
+        ok(derive(&view, &["private", "src"])).write_paths,
+        strings(&["private/secret.rs", "src/lib.rs", "src/private/secret.rs"])
+    );
+    assert_eq!(
+        ok(derive(&view, &["private", "src", "tools"])).write_paths,
+        strings(&["private/secret.rs", "src"])
+    );
+}
+
+// r[verify kiln.source.projection.route.scenario.refused]
+#[test]
+fn stores_the_restricted_runtime_mounts_are_refused() {
+    let view = view_for(&writable(), ProjectionOperation::Write);
+    let with_store = |store: &str| {
+        route(
+            &view.definition,
+            &view.complete,
+            &view.plan,
+            &view.pin,
+            RouteRequest {
+                store,
+                writable: &[],
+                build_plan: None,
+            },
+        )
+    };
+    let mut exposed = vec!["/usr/local/kiln/store".to_string()];
+    for root in RUNTIME_MOUNTED_ROOTS {
+        exposed.push(root.to_string());
+        exposed.push(format!("{root}/kiln/store"));
+    }
+    for store in &exposed {
+        assert_eq!(
+            codes(with_store(store)),
+            BTreeSet::from(["route_store".to_string()]),
+            "{store}"
+        );
+    }
+    // Private state roots, and names that only share a root's characters.
+    for store in [
+        STORE,
+        "/var/lib/kiln/state/materialized",
+        "/home/operator/.local/state/kiln/store",
+        "/nix/var/kiln/store",
+        "/usrlocal/kiln",
+        "/libexec/kiln",
+    ] {
+        let derived = ok(with_store(store));
+        assert_eq!(derived.store(), Some(store));
+        ok(derived.verify());
+    }
+}
+
+// r[verify kiln.source.projection.route.scenario.refused]
+#[test]
+fn vcs_metadata_destinations_are_refused_during_derivation() {
+    // An admitted mount places a source below `.git`.
+    let mut git = writable();
+    git.mounts.push(Mount {
+        source_prefix: "shared".into(),
+        destination_prefix: ".git".into(),
+    });
+    assert!(
+        codes(derive(
+            &view_for(&git, ProjectionOperation::Write),
+            &["projects/alpha/src"]
+        ))
+        .contains("route_vcs_metadata")
+    );
+    let mut jj = writable();
+    jj.creation_destinations.push("notes/.jj".into());
+    assert!(
+        codes(derive(
+            &view_for(&jj, ProjectionOperation::Write),
+            &["projects/alpha/src"]
+        ))
+        .contains("route_vcs_metadata")
+    );
+    // A build route never mounts creation destinations, so it derives.
+    ok(derive(&view_for(&jj, ProjectionOperation::Build), &[]));
 }

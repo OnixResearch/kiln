@@ -20,8 +20,11 @@ use serde::{Deserialize, Serialize};
 
 use super::build_inputs::BuildInputPlan;
 use super::{
-    CompleteProjection, ComponentVersion, EntryKind, EntryOrigin, Findings, MAX_TARGET_PATH_BYTES,
-    ProjectionOperation, TargetProfile, shown, update_target,
+    AdmittedDefinition, CompleteProjection, ComponentVersion, DEFINITION_SCHEMA,
+    DependencyDeclaration, EntryKind, EntryOrigin, ExpectedProjection, Findings,
+    MAX_TARGET_PATH_BYTES, ProjectionDefinition, ProjectionOperation, ProjectionProfile,
+    ResolvedProjectionManifest, Selection, TargetProfile, admit_definition, shown, update_target,
+    verify_manifest,
 };
 use crate::monorepo::{finish, update_field, update_set};
 use crate::paths;
@@ -46,6 +49,26 @@ pub const OVERLAYS_DIRECTORY: &str = "overlays";
 pub const MAX_ROUTE_PATHS: usize = 256;
 /// Writable source paths one route request may name.
 pub const MAX_ROUTE_WRITABLE: usize = 64;
+/// Host roots Lattice's bubblewrap provider read-only binds into every
+/// sandbox: `SYSTEM_BASES` and the `/run/current-system/sw/bin` bind at
+/// `/usr/bin` (Lattice `src/candidate_worker/sandbox.rs:1` and `:168-178`,
+/// identical at the pinned cohort revision `661499d2` and at the qualified
+/// `7fb6dc47`). Every other host path the sandbox sees is a fresh `/proc`,
+/// `/dev`, `/tmp` or `/workspace`, or a route path. A materialization store at
+/// or below one of these roots would let the worker read every input and
+/// overlay outside its route, so no route places a store there.
+pub const RUNTIME_MOUNTED_ROOTS: [&str; 6] = [
+    "/nix/store",
+    "/usr",
+    "/bin",
+    "/lib",
+    "/lib64",
+    "/run/current-system/sw/bin",
+];
+/// Path components Lattice refuses in a workspace path as VCS metadata
+/// (Lattice `src/candidate_capture.rs:116`, `VcsMetadataRejected`). A route
+/// never names one, so the refusal comes before any durable dispatch step.
+const VCS_METADATA: [&str; 2] = [".git", ".jj"];
 
 /// How a materializer constructs the initial tree.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -258,9 +281,12 @@ pub struct RouteRequest<'a> {
 /// directories and files, mounted read-only; write paths are the overlay
 /// destinations of the writable origins and the writable creation
 /// destinations. Every path is relative to the overlay, as Lattice's
-/// implementation request names them. A recorded route is a claim:
-/// [`ProjectedWorkspaceRoute::verify`] checks it, and only [`route`] derives
-/// one from a view.
+/// implementation request names them. The route carries the authored
+/// definition and the resolved manifest it was derived from, so a dispatcher
+/// can derive it again for its plan. A recorded route is a claim:
+/// [`ProjectedWorkspaceRoute::verify`] checks it,
+/// [`ProjectedWorkspaceRoute::verify_permitted`] derives it again for a
+/// plan's permitted paths, and only [`route`] derives one from a view.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ProjectedWorkspaceRoute {
@@ -272,7 +298,14 @@ pub struct ProjectedWorkspaceRoute {
     pub write_paths: Vec<String>,
     pub build_plan: Option<ContentId>,
     pub runtime: String,
-    /// BLAKE3 over every other field.
+    /// The authored definition the route was derived from; admitting it
+    /// yields the pin's definition.
+    pub definition: ProjectionDefinition,
+    /// The resolved manifest the route was derived from; it is the pin's.
+    pub manifest: ResolvedProjectionManifest,
+    /// BLAKE3 over every other field. The definition and manifest are bound
+    /// through the pin's identities, which [`ProjectedWorkspaceRoute::verify`]
+    /// recomputes.
     pub identity: ContentId,
 }
 
@@ -280,9 +313,11 @@ impl ProjectedWorkspaceRoute {
     // r[impl kiln.source.projection.route.scenario.refused]
     /// The route is internally consistent: its schema and runtime are the
     /// supported ones, its pin is valid, its roots are the pin's input and
-    /// overlay in one store, its paths are sorted canonical relative paths
-    /// within the bounds, every write path lies within a read path and no
-    /// write path lies within another, and its identity covers every field.
+    /// overlay in one store outside every runtime-mounted root, its paths are
+    /// sorted canonical relative paths within the bounds and without VCS
+    /// metadata, every write path lies within a read path and no write path
+    /// lies within another, its definition and manifest are the pin's, and
+    /// its identity covers every field.
     pub fn verify(&self) -> Result<(), Vec<Diagnostic>> {
         let mut findings = Findings::default();
         if self.schema != WORKSPACE_ROUTE_SCHEMA || self.runtime != LATTICE_BWRAP_RUNTIME {
@@ -326,11 +361,90 @@ impl ProjectedWorkspaceRoute {
                 "route paths must be sorted, canonical, bounded and writable only within read paths",
             );
         }
+        if self
+            .read_paths
+            .iter()
+            .chain(&self.write_paths)
+            .any(|path| vcs_metadata(path))
+        {
+            findings.push(
+                "route_vcs_metadata",
+                "paths",
+                "a route never names VCS metadata; Lattice refuses a .git or .jj path component",
+            );
+        }
+        if !self.evidence() {
+            findings.push(
+                "route_evidence",
+                "evidence",
+                "the route's definition or manifest is not the pin's",
+            );
+        }
         if route_identity(self) != self.identity {
             findings.push(
                 "route_identity",
                 "identity",
                 "the route identity does not cover its fields",
+            );
+        }
+        findings.finish(())
+    }
+
+    /// Whether the definition admits to the pin's definition and the manifest
+    /// is consistent and is the pin's.
+    fn evidence(&self) -> bool {
+        let pin = &self.pin;
+        let manifest = &self.manifest;
+        admit_definition(&self.definition)
+            .is_ok_and(|admitted| *admitted.identity() == pin.definition)
+            && manifest.identity == pin.manifest
+            && verify_manifest(
+                manifest,
+                ExpectedProjection {
+                    repository: &pin.repository,
+                    exact_revision: &pin.source,
+                    definition: &pin.definition,
+                    evaluator: &manifest.evaluator,
+                    adapter: &manifest.adapter,
+                },
+            )
+            .is_ok()
+    }
+
+    // r[impl kiln.source.projection.route.scenario.dispatch]
+    /// Derive this route again for a dispatch plan's permitted source paths
+    /// and require exactly its read and write paths. A projected dispatch runs
+    /// the write route of exactly the plan's permitted paths over a writable
+    /// manifest: a route derived for other or wider paths, for a build or
+    /// over VCS metadata is refused, as is an invalid route.
+    pub fn verify_permitted(&self, permitted: &[String]) -> Result<(), Vec<Diagnostic>> {
+        self.verify()?;
+        let mut findings = Findings::default();
+        if permitted.is_empty()
+            || permitted.len() > MAX_ROUTE_WRITABLE
+            || !permitted.iter().all(|path| paths::canonical(path))
+        {
+            findings.push(
+                "route_permitted_paths",
+                "permitted_paths",
+                "a projected dispatch needs one to the named bound of canonical permitted source paths",
+            );
+        }
+        if self.manifest.profile != ProjectionProfile::Writable {
+            findings.push(
+                "route_write_requires_write_witness",
+                "manifest.profile",
+                "a projected dispatch writes its permitted paths and needs a writable projection",
+            );
+        }
+        let definition = admit_definition(&self.definition)?;
+        let (read, write) =
+            derive_paths(&mut findings, &definition, &self.manifest, true, permitted);
+        if read != self.read_paths || write != self.write_paths {
+            findings.push(
+                "route_permission_mismatch",
+                "paths",
+                "the route's read or write paths are not the ones derived for the plan's permitted paths",
             );
         }
         findings.finish(())
@@ -366,16 +480,14 @@ impl ProjectedWorkspaceRoute {
 /// Derive the restricted-runtime route of one attempt's projected workspace.
 ///
 /// The plan must be the projection's and the pin the one the plan derives
-/// for its attempt and fence. Read paths are the top-level components of
-/// every planned destination and, for a write, of every creation
-/// destination. Write paths exist only for a write: each destination whose
-/// native origin lies within a writable source path, and each creation
-/// destination whose every mounted source path does; a write path within
-/// another is dropped. A build witness with writable paths, a build plan of
-/// another manifest, an unsafe store or writable path and every bound
-/// violation are refused before anything is derived.
+/// for its attempt and fence. The paths are those [`derive_paths`] gives for
+/// the request's writable source paths. A build witness with writable paths,
+/// a build plan of another manifest, a store that is unsafe or that the
+/// restricted runtime mounts, an unsafe writable path, a destination with VCS
+/// metadata and every bound violation are refused before anything is
+/// derived.
 pub fn route(
-    definition: &super::AdmittedDefinition,
+    definition: &AdmittedDefinition,
     complete: &CompleteProjection,
     plan: &MaterializationPlan,
     pin: &WorkspacePin,
@@ -405,7 +517,7 @@ pub fn route(
         findings.push(
             "route_store",
             "store",
-            "the store must be an absolute canonical path within the path bound",
+            "the store must be an absolute canonical path within the path bound, outside every root the restricted runtime mounts",
         );
     }
     if request.writable.len() > MAX_ROUTE_WRITABLE {
@@ -442,48 +554,9 @@ pub fn route(
             "the build plan was made for another manifest",
         );
     }
-    let mut read = BTreeSet::new();
-    for entry in &manifest.entries {
-        read.insert(top(&entry.destination).to_string());
-    }
-    let mut written = BTreeSet::new();
-    if write {
-        let creation = complete.view().creation_destinations();
-        for destination in creation {
-            read.insert(top(destination).to_string());
-        }
-        for entry in &manifest.entries {
-            if let EntryOrigin::Native { path, .. } = &entry.origin
-                && within(request.writable, path)
-            {
-                written.insert(entry.destination.clone());
-            }
-        }
-        for destination in creation {
-            let sources: Vec<String> = definition
-                .mounts()
-                .iter()
-                .filter_map(|mount| mounted(mount, destination))
-                .collect();
-            if !sources.is_empty()
-                && sources
-                    .iter()
-                    .all(|source| within(request.writable, source))
-            {
-                written.insert(destination.clone());
-            }
-        }
-    }
-    let write_paths: Vec<String> = written
-        .iter()
-        .filter(|path| {
-            !written
-                .iter()
-                .any(|other| other != *path && dir_contains(other, path))
-        })
-        .cloned()
-        .collect();
-    if read.len() > MAX_ROUTE_PATHS || write_paths.len() > MAX_ROUTE_PATHS {
+    let (read_paths, write_paths) =
+        derive_paths(&mut findings, definition, manifest, write, request.writable);
+    if read_paths.len() > MAX_ROUTE_PATHS || write_paths.len() > MAX_ROUTE_PATHS {
         findings.push(
             "route_bound",
             "paths",
@@ -495,14 +568,140 @@ pub fn route(
         pin: pin.clone(),
         input_root: root(request.store, INPUTS_DIRECTORY, &pin.input),
         overlay_root: root(request.store, OVERLAYS_DIRECTORY, &pin.overlay),
-        read_paths: read.into_iter().collect(),
+        read_paths,
         write_paths,
         build_plan: request.build_plan.map(|build| build.identity().clone()),
         runtime: LATTICE_BWRAP_RUNTIME.into(),
+        definition: authored(definition),
+        manifest: manifest.clone(),
         identity: finish(blake3::Hasher::new()),
     };
     derived.identity = route_identity(&derived);
     findings.finish(derived)
+}
+
+/// The read and write paths of a projected workspace over `manifest`.
+///
+/// Read paths are the top-level components of every planned destination
+/// and, for a write, of every creation destination. Write paths exist only
+/// for a write: each destination whose native origin lies within a writable
+/// source path, and each creation destination [`creation_writable`] grants
+/// whole; a write path within another is dropped. A planned or creation
+/// destination with a VCS metadata component is refused.
+fn derive_paths(
+    findings: &mut Findings,
+    definition: &AdmittedDefinition,
+    manifest: &ResolvedProjectionManifest,
+    write: bool,
+    writable: &[String],
+) -> (Vec<String>, Vec<String>) {
+    let none = BTreeSet::new();
+    let creation = if write {
+        &definition.creation_destinations
+    } else {
+        &none
+    };
+    let mut read = BTreeSet::new();
+    for destination in manifest
+        .entries
+        .iter()
+        .map(|entry| &entry.destination)
+        .chain(creation)
+    {
+        if vcs_metadata(destination) {
+            findings.push(
+                "route_vcs_metadata",
+                format!("destinations.{}", shown(destination)),
+                "a route never names VCS metadata; Lattice refuses a .git or .jj path component",
+            );
+        }
+        read.insert(top(destination).to_string());
+    }
+    let mut written = BTreeSet::new();
+    for entry in manifest.entries.iter().filter(|_| write) {
+        if let EntryOrigin::Native { path, .. } = &entry.origin
+            && within(writable, path)
+        {
+            written.insert(entry.destination.clone());
+        }
+    }
+    for destination in creation {
+        if creation_writable(definition, manifest, destination, writable) {
+            written.insert(destination.clone());
+        }
+    }
+    let write_paths = written
+        .iter()
+        .filter(|path| {
+            !written
+                .iter()
+                .any(|other| other != *path && dir_contains(other, path))
+        })
+        .cloned()
+        .collect();
+    (read.into_iter().collect(), write_paths)
+}
+
+/// Whether creation directory `destination` may be granted whole: every
+/// source path a mount gives it, every native origin planned at or below it
+/// and the source prefix of every mount placed below it lie within a
+/// writable source path. A generated entry below it, or an alias of an
+/// unwritable origin nested inside it, refuses the directory grant.
+fn creation_writable(
+    definition: &AdmittedDefinition,
+    manifest: &ResolvedProjectionManifest,
+    destination: &str,
+    writable: &[String],
+) -> bool {
+    let sources: Vec<String> = definition
+        .mounts()
+        .iter()
+        .filter_map(|mount| mounted(mount, destination))
+        .collect();
+    let at_or_below = |path: &str| path == destination || dir_contains(destination, path);
+    !sources.is_empty()
+        && sources.iter().all(|source| within(writable, source))
+        && manifest
+            .entries
+            .iter()
+            .filter(|entry| at_or_below(&entry.destination))
+            .all(|entry| {
+                matches!(&entry.origin, EntryOrigin::Native { path, .. } if within(writable, path))
+            })
+        && definition
+            .mounts()
+            .iter()
+            .filter(|mount| dir_contains(destination, &mount.destination_prefix))
+            .all(|mount| within(writable, &mount.source_prefix))
+}
+
+/// The authored form of an admitted definition; admitting it again yields
+/// the same definition and identity.
+fn authored(definition: &AdmittedDefinition) -> ProjectionDefinition {
+    ProjectionDefinition {
+        schema: DEFINITION_SCHEMA.into(),
+        id: definition.id.clone(),
+        profile: definition.profile,
+        selection: Selection {
+            root: definition.selection.root().into(),
+            include: definition.selection.include().iter().cloned().collect(),
+            exclude: definition.selection.exclude().iter().cloned().collect(),
+        },
+        mounts: definition.mounts.iter().cloned().collect(),
+        dependencies: definition
+            .dependencies
+            .iter()
+            .map(|(name, required)| DependencyDeclaration {
+                name: name.clone(),
+                required: *required,
+            })
+            .collect(),
+        creation_destinations: definition.creation_destinations.iter().cloned().collect(),
+        required_capabilities: definition.required_capabilities.iter().copied().collect(),
+        generated_inputs: definition.generated_inputs,
+        target: definition.target,
+        compatibility: definition.compatibility.clone(),
+    }
 }
 
 fn route_identity(route: &ProjectedWorkspaceRoute) -> ContentId {
@@ -544,9 +743,19 @@ fn route_identity(route: &ProjectedWorkspaceRoute) -> ContentId {
     finish(hasher)
 }
 
-/// An absolute canonical path within the target path bound.
+/// An absolute canonical path within the target path bound, at or below no
+/// root the restricted runtime mounts.
 fn store_path(path: &str) -> bool {
-    path.len() <= MAX_TARGET_PATH_BYTES && path.strip_prefix('/').is_some_and(paths::canonical)
+    path.len() <= MAX_TARGET_PATH_BYTES
+        && path.strip_prefix('/').is_some_and(paths::canonical)
+        && !RUNTIME_MOUNTED_ROOTS
+            .iter()
+            .any(|root| path == *root || dir_contains(root, path))
+}
+
+/// Whether a relative path has a component Lattice refuses as VCS metadata.
+fn vcs_metadata(path: &str) -> bool {
+    path.split('/').any(|part| VCS_METADATA.contains(&part))
 }
 
 /// A canonical relative route path within the target path bound.
