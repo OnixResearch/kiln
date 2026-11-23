@@ -629,7 +629,10 @@ fn verified_without_seeds() -> TestResult<Fixture> {
         .as_object_mut()
         .ok_or("configuration is not an object")?;
     object.remove("authority_operator");
-    object.insert("authority_config".into(), json!(root.join("authority.json")));
+    object.insert(
+        "authority_config".into(),
+        json!(root.join("authority.json")),
+    );
     let config = FleetConfig::from_json(&serde_json::to_vec(&document)?)?;
     let service = Arc::new(Service::new(config)?);
     Ok(Fixture {

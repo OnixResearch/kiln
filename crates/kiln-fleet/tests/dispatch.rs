@@ -599,7 +599,10 @@ fn interrupted(lost: Lost) -> TestResult<Fleet> {
     fs::remove_file(fleet.state.join(flag))?;
     let session = fleet.session()?;
     assert_eq!(session.state, state, "{lost:?}: {session:?}");
-    assert!(fleet.state.join("agent").is_file(), "{lost:?}: agent started");
+    assert!(
+        fleet.state.join("agent").is_file(),
+        "{lost:?}: agent started"
+    );
     assert!(!fleet.state.join("prompt.txt").exists(), "{lost:?}");
     Ok(fleet)
 }
@@ -631,7 +634,11 @@ fn a_recovered_agent_is_prompted_while_its_dispatch_is_admitted() -> TestResult 
         let mut recovered = fleet.restart(Some(COORDINATOR))?;
         recovered.tick(now())?;
         let session = fleet.session()?;
-        assert_eq!(session.state, SessionState::Prompted, "{lost:?}: {session:?}");
+        assert_eq!(
+            session.state,
+            SessionState::Prompted,
+            "{lost:?}: {session:?}"
+        );
         let prompt = fs::read_to_string(fleet.state.join("prompt.txt"))?;
         assert!(prompt.contains(session.attempt.as_str()), "{lost:?}");
     }

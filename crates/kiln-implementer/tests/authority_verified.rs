@@ -313,7 +313,11 @@ fn a_sub_second_revocation_age_is_refused() {
     assert!(ImplementationAuthorityConfig::load(&config).is_ok());
 }
 
-fn open_at(db: &std::path::Path, config: &std::path::Path, now_ms: u64) -> Result<Implementer, String> {
+fn open_at(
+    db: &std::path::Path,
+    config: &std::path::Path,
+    now_ms: u64,
+) -> Result<Implementer, String> {
     let mut i = Implementer::open(db, enrollment())?;
     i.set_clock_ms(now_ms);
     i.select_authority(
@@ -424,7 +428,11 @@ fn one_ledger_opened_through_a_symlink_shares_replay_and_revocation() {
     drop(i);
     std::os::unix::fs::symlink(&db, &link).unwrap_or_else(|error| unreachable!("{error}"));
     assert_eq!(authority_state_path(&link), authority_state_path(&db));
-    assert_eq!(replay_rows(&link), 1, "the invocation consumed through the real path");
+    assert_eq!(
+        replay_rows(&link),
+        1,
+        "the invocation consumed through the real path"
+    );
 
     // An invocation consumed through the symlink lands in the same table.
     let mut i = open_verified(&link, &config);

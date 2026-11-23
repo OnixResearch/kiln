@@ -617,7 +617,11 @@ impl WorkScoped {
         );
     }
 
-    fn scope(&self, request: &AuthorityRequest, currentness: AttemptCurrentness) -> AttemptCurrentness {
+    fn scope(
+        &self,
+        request: &AuthorityRequest,
+        currentness: AttemptCurrentness,
+    ) -> AttemptCurrentness {
         if request.work == self.work && request.work_version == self.version {
             currentness
         } else {
@@ -712,7 +716,12 @@ impl FinishActive {
     }
 
     fn start(&self, i: &mut Implementer) -> Result<(), String> {
-        i.start_execution(&self.attempt.identity, self.attempt.fence, T + 1, &workflow())
+        i.start_execution(
+            &self.attempt.identity,
+            self.attempt.fence,
+            T + 1,
+            &workflow(),
+        )
     }
 }
 
@@ -730,7 +739,10 @@ fn a_finish_active_attempt_dispatches_under_a_grant_for_its_frozen_work() {
         .filter(|decision| decision.operation == ProtectedOperation::Dispatch)
         .collect();
     assert!(dispatch.len() >= 2, "{dispatch:?}");
-    assert!(dispatch.iter().all(|decision| decision.allowed), "{dispatch:?}");
+    assert!(
+        dispatch.iter().all(|decision| decision.allowed),
+        "{dispatch:?}"
+    );
     drop(i);
     let records = records(&ledger.db, &ledger.attempt.identity);
     assert!(records.reservation);

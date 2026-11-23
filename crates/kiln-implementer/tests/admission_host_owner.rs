@@ -1071,11 +1071,8 @@ impl Interrupted {
     fn resume(&self, i: &mut Implementer, retained: bool) -> Result<(), String> {
         if retained {
             let ledger = i.admission_snapshot()?;
-            let mut owner = kiln_implementer::host_owner::HostLocalOwner::new(
-                &self.profile,
-                ledger,
-                NOW + 3,
-            );
+            let mut owner =
+                kiln_implementer::host_owner::HostLocalOwner::new(&self.profile, ledger, NOW + 3);
             i.admission_reserve_with_owner(self.pending.clone(), Vec::new(), &mut owner, NOW + 3)
                 .map(drop)
         } else {
@@ -1124,9 +1121,11 @@ fn a_tentative_owner_request_commits_after_a_fresh_dispatch_decision() {
             "retained={retained}"
         );
         assert!(
-            i.authority_decisions().iter().any(|decision| decision.allowed
-                && decision.operation
-                    == kiln_core::implementation::authority::ProtectedOperation::Dispatch),
+            i.authority_decisions()
+                .iter()
+                .any(|decision| decision.allowed
+                    && decision.operation
+                        == kiln_core::implementation::authority::ProtectedOperation::Dispatch),
             "retained={retained}: the resumed request presented a fresh invocation"
         );
     }
