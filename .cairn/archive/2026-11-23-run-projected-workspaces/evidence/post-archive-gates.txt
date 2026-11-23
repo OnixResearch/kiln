@@ -1,0 +1,25 @@
+Archived on the Kiln authority integration branch (S1 3eb3fc72 + S4 + Cairn
+317d3ff6 re-vendor on main 09326e92, Lattice cohort 5a8e1d51) after the
+projected-runtime requalification under a synthetic verified profile
+(9d92a496) closed the Phase 2 runtime task.
+Before sync, with /nix/store/nc498h43kyxsh3yfbrypqjprg9pzh2qs-cairn-0.2.1/bin/cairn
+(317d3ff6) and P=cairn-policy/generated/cairn-policy.json (CAIRN_POLICY=$P):
+$ cairn gate proposal run-projected-workspaces --root . --policy "$P" -> exit 0, PASS, receipt be4cba001483ba76668926310bf4699a50010ca3da99bee124ef62ab1e3e303b
+$ cairn gate design run-projected-workspaces --root . --policy "$P"   -> exit 0, PASS, receipt 19adde457e34f2d9750e5c27acae9db27e356e1d2b839c995aebac22c3090926
+$ cairn gate tasks run-projected-workspaces --root . --policy "$P"    -> exit 0, PASS, receipt 8a167ab84e986250d5050ac51e2d95abb50a5909d02ffbe3545b431caea194ad
+$ cairn validate --root . --policy "$P"                               -> exit 0, valid, 9 active changes, 0 issues
+Sync (evidence/sync.txt) merged the source-projection delta into the accepted
+spec; archive (evidence/archive.txt) used CAIRN_ARCHIVE_DATE=2026-11-23.
+After the archive and dropping run-projected-workspaces' delta root from
+cairn-policy/development-coverage.ncl:
+$ cairn validate --root . --policy "$P"
+  -> exit 0, policy kiln-default, valid, 8 active changes, 0 issues
+$ nickel export --format json cairn-policy/development-coverage.ncl > dev-policy.json
+$ cairn traceability coverage --root . --policy dev-policy.json --profile kiln-active-development --json
+  -> exit 0, verdict pass, 2297 requirements, 0 dangling, 0 missing
+$ cairn traceability coverage --root . --policy "$P" --json   # accepted-only
+  -> exit 1, verdict fail, 2273 requirements, 24 dangling, 0 missing.
+     No kiln.source.projection.* ID dangles any more (40 -> 24). The 24
+     dangling IDs are all kiln.implementation.authority.* (active change
+     compose-verified-implementation-authority, S1); they resolve when it is
+     archived.

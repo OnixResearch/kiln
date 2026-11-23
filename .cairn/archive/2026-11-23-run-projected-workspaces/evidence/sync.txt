@@ -1,0 +1,166 @@
+$ CAIRN_POLICY=cairn-policy/generated/cairn-policy.json cairn sync run-projected-workspaces --root . --policy cairn-policy/generated/cairn-policy.json --execute  # cairn /nix/store/nc498h43kyxsh3yfbrypqjprg9pzh2qs-cairn-0.2.1/bin/cairn
+{
+  "acceptance_ids": [],
+  "actions": [
+    {
+      "description": "merge delta spec into main specs: ./.cairn/changes/run-projected-workspaces/specs/source-projection/spec.md",
+      "kind": "sync_delta_spec",
+      "path": "./.cairn/changes/run-projected-workspaces/specs/source-projection/spec.md"
+    }
+  ],
+  "blocked": false,
+  "change": "run-projected-workspaces",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "8ecd569530fc8b43dac7419c2d151137bf0d5e7b375e7e30e8e9f2047bd671fe",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "62b75eb1580f61c61017761c3391b5afcab0ff7d88713ba05a9d4af51f522195",
+    "receipt_hash": "9af7cdcc3780f9fa889aa087c98ec2cd4fb9ffbe305b4960bc535e667b6bda53",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "delta_specs": [
+    "./.cairn/changes/run-projected-workspaces/specs/source-projection/spec.md"
+  ],
+  "dry_run": false,
+  "input_hash": "7713ee28a26b749baa127ce6a6b82b39475b3b173992b6c1f81e49cc6c4b37a9",
+  "layout": "cairn",
+  "merge_preflight": {
+    "documents": [
+      {
+        "accepted_before_exists": true,
+        "accepted_before_hash": "0e6d8a48933777b0c3aa77d9bf9ca73a209bb18c8a678e2aa081b628fb74fd80",
+        "blocked": false,
+        "changed": true,
+        "delta_hash": "ab4edc152b6d05ab875df3f4a29f3ad1769ce9e8afa388819de5c137680a23b7",
+        "destination": ".cairn/specs/source-projection/spec.md",
+        "diagnostics": [],
+        "expected_after_hash": "80d4efdd5bb97797b6b52225457da108a53c1dd6812173c914e81d57047759d4",
+        "operations": [
+          {
+            "block_hash": "31ca38e27ec5f02d87c4d180a52f11ea3b9357b7c4acbf03978c5a2322669928",
+            "heading": "### Requirement: Projected workspace routes",
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.route"
+          },
+          {
+            "block_hash": "24689cf785202821a35006611465ecbbdc0e57d0e664a0e62a2f0ecc18d65536",
+            "heading": "### Requirement: Restricted projected runtime",
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.runtime"
+          },
+          {
+            "block_hash": "55ea52913aef5e9bea0efcc07f58098c548e13a916066136922494e9d8e7af49",
+            "heading": "### Requirement: Structural writeback operations",
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.writeback.structural"
+          },
+          {
+            "block_hash": "097ad9e42434d1460cbdfe60c5972acd3e3bfbe3c2303ac592e7357f7ae12c6f",
+            "heading": "### Requirement: Writeback conflicts",
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.writeback.conflict"
+          },
+          {
+            "block_hash": "cddd9a9d8487fadbf440dcc0e62410e3d63603d0f85f198ad1ef97d8b3f0d4df",
+            "heading": "### Requirement: Recorded candidate compatibility",
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.writeback.compatibility"
+          },
+          {
+            "block_hash": "c6fd3514018c26935056c7542b3a9da040685aba3f0852c3648f3e54be8c50a9",
+            "heading": "### Requirement: Projected candidate facts",
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.candidate_facts"
+          }
+        ],
+        "outcomes": [
+          {
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.route",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.runtime",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.writeback.structural",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.writeback.conflict",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.writeback.compatibility",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.candidate_facts",
+            "state": "applied"
+          }
+        ],
+        "source": ".cairn/changes/run-projected-workspaces/specs/source-projection/spec.md"
+      }
+    ]
+  },
+  "mutated": true,
+  "mutation_manifest": {
+    "after": {
+      "entries": [
+        {
+          "content_hash": "80d4efdd5bb97797b6b52225457da108a53c1dd6812173c914e81d57047759d4",
+          "exists": true,
+          "path": "./.cairn/specs/source-projection/spec.md"
+        }
+      ],
+      "manifest_hash": "3b4ab0b50e3077c8e028851d0ee0184f08ab6c90b5761751fe269e65b5cf810a"
+    },
+    "before": {
+      "entries": [
+        {
+          "content_hash": "0e6d8a48933777b0c3aa77d9bf9ca73a209bb18c8a678e2aa081b628fb74fd80",
+          "exists": true,
+          "path": "./.cairn/specs/source-projection/spec.md"
+        }
+      ],
+      "manifest_hash": "e8de46af898dfbe6c40ed5d5a5c8a41e79cfa091c3f9046973bc56f47384f93f"
+    },
+    "kind": "sync",
+    "manifest_hash": "2a520e23f82117d37452b7e22b2009020320f93021dbe04aedb15cf018f1625d"
+  },
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "plan_hash": "c2bd43c32555358a4af553d3fe05fdb947fa0406836346584e24e15dc99d9480",
+  "policy": "kiln-default",
+  "policy_hash": "62b75eb1580f61c61017761c3391b5afcab0ff7d88713ba05a9d4af51f522195",
+  "profile_identity_hash": "34f8e8d19ce853d3a20acb2c1a169a7c7cf162436eff0a555a5629bfbfecbdd3",
+  "reasons": [],
+  "receipt_hash": "61bfbc21d28dffc2f54f2b8b3aed834b8d29a38e152e8f26fc3abdb1698b8841",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
+exit=0
