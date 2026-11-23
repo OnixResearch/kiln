@@ -1,8 +1,8 @@
 {
   "source_repository": "https://github.com/OnixResearch/cairn.git",
-  "source_commit": "9082e1aece4f04bcbead5eeea087e496bc48a675",
+  "source_commit": "317d3ff648f01a5ea1572e6126f4dd71bc7afa99",
   "full_archive_format": "git archive --format=tar <source_commit>",
-  "full_archive_blake3": "5ad172aded6f574deca11e1274c5a754b8a4e050ff49d17e319022d8c2e21779",
+  "full_archive_blake3": "b587d565cebea97067586b95ff71f5fd14ccfcb4cb3cea65337d6d5fcf462473",
   "archive_format": "git archive --format=tar <source_commit> -- <archive_paths...>",
   "archive_paths": [
     "Cargo.toml",
@@ -15,7 +15,7 @@
     "cairn-policy/generated",
     "crates/cairn-core"
   ],
-  "archive_blake3": "cb6b7a2f7fe2f39ba3b814803cd0c609be436c1854a6205faf301f0302cd10ed",
+  "archive_blake3": "445f6e2919e65eef63db85d63e4c52e2a053ec2f86442856756c89ed08b6bf9a",
   "importer": "scripts/import-pinned-source.sh",
   "package_licenses": {
     "cairn-core": "MIT OR Apache-2.0"

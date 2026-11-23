@@ -11,9 +11,9 @@
     "context": "0fc67d3d6a1315e8ee87392ec745e3ff3d0fb848e4bbad517366ac33b54918fb",
     "verification_subject": "0a3e89ab79c9698617e11e16cf9d512b1b455994e918928e736a758d591ec4f1",
     "dependencies": "25a78c4686effdbd529ba8f6ef8beda5ddadfa313cba1f0dc63733fb55546d6c",
-    "obligations": "e21757b3e8d8307efc51615d2f0ae2dcbe9c8dbc4a6fd190a7956a770383ccfc",
+    "obligations": "cf57bfcab9ddc9570253f7b02de447fae352239e0081d18df8c2d700fdd20f0f",
     "selection": "9f0d616d6a8c508b2c70d13059026486d708d61777eccc071196e4792d7b9943",
-    "observation": "cdcd72c87b0541cd26222cf7e5a4b374dfbea64e5c60fafae300b8ce299c8f11"
+    "observation": "ac95fddd43c566deae3b38133168b434dc1abf4c49308eee42a0bd43c398ccc2"
   },
   "source": {
     "revision": {
@@ -172,8 +172,8 @@
         "definition_id": "verify",
         "intent_blake3": "a1b776a9b77c138f9a14f8d2e380d48824c9b994bf342cf3f1721a8804514f32",
         "workflow_policy_blake3": "0000000000000000000000000000000000000000000000000000000000000003",
-        "catalog_identity": "90663227cd9dc08a0b5976554a4323fe348cfc485942986a84b2ba355a31a382",
-        "binding_blake3": "10bbf310fbed0ecbe38f0bb46de4e0ee2509523435342cb2dcceb47d5ab83da9"
+        "catalog_identity": "33e8da5d43f069d9bde1d0696b277b3b905e40205027ded16d6ae0f9c950993d",
+        "binding_blake3": "031e6407a4b62c51ab615ef80cdc91ee31043e8547c0d10e7e990390ac1a79f6"
       },
       "predicate": {
         "schema": "cairn.workflow-obligation-predicate.v1",
@@ -186,8 +186,8 @@
           "definition_id": "verify",
           "intent_blake3": "a1b776a9b77c138f9a14f8d2e380d48824c9b994bf342cf3f1721a8804514f32",
           "workflow_policy_blake3": "0000000000000000000000000000000000000000000000000000000000000003",
-          "catalog_identity": "90663227cd9dc08a0b5976554a4323fe348cfc485942986a84b2ba355a31a382",
-          "binding_blake3": "10bbf310fbed0ecbe38f0bb46de4e0ee2509523435342cb2dcceb47d5ab83da9"
+          "catalog_identity": "33e8da5d43f069d9bde1d0696b277b3b905e40205027ded16d6ae0f9c950993d",
+          "binding_blake3": "031e6407a4b62c51ab615ef80cdc91ee31043e8547c0d10e7e990390ac1a79f6"
         },
         "interpretation": "finite all_of/any_of/conditional applicability over exact native evidence revisions, with declared finite trace ordering and native policy-exception applicability",
         "subject_blake3": "0a3e89ab79c9698617e11e16cf9d512b1b455994e918928e736a758d591ec4f1",
@@ -335,14 +335,14 @@
           "workflow-inspect"
         ],
         "authority": "native requirement owners retain authority: cairn_core::verified::agent_receipt::authoritative, cairn_core::verified::workflow_collaboration",
-        "predicate_blake3": "12b3cc379d69947d29b93071cb88ceb196c43268165f13a9db63fd6d698aa47c",
+        "predicate_blake3": "30c30fddf9425bc8d0ae289ed28f711cbdb9f2ff06b47b4cd1de2324a9b5edaf",
         "boundary": "Guidance and completion share one admitted finite definition. This module does not execute actions, observe clocks, monitor work, grant approval, or replace native evidence owners, policy-exception applicability, readiness, or the Pass | Block gate. Activity counts, checked task boxes and an agent success statement are not evidence. A finite trace ordering result is not evidence of unbounded safety or liveness."
       },
       "guidance": {
         "workflow_id": "verify",
         "workflow_version": 1,
         "definition_id": "verify",
-        "binding_blake3": "10bbf310fbed0ecbe38f0bb46de4e0ee2509523435342cb2dcceb47d5ab83da9",
+        "binding_blake3": "031e6407a4b62c51ab615ef80cdc91ee31043e8547c0d10e7e990390ac1a79f6",
         "requirements_blake3": "b66d38a2b584188f7920e7b1076784d1fb501e3bc7c4a566eca07e923c72bea4",
         "allowed_command_classes": [
           "gate",
@@ -453,9 +453,9 @@
           "command_classes": [],
           "temporal_check": null,
           "exception": null,
-          "obligation_blake3": "5d872aefe05828cff9f7c74c624e9877c1f1afc6142dcf07ba2bf79d1253aa09",
-          "guidance_blake3": "e50315ebbe2852f4c138206abd5e2b1152da64c35f06998f8a22aedddf3b76e6",
-          "condition_blake3": "c3cd96e5cc031e94169ea239b16aae026248da6c1cef46493fb239035e173a77"
+          "obligation_blake3": "c8b8102ce717f2489400a31476d596794b4d55eeb363a9ef7fc97beb42652501",
+          "guidance_blake3": "b8a20dd3d58b000b24b7473d239416a3cd561ba43f09055d0ba961133a6a3d15",
+          "condition_blake3": "adcff3034a4e089aa576e8a87c614c6df234775c53ef164a55671398ab8c6089"
         },
         {
           "schema": "cairn.workflow-obligation-node.v1",
@@ -481,9 +481,9 @@
           "command_classes": [],
           "temporal_check": null,
           "exception": null,
-          "obligation_blake3": "5d13dec456f40a35f322217e2c5c86feccb1f1cb97f2000949825d94fb68d652",
-          "guidance_blake3": "e5dfe3b05d68a3dcc5ece852c7e8afe56b51bf23edd5dba1cef52ec7fa33605e",
-          "condition_blake3": "bf0adcb3297b31db9a963ea11348d19f5760a4ecc88848d52d4213c19f65f787"
+          "obligation_blake3": "0ed18969ee3debf153bcce5a58506c796f4a764e50414252cb1426b064225f56",
+          "guidance_blake3": "3c4c2ecfee6101d1ac339b8351ac915c1a1101bf59c99cd5702480ef64209242",
+          "condition_blake3": "f18f7abeb8ac54d4e261b8441e11b4e36e6f085476f6c853d7bab8dd99565083"
         },
         {
           "schema": "cairn.workflow-obligation-node.v1",
@@ -509,9 +509,9 @@
           "command_classes": [],
           "temporal_check": null,
           "exception": null,
-          "obligation_blake3": "94191ec2d683cf984926c326931544f0765cc7dc2e852b97909ab337038f70c1",
-          "guidance_blake3": "1686b7ab4df574334f207d776e70592c5f0e535416b23761fb46b6dab733d022",
-          "condition_blake3": "3767dd555d7db18c657d2300f7d00144bb971c3c2c1096e49159f19ae46119db"
+          "obligation_blake3": "578f7dfdd1c6e09644847e76d34deabdfc8efa9b4923cb6427985a3b0ac09f52",
+          "guidance_blake3": "49aeac9df0e1a454c70519ae3388b00bb7dfc5a55d4d684f89a5d4e7d5f85db2",
+          "condition_blake3": "a02709c00eab9a0327aa48bd5a493b6f030b92a966bfc52263041e5b5c4de98d"
         },
         {
           "schema": "cairn.workflow-obligation-node.v1",
@@ -541,9 +541,9 @@
           ],
           "temporal_check": null,
           "exception": null,
-          "obligation_blake3": "8df5d6b06ce30768c722ea98e5bebf23faa053242f0a1babb8b88bd27a23e07a",
-          "guidance_blake3": "44c3118259a1347d804e9b275d6b35de447516b7d41cb342663509ca284056d9",
-          "condition_blake3": "c918e8483f60596ca7cf3a0510679a339e696dad0abb7470f94742cfddafe96f"
+          "obligation_blake3": "bdd852923f918f895106c20f899312ba16640e460e895efe0823a3cfc9e364af",
+          "guidance_blake3": "e0920f4a878b15c534247735e50a890b70a03f689eb2e64781b2bfcb6cb78178",
+          "condition_blake3": "7fbb197bc422fabaa6f9609e71087718e14795d50ca0728e621a4dee4a89b82a"
         },
         {
           "schema": "cairn.workflow-obligation-node.v1",
@@ -569,9 +569,9 @@
           "command_classes": [],
           "temporal_check": null,
           "exception": null,
-          "obligation_blake3": "97c010ceab6b6b67c366e27816dd5adf9eab310aa1d09a197279489e5278b99d",
-          "guidance_blake3": "3c698e3001866dc81f976e32da3430e176345556480a3589a2047591a7e0dc88",
-          "condition_blake3": "0b5b4da7e2adce987fc6f042df062249afd0cbe521778d8945b18c0e56e6f041"
+          "obligation_blake3": "f2d43f7b8b219a2ed72b4f3576746a34b050a755693b842404437c44c027faa3",
+          "guidance_blake3": "c289337523b7848fd7bdfb4c3247ae0c120595e0180b32cdb92e61ddf18e572a",
+          "condition_blake3": "35b7e85b9300115ce6c640841b5562710990004ad62069b7ccefac60b66aacba"
         },
         {
           "schema": "cairn.workflow-obligation-node.v1",
@@ -595,9 +595,9 @@
           "command_classes": [],
           "temporal_check": null,
           "exception": null,
-          "obligation_blake3": "34c09cb0b5dd25ca40b7a753968df29cf66314aab74f0c90be66399445c46290",
-          "guidance_blake3": "2787dc0258120fdcf51a01b29a262e18edb1f5974366a09a54559dab1c79241d",
-          "condition_blake3": "88009940066c3bb4cefa02501e32a1be02ea96002ef869830923320ed4263ccd"
+          "obligation_blake3": "7b1bab69dc984a87c4568c0012b6afca9bb2ec949f6caf27e26c50bbbb33add5",
+          "guidance_blake3": "e03f4d5cd449e465f0179ad62736784fd7d65ab8c3e1ba1206872b622d90a616",
+          "condition_blake3": "8f3122016c0835b90dfe7f5bb303d3cb1af72f9b9c12e38408fbdb1aeb387f0f"
         },
         {
           "schema": "cairn.workflow-obligation-node.v1",
@@ -623,9 +623,9 @@
           "command_classes": [],
           "temporal_check": null,
           "exception": null,
-          "obligation_blake3": "093d833f5f8770237b33e77092b5dadc48dca433e33566c4608c9651a4bf660a",
-          "guidance_blake3": "131f02adaed5587c8985fc92e3855a36027dd887d86b629f9bc8d63968cea202",
-          "condition_blake3": "507f509d167848ecc263e974668d019648c061b3af93fc7509a2c967ac32e877"
+          "obligation_blake3": "21a389ed43953ae12923805165fe49887ea80b7311fa80609229d394f87f92e1",
+          "guidance_blake3": "da73f557929b6bdc92a187dc6c8cb77ff5bafe239f65a8568a31b726b372a902",
+          "condition_blake3": "0c08a6a17e7861f202ab3dbc985c856c17e4d79265f59d1ff894f1c900f25c70"
         },
         {
           "schema": "cairn.workflow-obligation-node.v1",
@@ -655,9 +655,9 @@
           ],
           "temporal_check": null,
           "exception": null,
-          "obligation_blake3": "11d69fd3f7fde75548006d449de3b02870ff4904c9f723242dab199486a47936",
-          "guidance_blake3": "c46305c9b6a657ffe76540701a04ac8411a68522cf89c3ff446369c0c93b2c50",
-          "condition_blake3": "a656c654588bad80ba715259279e456740e365d200bdf68d5340c557c20d6ce2"
+          "obligation_blake3": "0a44c9def6b4fc12843ef68840da581281dba170819b3dfadcb3f1ea913b1649",
+          "guidance_blake3": "39fb09d172669fdf0e10831755b6ac0c400d9ec4f344262b620e0486cbd96b16",
+          "condition_blake3": "1045d91e70ab259884753f1a0e74afeba7fe8bc7ceca90da3d28512534c28bb2"
         },
         {
           "schema": "cairn.workflow-obligation-node.v1",
@@ -687,9 +687,9 @@
           ],
           "temporal_check": null,
           "exception": null,
-          "obligation_blake3": "6e25e7702a5409043d945b09e1b997467f85d5f245859b3b603b6601484bf268",
-          "guidance_blake3": "3f1737b2c996a12b34254ad22e219c973a8e88ef0c3e970f10cede47a9e02b21",
-          "condition_blake3": "3d2cd6322289087e0088327b934cf4d836c4988e0859b0a17ef0f9930e7b225a"
+          "obligation_blake3": "eafe0ab29cbf4e8ba275dc45afa5be53871899543c6e5754e215b57d2cdd451f",
+          "guidance_blake3": "f6023c6eac6b6727bfbf3584bc6ae194ad83eaee291038b0ba9c04b44edec603",
+          "condition_blake3": "5e2519ee7fcff552b5fea83c987f993ee72f71320d27056b2e40fce7b84bf987"
         },
         {
           "schema": "cairn.workflow-obligation-node.v1",
@@ -717,9 +717,9 @@
           "command_classes": [],
           "temporal_check": null,
           "exception": null,
-          "obligation_blake3": "b446b7e7c5b3fc7feffacf8f637926aa6149e541ab88da77e661384f47a0235e",
-          "guidance_blake3": "52c0907fc00578e51ec5bf947fe95acb5eb40f22ba630743516d664b2a26c2c1",
-          "condition_blake3": "00429031abb2d80e72397a1bfdb5c605fbc1b56bbf869609f2f6706e2c419f1b"
+          "obligation_blake3": "9e03e18fe36b028f998db4d73738ee7ccbbfde56ef091da884d06007e0d684c7",
+          "guidance_blake3": "b6dd4118b2aa2fa63cbfcb2fddf8d32cd425f845a6ef09b159f848aa5383dd29",
+          "condition_blake3": "438c83ee3d122a74e70f011dc621f390b046cb40e5ab8564962bb3b69055c0b0"
         },
         {
           "schema": "cairn.workflow-obligation-node.v1",
@@ -751,9 +751,9 @@
           ],
           "temporal_check": null,
           "exception": null,
-          "obligation_blake3": "648869f571e645571075f014b9fb337184e6f672f6897a4c02095d1ab50c12dc",
-          "guidance_blake3": "f5db63a0e4f5e992fec4374d73762889b18791b3da24d2b3fd3fe0d36dae3ccc",
-          "condition_blake3": "ec2b630d4ef5a7b3b5f791f72a6fffaaac7a40bc3232e799a6d087da0450a571"
+          "obligation_blake3": "1345e9bc65346736d0136094e612313bab8d7091172333cae62cf2611ce7c9d2",
+          "guidance_blake3": "d01b5fa7b4ae3e09f689e7f2b719bd1be1f8dd0c007f987958758b26ae5b8d6e",
+          "condition_blake3": "63bca595007f6781eb310be6f6d47078be426b275125373e39c5899279a21f7d"
         }
       ],
       "action_preconditions": [
@@ -801,8 +801,8 @@
           "definition_id": "verify",
           "intent_blake3": "a1b776a9b77c138f9a14f8d2e380d48824c9b994bf342cf3f1721a8804514f32",
           "workflow_policy_blake3": "0000000000000000000000000000000000000000000000000000000000000003",
-          "catalog_identity": "90663227cd9dc08a0b5976554a4323fe348cfc485942986a84b2ba355a31a382",
-          "binding_blake3": "10bbf310fbed0ecbe38f0bb46de4e0ee2509523435342cb2dcceb47d5ab83da9"
+          "catalog_identity": "33e8da5d43f069d9bde1d0696b277b3b905e40205027ded16d6ae0f9c950993d",
+          "binding_blake3": "031e6407a4b62c51ab615ef80cdc91ee31043e8547c0d10e7e990390ac1a79f6"
         },
         "subject_blake3": "0a3e89ab79c9698617e11e16cf9d512b1b455994e918928e736a758d591ec4f1",
         "context_blake3": "0fc67d3d6a1315e8ee87392ec745e3ff3d0fb848e4bbad517366ac33b54918fb",
@@ -1048,9 +1048,9 @@
           "policy exception authority and approval custody",
           "supplied clock epoch meaning"
         ],
-        "predicate_blake3": "12b3cc379d69947d29b93071cb88ceb196c43268165f13a9db63fd6d698aa47c",
-        "input_blake3": "8033538415501696395fa781267e0ce4cc2376c80faafa1d3b3177acc4da4588",
-        "report_blake3": "60bbb17171284e1ed12b75bf826ceabdc2510f4d2dd00ec47a80c26493109ba1",
+        "predicate_blake3": "30c30fddf9425bc8d0ae289ed28f711cbdb9f2ff06b47b4cd1de2324a9b5edaf",
+        "input_blake3": "190fcb5fa039eef4243e96f2b75e30d7aa604e73ad97f50ad048f5d1da8f9680",
+        "report_blake3": "a2f895363750fe7c3b00b14bb0cb2112e8c5f35ce417052d71b08c9043d7aac2",
         "non_claims": [
           "guidance and the completion predicate describe one admitted finite definition",
           "presentation adapters change layout and prose only, never evidence requirements, command classes or authority",

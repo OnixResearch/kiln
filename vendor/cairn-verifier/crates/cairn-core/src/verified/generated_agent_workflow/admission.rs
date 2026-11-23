@@ -94,7 +94,8 @@ pub fn find_generated_workflow_descriptor<'a>(
                 super::model::GENERATED_AGENT_WORKFLOW_ISSUE_DESCRIPTOR,
                 "workflow",
                 format!(
-                    "unknown workflow {id}; known workflows: {}",
+                    "unknown workflow {}; known workflows: {}",
+                    diagnostic_label(id),
                     super::model::INITIAL_WORKFLOW_IDS.join(", ")
                 ),
             )
@@ -115,7 +116,8 @@ pub fn find_generated_workflow_adapter<'a>(
                 super::model::GENERATED_AGENT_WORKFLOW_ISSUE_ADAPTER,
                 "adapter",
                 format!(
-                    "unknown adapter {id}; known adapters: {}",
+                    "unknown adapter {}; known adapters: {}",
+                    diagnostic_label(id),
                     super::model::INITIAL_ADAPTER_IDS.join(", ")
                 ),
             )
@@ -135,7 +137,7 @@ pub fn find_generated_workflow_command<'a>(
             issue(
                 super::model::GENERATED_AGENT_WORKFLOW_ISSUE_ENTRY,
                 "entry.routes",
-                format!("unknown command catalog route {id}"),
+                format!("unknown command catalog route {}", diagnostic_label(id)),
             )
         })
 }
@@ -156,7 +158,8 @@ pub fn find_entry_guide_profile<'a>(
                 super::model::GENERATED_AGENT_WORKFLOW_ISSUE_ENTRY,
                 "entry.profiles",
                 format!(
-                    "unknown workflow profile {profile_id}; supported profiles: {}",
+                    "unknown workflow profile {}; supported profiles: {}",
+                    diagnostic_label(profile_id),
                     catalog.policy.entry.profiles.join(", ")
                 ),
             )
@@ -192,7 +195,10 @@ fn validate_command_catalog(
             issues.push(issue(
                 super::model::GENERATED_AGENT_WORKFLOW_ISSUE_ENTRY,
                 format!("{path}.command_class"),
-                format!("unknown command class: {}", command.command_class),
+                format!(
+                    "unknown command class: {}",
+                    diagnostic_label(&command.command_class)
+                ),
             ));
         }
         if !bounded_text(&command.invocation, policy.bounds.max_text_bytes)
@@ -272,7 +278,7 @@ fn validate_entry_guide(
             issues.push(issue(
                 super::model::GENERATED_AGENT_WORKFLOW_ISSUE_ENTRY,
                 format!("{path}.stage_route"),
-                format!("unknown command catalog route {route}"),
+                format!("unknown command catalog route {}", diagnostic_label(route)),
             ));
         }
     }
@@ -485,7 +491,7 @@ fn validate_descriptors(
                 None => issues.push(issue(
                     super::model::GENERATED_AGENT_WORKFLOW_ISSUE_DESCRIPTOR,
                     format!("{path}.command_classes"),
-                    format!("unknown command class: {command}"),
+                    format!("unknown command class: {}", diagnostic_label(command)),
                 )),
             }
         }
@@ -524,6 +530,27 @@ fn validate_descriptors(
             ),
         ));
     }
+}
+
+/// Longest policy-supplied identifier that an admission or lookup diagnostic
+/// copies; longer values are truncated with a marker.
+const DIAGNOSTIC_LABEL_BYTES: usize = 64;
+
+/// Copies at most [`DIAGNOSTIC_LABEL_BYTES`] of a policy-supplied value into
+/// a diagnostic, marking a truncated value with its full length.
+fn diagnostic_label(value: &str) -> std::borrow::Cow<'_, str> {
+    if value.len() <= DIAGNOSTIC_LABEL_BYTES {
+        return std::borrow::Cow::Borrowed(value);
+    }
+    let mut end = DIAGNOSTIC_LABEL_BYTES;
+    while !value.is_char_boundary(end) {
+        end -= 1;
+    }
+    std::borrow::Cow::Owned(format!(
+        "{}...(truncated, {} bytes)",
+        &value[..end],
+        value.len()
+    ))
 }
 
 fn validate_descriptor_shape(

@@ -795,3 +795,410 @@ fn pending_transactions_block_installation_for_deliberate_recovery() {
         .any(|blocker| blocker.contains(GENERATED_AGENT_WORKFLOW_ISSUE_RECOVERY)));
     assert!(!plan.current());
 }
+
+fn descriptor_mut<'a>(
+    policy: &'a mut GeneratedAgentWorkflowPolicy,
+    id: &str,
+) -> &'a mut GeneratedWorkflowDescriptor {
+    policy
+        .descriptors
+        .iter_mut()
+        .find(|descriptor| descriptor.id == id)
+        .expect("descriptor")
+}
+
+use super::command_routes::{
+    command_route_violations, command_trie, named_commands, pieces, scan_mentions, Mention,
+    RouteViolation,
+};
+
+/// Cairn's shipped default generated-workflow policy, which consumers embed.
+fn shipped_policy() -> GeneratedAgentWorkflowPolicy {
+    let source: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../../cairn-policy/generated/cairn-policy.json"
+    ))
+    .expect("shipped policy JSON");
+    serde_json::from_value(source["generated_agent_workflow_policy"].clone())
+        .expect("shipped generated workflow policy")
+}
+
+/// The shipped policy with the catalog `9082e1ae` shipped: `readiness` in the
+/// `gate` class and no `drain-plan-readiness` entry.
+fn previous_default_policy() -> GeneratedAgentWorkflowPolicy {
+    let mut policy = shipped_policy();
+    policy
+        .command_catalog
+        .retain(|command| command.id != "drain-plan-readiness");
+    policy
+        .command_catalog
+        .iter_mut()
+        .find(|command| command.id == "readiness")
+        .expect("readiness")
+        .command_class = "gate".to_string();
+    policy
+}
+
+fn descriptor_text_path(policy: &GeneratedAgentWorkflowPolicy, id: &str, field: &str) -> String {
+    let index = policy
+        .descriptors
+        .iter()
+        .position(|descriptor| descriptor.id == id)
+        .expect("descriptor");
+    format!("generated_agent_workflow_policy.descriptors[{index}].{field}")
+}
+
+fn violation(field_path: String, message: &str) -> RouteViolation {
+    RouteViolation {
+        field_path,
+        message: message.to_string(),
+    }
+}
+
+// r[verify cairn.generated_agent_workflows.command_routes]
+// r[verify cairn.generated_agent_workflows.command_routes.permitted]
+#[test]
+fn shipped_workflows_name_only_permitted_commands() {
+    let shipped = shipped_policy();
+    assert!(admit_generated_agent_workflow_policy(&shipped).is_ok());
+    assert_eq!(command_route_violations(&shipped), Vec::new());
+    // The check reads the commands each workflow tells the agent to run.
+    let named = |id: &str| {
+        let descriptor = shipped
+            .descriptors
+            .iter()
+            .find(|descriptor| descriptor.id == id)
+            .expect("descriptor");
+        named_commands(&shipped, &descriptor.immediate_action)
+    };
+    assert_eq!(named("apply"), ["readiness", "workflow-instructions"]);
+    assert_eq!(
+        named("drain"),
+        [
+            "workflow-status",
+            "drain-plan-readiness",
+            "workflow-instructions"
+        ]
+    );
+    assert_eq!(named("explore"), ["status"]);
+}
+
+// r[verify cairn.generated_agent_workflows.command_routes]
+// r[verify cairn.generated_agent_workflows.command_routes.refused]
+#[test]
+fn previous_default_policy_fails_the_command_route_check() {
+    let previous = previous_default_policy();
+    // Admission does not read workflow text, so the previous default loads.
+    assert!(admit_generated_agent_workflow_policy(&previous).is_ok());
+    assert_eq!(
+        command_route_violations(&previous),
+        vec![
+            violation(
+                descriptor_text_path(&previous, "apply", "immediate_action"),
+                "workflow apply names cairn readiness, catalog command readiness of class gate, which its command classes do not permit",
+            ),
+            violation(
+                descriptor_text_path(&previous, "drain", "immediate_action"),
+                "workflow drain names cairn drain-plan, which matches no command catalog invocation",
+            ),
+        ]
+    );
+}
+
+/// The test policy with read-only `gate` and `readiness` classes and the
+/// `gate-tasks` and `readiness` entries.
+fn routes_policy() -> GeneratedAgentWorkflowPolicy {
+    let mut policy = policy();
+    for (class, id, invocation) in [
+        (
+            "gate",
+            "gate-tasks",
+            "cairn gate tasks <change> --root PATH",
+        ),
+        (
+            "readiness",
+            "readiness",
+            "cairn readiness <change> --root PATH",
+        ),
+    ] {
+        policy.command_classes.push(GeneratedWorkflowCommandClass {
+            id: class.to_string(),
+            permission: GeneratedWorkflowPermission::Read,
+        });
+        policy.command_catalog.push(GeneratedWorkflowCommand {
+            id: id.to_string(),
+            command_class: class.to_string(),
+            invocation: invocation.to_string(),
+        });
+    }
+    policy
+}
+
+fn named(text: &str) -> Vec<String> {
+    named_commands(&routes_policy(), text)
+}
+
+// r[verify cairn.generated_agent_workflows.command_routes]
+// r[verify cairn.generated_agent_workflows.command_routes.refused]
+#[test]
+fn admission_does_not_read_workflow_text() {
+    let mut policy = routes_policy();
+    descriptor_mut(&mut policy, "verify").immediate_action =
+        "Run cairn change create NAME, then cairn bogus.".to_string();
+    assert!(admit_generated_agent_workflow_policy(&policy).is_ok());
+    assert_eq!(command_route_violations(&policy).len(), 2);
+}
+
+// r[verify cairn.generated_agent_workflows.command_routes.permitted]
+#[test]
+fn fence_info_strings_are_not_commands() {
+    assert_eq!(named("Run:\n```cairn\ncairn status\n```"), ["status"]);
+    assert_eq!(
+        named("~~~cairn change create\ncairn doctor\n~~~"),
+        ["doctor"]
+    );
+    assert!(named("```sh cairn gate tasks\n```").is_empty());
+    // An inline triple-backtick span is not a fence; its command is read.
+    assert_eq!(named("Run ```cairn status``` first."), ["status"]);
+}
+
+// r[verify cairn.generated_agent_workflows.command_routes.permitted]
+#[test]
+fn formatted_commands_resolve_to_their_catalog_entry() {
+    for text in [
+        "Run **cairn** gate tasks CHANGE.",
+        "Run cairn **gate** tasks CHANGE.",
+        "Run cairn gate *tasks* CHANGE.",
+        "Run **cairn gate tasks CHANGE**",
+        "Run `cairn gate tasks CHANGE`.",
+        "Then (cairn gate tasks CHANGE).",
+        "Run _cairn gate tasks_; then report.",
+        "Run __cairn__ gate tasks.",
+        "Run \"cairn gate tasks\" first.",
+        "Run 'cairn gate tasks'.",
+        "See [cairn gate tasks](#gate).",
+        "Run cairn\ngate tasks after a soft wrap.",
+    ] {
+        assert_eq!(named(text), ["gate-tasks"], "{text}");
+    }
+    assert_eq!(
+        named("Read [cairn readiness](#guide) first."),
+        ["readiness"]
+    );
+    // The longest command-word prefix decides: `cairn workflow status` is the
+    // workflow-status entry, never the shorter `cairn status`.
+    assert_eq!(
+        named("Run cairn workflow status CHANGE, then cairn status."),
+        ["workflow-status", "status"]
+    );
+    assert_eq!(
+        named("Inspect (cairn drain-plan --view readiness) first."),
+        ["uncatalogued:drain-plan"]
+    );
+}
+
+// r[verify cairn.generated_agent_workflows.command_routes.permitted]
+#[test]
+fn unpaired_markers_and_prose_are_not_commands() {
+    for text in [
+        "Avoid _cairn status in prose.",
+        "Avoid *cairn status in prose.",
+        "A snake_cairn status field.",
+        "Set cairn_status to true.",
+        "Cairn status reports; **Cairn** gate tasks too.",
+        "The `cairn` CLI decides.",
+        "Use only policy-known Cairn command classes; cairn, not a shell, decides.",
+        "[guide](cairn-status) and [doctor][cairn doctor]",
+    ] {
+        assert!(named(text).is_empty(), "{text}: {:?}", named(text));
+    }
+}
+
+// r[verify cairn.generated_agent_workflows.command_routes.refused]
+#[test]
+fn commands_outside_permitted_classes_are_reported() {
+    let apply_action = "generated_agent_workflow_policy.descriptors[0].immediate_action";
+    for text in [
+        "Run **cairn** gate tasks CHANGE.",
+        "Run cairn **gate** tasks CHANGE.",
+        "Read [cairn gate tasks](#guide) first.",
+        "Run:\n```cairn\ncairn gate tasks CHANGE\n```",
+    ] {
+        let mut refused = routes_policy();
+        descriptor_mut(&mut refused, "apply").immediate_action = text.to_string();
+        assert_eq!(
+            command_route_violations(&refused),
+            vec![violation(
+                apply_action.to_string(),
+                "workflow apply names cairn gate tasks, catalog command gate-tasks of class gate, which its command classes do not permit",
+            )],
+            "{text}"
+        );
+    }
+
+    let mut uncatalogued = routes_policy();
+    descriptor_mut(&mut uncatalogued, "drain").constraints =
+        vec!["Inspect (cairn drain-plan --view readiness) first.".to_string()];
+    assert_eq!(
+        command_route_violations(&uncatalogued),
+        vec![violation(
+            "generated_agent_workflow_policy.descriptors[2].constraints[0]".to_string(),
+            "workflow drain names cairn drain-plan, which matches no command catalog invocation",
+        )]
+    );
+
+    let mut every_field = routes_policy();
+    let apply = descriptor_mut(&mut every_field, "apply");
+    apply.command_classes = vec!["mutate".to_string()];
+    apply.goal = "Use cairn status.".to_string();
+    apply.success_evidence = vec!["cairn doctor reports no issue.".to_string()];
+    apply.required_evidence = vec!["cairn workflow status output".to_string()];
+    apply.progress_rule = "Rerun cairn status.".to_string();
+    apply.output_shape = "Quote cairn doctor.".to_string();
+    apply.constraints = vec!["Keep cairn status read-only.".to_string()];
+    apply
+        .non_claims
+        .push("cairn status proves nothing.".to_string());
+    let fields = command_route_violations(&every_field)
+        .into_iter()
+        .map(|violation| violation.field_path)
+        .collect::<std::collections::BTreeSet<_>>();
+    let prefix = "generated_agent_workflow_policy.descriptors[0]";
+    for field in [
+        "goal".to_string(),
+        "success_evidence[0]".to_string(),
+        "required_evidence[0]".to_string(),
+        "progress_rule".to_string(),
+        "output_shape".to_string(),
+        "constraints[0]".to_string(),
+        format!("non_claims[{}]", NON_CLAIMS.len()),
+    ] {
+        assert!(
+            fields.contains(&format!("{prefix}.{field}")),
+            "{field}: {fields:?}"
+        );
+    }
+}
+
+// r[verify cairn.generated_agent_workflows.command_routes.permitted]
+#[test]
+fn command_lookup_reads_each_word_once() {
+    let words = (0..32).map(|index| format!("w{index}")).collect::<Vec<_>>();
+    let depth = words.len();
+    let mut policy = routes_policy();
+    policy.command_catalog.push(GeneratedWorkflowCommand {
+        id: "deep".to_string(),
+        command_class: "read".to_string(),
+        invocation: format!("cairn {} --root PATH", words.join(" ")),
+    });
+    let unit = format!("cairn {} ", words.join(" "));
+    let count = policy.bounds.max_text_bytes / unit.len();
+    let text = unit.repeat(count);
+    let pieces = pieces(&text);
+    assert_eq!(pieces.len(), count * (depth + 1));
+    let mut mentions = 0;
+    let steps = scan_mentions(&pieces, &command_trie(&policy), |mention| {
+        assert!(
+            matches!(&mention, Mention::Resolved { commands, .. } if commands[0].id == "deep"),
+            "{mention:?}"
+        );
+        mentions += 1;
+    });
+    assert_eq!(mentions, count);
+    // One read per piece, and per mention one trie step per command word plus
+    // the following `cairn` (absent after the last): no prefix is compared
+    // twice, where re-matching every shorter prefix costs depth^2 / 2 words.
+    assert_eq!(steps, pieces.len() + count * (depth + 1) - 1);
+}
+
+// r[verify cairn.generated_agent_workflows.command_routes.refused]
+#[test]
+fn repeated_cairn_tokens_scan_linearly() {
+    let policy = routes_policy();
+    let text = "cairn ".repeat(policy.bounds.max_text_bytes / "cairn ".len());
+    let pieces = pieces(&text);
+    let mut uncatalogued = 0;
+    let steps = scan_mentions(&pieces, &command_trie(&policy), |mention| {
+        assert!(
+            matches!(&mention, Mention::Uncatalogued { word } if word == "cairn"),
+            "{mention:?}"
+        );
+        uncatalogued += 1;
+    });
+    // Every `cairn` but the last names the uncatalogued `cairn`, found by one
+    // trie step.
+    assert_eq!(uncatalogued, pieces.len() - 1);
+    assert_eq!(steps, 2 * pieces.len() - 1);
+}
+
+const DIAGNOSTIC_BOUND_BYTES: usize = 512;
+
+fn issue_bytes(issue: &GeneratedWorkflowIssue) -> usize {
+    issue.code.len() + issue.field_path.len() + issue.message.len()
+}
+
+#[test]
+fn diagnostics_copy_short_identifiers_verbatim() {
+    let class = "c".repeat(64);
+    let mut refused = policy();
+    descriptor_mut(&mut refused, "verify")
+        .command_classes
+        .push(class.clone());
+    let issues = admit_generated_agent_workflow_policy(&refused).expect_err("unknown class");
+    assert!(
+        issues
+            .iter()
+            .any(|issue| issue.message == format!("unknown command class: {class}")),
+        "{issues:?}"
+    );
+}
+
+#[test]
+fn diagnostics_bound_megabyte_identifiers() {
+    let huge = "a".repeat(1 << 20);
+    let marker = format!("{}...(truncated, {} bytes)", &huge[..64], huge.len());
+    let mut refused = policy();
+    refused.command_catalog.push(GeneratedWorkflowCommand {
+        id: "huge-class".to_string(),
+        command_class: huge.clone(),
+        invocation: "cairn doctor --root PATH".to_string(),
+    });
+    descriptor_mut(&mut refused, "verify")
+        .command_classes
+        .push(huge.clone());
+    let issues = admit_generated_agent_workflow_policy(&refused).expect_err("unknown class");
+    for issue in &issues {
+        assert!(
+            issue_bytes(issue) < DIAGNOSTIC_BOUND_BYTES,
+            "{} bytes at {}",
+            issue_bytes(issue),
+            issue.field_path
+        );
+    }
+    let message = |path: &str| {
+        issues
+            .iter()
+            .find(|issue| issue.field_path == path)
+            .map(|issue| issue.message.clone())
+            .unwrap_or_else(|| panic!("{path}: {issues:?}"))
+    };
+    let unknown = format!("unknown command class: {marker}");
+    assert_eq!(
+        message("generated_agent_workflow_policy.command_catalog[5].command_class"),
+        unknown
+    );
+    assert_eq!(
+        message("generated_agent_workflow_policy.descriptors[5].command_classes"),
+        unknown
+    );
+
+    let admitted = admit_generated_agent_workflow_policy(&policy()).expect("admitted");
+    for issue in [
+        find_generated_workflow_command(&admitted, &huge).expect_err("unknown route"),
+        find_generated_workflow_descriptor(&admitted, &huge).expect_err("unknown workflow"),
+        find_generated_workflow_adapter(&admitted, &huge).expect_err("unknown adapter"),
+        find_entry_guide_profile(&admitted, &huge).expect_err("unknown profile"),
+    ] {
+        assert!(issue_bytes(&issue) < DIAGNOSTIC_BOUND_BYTES, "{issue:?}");
+        assert!(issue.message.contains(&marker), "{issue:?}");
+    }
+}

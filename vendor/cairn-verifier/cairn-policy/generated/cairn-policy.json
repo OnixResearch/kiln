@@ -1516,12 +1516,17 @@
         "invocation": "cairn doctor --root PATH"
       },
       {
+        "command_class": "readiness",
+        "id": "drain-plan-readiness",
+        "invocation": "cairn drain-plan --view readiness --root PATH"
+      },
+      {
         "command_class": "gate",
         "id": "gate-tasks",
         "invocation": "cairn gate tasks <change> --root PATH"
       },
       {
-        "command_class": "gate",
+        "command_class": "readiness",
         "id": "readiness",
         "invocation": "cairn readiness <change> --root PATH"
       },

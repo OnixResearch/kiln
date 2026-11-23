@@ -45,4 +45,6 @@ pub use render::{
 };
 
 #[cfg(test)]
+mod command_routes;
+#[cfg(test)]
 mod tests;

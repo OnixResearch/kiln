@@ -3,7 +3,7 @@
   "cohort": {
     "producer_identity": "b3:0e1a43483793d8feceee76b685ee6102715f794f77a65dba652d901afca88147",
     "selection_identity": "b3:9f0d616d6a8c508b2c70d13059026486d708d61777eccc071196e4792d7b9943",
-    "obligations_identity": "b3:7ef7a574dea88a03dda2e0c1f6fa3e412082159c3d6142748dc04864f5a670cd",
+    "obligations_identity": "b3:d5b4c0b056d638c919ad539af4e19c945235c76adb16feea65e2c19e3b7810a7",
     "profile_identity": "b3:0000000000000000000000000000000000000000000000000000000000000004",
     "context_identity": "b3:0fc67d3d6a1315e8ee87392ec745e3ff3d0fb848e4bbad517366ac33b54918fb",
     "source_identity": "b3:109c8ec45a98a7a1df5848c73c7d198edf15ce45ee8ff1699442bef7bfe60326",
@@ -15,11 +15,11 @@
   "obligations": [
     {
       "id": "kiln.authoritative-completion",
-      "obligation_identity": "b3:fa404489b6f039aca6ad671220cb275a202eae83b4c359a9eb282aeef41e78d6",
-      "guidance_identity": "b3:7b68ed96821c5d3b6e71f5e056e8f79483cfd55390a41aaa9f4bedb7ee62efc3",
+      "obligation_identity": "b3:20a44b3875a63fcb3457c04f23ba8fead8834d0ac3c91644d00c1eca3e25b1ac",
+      "guidance_identity": "b3:ef799afb4fc18368a22a0a1b25626fcae811e8613b195ca884a5244045d561ab",
       "remaining_condition_identity": "b3:c660620e80719a10ff6f5adaefb84f43067a36794bc159a25288dd89a5e94ed4",
       "operation_class": "completion_only",
-      "action_identity": "b3:c7476d573c93b0333b49eb7ac8c547577361cc9a4f6c0814736d98639e952377",
+      "action_identity": "b3:d92940736bc7dc8d60878c8b15ddda4875c8a5722124a092dd474cae547300d0",
       "prerequisites": [
         "verify.conditional.claim.revision",
         "verify.evidence.authority",
@@ -33,7 +33,7 @@
         {
           "id": "kiln.authoritative-completion",
           "schema": "cairn.authoritative-completion.v1",
-          "predicate_identity": "b3:12b3cc379d69947d29b93071cb88ceb196c43268165f13a9db63fd6d698aa47c"
+          "predicate_identity": "b3:30c30fddf9425bc8d0ae289ed28f711cbdb9f2ff06b47b4cd1de2324a9b5edaf"
         }
       ],
       "precondition_identity": "b3:863d3b4ba66f02d896115c9b1172485e5226b36741030c8ae5bd8ed06a4747c1",
@@ -41,11 +41,11 @@
     },
     {
       "id": "verify.conditional.claim.revision",
-      "obligation_identity": "b3:648869f571e645571075f014b9fb337184e6f672f6897a4c02095d1ab50c12dc",
-      "guidance_identity": "b3:f5db63a0e4f5e992fec4374d73762889b18791b3da24d2b3fd3fe0d36dae3ccc",
-      "remaining_condition_identity": "b3:ec2b630d4ef5a7b3b5f791f72a6fffaaac7a40bc3232e799a6d087da0450a571",
+      "obligation_identity": "b3:1345e9bc65346736d0136094e612313bab8d7091172333cae62cf2611ce7c9d2",
+      "guidance_identity": "b3:d01b5fa7b4ae3e09f689e7f2b719bd1be1f8dd0c007f987958758b26ae5b8d6e",
+      "remaining_condition_identity": "b3:63bca595007f6781eb310be6f6d47078be426b275125373e39c5899279a21f7d",
       "operation_class": "named_check",
-      "action_identity": "b3:1a56588c7c2a852231f25de7a2fce721fd8604682faf861144bfedf2f05fb335",
+      "action_identity": "b3:2c22994c7c0cea31ca110964f9592b61b51cde5b7101163695448d74896df6ce",
       "prerequisites": [],
       "required_observations": [
         {
@@ -64,11 +64,11 @@
     },
     {
       "id": "verify.evidence.authority",
-      "obligation_identity": "b3:97c010ceab6b6b67c366e27816dd5adf9eab310aa1d09a197279489e5278b99d",
-      "guidance_identity": "b3:3c698e3001866dc81f976e32da3430e176345556480a3589a2047591a7e0dc88",
-      "remaining_condition_identity": "b3:0b5b4da7e2adce987fc6f042df062249afd0cbe521778d8945b18c0e56e6f041",
+      "obligation_identity": "b3:f2d43f7b8b219a2ed72b4f3576746a34b050a755693b842404437c44c027faa3",
+      "guidance_identity": "b3:c289337523b7848fd7bdfb4c3247ae0c120595e0180b32cdb92e61ddf18e572a",
+      "remaining_condition_identity": "b3:35b7e85b9300115ce6c640841b5562710990004ad62069b7ccefac60b66aacba",
       "operation_class": "named_check",
-      "action_identity": "b3:f0cea6b22393a07cd365be8aa66e957d18d1e24e0a77c0818356ae6f02bdc8ac",
+      "action_identity": "b3:2e1874900c7647249698af5e8b40c155952f4545afc54b753aaf5c0ba305dc57",
       "prerequisites": [],
       "required_observations": [
         {
@@ -82,11 +82,11 @@
     },
     {
       "id": "verify.evidence.contract",
-      "obligation_identity": "b3:5d13dec456f40a35f322217e2c5c86feccb1f1cb97f2000949825d94fb68d652",
-      "guidance_identity": "b3:e5dfe3b05d68a3dcc5ece852c7e8afe56b51bf23edd5dba1cef52ec7fa33605e",
-      "remaining_condition_identity": "b3:bf0adcb3297b31db9a963ea11348d19f5760a4ecc88848d52d4213c19f65f787",
+      "obligation_identity": "b3:0ed18969ee3debf153bcce5a58506c796f4a764e50414252cb1426b064225f56",
+      "guidance_identity": "b3:3c4c2ecfee6101d1ac339b8351ac915c1a1101bf59c99cd5702480ef64209242",
+      "remaining_condition_identity": "b3:f18f7abeb8ac54d4e261b8441e11b4e36e6f085476f6c853d7bab8dd99565083",
       "operation_class": "named_check",
-      "action_identity": "b3:5a6f11e74d26f3159196e8f61050cf1a663be4c8c31e7c81be3d4fd2596a66d4",
+      "action_identity": "b3:3122078d72c7f82a8407055243e11c8f44cad76312d693a585423af9b082c6b6",
       "prerequisites": [],
       "required_observations": [
         {
@@ -100,11 +100,11 @@
     },
     {
       "id": "verify.evidence.freshness",
-      "obligation_identity": "b3:8df5d6b06ce30768c722ea98e5bebf23faa053242f0a1babb8b88bd27a23e07a",
-      "guidance_identity": "b3:44c3118259a1347d804e9b275d6b35de447516b7d41cb342663509ca284056d9",
-      "remaining_condition_identity": "b3:c918e8483f60596ca7cf3a0510679a339e696dad0abb7470f94742cfddafe96f",
+      "obligation_identity": "b3:bdd852923f918f895106c20f899312ba16640e460e895efe0823a3cfc9e364af",
+      "guidance_identity": "b3:e0920f4a878b15c534247735e50a890b70a03f689eb2e64781b2bfcb6cb78178",
+      "remaining_condition_identity": "b3:7fbb197bc422fabaa6f9609e71087718e14795d50ca0728e621a4dee4a89b82a",
       "operation_class": "named_check",
-      "action_identity": "b3:694e0fa49987053125885e8059dd01013325717a91256314bbc2f083b86dc39b",
+      "action_identity": "b3:94eb341ea615b2271cf8403db93b9015e9567ae2f82b7872c526af508cd64b41",
       "prerequisites": [],
       "required_observations": [
         {
@@ -118,11 +118,11 @@
     },
     {
       "id": "verify.evidence.pass-only",
-      "obligation_identity": "b3:94191ec2d683cf984926c326931544f0765cc7dc2e852b97909ab337038f70c1",
-      "guidance_identity": "b3:1686b7ab4df574334f207d776e70592c5f0e535416b23761fb46b6dab733d022",
-      "remaining_condition_identity": "b3:3767dd555d7db18c657d2300f7d00144bb971c3c2c1096e49159f19ae46119db",
+      "obligation_identity": "b3:578f7dfdd1c6e09644847e76d34deabdfc8efa9b4923cb6427985a3b0ac09f52",
+      "guidance_identity": "b3:49aeac9df0e1a454c70519ae3388b00bb7dfc5a55d4d684f89a5d4e7d5f85db2",
+      "remaining_condition_identity": "b3:a02709c00eab9a0327aa48bd5a493b6f030b92a966bfc52263041e5b5c4de98d",
       "operation_class": "named_check",
-      "action_identity": "b3:e601b032a37a2a29c7718a4394d1ad22d7898dd9dbb9977a15dbb8cb283aa07f",
+      "action_identity": "b3:75a3297b0f80001178bfb3a7c118a8f7e780bd14b468c3248a09c164317bdb7f",
       "prerequisites": [],
       "required_observations": [
         {
@@ -136,11 +136,11 @@
     },
     {
       "id": "verify.traceability.contract",
-      "obligation_identity": "b3:093d833f5f8770237b33e77092b5dadc48dca433e33566c4608c9651a4bf660a",
-      "guidance_identity": "b3:131f02adaed5587c8985fc92e3855a36027dd887d86b629f9bc8d63968cea202",
-      "remaining_condition_identity": "b3:507f509d167848ecc263e974668d019648c061b3af93fc7509a2c967ac32e877",
+      "obligation_identity": "b3:21a389ed43953ae12923805165fe49887ea80b7311fa80609229d394f87f92e1",
+      "guidance_identity": "b3:da73f557929b6bdc92a187dc6c8cb77ff5bafe239f65a8568a31b726b372a902",
+      "remaining_condition_identity": "b3:0c08a6a17e7861f202ab3dbc985c856c17e4d79265f59d1ff894f1c900f25c70",
       "operation_class": "named_check",
-      "action_identity": "b3:2dd47b6e769db6e32d1b37ebc8e39e0983753ebd3bd33d9664f285279d86701b",
+      "action_identity": "b3:a0b7d13a231330991f2f32f81def2ab0a06fe82021afaf15739548d186cbcdcf",
       "prerequisites": [],
       "required_observations": [
         {
@@ -154,11 +154,11 @@
     },
     {
       "id": "verify.traceability.freshness",
-      "obligation_identity": "b3:11d69fd3f7fde75548006d449de3b02870ff4904c9f723242dab199486a47936",
-      "guidance_identity": "b3:c46305c9b6a657ffe76540701a04ac8411a68522cf89c3ff446369c0c93b2c50",
-      "remaining_condition_identity": "b3:a656c654588bad80ba715259279e456740e365d200bdf68d5340c557c20d6ce2",
+      "obligation_identity": "b3:0a44c9def6b4fc12843ef68840da581281dba170819b3dfadcb3f1ea913b1649",
+      "guidance_identity": "b3:39fb09d172669fdf0e10831755b6ac0c400d9ec4f344262b620e0486cbd96b16",
+      "remaining_condition_identity": "b3:1045d91e70ab259884753f1a0e74afeba7fe8bc7ceca90da3d28512534c28bb2",
       "operation_class": "named_check",
-      "action_identity": "b3:b8dbbf8b403cabf15c873d9989096b8cbaa12208fd49f7da9e1603a17328a474",
+      "action_identity": "b3:e3f591c0a31334ea621f7ed2826458ee7e232bcd7318cdc494d535a9d23332b8",
       "prerequisites": [],
       "required_observations": [
         {
