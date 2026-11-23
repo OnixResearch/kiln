@@ -495,7 +495,8 @@ fn admit(
 struct Mapping<'a> {
     definition: &'a AdmittedDefinition,
     creation: &'a BTreeSet<String>,
-    source: BTreeMap<&'a str, &'a ExternalRef>,
+    /// Every current source path with its object and entry kind.
+    source: BTreeMap<&'a str, (&'a ExternalRef, EntryKind)>,
     /// Whether the source moved; a new path the current source holds is then
     /// an overlap, not a refusal.
     moved: bool,
@@ -796,7 +797,7 @@ pub fn capture(
             .source
             .entries
             .iter()
-            .map(|entry| (entry.path.as_str(), &entry.object))
+            .map(|entry| (entry.path.as_str(), (&entry.object, entry.kind)))
             .collect(),
         moved,
     };
@@ -926,6 +927,7 @@ pub fn capture(
         return Ok(Captured::Conflict(conflict(
             &operations,
             &mapping.source,
+            &origins,
             complete,
             current,
             pin,
@@ -951,24 +953,27 @@ pub fn capture(
 
 // r[impl kiln.source.projection.writeback.conflict]
 /// Every source path where `operations` and the current source disagree: an
-/// expected object that is no longer there, or a new path the source now
-/// holds.
+/// origin whose current object or entry kind (a mode-only change included)
+/// differs from the frozen one, or a new path the source now holds.
 fn conflict(
     operations: &[SourceOperation],
-    source: &BTreeMap<&str, &ExternalRef>,
+    source: &BTreeMap<&str, (&ExternalRef, EntryKind)>,
+    origins: &BTreeMap<&str, Origin<'_>>,
     complete: &CompleteProjection,
     current: CurrentAttempt<'_>,
     pin: &WorkspacePin,
 ) -> WritebackConflict {
     let manifest = complete.manifest();
-    let changed = |path: &str, expected: &ExternalRef| source.get(path) != Some(&expected);
+    let changed = |path: &str| match origins.get(path) {
+        Some(origin) => source.get(path).copied() != Some((origin.expected, origin.kind)),
+        None => true,
+    };
     let present = |path: &str| source.contains_key(path);
     let mut overlapping = BTreeSet::new();
     for operation in operations {
         match operation {
-            SourceOperation::Edit { path, expected, .. }
-            | SourceOperation::Delete { path, expected } => {
-                if changed(path, expected) {
+            SourceOperation::Edit { path, .. } | SourceOperation::Delete { path, .. } => {
+                if changed(path) {
                     overlapping.insert(path.clone());
                 }
             }
@@ -977,13 +982,8 @@ fn conflict(
                     overlapping.insert(path.clone());
                 }
             }
-            SourceOperation::Rename {
-                from, to, expected, ..
-            }
-            | SourceOperation::Fork {
-                from, to, expected, ..
-            } => {
-                if changed(from, expected) {
+            SourceOperation::Rename { from, to, .. } | SourceOperation::Fork { from, to, .. } => {
+                if changed(from) {
                     overlapping.insert(from.clone());
                 }
                 if present(to) {

@@ -823,6 +823,48 @@ fn a_moved_source_yields_a_conflict_naming_overlapping_origins() {
     );
 }
 
+/// The base facts at another revision, with `path` made executable and its
+/// blob unchanged.
+fn made_executable(path: &str) -> ProjectionFacts {
+    let mut source = facts("b");
+    for entry in &mut source.entries {
+        if entry.path == path {
+            entry.kind = EntryKind::Executable;
+        }
+    }
+    source
+}
+
+// r[verify kiln.source.projection.writeback.conflict]
+#[test]
+fn a_mode_only_change_by_another_writer_overlaps_the_edited_origin() {
+    let view = view();
+    let edited = with(
+        with(untouched(&view), "shared/proto/lib.rs", "proto-a"),
+        "vendor/shared/proto/lib.rs",
+        "proto-a",
+    );
+    // The same blob, now executable, at the origin this attempt edits.
+    let mode = conflicted(capture_at(
+        &view,
+        &view.pin,
+        &edited,
+        &made_executable("shared/proto/lib.rs"),
+        1,
+    ));
+    assert_eq!(mode.overlapping(), ["shared/proto/lib.rs".to_string()]);
+    // A mode-only change to an origin this attempt leaves alone overlaps
+    // nothing.
+    let beside = conflicted(capture_at(
+        &view,
+        &view.pin,
+        &edited,
+        &made_executable("projects/alpha/LICENSE"),
+        1,
+    ));
+    assert!(beside.overlapping().is_empty());
+}
+
 // Archil reference fixtures (#79): ownership and observed content are
 // independent checks, through different aliases of one origin.
 // r[verify kiln.source.projection.writeback.conflict.scenario.archil]
