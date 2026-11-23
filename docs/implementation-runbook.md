@@ -487,12 +487,14 @@ quota-window share when available, and elapsed wall time—not dollars**.
 Wall time includes claim/queue/verification time and is not model-service time;
 overlapping attempts' elapsed values are summed, not treated as unique clock time.
 
-The current `lattice.omp-jsonl-observation.v1` cohort reports terminal state but
-does not measure model requests. Its turn observation is
-`{"status":"absent","reason":"not_instrumented"}`. `event_count`, Agent-node
-count, configured turn limits and reserved budget are never substituted for
-usage. Lattice #13 owns qualification of measured usage; unsupported cohorts
-remain absent until an exact supported observation contract is adopted.
+When Lattice returns a `host_measured` draw in `budget_lineage.usage[]`,
+Kiln normalizes `charged.model_requests` into
+`{"status":"observed","turns":N}`. When `budget_lineage` is absent,
+malformed, duplicated, or reports `unknown` provenance—including legacy
+`lattice.omp-jsonl-observation.v1` outputs without broker evidence—the turn
+observation stays `{"status":"absent","reason":"not_instrumented"}`.
+`event_count`, Agent-node count, configured turn limits and reserved budget
+are never substituted for usage.
 The trusted consumer reads only the bounded native artifact bound to this
 attempt, retains no session body in metrics, and explains unavailable or
 malformed observations without changing native candidate admission.

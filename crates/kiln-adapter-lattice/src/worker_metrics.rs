@@ -1,5 +1,8 @@
 //! Non-authoritative metrics from the admitted native OMP observation cohort.
-//! JSONL events are not model requests; v1 has no measured turn telemetry.
+//! JSONL events are not model requests; measured model turns come only from
+//! Lattice's `host_measured` budget-lineage draw and otherwise stay explicitly
+//! absent (`NotInstrumented`).
+use super::settlement::{ObservedDraw, extract_observed_draw};
 use kiln_core::implementation::{
     AbsenceReason, AttemptUsage, AuxiliaryCallObservation, ModelTurnObservation, TokenObservation,
     WorkerObservation, WorkerTerminalState,
@@ -22,6 +25,7 @@ struct OmpObservation {
 pub(super) fn normalize(
     request: &Value,
     response: &Value,
+    response_bytes: &[u8],
     omp_bytes: &[u8],
 ) -> Result<WorkerObservation, String> {
     if response.get("schema").and_then(Value::as_str) != Some(NATIVE_SCHEMA)
@@ -52,6 +56,17 @@ pub(super) fn normalize(
         .pointer("/omp/revision")
         .and_then(Value::as_str)
         .ok_or("native worker metrics lack the OMP cohort")?;
+    let model_turns = match extract_observed_draw(response_bytes) {
+        ObservedDraw::HostMeasured { charged } => match charged.get("model_requests") {
+            Some(&turns) => ModelTurnObservation::Observed { turns },
+            None => ModelTurnObservation::Absent {
+                reason: AbsenceReason::NotInstrumented,
+            },
+        },
+        ObservedDraw::Unknown { .. } => ModelTurnObservation::Absent {
+            reason: AbsenceReason::NotInstrumented,
+        },
+    };
     Ok(WorkerObservation {
         terminal: observation.terminal,
         worker_profile: Some(
@@ -72,9 +87,7 @@ pub(super) fn normalize(
             auxiliary_calls: AuxiliaryCallObservation::Absent {
                 reason: AbsenceReason::NotInstrumented,
             },
-            model_turns: ModelTurnObservation::Absent {
-                reason: AbsenceReason::NotInstrumented,
-            },
+            model_turns,
         },
     })
 }
@@ -108,8 +121,9 @@ mod tests {
             ("aborted", WorkerTerminalState::Aborted),
         ] {
             let (request, response, bytes) = fixture(label);
-            let observed =
-                normalize(&request, &response, &bytes).unwrap_or_else(|_| unreachable!());
+            let response_bytes = serde_json::to_vec(&response).unwrap_or_else(|_| unreachable!());
+            let observed = normalize(&request, &response, &response_bytes, &bytes)
+                .unwrap_or_else(|_| unreachable!());
             assert_eq!(observed.terminal, expected);
             assert_eq!(observed.model.as_deref(), Some("declared-model"));
             assert_eq!(
@@ -122,26 +136,99 @@ mod tests {
     }
 
     #[test]
+    // r[verify kiln.implementation.outcome_metrics.scenario.usage]
+    fn host_measured_lineage_draw_supplies_model_turns_while_unknown_stays_absent() {
+        let (request, mut response, bytes) = fixture("completed");
+        if let Some(object) = response.as_object_mut() {
+            object.insert(
+                "budget_lineage".into(),
+                json!({
+                    "binding": "d".repeat(64),
+                    "usage": [{
+                        "phase": "edit",
+                        "iteration": 1,
+                        "model_requests": 3,
+                        "tool_invocations": null,
+                        "provenance": "host_measured",
+                        "charged": {
+                            "model_requests": 3,
+                            "tool_invocations": 0
+                        }
+                    }]
+                }),
+            );
+        }
+        let response_bytes = serde_json::to_vec(&response).unwrap_or_else(|_| unreachable!());
+        let observed = normalize(&request, &response, &response_bytes, &bytes)
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(
+            observed.usage.model_turns,
+            ModelTurnObservation::Observed { turns: 3 }
+        );
+
+        // Unknown provenance never becomes turns (and never zero).
+        let (request, mut unknown_response, bytes) = fixture("completed");
+        if let Some(object) = unknown_response.as_object_mut() {
+            object.insert(
+                "budget_lineage".into(),
+                json!({
+                    "binding": "d".repeat(64),
+                    "usage": [{
+                        "phase": "edit",
+                        "iteration": 1,
+                        "model_requests": null,
+                        "tool_invocations": null,
+                        "provenance": "unknown",
+                        "charged": {
+                            "model_requests": 64,
+                            "tool_invocations": 0
+                        }
+                    }]
+                }),
+            );
+        }
+        let unknown_bytes =
+            serde_json::to_vec(&unknown_response).unwrap_or_else(|_| unreachable!());
+        let observed = normalize(&request, &unknown_response, &unknown_bytes, &bytes)
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(
+            observed.usage.model_turns,
+            ModelTurnObservation::Absent {
+                reason: AbsenceReason::NotInstrumented,
+            }
+        );
+    }
+
+    #[test]
     // r[verify kiln.implementation.outcome_metrics.scenario.binding]
     fn crossed_and_unsupported_native_observations_cannot_supply_metrics() {
         let (request, response, bytes) = fixture("completed");
+        let response_bytes = serde_json::to_vec(&response).unwrap_or_else(|_| unreachable!());
         let mut crossed = response.clone();
         *crossed
             .pointer_mut("/envelope/fence")
             .unwrap_or_else(|| unreachable!()) = json!(8);
-        assert!(normalize(&request, &crossed, &bytes).is_err());
+        assert!(normalize(&request, &crossed, &response_bytes, &bytes).is_err());
         crossed = response.clone();
         *crossed
             .get_mut("request_identity")
             .unwrap_or_else(|| unreachable!()) = json!("different-request");
-        assert!(normalize(&request, &crossed, &bytes).is_err());
+        assert!(normalize(&request, &crossed, &response_bytes, &bytes).is_err());
         crossed = response.clone();
         *crossed
             .pointer_mut("/result/stdout_blake3")
             .unwrap_or_else(|| unreachable!()) = json!("d".repeat(64));
-        assert!(normalize(&request, &crossed, &bytes).is_err());
-        assert!(normalize(&request, &response, br#"{"Err":"truncated"}"#).is_err());
-        assert!(normalize(&request, &response, b"not-json").is_err());
+        assert!(normalize(&request, &crossed, &response_bytes, &bytes).is_err());
+        assert!(
+            normalize(
+                &request,
+                &response,
+                &response_bytes,
+                br#"{"Err":"truncated"}"#
+            )
+            .is_err()
+        );
+        assert!(normalize(&request, &response, &response_bytes, b"not-json").is_err());
         let mut unsupported: Value =
             serde_json::from_slice(&bytes).unwrap_or_else(|_| unreachable!());
         *unsupported
@@ -151,6 +238,7 @@ mod tests {
             normalize(
                 &request,
                 &response,
+                &response_bytes,
                 &serde_json::to_vec(&unsupported).unwrap_or_else(|_| unreachable!())
             )
             .is_err()

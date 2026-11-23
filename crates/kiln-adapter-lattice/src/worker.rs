@@ -1180,7 +1180,7 @@ fn run_with(
     // dispatch or grant candidate authority. Raw transport evidence is retained
     // above; absent/malformed telemetry is explicit in this diagnostic.
     let metrics_result = read_metrics_artifact(&state_directory, &attempt, &observed)
-        .and_then(|bytes| metrics::normalize(&request, &observed, &bytes))
+        .and_then(|bytes| metrics::normalize(&request, &observed, &outcome.stdout.bytes, &bytes))
         .and_then(|observation| {
             implementer.record_worker_observation(&attempt.identity, attempt.fence, &observation)
         });
