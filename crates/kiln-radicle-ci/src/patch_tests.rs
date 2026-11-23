@@ -14,10 +14,33 @@ struct Fixture {
     second: RevisionBinding,
 }
 fn executable(path: &Path, body: &str) -> Executable {
-    fs::write(path, body)
+    // Write fixture executables in a short-lived child process so the multi-threaded
+    // test binary never holds a writable file descriptor to a script that another
+    // thread's fork/exec could inherit and trigger ETXTBSY (#117).
+    let mut child = std::process::Command::new("sh")
+        .args([
+            "-c",
+            "umask 077; cat > \"$1.tmp\" && chmod 0700 \"$1.tmp\" && mv -f \"$1.tmp\" \"$1\"",
+            "--",
+        ])
+        .arg(path)
+        .stdin(std::process::Stdio::piped())
+        .spawn()
         .unwrap_or_else(|error| unreachable!("fixture operation failed: {error:?}"));
-    fs::set_permissions(path, fs::Permissions::from_mode(0o700))
+    {
+        use std::io::Write as _;
+        let mut stdin = child
+            .stdin
+            .take()
+            .unwrap_or_else(|| unreachable!("fixture stdin missing"));
+        stdin
+            .write_all(body.as_bytes())
+            .unwrap_or_else(|error| unreachable!("fixture operation failed: {error:?}"));
+    }
+    let status = child
+        .wait()
         .unwrap_or_else(|error| unreachable!("fixture operation failed: {error:?}"));
+    assert!(status.success(), "fixture script writer failed: {status}");
     Executable {
         path: path.to_path_buf(),
         blake3: ContentId::from_blake3_hex(blake3::hash(body.as_bytes()).to_hex().to_string())
