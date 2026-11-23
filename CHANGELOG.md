@@ -770,6 +770,12 @@ entry describes the source tree prepared for the first tagged release.
 
 ### Changed
 
+- `WorkSourceKind::GitHubIssue` now serializes as `"github_issue"` (matching
+  `WorkSourceKind::as_str()` and Lattice's source-kind enum) instead of serde's
+  `snake_case` `"git_hub_issue"`. Deserialization retains
+  `#[serde(alias = "git_hub_issue")]` so existing ledgers, receipts and
+  fixtures remain readable; identity hashes are unchanged because they already
+  hashed `as_str()`. (#112)
 - Kiln's Basalt import moves to `fac0d7f1fd7ac936ca4d3f251f3287666e93d4bb` and
   its UCAN import to `fca62a6ed6895689ff18112b497bc7a986516c20`, the exact
   revisions Lattice vendors, so Kiln and Lattice verify grants with the same

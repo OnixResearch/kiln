@@ -67,6 +67,7 @@ pub const MAX_ATTEMPTS_BOUND: u8 = 10;
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WorkSourceKind {
+    #[serde(rename = "github_issue", alias = "git_hub_issue")]
     GitHubIssue,
     CairnTask,
     CairnArtifact,
@@ -1054,6 +1055,27 @@ mod tests {
                 previous: first,
                 identity: second,
             })
+        );
+    }
+
+    #[test]
+    fn github_issue_source_kind_serializes_as_github_issue_and_accepts_legacy_alias() {
+        let serialized = serde_json::to_string(&WorkSourceKind::GitHubIssue).unwrap_or_default();
+        assert_eq!(serialized, "\"github_issue\"");
+        assert_eq!(
+            serialized,
+            alloc::format!("\"{}\"", WorkSourceKind::GitHubIssue.as_str())
+        );
+        assert_eq!(
+            serde_json::from_str::<WorkSourceKind>(&serialized).ok(),
+            Some(WorkSourceKind::GitHubIssue)
+        );
+        let legacy: WorkSourceKind =
+            serde_json::from_str("\"git_hub_issue\"").unwrap_or_else(|_| unreachable!());
+        assert_eq!(legacy, WorkSourceKind::GitHubIssue);
+        assert_eq!(
+            serde_json::to_string(&legacy).unwrap_or_default(),
+            "\"github_issue\""
         );
     }
 
