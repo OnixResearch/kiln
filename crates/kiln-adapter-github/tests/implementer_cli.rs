@@ -1159,3 +1159,274 @@ fn policy_check_reports_the_field_poll_would_reject() {
     assert!(stderr.contains(" column "), "{stderr}");
     assert!(refused.stdout.is_empty());
 }
+
+/// Run one `kiln-implementer` command under the local operator, or under the
+/// absent profile when `operator` is `None`.
+fn run_selected(
+    arguments: &[&str],
+    database: &Path,
+    enrollment: &Path,
+    operator: Option<&str>,
+) -> std::process::Output {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"));
+    command.args(arguments);
+    if let Some(operator) = operator {
+        command.arg("--local-operator").arg(operator);
+    }
+    command
+        .arg("--database")
+        .arg(database)
+        .arg("--enrollment")
+        .arg(enrollment)
+        .output()
+        .unwrap_or_else(|_| unreachable!())
+}
+
+// r[verify kiln.implementation.authority.dispatch.scenario.denied]
+// r[verify kiln.implementation.authority.dispatch.scenario.admitted]
+#[test]
+fn cli_reserve_and_start_reach_the_dispatch_check_before_any_mutation() {
+    use kiln_core::implementation::{
+        AttemptPhase, DISPATCH_PLAN_SCHEMA, DispatchControls, DispatchWorkspace,
+        ImplementationDispatchPlan, ImplementationWork, SourceRef, WorkSourceKind,
+        WorkspaceIsolation,
+    };
+    use kiln_core::types::{ExternalRef, ProviderProfileId};
+
+    let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let database = directory.path().join("work.sqlite");
+    let enrollment_file = directory.path().join("enrollment.json");
+    let enrollment = Enrollment {
+        repositories: BTreeSet::from(["octocat/hello-world".to_string()]),
+        actors: BTreeSet::from(["operator".to_string()]),
+    };
+    write(
+        &enrollment_file,
+        &serde_json::to_vec(&enrollment).unwrap_or_else(|_| unreachable!()),
+    );
+    let work = ImplementationWork {
+        schema: kiln_core::implementation::IMPLEMENTATION_WORK_SCHEMA.to_string(),
+        revision: 1,
+        actor: "operator".to_string(),
+        repository: "octocat/hello-world".to_string(),
+        project: "kiln".to_string(),
+        base: Some(ExternalRef::new("git", "commit", "base").unwrap_or_else(|_| unreachable!())),
+        title: "CLI dispatch authority".to_string(),
+        requested_outcome: "implement".to_string(),
+        acceptance: vec![AcceptanceObligation {
+            id: "accepted".to_string(),
+            statement: "verified".to_string(),
+        }],
+        dependencies: Vec::new(),
+        permitted_paths: vec!["crates".to_string()],
+        permitted_effects: BTreeSet::from(["write_source".to_string()]),
+        verification_profile: content('a'),
+        budget: WorkBudget {
+            attempts: 2,
+            minutes_per_attempt: 60,
+        },
+        terminal_policy: TerminalPolicy::VerifiedPullRequest,
+        priority: 1,
+        aliases: vec![SourceRef {
+            kind: WorkSourceKind::GitHubIssue,
+            source: ExternalRef::new("github", "issue", "octocat/hello-world#69")
+                .unwrap_or_else(|_| unreachable!()),
+            native_id: "octocat/hello-world#69".to_string(),
+            version: content('b'),
+        }],
+    };
+    let now = u64::try_from(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_else(|_| unreachable!())
+            .as_millis(),
+    )
+    .unwrap_or_else(|_| unreachable!());
+    let attempt = {
+        let mut owner =
+            Implementer::open_with_local_operator(&database, enrollment.clone(), "test-operator")
+                .unwrap_or_else(|error| unreachable!("{error}"));
+        owner
+            .admit(&work, None)
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        owner
+            .claim_next(now, 600_000)
+            .unwrap_or_else(|error| unreachable!("{error}"))
+            .unwrap_or_else(|| unreachable!("claim"))
+    };
+    let plan = ImplementationDispatchPlan {
+        schema: DISPATCH_PLAN_SCHEMA.to_string(),
+        work_identity: attempt.work_identity.clone(),
+        work_revision: attempt.work_revision,
+        attempt_identity: attempt.identity.clone(),
+        fence: attempt.fence,
+        repository: work.repository.clone(),
+        base: work.base.clone(),
+        workspace: DispatchWorkspace {
+            identity: content('d'),
+            isolation: WorkspaceIsolation::IsolatedSnapshot,
+            network: false,
+            credentials: false,
+            projection: None,
+        },
+        provider_profile: ProviderProfileId::new("lattice-implementation")
+            .unwrap_or_else(|_| unreachable!()),
+        permitted_paths: work.permitted_paths.clone(),
+        permitted_effects: work.permitted_effects.clone(),
+        controls: DispatchControls {
+            cancel: true,
+            pause: false,
+            resume: false,
+        },
+        deadline_minutes: 60,
+        token_budget: 10_000,
+        invocation_budget: 10,
+        expected_output: content('e'),
+        execution: None,
+    };
+    let digest = kiln_core::implementation::admit_dispatch_plan(&work, &attempt, &plan)
+        .unwrap_or_else(|_| unreachable!());
+    let plan_file = directory.path().join("dispatch-plan.json");
+    write(
+        &plan_file,
+        &serde_json::to_vec(&plan).unwrap_or_else(|_| unreachable!()),
+    );
+    let mut wrong_plan = plan.clone();
+    wrong_plan.fence = attempt.fence + 1;
+    let wrong_plan_file = directory.path().join("wrong-fence-plan.json");
+    write(
+        &wrong_plan_file,
+        &serde_json::to_vec(&wrong_plan).unwrap_or_else(|_| unreachable!()),
+    );
+    let identity = attempt.identity.as_str();
+    let fence = attempt.fence.to_string();
+    let wrong_fence = (attempt.fence + 1).to_string();
+    let plan_path = plan_file.display().to_string();
+    let wrong_plan_path = wrong_plan_file.display().to_string();
+    let reserve = |fence: &str| {
+        run_selected(
+            &[
+                "reserve",
+                "--attempt",
+                identity,
+                "--fence",
+                fence,
+                "--plan",
+                digest.as_str(),
+                "--provider",
+                "lattice-implementation",
+            ],
+            &database,
+            &enrollment_file,
+            Some("test-operator"),
+        )
+    };
+    let start = |fence: &str, operator: Option<&str>| {
+        run_selected(
+            &[
+                "start",
+                "--attempt",
+                identity,
+                "--fence",
+                fence,
+                "--workflow-kind",
+                "run",
+                "--workflow-id",
+                "one",
+            ],
+            &database,
+            &enrollment_file,
+            operator,
+        )
+    };
+    let recorded = || {
+        let stored = Implementer::open(&database, enrollment.clone())
+            .and_then(|mut reader| reader.attempt(&attempt.identity))
+            .unwrap_or_else(|error| unreachable!("{error}"))
+            .unwrap_or_else(|| unreachable!("attempt"));
+        (stored.dispatch.is_some(), stored.phase, stored.workflow)
+    };
+    let refused = |output: &std::process::Output, cause: &str| {
+        assert!(!output.status.success());
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(stderr.contains(cause), "{stderr}");
+        assert!(output.stdout.is_empty());
+    };
+    let untouched = (false, AttemptPhase::Claimed, None);
+
+    // No selection flag selects the absent profile: each command reaches the
+    // Dispatch check and is refused before it reserves or records anything.
+    refused(
+        &run_selected(
+            &[
+                "reserve",
+                "--attempt",
+                identity,
+                "--fence",
+                &fence,
+                "--plan",
+                digest.as_str(),
+                "--provider",
+                "lattice-implementation",
+            ],
+            &database,
+            &enrollment_file,
+            None,
+        ),
+        "no authority profile selected",
+    );
+    refused(
+        &run_selected(
+            &["reserve-plan", "--plan-file", &plan_path],
+            &database,
+            &enrollment_file,
+            None,
+        ),
+        "no authority profile selected",
+    );
+    assert_eq!(recorded(), untouched);
+    // A wrong fence is refused by the attempt ledger in the same transaction.
+    refused(&reserve(&wrong_fence), "implementation_");
+    refused(
+        &run_selected(
+            &["reserve-plan", "--plan-file", &wrong_plan_path],
+            &database,
+            &enrollment_file,
+            Some("test-operator"),
+        ),
+        "implementation_",
+    );
+    assert_eq!(recorded(), untouched);
+
+    // The admitted operator reserves.
+    let reserved = reserve(&fence);
+    assert!(
+        reserved.status.success(),
+        "{}",
+        String::from_utf8_lossy(&reserved.stderr)
+    );
+    assert_eq!(recorded(), (true, AttemptPhase::Claimed, None));
+
+    // `start` is refused under the absent profile and with a wrong fence,
+    // recording no execution, then admitted for the local operator.
+    refused(&start(&fence, None), "no authority profile selected");
+    refused(
+        &start(&wrong_fence, Some("test-operator")),
+        "implementation_",
+    );
+    assert_eq!(recorded(), (true, AttemptPhase::Claimed, None));
+    let started = start(&fence, Some("test-operator"));
+    assert!(
+        started.status.success(),
+        "{}",
+        String::from_utf8_lossy(&started.stderr)
+    );
+    assert_eq!(
+        recorded(),
+        (
+            true,
+            AttemptPhase::Executing,
+            Some(ExternalRef::new("lattice", "run", "one").unwrap_or_else(|_| unreachable!())),
+        )
+    );
+}

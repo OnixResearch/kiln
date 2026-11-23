@@ -356,7 +356,7 @@ const fn authority_effect(operation: ProtectedOperation) -> AuthorityEffect {
 }
 
 mod entry_points;
-pub use entry_points::ENTRY_POINTS;
+pub use entry_points::{ENTRY_POINTS, IMPLEMENTER_CLI};
 
 /// Maximum bytes in one entry-point item name.
 pub const MAX_ENTRY_ITEM_BYTES: usize = 128;
@@ -471,6 +471,24 @@ pub fn validate_entry_points(entries: &[EntryPoint]) -> CoreResult<()> {
         }
     }
     Ok(())
+}
+
+// r[impl kiln.implementation.authority.selection.scenario.scoped]
+/// Holder roles one reviewed entry point can sign for: the role of every
+/// operation its `Protected` and `Reconcile` rows name. An entry point with no
+/// such row loads no holder key.
+#[must_use]
+pub fn entry_point_roles(
+    entries: &[EntryPoint],
+    path: &str,
+    item: &str,
+) -> alloc::collections::BTreeSet<super::grant::GrantRole> {
+    entries
+        .iter()
+        .filter(|entry| entry.path == path && entry.item == item)
+        .filter_map(|entry| entry.class.operation())
+        .map(super::grant::GrantRole::of)
+        .collect()
 }
 
 /// Domain of the canonical protected-payload digest.
@@ -688,6 +706,10 @@ pub trait HolderInvocationSigner {
     /// # Errors
     /// Returns a diagnostic when the role has no key or grant, or signing fails.
     fn sign(&self, request: &AuthorityRequest) -> CoreResult<AuthorityCredential>;
+
+    /// Whether this process loaded the holder key of `role`. An entry point
+    /// loads only the roles its own protected operations need.
+    fn holds(&self, role: super::grant::GrantRole) -> bool;
 }
 
 /// Authority profile selected once at composition for every protected
@@ -717,6 +739,18 @@ impl AuthoritySelection {
             Self::Verified(signer) => signer
                 .sign(request)
                 .map_or(AuthorityProfile::Missing, AuthorityProfile::VerifiedUcan),
+        }
+    }
+
+    // r[impl kiln.implementation.authority.selection.scenario.scoped]
+    /// Whether this selection can present evidence for `operation` at all:
+    /// the verified profile only for the holder roles this entry point
+    /// loaded. The absent and local-operator profiles load no holder key.
+    #[must_use]
+    pub fn holds(&self, operation: ProtectedOperation) -> bool {
+        match self {
+            Self::Absent | Self::LocalOperator { .. } => true,
+            Self::Verified(signer) => signer.holds(super::grant::GrantRole::of(operation)),
         }
     }
 

@@ -224,6 +224,7 @@ fn expired_or_untrusted_grants_are_never_selected_from_config() {
             .select_authority(
                 &ImplementationAuthorityConfig::load(&config)
                     .unwrap_or_else(|error| unreachable!("{error}")),
+                &std::collections::BTreeSet::from([GrantRole::Coding]),
             )
             .err()
             .unwrap_or_else(|| unreachable!("{name} grant must not be selected"));
@@ -234,4 +235,31 @@ fn expired_or_untrusted_grants_are_never_selected_from_config() {
         assert!(i.claim_next(T, LEASE_MS).is_err(), "{name}");
         assert!(no_attempts(&mut i), "{name}");
     }
+}
+
+#[test]
+// r[verify kiln.implementation.authority.state.scenario.stale]
+fn a_view_imported_within_the_current_second_admits_decisions_in_that_second() {
+    // Decisions read the revocation view at whole-second resolution. A shell
+    // that selects the profile at `T + 500` ms and claims at `T + 700` ms
+    // acts in the same second; the view must not lie after that decision.
+    let dir = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
+    let db = dir.path().join("ledger.db");
+    let config = write_config(dir.path(), &Fixture::direct(), &[]);
+    let mut i =
+        Implementer::open(&db, enrollment()).unwrap_or_else(|error| unreachable!("{error}"));
+    i.set_clock_ms(T + 500);
+    i.select_authority(
+        &ImplementationAuthorityConfig::load(&config)
+            .unwrap_or_else(|error| unreachable!("{error}")),
+        &std::collections::BTreeSet::from([GrantRole::Coding]),
+    )
+    .unwrap_or_else(|error| unreachable!("{error}"));
+    i.admit(&work("sub-second-view"), None)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    assert!(
+        i.claim_next(T + 700, LEASE_MS)
+            .unwrap_or_else(|error| unreachable!("{error}"))
+            .is_some()
+    );
 }

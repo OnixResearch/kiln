@@ -16,13 +16,16 @@ use kiln_core::fleet::{
 };
 use kiln_core::implementation::{
     AttemptLedger, DEFAULT_LEASE_MS, INTERACTIVE_PROVIDER_PROFILE, ImplementationAttempt,
-    ImplementationWork, WorkLedger,
+    ImplementationWork, TransportLaunches, WorkLedger,
 };
 use kiln_core::types::{ContentId, Diagnostic};
 use rusqlite::{Transaction, TransactionBehavior};
 use serde::{Deserialize, Serialize};
 
-use crate::{ATTEMPT_KIND, Implementer, WORK_KIND, diagnostic, load, save, text};
+use crate::authority_bridge::{self, DispatchGate};
+use crate::{
+    ATTEMPT_KIND, Implementer, TRANSPORT_LAUNCH_KIND, WORK_KIND, diagnostic, load, save, text,
+};
 
 /// `implementation_state` row holding the fleet state.
 pub const FLEET_STATE_KIND: &str = "fleet";
@@ -158,20 +161,26 @@ impl Implementer {
         })
     }
 
-    // r[impl kiln.fleet.dispatch]
-    /// Bind a new `Placing` session for a placed attempt.
+    // r[impl kiln.fleet.dispatch] r[impl kiln.implementation.authority.dispatch]
+    /// Bind a new `Placing` session for a placed attempt: the durable launch
+    /// record every later launch effect of the fleet tick needs.
+    ///
+    /// After the fence, work and session refusals, the launch's exact
+    /// `Dispatch` request (the attempt's reservation effect, plan, machine and
+    /// agent kind) is admitted in the same transaction, before the session is
+    /// saved; a denial binds nothing.
     ///
     /// # Errors
     /// Refuses an attempt and fence that do not own the current unexpired
     /// claim (`implementation_fence_stale`), a placement whose work is not the
-    /// attempt's frozen work, an attempt that already has a live session, and
-    /// every `session::bind` refusal.
+    /// attempt's frozen work, an attempt that already has a live session,
+    /// every `session::bind` refusal and the redacted authority denial.
     pub fn fleet_bind_session(
         &mut self,
         placement: Placement,
         now_ms: u64,
     ) -> Result<FleetSession, String> {
-        self.with_fleet_ledgers(Access::Write, |ledgers, fleet| {
+        self.with_fleet_dispatch(Access::Write, now_ms, |ledgers, fleet, gate| {
             let attempt = ledgers
                 .attempts
                 .get(&placement.attempt)
@@ -180,13 +189,7 @@ impl Implementer {
                         .attempts
                         .is_current(&attempt.identity, placement.fence, now_ms)
                 })
-                .ok_or_else(|| {
-                    diagnostic(Diagnostic::new(
-                        "implementation_fence_stale",
-                        "attempt.fence",
-                        "attempt does not own the current unexpired claim",
-                    ))
-                })?;
+                .ok_or_else(fence_stale)?;
             if attempt.work_identity != placement.work
                 || attempt.work_revision != placement.work_revision
             {
@@ -209,8 +212,44 @@ impl Implementer {
                 )));
             }
             let session = FleetSession::placing(placement, now_ms).map_err(diagnostic)?;
-            fleet.sessions = fleet::bind(&fleet.sessions, session.clone()).map_err(diagnostic)?;
+            let sessions = fleet::bind(&fleet.sessions, session.clone()).map_err(diagnostic)?;
+            authorize_launch(gate, ledgers, attempt, &session)?;
+            fleet.sessions = sessions;
             Ok(session)
+        })
+    }
+
+    // r[impl kiln.implementation.authority.dispatch]
+    /// Admit a bound `Placing` session's exact `Dispatch` request again,
+    /// immediately before its launch effects (worktree creation and agent
+    /// start). It saves nothing. In the process that bound the session this
+    /// revalidates the bind's session; a revoked grant, a stale revocation
+    /// view or a replaced fence therefore starts nothing.
+    ///
+    /// # Errors
+    /// Returns `fleet_session_unknown`, `implementation_fence_stale` or the
+    /// redacted authority denial.
+    pub fn fleet_authorize_launch(
+        &mut self,
+        session: &ContentId,
+        now_ms: u64,
+    ) -> Result<(), String> {
+        self.with_fleet_dispatch(Access::Read, now_ms, |ledgers, fleet, gate| {
+            let session = fleet
+                .sessions
+                .sessions
+                .get(session)
+                .ok_or_else(|| unknown_session("session"))?;
+            let attempt = ledgers
+                .attempts
+                .get(&session.attempt)
+                .filter(|attempt| {
+                    ledgers
+                        .attempts
+                        .is_current(&attempt.identity, session.fence, now_ms)
+                })
+                .ok_or_else(fence_stale)?;
+            authorize_launch(gate, ledgers, attempt, session)
         })
     }
 
@@ -418,6 +457,33 @@ impl Implementer {
         finish(transaction, access, version, &state)?;
         Ok(result)
     }
+
+    /// `with_fleet_ledgers` plus a [`DispatchGate`] over the selected
+    /// authority and the attempts' recorded launches, read in the same
+    /// transaction. An error from `apply`, including an authority denial,
+    /// saves nothing.
+    fn with_fleet_dispatch<T>(
+        &mut self,
+        access: Access,
+        now_ms: u64,
+        apply: impl FnOnce(&Ledgers, &mut FleetState, &mut DispatchGate<'_>) -> Result<T, String>,
+    ) -> Result<T, String> {
+        let transaction = begin(&mut self.connection, access)?;
+        let (work, _) = load::<WorkLedger>(&transaction, WORK_KIND)?;
+        let (attempts, _) = load::<AttemptLedger>(&transaction, ATTEMPT_KIND)?;
+        let (launches, _) = load::<TransportLaunches>(&transaction, TRANSPORT_LAUNCH_KIND)?;
+        let (mut state, version) = load_fleet(&transaction)?;
+        let mut gate = DispatchGate {
+            authority: &mut self.authority,
+            profile: &self.authority_profile,
+            last: &mut self.authority_last,
+            launches: &launches,
+            now_ms,
+        };
+        let result = apply(&Ledgers { work, attempts }, &mut state, &mut gate)?;
+        finish(transaction, access, version, &state)?;
+        Ok(result)
+    }
 }
 
 fn begin(connection: &mut rusqlite::Connection, access: Access) -> Result<Transaction<'_>, String> {
@@ -458,6 +524,43 @@ fn unknown_session(field: &str) -> String {
         field,
         "no such fleet session",
     ))
+}
+
+fn fence_stale() -> String {
+    diagnostic(Diagnostic::new(
+        "implementation_fence_stale",
+        "attempt.fence",
+        "attempt does not own the current unexpired claim",
+    ))
+}
+
+/// Admit the exact `Dispatch` request of one session's launch: the
+/// attempt's reservation effect and plan, and the session's machine and
+/// agent kind, over the attempt's frozen work.
+fn authorize_launch(
+    gate: &mut DispatchGate<'_>,
+    ledgers: &Ledgers,
+    attempt: &ImplementationAttempt,
+    session: &FleetSession,
+) -> Result<(), String> {
+    let work = attempt_work(&ledgers.work, attempt).ok_or_else(|| {
+        diagnostic(Diagnostic::new(
+            "fleet_session_bind",
+            "placement.work",
+            "the attempt's frozen work is not retained",
+        ))
+    })?;
+    let plan = attempt
+        .dispatch
+        .as_ref()
+        .map(|dispatch| dispatch.plan.as_str())
+        .unwrap_or_default();
+    authority_bridge::authorize_dispatch(
+        gate,
+        work,
+        attempt,
+        &[plan, session.machine.as_str(), session.kind.as_str()],
+    )
 }
 
 /// The work version an attempt froze: the current version when it still

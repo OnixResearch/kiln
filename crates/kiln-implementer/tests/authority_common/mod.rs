@@ -319,13 +319,15 @@ pub fn write_config(dir: &Path, fixture: &Fixture, revoked: &[[u8; 32]]) -> Path
     path
 }
 
-/// Open a ledger and select the verified profile through the composition helper.
+/// Open a ledger and select the verified profile through the composition
+/// helper as a coordinator entry point: only the coordinator seed is loaded.
 pub fn open_verified(db: &Path, config: &Path) -> Implementer {
     let mut i = Implementer::open(db, enrollment()).unwrap_or_else(|error| unreachable!("{error}"));
     i.set_clock_ms(T);
     i.select_authority(
         &ImplementationAuthorityConfig::load(config)
             .unwrap_or_else(|error| unreachable!("{error}")),
+        &BTreeSet::from([GrantRole::Coding]),
     )
     .unwrap_or_else(|error| unreachable!("{error}"));
     i

@@ -156,8 +156,10 @@ impl Implementer {
     /// # Errors
     /// Returns a message for an invalid operator identity.
     pub fn select_local_operator(&mut self, operator: impl Into<String>) -> Result<(), String> {
+        // The local-operator profile loads no holder seed.
         self.select_authority(
             &authority_config::ImplementationAuthorityConfig::local_operator(operator),
+            &std::collections::BTreeSet::new(),
         )
     }
 
@@ -181,7 +183,9 @@ impl Implementer {
 
     /// Open and select the authority profile resolved from a shell's explicit
     /// local operator or exported authority configuration; neither selects the
-    /// absent profile, which denies every protected operation.
+    /// absent profile, which denies every protected operation. Under the
+    /// verified profile only the holder seeds of `roles`, the calling entry
+    /// point's own holder roles, are loaded.
     ///
     /// # Errors
     /// Returns a message when the ledger cannot open or the selection is invalid.
@@ -190,13 +194,14 @@ impl Implementer {
         enrollment: Enrollment,
         local_operator: Option<&str>,
         authority_config: Option<&Path>,
+        roles: &std::collections::BTreeSet<kiln_core::implementation::grant::GrantRole>,
     ) -> Result<Self, String> {
         let config = authority_config::ImplementationAuthorityConfig::resolve(
             local_operator,
             authority_config,
         )?;
         let mut implementer = Self::open(path, enrollment)?;
-        implementer.select_authority(&config)?;
+        implementer.select_authority(&config, roles)?;
         Ok(implementer)
     }
 
@@ -706,6 +711,15 @@ impl Implementer {
         self.with_ledgers(|_, attempts| attempts.renew(identity, fence, now_ms, lease_ms))
     }
 
+    // r[impl kiln.implementation.authority.dispatch]
+    /// Reserve one provider dispatch for a current attempt.
+    ///
+    /// The reservation's exact `Dispatch` request is admitted inside the
+    /// transaction that writes it, after the attempt ledger's fence and phase
+    /// checks and before anything is saved; a denial saves nothing.
+    ///
+    /// # Errors
+    /// Returns the ledger refusal or the redacted authority denial.
     pub fn reserve_dispatch(
         &mut self,
         identity: &ContentId,
@@ -714,11 +728,29 @@ impl Implementer {
         plan: &ContentId,
         provider_profile: &kiln_core::types::ProviderProfileId,
     ) -> Result<DispatchReservation, String> {
-        self.with_ledgers(|_, attempts| {
-            attempts.reserve_dispatch(identity, fence, now_ms, plan, provider_profile)
+        self.with_dispatch_ledgers(now_ms, true, |work, attempts, gate| {
+            let reservation = attempts
+                .reserve_dispatch(identity, fence, now_ms, plan, provider_profile)
+                .map_err(diagnostic)?;
+            let attempt = attempts.get(identity).ok_or("authority: attempt missing")?;
+            let work = work
+                .get(&attempt.canonical_key)
+                .ok_or("authority: attempt work missing")?;
+            authorize_reservation(gate, work, attempt, &reservation)?;
+            Ok(reservation)
         })
     }
 
+    // r[impl kiln.implementation.authority.dispatch]
+    /// Admit and reserve one bounded dispatch plan for a current attempt.
+    ///
+    /// Like [`Self::reserve_dispatch`], the exact `Dispatch` request is
+    /// admitted inside the reserving transaction before anything is saved. A
+    /// session admitted by [`Self::authorize_dispatch_plan`] for the same
+    /// request is revalidated rather than granted twice.
+    ///
+    /// # Errors
+    /// Returns the attachment, ledger or redacted authority refusal.
     pub fn reserve_dispatch_plan(
         &mut self,
         work: &ImplementationWork,
@@ -734,8 +766,50 @@ impl Implementer {
                 return Err("dispatch requirements differ from current admitted attachment".into());
             }
         }
-        self.with_ledgers(|_, attempts| {
-            attempts.reserve_dispatch_plan(work, identity, fence, now_ms, plan)
+        self.with_dispatch_ledgers(now_ms, true, |_, attempts, gate| {
+            let reservation = attempts
+                .reserve_dispatch_plan(work, identity, fence, now_ms, plan)
+                .map_err(diagnostic)?;
+            let attempt = attempts.get(identity).ok_or("authority: attempt missing")?;
+            authorize_reservation(gate, work, attempt, &reservation)?;
+            Ok(reservation)
+        })
+    }
+
+    // r[impl kiln.implementation.authority.dispatch]
+    /// Admit the exact `Dispatch` request [`Self::reserve_dispatch_plan`]
+    /// will make for `plan`, changing no attempt or reservation state.
+    ///
+    /// A shell that reads a credential before reserving calls this first, so
+    /// an authority denial happens before the credential is read. The
+    /// reservation then revalidates this session in its own transaction.
+    ///
+    /// # Errors
+    /// Returns the ledger refusal the reservation would return or the
+    /// redacted authority denial.
+    pub fn authorize_dispatch_plan(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+        plan: &ImplementationDispatchPlan,
+    ) -> Result<(), String> {
+        self.with_dispatch_ledgers(now_ms, false, |work, attempts, gate| {
+            let work = work
+                .current()
+                .chain(work.superseded().iter())
+                .find(|work| {
+                    work.identity()
+                        .is_ok_and(|work_identity| work_identity == plan.work_identity)
+                })
+                .ok_or("authority: dispatch plan work is not retained")?;
+            // The reservation is computed on this transaction's copy of the
+            // ledger, which is never saved.
+            let reservation = attempts
+                .reserve_dispatch_plan(work, identity, fence, now_ms, plan)
+                .map_err(diagnostic)?;
+            let attempt = attempts.get(identity).ok_or("authority: attempt missing")?;
+            authorize_reservation(gate, work, attempt, &reservation)
         })
     }
 
@@ -757,6 +831,17 @@ impl Implementer {
         self.with_ledgers(|_, attempts| Ok(attempts.dispatch_reservation(identity).cloned()))
     }
 
+    // r[impl kiln.implementation.authority.dispatch]
+    /// Record the started execution of a reserved dispatch: the durable
+    /// launch record.
+    ///
+    /// The exact `Dispatch` request for the reservation's effect and this
+    /// workflow is admitted inside the recording transaction, after the
+    /// attempt ledger's checks and before anything is saved; a denial records
+    /// nothing.
+    ///
+    /// # Errors
+    /// Returns the ledger refusal or the redacted authority denial.
     pub fn start_execution(
         &mut self,
         identity: &ContentId,
@@ -764,7 +849,31 @@ impl Implementer {
         now_ms: u64,
         workflow: &kiln_core::types::ExternalRef,
     ) -> Result<(), String> {
-        self.with_ledgers(|_, attempts| attempts.start_execution(identity, fence, now_ms, workflow))
+        self.with_dispatch_ledgers(now_ms, true, |work, attempts, gate| {
+            attempts
+                .start_execution(identity, fence, now_ms, workflow)
+                .map_err(diagnostic)?;
+            let attempt = attempts.get(identity).ok_or("authority: attempt missing")?;
+            let work = work
+                .get(&attempt.canonical_key)
+                .ok_or("authority: attempt work missing")?;
+            let plan = attempt
+                .dispatch
+                .as_ref()
+                .map(|dispatch| dispatch.plan.as_str())
+                .unwrap_or_default();
+            authority_bridge::authorize_dispatch(
+                gate,
+                work,
+                attempt,
+                &[
+                    plan,
+                    workflow.provider_namespace.as_str(),
+                    workflow.native_kind.as_str(),
+                    workflow.native_id.as_str(),
+                ],
+            )
+        })
     }
 
     pub fn reconcile_dispatch(
@@ -1350,6 +1459,53 @@ impl Implementer {
         Ok(result)
     }
 
+    /// `with_ledgers` plus a [`authority_bridge::DispatchGate`] over the
+    /// selected authority and the recorded launches, read in the same
+    /// transaction. `persist` saves the ledgers after `apply` succeeds; an
+    /// error from `apply`, including an authority denial, saves nothing.
+    /// Without `persist` the transaction is read-only and its ledger copies
+    /// are discarded.
+    fn with_dispatch_ledgers<T>(
+        &mut self,
+        now_ms: u64,
+        persist: bool,
+        apply: impl FnOnce(
+            &mut WorkLedger,
+            &mut AttemptLedger,
+            &mut authority_bridge::DispatchGate<'_>,
+        ) -> Result<T, String>,
+    ) -> Result<T, String> {
+        let behavior = if persist {
+            TransactionBehavior::Immediate
+        } else {
+            TransactionBehavior::Deferred
+        };
+        let transaction = self
+            .connection
+            .transaction_with_behavior(behavior)
+            .map_err(text)?;
+        let (mut work, work_version) = load::<WorkLedger>(&transaction, WORK_KIND)?;
+        let (mut attempts, attempt_version) = load::<AttemptLedger>(&transaction, ATTEMPT_KIND)?;
+        let (launches, _) = load::<kiln_core::implementation::TransportLaunches>(
+            &transaction,
+            TRANSPORT_LAUNCH_KIND,
+        )?;
+        let mut gate = authority_bridge::DispatchGate {
+            authority: &mut self.authority,
+            profile: &self.authority_profile,
+            last: &mut self.authority_last,
+            launches: &launches,
+            now_ms,
+        };
+        let result = apply(&mut work, &mut attempts, &mut gate)?;
+        if persist {
+            save(&transaction, WORK_KIND, work_version, &work)?;
+            save(&transaction, ATTEMPT_KIND, attempt_version, &attempts)?;
+        }
+        transaction.commit().map_err(text)?;
+        Ok(result)
+    }
+
     /// Apply one transition to the attempt ledger, the launch records and the
     /// records of the requests those launches sent, in a single transaction.
     /// Only these transitions touch launch and request records; every other
@@ -1441,6 +1597,25 @@ fn text(error: impl std::fmt::Display) -> String {
 
 fn diagnostic(error: kiln_core::types::Diagnostic) -> String {
     format!("{}: {}", error.code, error.message)
+}
+
+/// Admit the exact `Dispatch` request of one reservation, for the attempt
+/// that holds it.
+fn authorize_reservation(
+    gate: &mut authority_bridge::DispatchGate<'_>,
+    work: &ImplementationWork,
+    attempt: &ImplementationAttempt,
+    reservation: &DispatchReservation,
+) -> Result<(), String> {
+    authority_bridge::authorize_dispatch(
+        gate,
+        work,
+        attempt,
+        &[
+            reservation.plan.as_str(),
+            reservation.provider_profile.as_str(),
+        ],
+    )
 }
 
 /// Shell-owned wall clock in Unix milliseconds for effect boundaries that do

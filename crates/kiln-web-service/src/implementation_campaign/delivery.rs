@@ -676,7 +676,10 @@ fn ensure_publication_plan(
             read_bounded_json(&config.enrollment)?;
         let mut owner =
             kiln_implementer::Implementer::open(&profile.implementation_database, enrollment)?;
-        profile.configure_authority(&mut owner)?;
+        profile.configure_authority(
+            &mut owner,
+            kiln_core::implementation::grant::GrantRole::Publication,
+        )?;
         owner.prepare_publication(
             work,
             attempt_id,

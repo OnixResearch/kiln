@@ -113,11 +113,17 @@ fn execute(inputs: Inputs) -> Result<CandidateVerification, String> {
     let enrollment: Enrollment = read_json(&inputs.enrollment)?;
     let verification: VerificationProfile = read_json(&inputs.verification)?;
     let authority: VerifierAuthority = read_json(&inputs.authority)?;
+    // r[impl kiln.implementation.authority.selection.scenario.scoped]
+    // The verifier admits and records verification only: it loads the
+    // verifier holder seed and no other.
     let mut ledger = Implementer::open_with_authority(
         &inputs.database,
         enrollment,
         inputs.local_operator.as_deref(),
         inputs.authority_config.as_deref(),
+        &std::collections::BTreeSet::from([
+            kiln_core::implementation::grant::GrantRole::Verification,
+        ]),
     )?;
     let mut engine = Engine::open(service)?;
     engine.verify_implementation_candidate(

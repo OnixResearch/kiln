@@ -15,7 +15,16 @@
 //!   receipts under `PublicationPublish`). It starts no new external effect;
 //!   where it adopts a provider outcome it presents a fresh invocation for
 //!   the original effect identity.
-//! - `ObservationOnly`: reads state; confers and consumes no authority.
+//! - `ObservationOnly`: reads state; confers and consumes no authority. The
+//!   `Implementer` readers that go through the shared ledger transaction
+//!   (`work`, `attempts`, `attempt`, `plan_feedback`, `authorize_current`,
+//!   `active_work`, `dispatch_plan`, `dispatch_requires_recovery`,
+//!   `dispatch_reservation`, `swarm_snapshots`, `metrics` and the receipt
+//!   readers) save the work and attempt documents back unchanged in an
+//!   immediate transaction, bumping their row versions. Their closures only
+//!   read (`&self` ledger methods), so the write re-serializes the loaded
+//!   values: no attempt phase, lease, fence or claim changes, and authority
+//!   decisions live in the separate authority state file they never open.
 //! - `OperatorConfig`: composition, source intake, admission and fleet ledger
 //!   maintenance, and durable intents that cause no external effect. The
 //!   deployment authenticates these outside implementation authority; the
@@ -31,7 +40,9 @@ const FLEET: &str = "crates/kiln-implementer/src/fleet.rs";
 const HOST_OWNER: &str = "crates/kiln-implementer/src/host_owner.rs";
 const NATIVE: &str = "crates/kiln-implementer/src/native_publication.rs";
 const EFFECTS: &str = "crates/kiln-implementer/src/publication_effects.rs";
-const CLI: &str = "crates/kiln-adapter-github/src/bin/implementer.rs";
+/// Path of the `kiln-implementer` CLI, whose subcommands are entry points.
+pub const IMPLEMENTER_CLI: &str = "crates/kiln-adapter-github/src/bin/implementer.rs";
+const CLI: &str = IMPLEMENTER_CLI;
 const FLEET_API: &str = "crates/kiln-fleet/src/api.rs";
 const CONTROLS: &str = "crates/kiln-web-service/src/campaign_controls.rs";
 
@@ -116,17 +127,23 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     protected(HOST_OWNER, "host_owner_reserve", Op::Dispatch),
     reconcile(HOST_OWNER, "host_owner_release", Op::Dispatch),
     // ── Implementer: dispatch ──
-    // Durable dispatch intents with no transport; Dispatch is admitted at the
-    // transport boundary (`admission_before_transport`) and in admission
-    // `Request`. Shells that transport without either boundary are reported
-    // gaps (the fleet placement below).
-    operator(LIB, "reserve_dispatch"),
-    operator(LIB, "reserve_dispatch_plan"),
+    // Each admits the exact Dispatch request for the attempt's reservation
+    // effect inside the transaction that writes its record, after the attempt
+    // ledger's fence and phase checks; a denial saves nothing. The transport
+    // boundary (`admission_before_transport`) rechecks currentness at the
+    // effect.
+    protected(LIB, "reserve_dispatch", Op::Dispatch),
+    protected(LIB, "reserve_dispatch_plan", Op::Dispatch),
+    // The reservation's request admitted before a shell reads a credential;
+    // saves nothing, and the reservation revalidates its session.
+    protected(LIB, "authorize_dispatch_plan", Op::Dispatch),
+    // The durable launch record of a started workflow (CLI `start`, the
+    // fleet tick, `lattice-dispatch`).
+    protected(LIB, "start_execution", Op::Dispatch),
     operator(CAMPAIGN, "bind_campaign_request"),
     // Records the launch of the transport `admission_before_transport` admitted.
     reconcile(LIB, "begin_dispatch_transport", Op::Dispatch),
     reconcile(LIB, "begin_dispatch_transport_sending", Op::Dispatch),
-    reconcile(LIB, "start_execution", Op::Dispatch),
     // Adopts an observed run: a fresh invocation for the original reservation.
     reconcile(LIB, "reconcile_dispatch", Op::Dispatch),
     reconcile(LIB, "settle_dispatch_without_execution", Op::Dispatch),
@@ -213,9 +230,11 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     // A fleet scope lease between authenticated fleet machines; it creates no
     // attempt. Attempt claims go through `claim_next_deferred`.
     operator(FLEET, "fleet_claim"),
-    // GAP (reported): the fleet tick launches the worker session after this
-    // bind with no Dispatch admission; only its claim is ClaimAcquire-admitted.
-    operator(FLEET, "fleet_bind_session"),
+    // The fleet launch: the bind is the durable launch record and admits the
+    // launch's exact Dispatch request before it is saved; the tick admits it
+    // again (revalidating that session) before the worktree and agent start.
+    protected(FLEET, "fleet_bind_session", Op::Dispatch),
+    protected(FLEET, "fleet_authorize_launch", Op::Dispatch),
     operator(FLEET, "fleet_clear_placing"),
     operator(FLEET, "fleet_record_issued"),
     operator(FLEET, "fleet_answer_decision"),
@@ -240,9 +259,9 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     protected(CLI, "claim", Op::ClaimAcquire),
     protected(CLI, "cancel", Op::AttemptCancel),
     protected(CLI, "renew", Op::ClaimRenew),
-    operator(CLI, "reserve"),
-    operator(CLI, "reserve-plan"),
-    reconcile(CLI, "start", Op::Dispatch),
+    protected(CLI, "reserve", Op::Dispatch),
+    protected(CLI, "reserve-plan", Op::Dispatch),
+    protected(CLI, "start", Op::Dispatch),
     reconcile(CLI, "reconcile", Op::Dispatch),
     protected(CLI, "handoff", Op::CandidateSubmit),
     protected(CLI, "capture-candidate", Op::CandidateSubmit),
@@ -301,6 +320,11 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     observe(CONTROLS, "GET /api/implementation/campaign-definitions"),
     observe(CONTROLS, "GET /api/implementation/campaigns/inbox"),
     // Typed campaign intents under the reread control profile; the campaign's
-    // protected effects are admitted when the drive performs them.
+    // protected effects are admitted when the drive performs them. The drive
+    // launches its worker (`kiln-lattice-dispatch`), capture
+    // (`capture-candidate`) and verifier (`verify-implementation`) roles with
+    // exactly its own authority source (`--local-operator` or
+    // `--authority-config`, or neither for the absent profile), so each role
+    // decides on the drive's profile at its own protected rows above.
     operator(CONTROLS, "POST /api/implementation/campaigns/commands"),
 ];

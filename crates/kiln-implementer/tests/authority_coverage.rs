@@ -11,8 +11,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 use kiln_core::implementation::authority::{
-    ENTRY_POINTS, EntryClass, EntryPoint, ProtectedOperation, validate_entry_points,
+    ENTRY_POINTS, EntryClass, EntryPoint, IMPLEMENTER_CLI, ProtectedOperation, entry_point_roles,
+    validate_entry_points,
 };
+use kiln_core::implementation::grant::GrantRole;
 
 const IMPLEMENTER_SRC: &str = "crates/kiln-implementer/src";
 const CLI: &str = "crates/kiln-adapter-github/src/bin/implementer.rs";
@@ -513,15 +515,13 @@ fn every_implementer_public_function_has_a_reviewed_row_that_matches_its_code() 
     }
 }
 
-#[test]
-// r[verify kiln.implementation.authority.coverage.entry_points]
-fn every_cli_subcommand_has_a_reviewed_row_that_matches_its_handler() {
-    let source = read(CLI);
+/// Every CLI subcommand and the shell function its dispatch arm calls.
+fn cli_subcommands(source: &str) -> BTreeMap<String, Option<String>> {
     let start = source
         .find("match command.as_str() {")
         .unwrap_or_else(|| unreachable!("CLI dispatch"));
     let block = source
-        .get(start..matching_brace(&code_only(&source), start + "match command.as_str() ".len()))
+        .get(start..matching_brace(&code_only(source), start + "match command.as_str() ".len()))
         .unwrap_or_default();
     let mut subcommands = BTreeMap::new();
     let lines: Vec<&str> = block.lines().skip(1).map(str::trim).collect();
@@ -551,12 +551,137 @@ fn every_cli_subcommand_has_a_reviewed_row_that_matches_its_handler() {
             }
         }
     }
+    subcommands
+}
+
+/// The operations an `Implementer` method's reviewed rows name, and those of
+/// every public method it calls on `self`. The rows are the reviewed bound:
+/// the first coverage test proves each body checks only what its rows name.
+///
+/// A multiplexed method (one with an `OperatorConfig` row beside protected
+/// rows, such as `admission_apply`) is not followed from another method: the
+/// caller issues only some of its commands, and its own rows name the
+/// operations those commands reach.
+fn method_operations(
+    implementer: &Implementer,
+    method: &str,
+    seen: &mut BTreeSet<String>,
+    found: &mut BTreeSet<ProtectedOperation>,
+) {
+    if !seen.insert(method.to_owned()) {
+        return;
+    }
+    let Some((path, body)) = implementer.public.get(method) else {
+        return;
+    };
+    found.extend(
+        ENTRY_POINTS
+            .iter()
+            .filter(|entry| entry.path == path && entry.item == method)
+            .filter_map(|entry| entry.class.operation()),
+    );
+    for callee in calls(body, "self.") {
+        let rows: Vec<EntryClass> = implementer
+            .public
+            .get(&callee)
+            .map(|(path, _)| {
+                ENTRY_POINTS
+                    .iter()
+                    .filter(|entry| entry.path == path && entry.item == callee)
+                    .map(|entry| entry.class)
+                    .collect()
+            })
+            .unwrap_or_default();
+        let multiplexed = rows.contains(&EntryClass::OperatorConfig)
+            && rows.iter().any(|class| class.operation().is_some());
+        if !multiplexed {
+            method_operations(implementer, &callee, seen, found);
+        }
+    }
+}
+
+/// Every operation a shell handler reaches through the `Implementer` methods
+/// it calls, directly or through its own functions.
+fn shell_operations(
+    shell: &BTreeMap<String, Vec<String>>,
+    implementer: &Implementer,
+    handler: &str,
+    depth: usize,
+    seen: &mut BTreeSet<String>,
+    found: &mut BTreeSet<ProtectedOperation>,
+) {
+    if depth > MAX_CALL_DEPTH || !seen.insert(handler.to_owned()) {
+        return;
+    }
+    let Some(bodies) = shell.get(handler) else {
+        return;
+    };
+    for body in bodies {
+        for method in calls(body, ".") {
+            method_operations(implementer, &method, &mut BTreeSet::new(), found);
+        }
+        for callee in calls(body, "").into_iter().chain(calls(body, "self.")) {
+            shell_operations(shell, implementer, &callee, depth + 1, seen, found);
+        }
+    }
+}
+
+#[test]
+// r[verify kiln.implementation.authority.coverage.entry_points]
+fn every_cli_subcommand_has_a_reviewed_row_that_matches_its_handler() {
+    let source = read(CLI);
+    let subcommands = cli_subcommands(&source);
     assert!(subcommands.len() > 40, "scan found {}", subcommands.len());
     assert_shell_rows(
         CLI,
         &subcommands,
         &functions(&code_only(&source)),
         &implementer(),
+    );
+}
+
+#[test]
+// r[verify kiln.implementation.authority.selection.scenario.scoped]
+fn every_cli_subcommand_loads_the_holder_role_of_every_check_it_reaches() {
+    assert_eq!(CLI, IMPLEMENTER_CLI);
+    let source = read(CLI);
+    let shell = functions(&code_only(&source));
+    let implementer = implementer();
+    let subcommands = cli_subcommands(&source);
+    let mut missing = Vec::new();
+    for (subcommand, handler) in &subcommands {
+        let Some(handler) = handler else {
+            continue;
+        };
+        let mut reached = BTreeSet::new();
+        shell_operations(
+            &shell,
+            &implementer,
+            handler,
+            0,
+            &mut BTreeSet::new(),
+            &mut reached,
+        );
+        // Arms that share one handler (the `host-owner-*` commands) dispatch
+        // again inside it, which this scan cannot follow: compare against the
+        // roles of the whole group. A subcommand that reached another arm's
+        // check at run time would be refused as holder-not-loaded, not
+        // widened.
+        let loaded: BTreeSet<GrantRole> = subcommands
+            .iter()
+            .filter(|(_, other)| other.as_deref() == Some(handler.as_str()))
+            .flat_map(|(other, _)| entry_point_roles(ENTRY_POINTS, IMPLEMENTER_CLI, other))
+            .collect();
+        missing.extend(
+            reached
+                .into_iter()
+                .filter(|operation| !loaded.contains(&GrantRole::of(*operation)))
+                .map(|operation| format!("`{subcommand}` reaches {operation:?}")),
+        );
+    }
+    assert!(
+        missing.is_empty(),
+        "subcommands reach checks whose holder role they do not load: {missing:?}"
     );
 }
 

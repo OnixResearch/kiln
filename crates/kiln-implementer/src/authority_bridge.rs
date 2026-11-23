@@ -6,8 +6,8 @@
 
 use kiln_core::implementation::authority::{
     AUTHORITY_DIGEST_BYTES, AttemptCurrentness, AuthorityDecision, AuthorityRequest,
-    AuthoritySelection, AuthoritySessionId, ProtectedAuthority, ProtectedOperation,
-    payload_digest_v2,
+    AuthoritySelection, AuthoritySessionId, NO_EXPECTED_TARGET, ProtectedAuthority,
+    ProtectedOperation, payload_digest_v2,
 };
 use kiln_core::implementation::{
     AttemptLedger, AttemptPhase, ImplementationAttempt, ImplementationWork, TransportLaunch,
@@ -128,7 +128,8 @@ pub(crate) fn authority_error(decision: &AuthorityDecision) -> String {
 /// profile presents fresh evidence for this exact request.
 ///
 /// # Errors
-/// Returns a redacted message when no authority is configured or the request denies.
+/// Returns a redacted message when no authority is configured, the entry
+/// point did not load the holder role of the operation, or the request denies.
 pub(crate) fn admit_with(
     slot: &mut Option<Box<dyn ProtectedAuthority>>,
     selection: &AuthoritySelection,
@@ -139,6 +140,16 @@ pub(crate) fn admit_with(
     let Some(authority) = slot.as_mut() else {
         return Err("authority: no authority profile selected".into());
     };
+    // r[impl kiln.implementation.authority.selection.scenario.scoped]
+    // Refused before anything is signed, asked of the verifier, mutated or
+    // read: this process holds no key for the operation's role.
+    if !selection.holds(request.operation) {
+        return Err(format!(
+            "authority: holder-not-loaded ({:?} needs the {:?} holder, which this entry point does not load)",
+            request.operation,
+            kiln_core::implementation::grant::GrantRole::of(request.operation),
+        ));
+    }
     let profile = selection.profile_for(request);
     match authority.admit(request, &profile, currentness, now_ms / 1_000) {
         Ok(decision) => decision
@@ -165,6 +176,65 @@ pub(crate) fn revalidate_with(
     authority
         .revalidate(session, request, currentness, now_ms / 1_000)
         .map_err(|decision| authority_error(&decision))
+}
+
+/// The selected authority, the last admitted session and the attempt's
+/// recorded launches, lent to one transaction so a `Dispatch` decision is
+/// admitted before that transaction saves anything.
+pub(crate) struct DispatchGate<'a> {
+    pub(crate) authority: &'a mut Option<Box<dyn ProtectedAuthority>>,
+    pub(crate) profile: &'a AuthoritySelection,
+    pub(crate) last: &'a mut Option<(AuthoritySessionId, AuthorityRequest)>,
+    pub(crate) launches: &'a TransportLaunches,
+    pub(crate) now_ms: u64,
+}
+
+// r[impl kiln.implementation.authority.dispatch]
+/// Admit one exact `Dispatch` request for `attempt` as it will be saved: its
+/// reservation effect (or the attempt before one exists), its recorded
+/// incarnation and `payload`. The caller has already applied the attempt
+/// ledger's own fence and phase checks in this transaction, so the attempt
+/// is current. When the last admitted session is for this exact request (a
+/// pre-check before credentials), that session is revalidated instead of
+/// admitting a second grant; otherwise a fresh invocation is admitted and
+/// becomes the last session.
+///
+/// # Errors
+/// Returns the redacted denial; the caller then saves nothing.
+pub(crate) fn authorize_dispatch(
+    gate: &mut DispatchGate<'_>,
+    work: &ImplementationWork,
+    attempt: &ImplementationAttempt,
+    payload: &[&str],
+) -> Result<(), String> {
+    let effect = attempt
+        .dispatch
+        .as_ref()
+        .map_or(attempt.identity.as_str(), |dispatch| {
+            dispatch.effect_id.as_str()
+        });
+    let incarnation = incarnation(gate.launches.recall(&attempt.identity).as_ref());
+    let request = request_for(
+        ProtectedOperation::Dispatch,
+        work,
+        attempt,
+        PayloadBinding {
+            incarnation: incarnation.as_ref(),
+            effect,
+            expected_target: NO_EXPECTED_TARGET,
+        },
+        payload,
+        None,
+    )?;
+    let current = AttemptCurrentness::Current;
+    if let Some((session, admitted)) = gate.last.as_ref()
+        && admitted == &request
+    {
+        return revalidate_with(gate.authority, *session, &request, current, gate.now_ms);
+    }
+    let session = admit_with(gate.authority, gate.profile, &request, current, gate.now_ms)?;
+    *gate.last = Some((session, request.clone()));
+    revalidate_with(gate.authority, session, &request, current, gate.now_ms)
 }
 
 /// Trusted facts one protected request is built from, read in one transaction.

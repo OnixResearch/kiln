@@ -55,11 +55,20 @@ impl Store {
 
     /// Open one connection.
     ///
+    /// The fleet claims, reserves, places, cancels and accepts candidate
+    /// handoffs; verification and publication run as separate configured
+    /// programs. It loads the coordinator holder seed and no other.
+    ///
     /// # Errors
     /// Returns the store diagnostic.
     pub fn open(&self) -> Result<Implementer, String> {
         let mut implementer = Implementer::open(&self.database, self.enrollment.clone())?;
-        implementer.select_authority(&self.authority)?;
+        implementer.select_authority(
+            &self.authority,
+            &std::collections::BTreeSet::from([
+                kiln_core::implementation::grant::GrantRole::Coding,
+            ]),
+        )?;
         Ok(implementer)
     }
 }

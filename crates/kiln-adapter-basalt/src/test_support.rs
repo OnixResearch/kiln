@@ -555,6 +555,10 @@ impl HolderInvocationSigner for CapturingSigner {
         });
         Ok(credential)
     }
+
+    fn holds(&self, role: GrantRole) -> bool {
+        self.inner.holds(role)
+    }
 }
 
 /// Signer that always presents one fixed captured credential.
@@ -564,5 +568,11 @@ pub struct ReplayingSigner(pub Captured);
 impl HolderInvocationSigner for ReplayingSigner {
     fn sign(&self, _request: &AuthorityRequest) -> CoreResult<AuthorityCredential> {
         Ok(self.0.credential())
+    }
+
+    /// It presents its captured credential for whatever role is asked, so
+    /// replay tests reach the verifier.
+    fn holds(&self, _role: GrantRole) -> bool {
+        true
     }
 }

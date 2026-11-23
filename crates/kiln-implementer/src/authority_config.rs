@@ -374,7 +374,14 @@ fn read_proofs(directory: &Path) -> Result<Vec<String>, String> {
         .collect()
 }
 
-/// Import the revocation feed into the durable view, observed at `now_ms`.
+/// Import the revocation feed into the durable view, observed at `now_ms`
+/// rounded down to the whole second.
+///
+/// Authority decisions read the view at whole-second resolution
+/// (`now_ms / 1_000 * 1_000`). A sub-second observation time would place the
+/// view after every decision made in the same second, and the view refuses
+/// an observation from the future, so a shell that selected the profile and
+/// acted within that second would be denied.
 ///
 /// # Errors
 /// Returns a message for an unreadable or malformed feed, or a failed commit.
@@ -397,24 +404,34 @@ pub fn import_revocations(
     for reference in &feed.revoked {
         state.revoke(hex32(reference, "revoked reference")?, feed.generation)?;
     }
-    state.observe_revocation_view(feed.generation, now_ms)?;
+    state.observe_revocation_view(feed.generation, now_ms - now_ms % 1_000)?;
     Ok(feed.generation)
 }
 
 impl Implementer {
     // r[impl kiln.implementation.authority.config]
-    /// Select the configured authority profile for every protected operation.
+    // r[impl kiln.implementation.authority.selection.scenario.scoped]
+    /// Select the configured authority profile for every protected operation
+    /// of one entry point, loading only the holder seeds of `roles`.
+    ///
+    /// `roles` is fixed by the calling entry point: the holder roles of the
+    /// operations it authorizes itself (for a reviewed entry point,
+    /// [`entry_point_roles`](kiln_core::implementation::authority::entry_point_roles)).
+    /// The verified profile opens no other seed file and its signer holds no
+    /// other key, so an operation of another role is refused before it is
+    /// signed. The absent and local-operator profiles load no seed.
     ///
     /// The database path is the ledger path the instance was opened with; the
     /// verified profile keeps its durable state beside it.
     ///
     /// # Errors
     /// Returns a message for an invalid configuration, an unreadable policy,
-    /// proof, revocation feed or holder seed, or a holder without exactly one
-    /// current grant.
+    /// proof, revocation feed or loaded holder seed, or a loaded holder
+    /// without exactly one current grant.
     pub fn select_authority(
         &mut self,
         config: &ImplementationAuthorityConfig,
+        roles: &BTreeSet<GrantRole>,
     ) -> Result<(), String> {
         config.validate()?;
         match &config.profile {
@@ -435,11 +452,15 @@ impl Implementer {
                 );
                 Ok(())
             }
-            ProfileConfig::VerifiedUcan(verified) => self.select_verified(verified),
+            ProfileConfig::VerifiedUcan(verified) => self.select_verified(verified, roles),
         }
     }
 
-    fn select_verified(&mut self, config: &VerifiedUcanConfig) -> Result<(), String> {
+    fn select_verified(
+        &mut self,
+        config: &VerifiedUcanConfig,
+        roles: &BTreeSet<GrantRole>,
+    ) -> Result<(), String> {
         let now_ms = self.now_ms();
         let verifier = match &config.policy {
             PolicyConfig::Packaged => VerifiedAuthorityConfig::from_packaged_policy(
@@ -473,6 +494,10 @@ impl Implementer {
             (GrantRole::Verification, &config.holders.verifier),
             (GrantRole::Publication, &config.holders.publisher),
         ] {
+            // Another role's seed file is never opened.
+            if !roles.contains(&role) {
+                continue;
+            }
             let seed = read_seed(reference)?;
             let probe = HolderKey::new(role, seed, "probe".into())?;
             let grant = select_holder_grant(

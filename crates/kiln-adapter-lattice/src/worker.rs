@@ -483,9 +483,30 @@ pub fn run_invocation(invocation: &WorkerInvocation) -> Result<String, String> {
     run(&flags)
 }
 
+// r[impl kiln.implementation.authority.selection.scenario.scoped]
+/// Holder roles the Lattice worker and `kiln-lattice-dispatch` load. They
+/// reserve, admit transport for and record the run of one dispatched attempt:
+/// coordinator operations only. The verifier and publisher seeds are never
+/// opened.
+#[must_use]
+pub fn worker_holder_roles()
+-> std::collections::BTreeSet<kiln_core::implementation::grant::GrantRole> {
+    std::collections::BTreeSet::from([kiln_core::implementation::grant::GrantRole::Coding])
+}
+
 // r[impl kiln.implementation.current_authority] r[impl kiln.implementation.unknown_barrier]
 // r[impl kiln.implementation.lattice_cli]
 pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
+    run_with(flags, &|name| std::env::var_os(name))
+}
+
+/// [`run`] with the credential source injected: `read_credential` returns
+/// the value of the one credential variable the admitted request names.
+// r[impl kiln.implementation.authority.dispatch]
+fn run_with(
+    flags: &BTreeMap<String, String>,
+    read_credential: &dyn Fn(&str) -> Option<std::ffi::OsString>,
+) -> Result<String, String> {
     let request_path = required(flags, "--worker-request")?;
     let request: serde_json::Value = read_json(&request_path)?;
     let request_bytes = std::fs::read(&request_path).map_err(|error| error.to_string())?;
@@ -503,15 +524,20 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
         enrollment,
         flags.get("--local-operator").map(String::as_str),
         flags.get("--authority-config").map(Path::new),
+        &worker_holder_roles(),
     )?;
     let attempt = implementer.authorize_current(&plan.attempt_identity, plan.fence, clock()?)?;
+    // The exact Dispatch request the plan reservation below makes is admitted
+    // first, changing nothing, so an authority denial reads no credential.
+    // The reservation revalidates this session in its own transaction.
+    implementer.authorize_dispatch_plan(&attempt.identity, attempt.fence, clock()?, &plan)?;
     // Before any durable step (plan reservation, request seal, admission or
     // transport intent), a fresh run needs its one credential variable.
     let recovery = implementer.dispatch_requires_recovery(&attempt.identity)?;
     let mut environment = if recovery {
         Vec::new()
     } else {
-        settlement::credential_environment(credential, credential.and_then(std::env::var_os))
+        settlement::credential_environment(credential, credential.and_then(read_credential))
             .map_err(|error| error.to_string())?
     };
     if program_identity(&profile.lattice_program)? != profile.executable_blake3 {
@@ -1072,7 +1098,7 @@ mod launch_environment_tests {
 
 #[cfg(test)]
 mod credential_ordering_tests {
-    use super::run;
+    use super::run_with;
     use kiln_core::implementation::{
         AcceptanceObligation, DISPATCH_PLAN_SCHEMA, DispatchControls, DispatchWorkspace,
         Enrollment, IMPLEMENTATION_WORK_SCHEMA, ImplementationDispatchPlan, ImplementationWork,
@@ -1080,12 +1106,16 @@ mod credential_ordering_tests {
     };
     use kiln_core::types::{ContentId, ExternalRef, ProviderProfileId};
     use kiln_implementer::Implementer;
+    use std::cell::Cell;
     use std::collections::{BTreeMap, BTreeSet};
+    use std::ffi::OsString;
     use std::path::Path;
 
     const LEASE_MS: u64 = 600_000;
-    /// A variable no test environment defines.
-    const UNSET: &str = "KILN_TEST_UNSET_LATTICE_CREDENTIAL_45";
+    /// The credential variable the admitted request names.
+    const VARIABLE: &str = "KILN_TEST_LATTICE_CREDENTIAL_45";
+    /// The local-operator selection a campaign drive passes its worker.
+    const OPERATOR: Option<(&str, &str)> = Some(("--local-operator", "test-operator"));
 
     fn content(character: char) -> ContentId {
         ContentId::from_blake3_hex(character.to_string().repeat(64))
@@ -1144,9 +1174,15 @@ mod credential_ordering_tests {
         .unwrap_or_else(|_| unreachable!());
     }
 
-    /// Run the transport for one claimed attempt and report its result and
-    /// whether any dispatch plan was reserved.
-    fn dispatch(credential: serde_json::Value) -> (Result<String, String>, bool) {
+    /// Run the transport for one claimed attempt under the `authority`
+    /// selection flag, or under the absent profile when it is `None`, reading
+    /// the named credential only through `read_credential`. Reports the result
+    /// and whether any dispatch plan was reserved.
+    fn dispatch(
+        credential: serde_json::Value,
+        authority: Option<(&str, &str)>,
+        read_credential: &dyn Fn(&str) -> Option<OsString>,
+    ) -> (Result<String, String>, bool) {
         let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
         let root = directory.path();
         let database = root.join("kiln.sqlite");
@@ -1210,7 +1246,7 @@ mod credential_ordering_tests {
                 "output_directory": root.join("transport"),
             }),
         );
-        let flags = BTreeMap::from([
+        let mut flags = BTreeMap::from([
             ("--database".to_string(), database.display().to_string()),
             (
                 "--enrollment".to_string(),
@@ -1229,7 +1265,10 @@ mod credential_ordering_tests {
                 root.join("transport.json").display().to_string(),
             ),
         ]);
-        let result = run(&flags);
+        if let Some((flag, value)) = authority {
+            flags.insert(flag.to_string(), value.to_string());
+        }
+        let result = run_with(&flags, read_credential);
         let reserved = Implementer::open(&database, enrollment())
             .and_then(|mut owner| owner.dispatch_reservation(&attempt.identity))
             .unwrap_or_else(|error| unreachable!("{error}"))
@@ -1237,36 +1276,124 @@ mod credential_ordering_tests {
         (result, reserved)
     }
 
+    /// A credential source that counts its reads and returns `value`.
+    fn counted(reads: &Cell<usize>, value: Option<&str>) -> impl Fn(&str) -> Option<OsString> {
+        let value = value.map(OsString::from);
+        move |name| {
+            assert_eq!(name, VARIABLE, "only the named variable is read");
+            reads.set(reads.get() + 1);
+            value.clone()
+        }
+    }
+
+    fn declared() -> serde_json::Value {
+        serde_json::json!({"provider": "env", "key": VARIABLE})
+    }
+
     // r[verify kiln.implementation.lattice_cli.scenario.credential]
     #[test]
     fn a_refused_credential_is_rejected_before_any_plan_reservation() {
-        let (missing, reserved) = dispatch(serde_json::json!({"provider": "env", "key": UNSET}));
+        let reads = Cell::new(0);
+        let (missing, reserved) = dispatch(declared(), OPERATOR, &counted(&reads, None));
         assert!(
             missing
                 .as_ref()
                 .is_err_and(|error| error.starts_with("worker_credential_missing:")),
             "{missing:?}"
         );
+        assert_eq!(reads.get(), 1, "the admitted run reads its one credential");
         assert!(!reserved);
-        let (reserved_name, reserved) =
-            dispatch(serde_json::json!({"provider": "env", "key": "PATH"}));
+        let reads = Cell::new(0);
+        let (reserved_name, reserved) = dispatch(
+            serde_json::json!({"provider": "env", "key": "PATH"}),
+            OPERATOR,
+            &counted(&reads, Some("value")),
+        );
         assert!(
             reserved_name
                 .as_ref()
                 .is_err_and(|error| error.starts_with("worker_credential_reserved_name:")),
             "{reserved_name:?}"
         );
+        assert_eq!(reads.get(), 0);
         assert!(!reserved);
         // Without a declared credential the credential stage passes, and the
         // next check (the immutable executable) refuses, still before any
         // reservation.
-        let (undeclared, reserved) = dispatch(serde_json::Value::Null);
+        let reads = Cell::new(0);
+        let (undeclared, reserved) = dispatch(
+            serde_json::Value::Null,
+            OPERATOR,
+            &counted(&reads, Some("value")),
+        );
         assert!(
             undeclared
                 .as_ref()
                 .is_err_and(|error| error.contains("not an admitted immutable Nix program")),
             "{undeclared:?}"
         );
+        assert_eq!(reads.get(), 0);
+        assert!(!reserved);
+    }
+
+    // r[verify kiln.implementation.authority.dispatch.scenario.credential]
+    #[test]
+    fn an_authority_denial_precedes_the_credential_read() {
+        // The absent profile denies the plan's Dispatch pre-check: no
+        // credential is read and nothing is reserved.
+        let reads = Cell::new(0);
+        let (denied, reserved) = dispatch(declared(), None, &counted(&reads, Some("token")));
+        assert!(
+            denied
+                .as_ref()
+                .is_err_and(|error| error.starts_with("authority:")),
+            "{denied:?}"
+        );
+        assert_eq!(reads.get(), 0, "a denial never reads the credential");
+        assert!(!reserved);
+        // Admitted, the same run reads its credential once, after the
+        // pre-check, and the executable check still refuses before any
+        // reservation.
+        let reads = Cell::new(0);
+        let (admitted, reserved) = dispatch(declared(), OPERATOR, &counted(&reads, Some("token")));
+        assert!(
+            admitted
+                .as_ref()
+                .is_err_and(|error| error.contains("not an admitted immutable Nix program")),
+            "{admitted:?}"
+        );
+        assert_eq!(reads.get(), 1);
+        assert!(!reserved);
+    }
+
+    // r[verify kiln.implementation.authority.config.scenario.roles]
+    #[test]
+    fn the_drives_exported_authority_config_admits_the_worker() {
+        // A campaign drive passes its exported configuration file unchanged;
+        // the worker selects that profile, passes the Dispatch pre-check and
+        // reads its credential once.
+        let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+        let exported = directory.path().join("authority.json");
+        write(
+            &exported,
+            &kiln_implementer::authority_config::ImplementationAuthorityConfig::local_operator(
+                "test-operator",
+            ),
+        );
+        let path = exported.display().to_string();
+        let reads = Cell::new(0);
+        let (admitted, reserved) = dispatch(
+            declared(),
+            Some(("--authority-config", &path)),
+            &counted(&reads, Some("token")),
+        );
+        assert!(
+            admitted
+                .as_ref()
+                .is_err_and(|error| error.contains("not an admitted immutable Nix program")),
+            "{admitted:?}"
+        );
+        assert_eq!(reads.get(), 1);
         assert!(!reserved);
     }
 }

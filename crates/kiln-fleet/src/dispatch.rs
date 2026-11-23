@@ -712,6 +712,12 @@ impl Dispatcher {
             );
             return Ok(());
         }
+        // The launch effects below start a credentialed agent. Its exact
+        // Dispatch request is admitted again here, so a grant revoked or a
+        // fence replaced since the bind starts nothing; a denial leaves the
+        // session placing for the next tick.
+        self.store
+            .fleet_authorize_launch(&session.identity, now_ms)?;
         let created = match herdr.create_worktree(
             &machine.label,
             &work.repository,

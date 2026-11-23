@@ -108,6 +108,7 @@ fn run() -> Result<(), ()> {
         enrollment,
         flags.get("--local-operator").map(String::as_str),
         flags.get("--authority-config").map(std::path::Path::new),
+        &worker::worker_holder_roles(),
     );
     let mut implementer = match implementer {
         Ok(implementer) => implementer,

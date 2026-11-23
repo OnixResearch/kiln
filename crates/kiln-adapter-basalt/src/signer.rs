@@ -216,4 +216,8 @@ impl HolderInvocationSigner for RoleSigner {
             .map_err(|_| denied("holder signature width"))?;
         AuthorityCredential::new(holder.did.clone(), holder.token.clone(), nonce, signature)
     }
+
+    fn holds(&self, role: GrantRole) -> bool {
+        self.holder_did(role).is_some()
+    }
 }

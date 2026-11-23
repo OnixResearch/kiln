@@ -128,20 +128,37 @@ struct ImplementationCampaignDriveProfile {
     pub authority_config: Option<PathBuf>,
 }
 impl ImplementationCampaignDriveProfile {
+    // r[impl kiln.implementation.authority.selection.scenario.scoped]
     /// Select the configured authority profile through the one composition
-    /// helper; neither field selects the absent profile.
+    /// helper for the drive's own operation of `role`: `Coding` for the
+    /// campaign claim, `Publication` for native delivery. Only that role's
+    /// holder seed is loaded; verification runs in the verifier role.
     ///
     /// # Errors
     /// Returns a message when the selection is invalid.
     pub(super) fn configure_authority(
         &self,
         implementer: &mut kiln_implementer::Implementer,
+        role: kiln_core::implementation::grant::GrantRole,
     ) -> Result<(), String> {
         implementer.select_authority(
             &kiln_implementer::authority_config::ImplementationAuthorityConfig::resolve(
                 self.local_operator.as_deref(),
                 self.authority_config.as_deref(),
             )?,
+            &std::collections::BTreeSet::from([role]),
+        )
+    }
+
+    /// The authority source this drive selected, as role arguments; see
+    /// [`authority_source_arguments`].
+    ///
+    /// # Errors
+    /// Refuses a profile that names both sources.
+    pub(super) fn role_authority_arguments(&self) -> Result<Vec<OsString>, String> {
+        authority_source_arguments(
+            self.local_operator.as_deref(),
+            self.authority_config.as_deref(),
         )
     }
 
@@ -435,7 +452,10 @@ impl CampaignDriveShell for NativeCampaignConsumer {
         let enrollment = read_json(&profile.worker.enrollment)?;
         let mut owner =
             kiln_implementer::Implementer::open(&profile.implementation_database, enrollment)?;
-        profile.configure_authority(&mut owner)?;
+        profile.configure_authority(
+            &mut owner,
+            kiln_core::implementation::grant::GrantRole::Coding,
+        )?;
         let now_ms = wall_clock_ms()?;
         attach_swarm_mirror(profile, &mut owner, now_ms)?;
         let work = owner
@@ -626,27 +646,11 @@ impl NativeCampaignConsumer {
             .worker
             .as_ref()
             .ok_or("native worker binding is unavailable")?;
-        let mut args = vec![
-            OsString::from("--database"),
-            worker.database.as_os_str().to_owned(),
-            OsString::from("--enrollment"),
-            worker.enrollment.as_os_str().to_owned(),
-            OsString::from("--dispatch-plan"),
-            worker.dispatch_plan.as_os_str().to_owned(),
-            OsString::from("--worker-request"),
-            worker.request.as_os_str().to_owned(),
-            OsString::from("--worker-transport-profile"),
-            worker.transport_profile.as_os_str().to_owned(),
-        ];
-        if let Some(path) = &worker.admission_observations {
-            args.extend([
-                OsString::from("--admission-observations"),
-                path.as_os_str().to_owned(),
-            ]);
-        }
-        if reconciliation {
-            args.extend([OsString::from("--recover"), OsString::from("true")]);
-        }
+        let args = worker_arguments(
+            worker,
+            reconciliation,
+            self.profile.role_authority_arguments()?,
+        );
         run_role(
             &self.profile,
             &self.profile.roles.worker,
@@ -739,7 +743,7 @@ impl NativeCampaignConsumer {
             "campaign-{}.handoff.json",
             attempt.identity.as_str()
         ));
-        let capture_args = vec![
+        let mut capture_args = vec![
             OsString::from("--database"),
             self.profile.implementation_database.as_os_str().to_owned(),
             OsString::from("--enrollment"),
@@ -761,6 +765,7 @@ impl NativeCampaignConsumer {
             OsString::from("--handoff-output"),
             handoff_output.as_os_str().to_owned(),
         ];
+        capture_args.extend(self.profile.role_authority_arguments()?);
         run_role(
             &self.profile,
             &self.profile.roles.capture,
@@ -777,7 +782,7 @@ impl NativeCampaignConsumer {
         fence: u64,
     ) -> Result<(), String> {
         let route = verification_route(&self.profile, work)?;
-        let args = [
+        let mut args = [
             "--profile",
             route
                 .ci_service_profile
@@ -812,6 +817,7 @@ impl NativeCampaignConsumer {
         .into_iter()
         .map(OsString::from)
         .collect::<Vec<_>>();
+        args.extend(self.profile.role_authority_arguments()?);
         run_role(
             &self.profile,
             &self.profile.roles.verifier,
@@ -1195,6 +1201,66 @@ fn preflight_roles(profile: &ImplementationCampaignDriveProfile) -> Result<(), S
     Ok(())
 }
 
+// r[impl kiln.implementation.authority.config]
+/// The drive's authority source as role arguments: the same `--local-operator`
+/// or `--authority-config`, or nothing for the absent profile. A role process
+/// resolves these through the same helper as the drive, so it decides on
+/// exactly the drive's profile and never a wider one.
+///
+/// # Errors
+/// Refuses a selection that names both sources.
+fn authority_source_arguments(
+    local_operator: Option<&str>,
+    authority_config: Option<&Path>,
+) -> Result<Vec<OsString>, String> {
+    match (local_operator, authority_config) {
+        (Some(_), Some(_)) => {
+            Err("select either a local operator or an authority config, not both".into())
+        }
+        (Some(operator), None) => Ok(vec![
+            OsString::from("--local-operator"),
+            OsString::from(operator),
+        ]),
+        (None, Some(path)) => Ok(vec![
+            OsString::from("--authority-config"),
+            path.as_os_str().to_owned(),
+        ]),
+        (None, None) => Ok(Vec::new()),
+    }
+}
+
+/// The worker role's arguments: the attempt's bound inputs, the recovery
+/// flag and the drive's `authority` source.
+fn worker_arguments(
+    worker: &kiln_adapter_lattice::worker::WorkerInvocation,
+    reconciliation: bool,
+    authority: Vec<OsString>,
+) -> Vec<OsString> {
+    let mut args = vec![
+        OsString::from("--database"),
+        worker.database.as_os_str().to_owned(),
+        OsString::from("--enrollment"),
+        worker.enrollment.as_os_str().to_owned(),
+        OsString::from("--dispatch-plan"),
+        worker.dispatch_plan.as_os_str().to_owned(),
+        OsString::from("--worker-request"),
+        worker.request.as_os_str().to_owned(),
+        OsString::from("--worker-transport-profile"),
+        worker.transport_profile.as_os_str().to_owned(),
+    ];
+    if let Some(path) = &worker.admission_observations {
+        args.extend([
+            OsString::from("--admission-observations"),
+            path.as_os_str().to_owned(),
+        ]);
+    }
+    if reconciliation {
+        args.extend([OsString::from("--recover"), OsString::from("true")]);
+    }
+    args.extend(authority);
+    args
+}
+
 fn immutable_program(path: &Path) -> Result<PathBuf, String> {
     let resolved = fs::canonicalize(path).map_err(text)?;
     if !resolved.starts_with("/nix/store") || !resolved.is_file() {
@@ -1519,5 +1585,69 @@ mod tests {
         fs::write(&target, b"same bytes").unwrap_or_else(|_| unreachable!());
         std::os::unix::fs::symlink(&target, &link).unwrap_or_else(|_| unreachable!());
         assert!(write_private_idempotently(&link, b"same bytes").is_err());
+    }
+
+    /// The `--flag value` map a role parses from its arguments.
+    fn role_flags(args: &[OsString]) -> std::collections::BTreeMap<String, String> {
+        args.chunks(2)
+            .filter_map(|pair| match pair {
+                [flag, value] => Some((
+                    flag.to_string_lossy().into_owned(),
+                    value.to_string_lossy().into_owned(),
+                )),
+                _ => None,
+            })
+            .collect()
+    }
+
+    // r[verify kiln.implementation.authority.config.scenario.roles]
+    #[test]
+    fn every_role_resolves_exactly_the_drives_authority_source() {
+        use kiln_implementer::authority_config::ImplementationAuthorityConfig;
+        let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+        let root = directory.path();
+        let exported = root.join("authority.json");
+        fs::write(
+            &exported,
+            serde_json::to_vec(&ImplementationAuthorityConfig::local_operator(
+                "exported-operator",
+            ))
+            .unwrap_or_else(|_| unreachable!()),
+        )
+        .unwrap_or_else(|_| unreachable!());
+        let worker = kiln_adapter_lattice::worker::WorkerInvocation {
+            database: root.join("kiln.sqlite"),
+            enrollment: root.join("enrollment.json"),
+            dispatch_plan: root.join("plan.json"),
+            request: root.join("request.json"),
+            transport_profile: root.join("transport.json"),
+            admission_observations: Some(root.join("observations.json")),
+        };
+        for (operator, config) in [
+            (Some("campaign-operator"), None),
+            (None, Some(exported.as_path())),
+            (None, None),
+        ] {
+            let drive = ImplementationAuthorityConfig::resolve(operator, config)
+                .unwrap_or_else(|error| unreachable!("{error}"));
+            let authority = authority_source_arguments(operator, config)
+                .unwrap_or_else(|error| unreachable!("{error}"));
+            // The worker (fresh and recovering), capture and verifier roles.
+            for args in [
+                worker_arguments(&worker, false, authority.clone()),
+                worker_arguments(&worker, true, authority.clone()),
+                authority.clone(),
+            ] {
+                let flags = role_flags(&args);
+                assert_eq!(flags.len() * 2, args.len(), "no repeated or odd flag");
+                let role = ImplementationAuthorityConfig::resolve(
+                    flags.get("--local-operator").map(String::as_str),
+                    flags.get("--authority-config").map(Path::new),
+                )
+                .unwrap_or_else(|error| unreachable!("{error}"));
+                assert_eq!(role, drive, "{operator:?} {config:?}");
+            }
+        }
+        assert!(authority_source_arguments(Some("campaign-operator"), Some(&exported)).is_err());
     }
 }
