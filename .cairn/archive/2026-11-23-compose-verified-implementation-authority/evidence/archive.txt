@@ -1,0 +1,143 @@
+$ CAIRN_ARCHIVE_DATE=2026-11-23 CAIRN_POLICY=cairn-policy/generated/cairn-policy.json cairn archive compose-verified-implementation-authority --root . --policy cairn-policy/generated/cairn-policy.json --execute  # cairn /nix/store/nc498h43kyxsh3yfbrypqjprg9pzh2qs-cairn-0.2.1/bin/cairn
+{
+  "acceptance_ids": [],
+  "actions": [
+    {
+      "description": "move active change to archive: compose-verified-implementation-authority",
+      "kind": "archive_change",
+      "path": "./.cairn/archive/2026-11-23-compose-verified-implementation-authority"
+    }
+  ],
+  "blocked": false,
+  "change": "compose-verified-implementation-authority",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "8ecd569530fc8b43dac7419c2d151137bf0d5e7b375e7e30e8e9f2047bd671fe",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "62b75eb1580f61c61017761c3391b5afcab0ff7d88713ba05a9d4af51f522195",
+    "receipt_hash": "9af7cdcc3780f9fa889aa087c98ec2cd4fb9ffbe305b4960bc535e667b6bda53",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "dry_run": false,
+  "input_hash": "149deb5d8ca002edd18ff6e78f89f4be5317646b3bd150a9ca1db02e24bd4592",
+  "layout": "cairn",
+  "mutated": true,
+  "mutation_manifest": {
+    "after": {
+      "entries": [
+        {
+          "content_hash": "72e849d93bd2e91d40c69c07ab94010dfb84bdddc40dedc42b57be89df9a35f6",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-23-compose-verified-implementation-authority/design.md"
+        },
+        {
+          "content_hash": "8a07ce43e5f27b69ac06ee96d259577c9e3bccde1b838bc5c707518833157a46",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-23-compose-verified-implementation-authority/evidence/sync.txt"
+        },
+        {
+          "content_hash": "d1c5941abe16150e204717a690b323ab853988948a18d606efda7b1921d5b03f",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-23-compose-verified-implementation-authority/evidence/verification.txt"
+        },
+        {
+          "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-23-compose-verified-implementation-authority/metadata.json"
+        },
+        {
+          "content_hash": "232bd03ade11dc3214b7e93ac3c9a7a2d72b4452724baf40f0d0bccf85958dc4",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-23-compose-verified-implementation-authority/proposal.md"
+        },
+        {
+          "content_hash": "ef1459741da3ec8184044a2a090e33b60c06f3f0637345ff6539ad1a0453c723",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-23-compose-verified-implementation-authority/specs/implementation-authority/spec.md"
+        },
+        {
+          "content_hash": "193ad47f4e6010c9d0781ec01f1be827563ddace4760ae12eaf00ce3dacaf239",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-23-compose-verified-implementation-authority/tasks.md"
+        },
+        {
+          "content_hash": null,
+          "exists": false,
+          "path": "./.cairn/changes/compose-verified-implementation-authority"
+        }
+      ],
+      "manifest_hash": "825bb1a30e09e3451e6863cab177d48a0b804a694812ebadbb7e0f820c0b5755"
+    },
+    "before": {
+      "entries": [
+        {
+          "content_hash": "72e849d93bd2e91d40c69c07ab94010dfb84bdddc40dedc42b57be89df9a35f6",
+          "exists": true,
+          "path": "./.cairn/changes/compose-verified-implementation-authority/design.md"
+        },
+        {
+          "content_hash": "8a07ce43e5f27b69ac06ee96d259577c9e3bccde1b838bc5c707518833157a46",
+          "exists": true,
+          "path": "./.cairn/changes/compose-verified-implementation-authority/evidence/sync.txt"
+        },
+        {
+          "content_hash": "d1c5941abe16150e204717a690b323ab853988948a18d606efda7b1921d5b03f",
+          "exists": true,
+          "path": "./.cairn/changes/compose-verified-implementation-authority/evidence/verification.txt"
+        },
+        {
+          "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+          "exists": true,
+          "path": "./.cairn/changes/compose-verified-implementation-authority/metadata.json"
+        },
+        {
+          "content_hash": "232bd03ade11dc3214b7e93ac3c9a7a2d72b4452724baf40f0d0bccf85958dc4",
+          "exists": true,
+          "path": "./.cairn/changes/compose-verified-implementation-authority/proposal.md"
+        },
+        {
+          "content_hash": "ef1459741da3ec8184044a2a090e33b60c06f3f0637345ff6539ad1a0453c723",
+          "exists": true,
+          "path": "./.cairn/changes/compose-verified-implementation-authority/specs/implementation-authority/spec.md"
+        },
+        {
+          "content_hash": "193ad47f4e6010c9d0781ec01f1be827563ddace4760ae12eaf00ce3dacaf239",
+          "exists": true,
+          "path": "./.cairn/changes/compose-verified-implementation-authority/tasks.md"
+        }
+      ],
+      "manifest_hash": "6528200765f729c459f15678a24e6b07b969358a5429fd7efc1db5e852e1d46c"
+    },
+    "kind": "archive",
+    "manifest_hash": "63d1f4ce644b674878fa0da9dc28d9be279ba3135a8a1163ace92eabc26b704d"
+  },
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "plan_hash": "f9e382790af0be448740ec79ce5d81da865c8cc3b2f6b55de481e0a37d24a2b2",
+  "policy": "kiln-default",
+  "policy_hash": "62b75eb1580f61c61017761c3391b5afcab0ff7d88713ba05a9d4af51f522195",
+  "profile_identity_hash": "43f88601cb1442e32008e2ca455ffb0a444dbd23de66f473a4a70fba7bcee99a",
+  "reasons": [],
+  "receipt_hash": "9da2e47bfe2831ca49cee3253a2a5a1eb155453f311974149d3115ef7c9efac8",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
+exit=0

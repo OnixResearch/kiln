@@ -1,0 +1,188 @@
+$ CAIRN_POLICY=cairn-policy/generated/cairn-policy.json cairn sync compose-verified-implementation-authority --root . --policy cairn-policy/generated/cairn-policy.json --execute  # cairn /nix/store/nc498h43kyxsh3yfbrypqjprg9pzh2qs-cairn-0.2.1/bin/cairn
+{
+  "acceptance_ids": [],
+  "actions": [
+    {
+      "description": "merge delta spec into main specs: ./.cairn/changes/compose-verified-implementation-authority/specs/implementation-authority/spec.md",
+      "kind": "sync_delta_spec",
+      "path": "./.cairn/changes/compose-verified-implementation-authority/specs/implementation-authority/spec.md"
+    }
+  ],
+  "blocked": false,
+  "change": "compose-verified-implementation-authority",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "8ecd569530fc8b43dac7419c2d151137bf0d5e7b375e7e30e8e9f2047bd671fe",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "62b75eb1580f61c61017761c3391b5afcab0ff7d88713ba05a9d4af51f522195",
+    "receipt_hash": "9af7cdcc3780f9fa889aa087c98ec2cd4fb9ffbe305b4960bc535e667b6bda53",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "delta_specs": [
+    "./.cairn/changes/compose-verified-implementation-authority/specs/implementation-authority/spec.md"
+  ],
+  "dry_run": false,
+  "input_hash": "269ead68e8b09f0a6655eacb51b49e2bf458f215a82b2dd9a22c75238d2fa8d0",
+  "layout": "cairn",
+  "merge_preflight": {
+    "documents": [
+      {
+        "accepted_before_exists": true,
+        "accepted_before_hash": "0ac907e5250fc868fa76ee161dddce1b44903acf0b5744368691f56d984b8bc7",
+        "blocked": false,
+        "changed": true,
+        "delta_hash": "ef1459741da3ec8184044a2a090e33b60c06f3f0637345ff6539ad1a0453c723",
+        "destination": ".cairn/specs/implementation-authority/spec.md",
+        "diagnostics": [],
+        "expected_after_hash": "cc0db94b61d11d07709f7f291ad6e07fb2b5f333b4a3742c40b9f243e3eb3e5f",
+        "operations": [
+          {
+            "block_hash": "605be7477060ec6b31c4444034b18ad388261dbd41dd1891e0e962aea43fd00e",
+            "heading": "### Requirement: Reviewed entry-point classification",
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.coverage.entry_points"
+          },
+          {
+            "block_hash": "6c65ef680c79bf4cd807c8bd96c98b87c287ea4206d7391bcd21813bd32425a1",
+            "heading": "### Requirement: Dispatch admitted before reservation, launch and credentials",
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.dispatch"
+          },
+          {
+            "block_hash": "f83689ba7cf13827c3af56ec4c8f06be61af02938d0c97abc39768dd5441c4ea",
+            "heading": "### Requirement: Canonical payload binding",
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.payload"
+          },
+          {
+            "block_hash": "3db11460aa850be9a3b9c33f2544c1df521528efda774daeba9c0d24084d74a7",
+            "heading": "### Requirement: Configured profile selection",
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.config"
+          },
+          {
+            "block_hash": "21b7d453487b2646e27c0e9985de6b09db1303010a00ccc7577344fc009c3c9c",
+            "heading": "### Requirement: Role-separated holder signing",
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.selection"
+          },
+          {
+            "block_hash": "c61285ef6ca97ab8e0a0941985fcea031564bc04ce3cfe2169609e69c54ca8ff",
+            "heading": "### Requirement: Durable replay, revocation and decisions",
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.state"
+          },
+          {
+            "block_hash": "42bce4d33d773aa3655cf5616a8389fea624d287b7f0e68b50995dd32c384caf",
+            "heading": "### Requirement: Fence checked at commit",
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.interleaving"
+          },
+          {
+            "block_hash": "c6c74e4136260b562a1b51ce14b4ac38b2c1e76f9fa3922d629ddb9f1499d9b3",
+            "heading": "### Requirement: Reconciliation reuses the effect identity",
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.reconcile"
+          }
+        ],
+        "outcomes": [
+          {
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.coverage.entry_points",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.dispatch",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.payload",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.config",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.selection",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.state",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.interleaving",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.reconcile",
+            "state": "applied"
+          }
+        ],
+        "source": ".cairn/changes/compose-verified-implementation-authority/specs/implementation-authority/spec.md"
+      }
+    ]
+  },
+  "mutated": true,
+  "mutation_manifest": {
+    "after": {
+      "entries": [
+        {
+          "content_hash": "cc0db94b61d11d07709f7f291ad6e07fb2b5f333b4a3742c40b9f243e3eb3e5f",
+          "exists": true,
+          "path": "./.cairn/specs/implementation-authority/spec.md"
+        }
+      ],
+      "manifest_hash": "7f0ed2551199d7121bcf76eb6720bbbe108f24f9044728c3826c9ad4811f33e7"
+    },
+    "before": {
+      "entries": [
+        {
+          "content_hash": "0ac907e5250fc868fa76ee161dddce1b44903acf0b5744368691f56d984b8bc7",
+          "exists": true,
+          "path": "./.cairn/specs/implementation-authority/spec.md"
+        }
+      ],
+      "manifest_hash": "446414a98427b88f4cdce6ac4ee3b5336f8fbaa521ccbcca7bc46f60b1f52eef"
+    },
+    "kind": "sync",
+    "manifest_hash": "b09fe1054a4eede734c532e00b45d17c97389df44bd030b484438cf124ddd7fd"
+  },
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "plan_hash": "abb85ae686e0d1fcc34ca7d1b8c9a2ade02d43b44d31ff109c4abeb399374450",
+  "policy": "kiln-default",
+  "policy_hash": "62b75eb1580f61c61017761c3391b5afcab0ff7d88713ba05a9d4af51f522195",
+  "profile_identity_hash": "43f88601cb1442e32008e2ca455ffb0a444dbd23de66f473a4a70fba7bcee99a",
+  "reasons": [],
+  "receipt_hash": "e8de0613ca11f76a0e6e15567eac05ecfb319cf54dc6020ce1a5fd49df06b523",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
+exit=0

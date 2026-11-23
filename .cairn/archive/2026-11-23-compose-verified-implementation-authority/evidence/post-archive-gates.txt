@@ -1,0 +1,20 @@
+Archived on the Kiln authority integration branch after merging the verified
+S1 head 23b9408f (KilnS1Review: correct, confidence 0.92, no P0-P2) as
+25cad5d5 and the Phase 7 supersession note (273e6418).
+Before sync, with /nix/store/nc498h43kyxsh3yfbrypqjprg9pzh2qs-cairn-0.2.1/bin/cairn
+(317d3ff6) and P=cairn-policy/generated/cairn-policy.json (CAIRN_POLICY=$P):
+$ cairn gate proposal compose-verified-implementation-authority --root . --policy "$P" -> exit 0, PASS, receipt 679100449a6e4e87f78cb7f67086fce027c3feb1e0a1f37d43bd02533f543e63
+$ cairn gate design compose-verified-implementation-authority --root . --policy "$P"   -> exit 0, PASS, receipt 124da816d36ff0feb8a8ff1fce2013b55b421439e695fd932088debc17788d53
+$ cairn gate tasks compose-verified-implementation-authority --root . --policy "$P"    -> exit 0, PASS, receipt 119e71f42fabad3d9794d42221b3ecbe6d60bc058cff296589c51d2931a227ef
+$ cairn validate --root . --policy "$P"                                               -> exit 0, valid, 8 active changes, 0 issues
+Sync (evidence/sync.txt) merged the implementation-authority delta into the
+accepted spec; archive (evidence/archive.txt) used CAIRN_ARCHIVE_DATE=2026-11-23.
+After the archive and dropping the change's delta root from
+cairn-policy/development-coverage.ncl:
+$ cairn validate --root . --policy "$P"
+  -> exit 0, policy kiln-default, valid, 7 active changes, 0 issues
+$ nickel export --format json cairn-policy/development-coverage.ncl > dev-policy.json
+$ cairn traceability coverage --root . --policy dev-policy.json --profile kiln-active-development --json
+  -> exit 0, verdict pass, 2297 requirements, 0 dangling, 0 missing
+$ cairn traceability coverage --root . --policy "$P" --json   # accepted-only
+  -> exit 0, verdict pass, 2297 requirements, 0 dangling, 0 missing
