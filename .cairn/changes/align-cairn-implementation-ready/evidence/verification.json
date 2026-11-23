@@ -39,17 +39,18 @@
     {"command": "cargo clippy --locked --workspace --all-targets --all-features -- -D warnings", "exit": 0},
     {"command": "cargo test --locked --workspace --no-fail-fast (short PATH)", "exit": 0, "passed": 2526, "failed": 0, "ignored": 16, "suites": 200, "note": "the long session PATH makes kiln-fleet --test dispatch refuse herdr's PATH bound, as in earlier evidence"},
     {"command": "scripts/check-nickel-fixtures.sh", "exit": 0, "result": "103 positive, 655 negative"},
-    {"command": "cairn gate proposal|design align-cairn-implementation-ready", "exit": 0, "verdict": "PASS"},
-    {"command": "cairn gate tasks align-cairn-implementation-ready", "exit": 0, "verdict": "FAIL", "note": "awaits the independent no-spec review receipt"},
-    {"command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "valid": false, "note": "only the missing no-spec review receipt"},
+    {"command": "cairn gate proposal align-cairn-implementation-ready", "exit": 0, "verdict": "PASS", "receipt_hash": "99dce35add6ab155e39cceaa2e914d8ca5f0e4143a7fcfb9b7e82985455f8f5f"},
+    {"command": "cairn gate design align-cairn-implementation-ready", "exit": 0, "verdict": "PASS", "receipt_hash": "f64529c342007fd05edf13caea29a8e596200711739bd50f56192fcdf85788eb"},
+    {"command": "cairn gate tasks align-cairn-implementation-ready", "exit": 0, "verdict": "PASS", "receipt_hash": "26988ad48d18c70ac79606a2f70e7a74767ccea6c27ccc4df10a3843f9570e39", "note": "with the independent review receipt"},
+    {"command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "valid": true, "issues": 0, "receipt_hash": "a77042066c17a4ece0549243a3588677e2686b6d16df3ba4c9c471e40d089c7a"},
     {"command": "cairn traceability coverage --root . --policy cairn-policy/generated/cairn-policy.json --json", "exit": 1, "referenced": 2256, "missing": 0, "dangling": 1, "note": "the dangling kiln.admission.lattice_lineage.scenario.reported comes from base 09326e92's unsynced report-lattice-sent-request change"},
-    {"command": "cairn release-readiness --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "verdict": "fail", "note": "fails only cairn_validate (receipt pending) and traceability_coverage (inherited dangling ID); no policy drift"},
+    {"command": "cairn release-readiness --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "verdict": "fail", "checks": 14, "failed": ["traceability_coverage"], "note": "only the inherited dangling ID; no policy drift"},
     {"command": "nix build path:$PWD#checks.x86_64-linux.cairn-gate-cohort", "exit": 0},
     {"command": "nix build path:$PWD#packages.x86_64-linux.kiln-cairn-intake", "exit": 0},
     {"command": "nix build path:$PWD#packages.x86_64-linux.implementation-fixtures", "exit": 0, "passed": 804, "failed": 0, "ignored": 2, "suites": 42},
     {"command": "cairn implementation-ready --root . | kiln-cairn-intake --sequence 1 then 2", "exit": 0, "result": "selected 6, admitted 6; replay superseded 6"}
   ],
-  "review": "Independent review: KilnCairnRevendorReview (P2 readiness classification, fixed upstream by 317d3ff6). The no-spec review receipt is pending that reviewer's verdict on the final artifacts.",
+  "review": "Independent review: KilnCairnRevendorReview approved the final package (overall_correctness correct, confidence 0.96, no findings); its receipt reviews/no-spec-classification.json (BLAKE3 6dbdca86dca0ecf6c990a52c52eeea1f7431c9a9857d4f6ee213ca3e408b8941) is copied verbatim and binds proposal, design, acceptance and tasks. Its earlier P2 (readiness classification) was fixed upstream by 317d3ff6.",
   "known_unrelated": [
     "tests/cairn-workflow-policy.sh exits 4 at base: change prepare-public-release is archived",
     "scripts/import-pinned-source.sh lattice, valence and bounded-exec pins carry a stale digest copied from mantle"
