@@ -12,8 +12,10 @@ const BASALT_SOURCE: &str = include_str!("../../../vendor/basalt.source.json");
 const UCAN_SOURCE: &str = include_str!("../../../vendor/ucan.source.json");
 const BASALT_MANIFEST: &str = include_str!("../../../vendor/basalt/Cargo.toml");
 
+/// The Basalt revision Kiln imports; Lattice vendors the same revision.
+const BASALT_COHORT_REVISION: &str = "fac0d7f1fd7ac936ca4d3f251f3287666e93d4bb";
 /// The one UCAN revision Basalt vendors and Kiln serves.
-const UCAN_COHORT_REVISION: &str = "417f74662b9de2de3bdabe93ad5db996e1bd2861";
+const UCAN_COHORT_REVISION: &str = "fca62a6ed6895689ff18112b497bc7a986516c20";
 const IMPORTER: &str = "scripts/import-pinned-source.sh";
 const BLAKE3_HEX_BYTES: usize = 32;
 
@@ -35,7 +37,14 @@ fn recorded_import_resolves_basalt_to_the_single_vendored_ucan_cohort() {
     let basalt = parse(BASALT_SOURCE);
     let ucan = parse(UCAN_SOURCE);
 
+    assert_eq!(text(&basalt, "source_commit"), BASALT_COHORT_REVISION);
     assert_eq!(text(&ucan, "source_commit"), UCAN_COHORT_REVISION);
+    // Basalt compiles in the UCAN revision its own snapshot names, so the
+    // single Kiln UCAN snapshot must be that revision.
+    assert_eq!(
+        basalt::nostr_identity::UCAN_SOURCE_REVISION,
+        UCAN_COHORT_REVISION
+    );
     assert_eq!(text(&basalt, "importer"), IMPORTER);
     assert_eq!(text(&ucan, "importer"), IMPORTER);
     for record in [&basalt, &ucan] {

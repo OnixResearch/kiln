@@ -35,7 +35,7 @@ fn run(args: &[String]) -> Result<(), String> {
     match args {
         [command] if command == "capabilities" => {
             println!("{}", json!({"schema":"kiln.retained-host-capabilities.v1", "molten_revision":retained::SELECTED_MOLTEN_REVISION,
-                "host_runtime_iroh":"1.1.0", "workflow_iroh":"0.95.1", "retained_authority":"unavailable",
+                "host_runtime_iroh":"1.1.0", "workflow_iroh":"1.1.0", "retained_authority":"unavailable",
                 "cross_host_fabric":"unqualified-loopback-only", "live_migration":"denied",
                 "local_checkpoint_storage":"bounded-verified-fsync", "qualification":"not-run",
                 "missing":["Aspen current-placement CAS and resource fencing", "Aspen admitted authenticated cross-host stream",

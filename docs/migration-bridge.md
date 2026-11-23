@@ -15,10 +15,12 @@ memfd modes, wrong peers and wrong protocol generations are refused.
 
 `kiln-adapter-iroh::migration` implements the VM-specific byte bridge, separately
 from the unchanged bounded workflow exchange. `DirectMigrationEndpoint` uses the
-existing Iroh **0.95.1** dependency, disables relays and discovery, binds only the
-explicit address plus a loopback address for the other family, and admits one
-bidirectional stream with bounded flow-control windows, no unidirectional
-streams and no datagrams. It does not replace any runtime dependency pin.
+existing Iroh **1.1.0** dependency, disables relays and address lookup, binds
+only the explicit address plus a loopback address for the other family, and
+admits one bidirectional stream with bounded flow-control windows, no
+unidirectional streams and no datagrams. It accepts a peer only while every
+open path of the connection is a direct IP path. It does not replace any runtime
+dependency pin.
 
 `bridge` accepts only a fully established `Connection` and rejects 0-RTT stream
 data, wrong negotiated ALPN (`kiln/ch-migration/precopy/1`), wrong actual
@@ -67,7 +69,8 @@ before host effects. No local marker, stream receipt or operator version label
 substitutes for those producer mechanisms. Aspen #15 must supply the admitted
 registered cross-host profile with actual peer-context binding and durable
 operation evidence; placement/resource authority needs its qualified owner API.
-The 0.95.1/1.1.0 composition must be explicitly qualified, not silently unified.
+The workflow transport and the host runtime now both pin Iroh 1.1.0; sharing a
+version is not a qualified composition, which still needs its own evidence.
 
 ## Coordinated checks
 

@@ -23,7 +23,7 @@ The repository uses a small functional core and imperative shell. Nickel owns po
 Basalt is pre-1.0 and under active development; public APIs may change between
 revisions. Its UCAN dependency uses a checked-in reviewed snapshot.
 
-The snapshot records integrated UCAN commit `417f74662b9de2de3bdabe93ad5db996e1bd2861`.
+The snapshot records integrated UCAN commit `fca62a6ed6895689ff18112b497bc7a986516c20`.
 That revision is published on the UCAN `main` branch. The repository-owned snapshot remains the durable build boundary.
 
 `Cargo.toml` contains package metadata for downstream discovery. The crate retains the `AGPL-3.0-or-later` license and `publish = false`.
@@ -155,6 +155,9 @@ roots, current policy and replay before returning an opaque `Session`.
 Build submission, input upload, store read, project declaration, individual
 read operations, owned-attempt cancellation, publication and administration
 remain distinct grants. A serialized `Request` or receipt cannot mint a session.
+Grant tooling that issues Mantle prefix grants must end each prefix at a field
+boundary, because the generation is not length-prefixed; see
+[`docs/oidc-exchange.md`](docs/oidc-exchange.md#grant-issuance-and-mantle-resource-framing).
 
 Call `Verifier::revalidate` with fresh verification, revocation and caveat
 observations before each effect. Revalidation does not consume replay again.

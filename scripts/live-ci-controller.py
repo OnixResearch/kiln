@@ -136,7 +136,7 @@ def configure_proxy(args):
     transport = copy.deepcopy(native["transport"])
     transport["peers"]["allowed_user_ids"] = [uid]
     profile = {
-        "schema": "kiln.iroh-workflow-profile.v1", "iroh_version": "0.95.1",
+        "schema": "kiln.iroh-workflow-profile.v1", "iroh_version": "1.1.0",
         "alpn": "kiln.workflow.v1", "socket_path": ROOT + "/iroh.sock",
         "bind_address": args.bind, "allowed_peers": [endpoint["id"]],
         "relay_urls": args.relay, "transport": transport,

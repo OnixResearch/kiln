@@ -104,6 +104,24 @@ pub fn receipt_for_failure(
     })
 }
 
+pub(super) fn bind_recipient(receipt: &mut ExchangeReceipt, recipient: &ucan::AudienceDid) {
+    fn identity(original: &str, recipient: &ucan::AudienceDid) -> String {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(b"basalt.oidc.recipient-capability.v1");
+        update_frame(&mut hasher, original.as_bytes());
+        update_frame(&mut hasher, recipient.as_str().as_bytes());
+        format!("blake3:{}", hasher.finalize().to_hex())
+    }
+    receipt.requested_capability_identity =
+        identity(&receipt.requested_capability_identity, recipient);
+    if let Some(granted) = &mut receipt.granted_capability_identity {
+        *granted = identity(granted, recipient);
+    }
+    receipt.receipt_identity.clear();
+    let bytes = serde_json::to_vec(receipt).expect("exchange receipt serialization is infallible");
+    receipt.receipt_identity = format!("blake3:{}", blake3::hash(&bytes).to_hex());
+}
+
 fn finish(mut receipt: ExchangeReceipt) -> ExchangeReceipt {
     let bytes = serde_json::to_vec(&receipt).unwrap_or_default();
     receipt.receipt_identity = format!("blake3:{}", blake3::hash(bytes.as_slice()).to_hex());

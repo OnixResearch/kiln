@@ -6,7 +6,7 @@ Basalt maps one reviewed UCAN Nostr credential to one policy-owned stable subjec
 
 The public adapter accepts only `ucan_nostr::VerifiedNostrCredential` from reviewed Nostr credential revision `c9d43a7c11dd2fab4d5cb3d100012fa9a2e5b026`.
 
-Basalt builds from integrated UCAN revision `417f74662b9de2de3bdabe93ad5db996e1bd2861`. This revision contains the Nostr adapter, peer authentication, and holder-signed invocation admission.
+Basalt builds from integrated UCAN revision `fca62a6ed6895689ff18112b497bc7a986516c20`. This revision contains the Nostr adapter, peer authentication, and holder-signed invocation admission.
 
 The adapter does not accept `signature_valid`, `authenticated`, or similar caller booleans.
 

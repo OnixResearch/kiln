@@ -99,12 +99,22 @@ For Aspen, this means implementing Aspen-owned resource, ability, identity, revo
 
 ## Dependency advisory posture
 
-Assessment date: 2026-08-16. Result: zero exploitable vulnerabilities in the
-locked dependency set at the assessment revision.
+Assessment date: 2026-11-22, at the revision that integrates
+`move-nostr-adapter-to-k256-0-14`, against RustSec advisory-db `55e1c3df`.
+Result: zero exploitable vulnerabilities in the locked dependency set at the
+assessment revision.
 
-Two applicable advisories are pinned with explicit non-exploitable rationale
-in `deny.toml`: `RUSTSEC-2024-0436` (paste, dev-only via
-hegeltest) and `RUSTSEC-2026-0190` (anyhow `downcast_mut`, vendored
-`repo_index` module). The `dependency-posture` Nix check enforces the policy
-against the committed `Cargo.lock`; it never resolves a fresh dependency set.
-See `docs/dependency-posture.md` for the full audit record and non-claims.
+- `RUSTSEC-2024-0436` (paste, dev-only via hegeltest): applies and is pinned
+  in `deny.toml` with its rationale.
+- `RUSTSEC-2026-0190` (anyhow `downcast_mut`): not encountered at
+  `anyhow 1.0.104`. The pin is kept only because the posture checker
+  requires it.
+- `RUSTSEC-2026-0486` (`rustix 1.1.4`, dev-only via `tempfile`): applies, is
+  not pinned, and remains open.
+- `RUSTSEC-2026-0387` (`crypto-bigint`) left the locked graph when the Nostr
+  adapter moved to `k256 0.14.0`. The posture gate rejects any
+  `crypto-bigint` below `0.7.6`.
+
+The `dependency-posture` Nix check enforces the policy against the committed
+`Cargo.lock`; it never resolves a fresh dependency set. See
+`docs/dependency-posture.md` for the full audit record and non-claims.

@@ -2,7 +2,7 @@ use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 use std::sync::Arc;
 use std::time::Duration;
 
-use iroh::endpoint::{Connection, TransportConfig, VarInt};
+use iroh::endpoint::{Connection, QuicTransportConfig, VarInt, presets};
 use iroh::{Endpoint, EndpointAddr, RelayMap, RelayMode, RelayUrl, SecretKey};
 use kiln_adapter_http_observe::{ObservationSnapshot, ObservationSource};
 use kiln_observe_core::{ObservationRequest, ObservationWindow, ViewRequest, project_observation};
@@ -60,8 +60,8 @@ pub async fn bind_endpoint(
             "Iroh frame window cannot be represented",
         )
     })?;
-    let mut quic = TransportConfig::default();
-    quic.max_concurrent_bidi_streams(EXCHANGE_STREAMS.into())
+    let quic = QuicTransportConfig::builder()
+        .max_concurrent_bidi_streams(EXCHANGE_STREAMS.into())
         .max_concurrent_uni_streams(DISABLED_STREAMS.into())
         .stream_receive_window(frame_window)
         .receive_window(frame_window)
@@ -69,21 +69,25 @@ pub async fn bind_endpoint(
         .datagram_receive_buffer_size(None)
         .max_idle_timeout(Some(deadline(profile).try_into().map_err(|_| {
             ObserveError::new("invalid_deadline", "Iroh deadline is invalid")
-        })?));
-    let mut builder = Endpoint::builder()
+        })?))
+        .build();
+    // The minimal preset installs only the ring crypto provider: no address
+    // lookup service and no relay unless the profile names one.
+    let builder = Endpoint::builder(presets::Minimal)
         .secret_key(secret_key)
-        .clear_discovery()
         .relay_mode(relay_mode)
         .transport_config(quic)
-        .alpns(vec![IROH_OBSERVATION_ALPN.to_vec()]);
-    builder = match profile.endpoint.bind_address {
+        .alpns(vec![IROH_OBSERVATION_ALPN.to_vec()])
+        .clear_ip_transports();
+    let builder = match profile.endpoint.bind_address {
         SocketAddr::V4(address) => builder
-            .bind_addr_v4(address)
-            .bind_addr_v6(SocketAddrV6::new(Ipv6Addr::LOCALHOST, 0, 0, 0)),
+            .bind_addr(address)
+            .and_then(|builder| builder.bind_addr(SocketAddrV6::new(Ipv6Addr::LOCALHOST, 0, 0, 0))),
         SocketAddr::V6(address) => builder
-            .bind_addr_v6(address)
-            .bind_addr_v4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0)),
-    };
+            .bind_addr(address)
+            .and_then(|builder| builder.bind_addr(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0))),
+    }
+    .map_err(|_| ObserveError::new("iroh_transport", "Iroh endpoint could not bind"))?;
     timeout(deadline(profile), builder.bind())
         .await
         .map_err(|_| ObserveError::new("iroh_deadline", "Iroh endpoint bind deadline expired"))?

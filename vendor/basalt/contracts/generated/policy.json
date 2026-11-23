@@ -39,7 +39,8 @@
       "description": "Cancel one owned fenced Kiln attempt.",
       "id": "kiln-attempt-cancel",
       "resource_prefixes": [
-        "kiln://implementation/v1/"
+        "kiln://implementation/v1/",
+        "kiln://implementation/v2/"
       ]
     },
     "kiln-candidate-submit": {
@@ -49,7 +50,8 @@
       "description": "Submit one sealed candidate for an exact Kiln attempt.",
       "id": "kiln-candidate-submit",
       "resource_prefixes": [
-        "kiln://implementation/v1/"
+        "kiln://implementation/v1/",
+        "kiln://implementation/v2/"
       ]
     },
     "kiln-claim-acquire": {
@@ -59,7 +61,8 @@
       "description": "Acquire one fenced Kiln implementation claim.",
       "id": "kiln-claim-acquire",
       "resource_prefixes": [
-        "kiln://implementation/v1/"
+        "kiln://implementation/v1/",
+        "kiln://implementation/v2/"
       ]
     },
     "kiln-claim-renew": {
@@ -69,7 +72,8 @@
       "description": "Renew one fenced Kiln implementation claim.",
       "id": "kiln-claim-renew",
       "resource_prefixes": [
-        "kiln://implementation/v1/"
+        "kiln://implementation/v1/",
+        "kiln://implementation/v2/"
       ]
     },
     "kiln-dispatch": {
@@ -79,7 +83,8 @@
       "description": "Dispatch one bound Kiln implementation attempt.",
       "id": "kiln-dispatch",
       "resource_prefixes": [
-        "kiln://implementation/v1/"
+        "kiln://implementation/v1/",
+        "kiln://implementation/v2/"
       ]
     },
     "kiln-integration-land": {
@@ -89,7 +94,8 @@
       "description": "Integrate one exact Kiln candidate through the selected route.",
       "id": "kiln-integration-land",
       "resource_prefixes": [
-        "kiln://implementation/v1/"
+        "kiln://implementation/v1/",
+        "kiln://implementation/v2/"
       ]
     },
     "kiln-lifecycle-complete": {
@@ -99,7 +105,8 @@
       "description": "Complete native lifecycle for one integrated Kiln change.",
       "id": "kiln-lifecycle-complete",
       "resource_prefixes": [
-        "kiln://implementation/v1/"
+        "kiln://implementation/v1/",
+        "kiln://implementation/v2/"
       ]
     },
     "kiln-publication-publish": {
@@ -109,7 +116,88 @@
       "description": "Publish one separately verified Kiln candidate.",
       "id": "kiln-publication-publish",
       "resource_prefixes": [
-        "kiln://implementation/v1/"
+        "kiln://implementation/v1/",
+        "kiln://implementation/v2/"
+      ]
+    },
+    "kiln-source-create": {
+      "abilities": [
+        "kiln/source/create"
+      ],
+      "description": "Create one exact new Kiln source entry.",
+      "id": "kiln-source-create",
+      "resource_prefixes": [
+        "kiln://source/v1/"
+      ]
+    },
+    "kiln-source-delegate": {
+      "abilities": [
+        "kiln/source/delegate"
+      ],
+      "description": "Share one Kiln source scope onward.",
+      "id": "kiln-source-delegate",
+      "resource_prefixes": [
+        "kiln://source/v1/"
+      ]
+    },
+    "kiln-source-discover": {
+      "abilities": [
+        "kiln/source/discover"
+      ],
+      "description": "Discover entries inside one authorized Kiln source scope.",
+      "id": "kiln-source-discover",
+      "resource_prefixes": [
+        "kiln://source/v1/"
+      ]
+    },
+    "kiln-source-history": {
+      "abilities": [
+        "kiln/source/history"
+      ],
+      "description": "Read the history of one Kiln source entry or subtree.",
+      "id": "kiln-source-history",
+      "resource_prefixes": [
+        "kiln://source/v1/"
+      ]
+    },
+    "kiln-source-modify": {
+      "abilities": [
+        "kiln/source/modify"
+      ],
+      "description": "Modify one exact existing Kiln source entry.",
+      "id": "kiln-source-modify",
+      "resource_prefixes": [
+        "kiln://source/v1/"
+      ]
+    },
+    "kiln-source-prepare": {
+      "abilities": [
+        "kiln/source/prepare"
+      ],
+      "description": "Prepare one projected Kiln workspace.",
+      "id": "kiln-source-prepare",
+      "resource_prefixes": [
+        "kiln://source/v1/"
+      ]
+    },
+    "kiln-source-read": {
+      "abilities": [
+        "kiln/source/read"
+      ],
+      "description": "Read the content of one exact Kiln source entry.",
+      "id": "kiln-source-read",
+      "resource_prefixes": [
+        "kiln://source/v1/"
+      ]
+    },
+    "kiln-source-result": {
+      "abilities": [
+        "kiln/source/result"
+      ],
+      "description": "Retrieve one result produced for a Kiln source scope.",
+      "id": "kiln-source-result",
+      "resource_prefixes": [
+        "kiln://source/v1/"
       ]
     },
     "kiln-verification-admit": {
@@ -119,7 +207,8 @@
       "description": "Admit verification evidence for one exact Kiln candidate.",
       "id": "kiln-verification-admit",
       "resource_prefixes": [
-        "kiln://implementation/v1/"
+        "kiln://implementation/v1/",
+        "kiln://implementation/v2/"
       ]
     },
     "mantle-admin": {

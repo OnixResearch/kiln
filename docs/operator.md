@@ -988,7 +988,7 @@ controller-local Unix proxy and a worker-local Lattice socket:
 It adds transport, not another executor. Dispatch, exact recovery, observation,
 controls, logs and reconciliation keep their native identities and existing Kiln
 admission. The separate read-only Iroh observation plan is not implemented here.
-The registry cohort pins Iroh `0.95.1` under ALPN `kiln.workflow.v1` and builds
+The registry cohort pins Iroh `1.1.0` under ALPN `kiln.workflow.v1` and builds
 with the workspace's pinned Rust toolchain.
 
 ### Enrollment and profiles

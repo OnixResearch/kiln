@@ -26,7 +26,7 @@ let Contracts = import "../contracts.ncl" in
       disposition = "current",
     }],
     policy_refs | default = [{
-      artifact_ref = "blake3:fd17db568eb24222d4ca65fe45f02edb21ef910fad214a392441d62c07ef4b14",
+      artifact_ref = "blake3:e929bde8e316da188eedb55013a695e82c280c69b88c15d0668c119589beb233",
       schema_version = "ucan-nickel-contracts.policy.v1",
       contract_id = "document-write",
     }],

@@ -8,7 +8,7 @@ publish = false
 
 [dependencies]
 blake3.workspace = true
-iroh = { version = "=0.95.1", default-features = false }
+iroh = { version = "=1.1.0", default-features = false, features = ["portmapper", "tls-ring"] }
 kiln-adapter-http-observe.workspace = true
 kiln-core.workspace = true
 kiln-observe-core.workspace = true

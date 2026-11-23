@@ -1,5 +1,5 @@
 {
-  "basalt_policy_blake3": "fd17db568eb24222d4ca65fe45f02edb21ef910fad214a392441d62c07ef4b14",
+  "basalt_policy_blake3": "e929bde8e316da188eedb55013a695e82c280c69b88c15d0668c119589beb233",
   "contract_id": "document-write",
   "decisions": {
     "caveat_evaluation": "missing-policy",
@@ -29,8 +29,8 @@
   "protocol_profile": "onix-compact-ed25519-v1",
   "request_ability": "document/write",
   "request_resource": "did:key:z6Mkresource/docs/report",
-  "runtime_ucan_revision": "417f74662b9de2de3bdabe93ad5db996e1bd2861",
+  "runtime_ucan_revision": "fca62a6ed6895689ff18112b497bc7a986516c20",
   "schema": "basalt.ucan-semantics-fixture.v2",
   "support_catalog_blake3": "fe77fd63076eaef555b74e702e4c14e483bdba70151ccc955c75b17d97412427",
-  "support_catalog_revision": "417f74662b9de2de3bdabe93ad5db996e1bd2861"
+  "support_catalog_revision": "fca62a6ed6895689ff18112b497bc7a986516c20"
 }

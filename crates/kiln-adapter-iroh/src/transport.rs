@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use iroh::endpoint::{TransportConfig, VarInt};
+use iroh::endpoint::{QuicTransportConfig, VarInt, presets};
 use iroh::{Endpoint, EndpointAddr, RelayMap, RelayMode, RelayUrl, SecretKey};
 use lattice_workflow_transport::{ExchangeRequest, ExchangeResponse};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
@@ -35,8 +35,8 @@ pub async fn bind_endpoint(profile: &Profile, secret_key: SecretKey) -> Result<E
     let frame_window = u64::from(profile.transport.limits.maximum_frame_bytes)
         + lattice_workflow_transport::FRAME_HEADER_BYTES as u64;
     let receive_window = VarInt::from_u64(frame_window).map_err(|_| Error::InvalidProfile)?;
-    let mut quic = TransportConfig::default();
-    quic.max_concurrent_bidi_streams(EXCHANGE_STREAMS.into())
+    let quic = QuicTransportConfig::builder()
+        .max_concurrent_bidi_streams(EXCHANGE_STREAMS.into())
         .max_concurrent_uni_streams(DISABLED_STREAMS.into())
         .stream_receive_window(receive_window)
         .receive_window(receive_window)
@@ -46,22 +46,26 @@ pub async fn bind_endpoint(profile: &Profile, secret_key: SecretKey) -> Result<E
             deadline(profile)
                 .try_into()
                 .map_err(|_| Error::InvalidProfile)?,
-        ));
-    let mut builder = Endpoint::builder()
+        ))
+        .build();
+    // The minimal preset installs only the ring crypto provider: no address
+    // lookup service and no relay unless the profile names one.
+    let builder = Endpoint::builder(presets::Minimal)
         .secret_key(secret_key)
-        .clear_discovery()
         .relay_mode(relay_mode)
         .transport_config(quic)
-        .alpns(vec![ALPN.to_vec()]);
+        .alpns(vec![ALPN.to_vec()])
+        .clear_ip_transports();
     // Do not leave the other address family listening on an ambient wildcard.
-    builder = match profile.bind_address {
+    let builder = match profile.bind_address {
         SocketAddr::V4(address) => builder
-            .bind_addr_v4(address)
-            .bind_addr_v6(SocketAddrV6::new(Ipv6Addr::LOCALHOST, 0, 0, 0)),
+            .bind_addr(address)
+            .and_then(|builder| builder.bind_addr(SocketAddrV6::new(Ipv6Addr::LOCALHOST, 0, 0, 0))),
         SocketAddr::V6(address) => builder
-            .bind_addr_v6(address)
-            .bind_addr_v4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0)),
-    };
+            .bind_addr(address)
+            .and_then(|builder| builder.bind_addr(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0))),
+    }
+    .map_err(|_| Error::Transport)?;
     timeout(deadline(profile), builder.bind())
         .await
         .map_err(|_| Error::Deadline)?

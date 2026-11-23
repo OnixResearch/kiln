@@ -25,8 +25,8 @@ entry describes the source tree prepared for the first tagged release.
   holder invocations or an explicit local-operator profile are required before
   any mutation, provider call or credential resolution; every effect revalidates
   without consuming replay twice, and bounded redacted decisions retain no
-  capability material. Basalt is imported at `264d248` with recorded UCAN path
-  rewrites, UCAN is one snapshot at `417f746`, and a metadata-only
+  capability material. Basalt is imported at `fac0d7f` with recorded UCAN path
+  rewrites, UCAN is one snapshot at `fca62a6`, and a metadata-only
   `detect-coding-agent` 0.1.1 declaration patch, added for the former Rust 1.88
   pin, remains in place.
   (#69; adapter, implementer, policy and denial fixtures)
@@ -770,6 +770,31 @@ entry describes the source tree prepared for the first tagged release.
 
 ### Changed
 
+- Kiln's Basalt import moves to `fac0d7f1fd7ac936ca4d3f251f3287666e93d4bb` and
+  its UCAN import to `fca62a6ed6895689ff18112b497bc7a986516c20`, the exact
+  revisions Lattice vendors, so Kiln and Lattice verify grants with the same
+  code. Basalt adds the attenuable `kiln://implementation/v2/` framing with its
+  `kiln/delegate` chain rule, the `kiln://source/v1/` operations and the holder
+  series. Kiln still binds every implementation request with the frozen
+  `kiln://implementation/v1/` framing and keeps that framing admitted; it adopts
+  neither v2 nor the source operations yet. One Basalt rule now reaches v1: a
+  v1 chain whose covering grant is wider than `kiln://implementation/v1/` (for
+  example `kiln://`) needs explicit `kiln/delegate` at every delegator.
+- Iroh moves from `0.95.1` to `1.1.0` in `kiln-adapter-iroh`,
+  `kiln-adapter-iroh-observe` and `kiln-hosted`, the line
+  `runtime/kiln-aspen-host` already pins. The UCAN cohort forces it: UCAN's
+  Nostr adapter needs `k256` 0.14, which needs stable `crypto-common` 0.2, and
+  Iroh 0.95.1 pins an `aead` release candidate that needs a `crypto-common`
+  release candidate, so Cargo cannot resolve both. Iroh `0.96.0` resolves but
+  its `ed25519` 3.0.0-rc.1 does not compile against the stable `pkcs8`. ALPNs
+  (`kiln.workflow.v1`, `kiln.observe.v1`, the migration ALPN), frames, bounds,
+  peer admission and relay selection are unchanged. Endpoints use the minimal
+  preset (ring TLS, no address lookup) with the port mapper kept, as 0.95.1 had
+  it; the migration bridge still accepts only a connection whose open paths are
+  all direct IP paths. Workflow and observation profiles now name
+  `iroh_version = "1.1.0"`. The signing prereleases Iroh 0.95.1 needed
+  (`ed25519`, `pkcs8`, `spki`, `der`, `pem-rfc7468`, `signature`) are now
+  stable releases.
 - Kiln's Cairn gate contract and `cairn-core` imports move to Cairn
   `317d3ff648f01a5ea1572e6126f4dd71bc7afa99`, the first revision Kiln can share
   with Lattice that has `cairn implementation-ready`. Both come from one
@@ -926,6 +951,11 @@ entry describes the source tree prepared for the first tagged release.
   `aarch64-linux`; its outputs evaluate but were not built or run.
 - The workspace pins Rust 1.97.1 in `rust-toolchain.toml` and declares
   `rust-version = "1.97.1"`. That is the tested compiler, not a proven minimum.
+- Iroh peers on `0.95.1` are not promised to interoperate with Kiln's `1.1.0`
+  endpoints. Upgrade every Kiln Iroh endpoint (workflow worker and proxy,
+  observation, hosted service and clients, migration bridge) together. A
+  workflow or observation profile that names `iroh_version = "0.95.1"` is
+  refused as cohort drift.
 - Protected implementation operations deny until a verified UCAN adapter or an
   explicit local-operator profile is selected. `prepare_publication` and
   `record_integration` take the host time used for currentness. A caller

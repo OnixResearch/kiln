@@ -59,7 +59,7 @@ let PolicyInvariants = std.contract.from_predicate (fun policy =>
   Policy = std.contract.Sequence [PolicyShape, PolicyInvariants],
   identity = {
     policy_schema = PolicySchema,
-    ucan_source_revision = "417f74662b9de2de3bdabe93ad5db996e1bd2861",
+    ucan_source_revision = "fca62a6ed6895689ff18112b497bc7a986516c20",
     ucan_nostr_credential_revision = "c9d43a7c11dd2fab4d5cb3d100012fa9a2e5b026",
     credential_contract = "ucan-nostr::VerifiedNostrCredential@c9d43a7c11dd2fab4d5cb3d100012fa9a2e5b026",
   },

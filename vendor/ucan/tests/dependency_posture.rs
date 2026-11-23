@@ -25,6 +25,13 @@ const REVIEWED_ZEROIZE_IDENTITY: &str = "zeroize@1.9.0";
 const DRIFTED_ZEROIZE_IDENTITY: &str = "zeroize@1.8.2";
 const ADVISORY_PASTE: &str = "RUSTSEC-2024-0436";
 const ADVISORY_ANYHOW: &str = "RUSTSEC-2026-0190";
+const REVIEWED_K256: &str = "k256 = { version = \"=0.14.0\"";
+const DRIFTED_K256: &str = "k256 = { version = \"=0.13.4\"";
+const REVIEWED_K256_LOCK: &str = "0.14.0";
+const REVIEWED_K256_IDENTITY: &str = "k256@0.14.0";
+const DRIFTED_K256_IDENTITY: &str = "k256@0.13.4";
+const ADVISORY_CRYPTO_BIGINT_PATCHED: (u64, u64, u64) = (0, 7, 6);
+const DRIFTED_CRYPTO_BIGINT_LOCK_ENTRY: &str = "\n[[package]]\nname = \"crypto-bigint\"\nversion = \"0.5.5\"\n";
 
 fn has_pin_with_reason(text: &str, id: &str) -> bool {
     let marker = format!("id = \"{id}\"");
@@ -40,6 +47,31 @@ fn blake3_cohort_align(core: &str, nostr: &str, peer_auth: &str, nostr_context: 
 
 fn zeroize_cohort_align(root: &str, core: &str, peer_auth: &str) -> bool {
     root.contains(REVIEWED_ZEROIZE) && core.contains(REVIEWED_ZEROIZE) && peer_auth.contains(REVIEWED_ZEROIZE_IDENTITY)
+}
+
+fn locked_versions<'lock>(lock: &'lock str, crate_name: &str) -> Vec<&'lock str> {
+    let marker = format!("name = \"{crate_name}\"\nversion = \"");
+    lock.match_indices(&marker)
+        .filter_map(|(index, _)| {
+            let rest = &lock[index + marker.len()..];
+            rest.find('"').map(|end| &rest[..end])
+        })
+        .collect()
+}
+
+fn version_below(version: &str, floor: (u64, u64, u64)) -> bool {
+    let mut parts = version.split(['.', '-', '+']).map(|part| part.parse::<u64>().unwrap_or(0));
+    let parsed = (parts.next().unwrap_or(0), parts.next().unwrap_or(0), parts.next().unwrap_or(0));
+    parsed < floor
+}
+
+fn k256_advisory_closure_holds(nostr: &str, nostr_context: &str, lock: &str) -> bool {
+    nostr.contains(REVIEWED_K256)
+        && nostr_context.contains(REVIEWED_K256_IDENTITY)
+        && locked_versions(lock, "k256") == [REVIEWED_K256_LOCK]
+        && !locked_versions(lock, "crypto-bigint")
+            .iter()
+            .any(|version| version_below(version, ADVISORY_CRYPTO_BIGINT_PATCHED))
 }
 
 #[test]
@@ -107,4 +139,21 @@ fn fixture_rail_rejects_a_missing_pin() {
     // The negative fixture drops the paste pin; the rail must reject it.
     assert!(has_pin_with_reason(NEGATIVE_FIXTURE, ADVISORY_ANYHOW));
     assert!(!has_pin_with_reason(NEGATIVE_FIXTURE, ADVISORY_PASTE));
+}
+
+#[test]
+fn exact_k256_identity_and_lock_keep_the_crypto_bigint_advisory_out() {
+    assert!(k256_advisory_closure_holds(UCAN_NOSTR_MANIFEST, UCAN_NOSTR_CONTEXT_SOURCE, CARGO_LOCK));
+}
+
+#[test]
+fn k256_manifest_identity_or_crypto_bigint_lock_drift_is_rejected() {
+    let drifted_manifest = UCAN_NOSTR_MANIFEST.replace(REVIEWED_K256, DRIFTED_K256);
+    assert!(!k256_advisory_closure_holds(&drifted_manifest, UCAN_NOSTR_CONTEXT_SOURCE, CARGO_LOCK));
+
+    let drifted_identity = UCAN_NOSTR_CONTEXT_SOURCE.replace(REVIEWED_K256_IDENTITY, DRIFTED_K256_IDENTITY);
+    assert!(!k256_advisory_closure_holds(UCAN_NOSTR_MANIFEST, &drifted_identity, CARGO_LOCK));
+
+    let drifted_lock = format!("{CARGO_LOCK}{DRIFTED_CRYPTO_BIGINT_LOCK_ENTRY}");
+    assert!(!k256_advisory_closure_holds(UCAN_NOSTR_MANIFEST, UCAN_NOSTR_CONTEXT_SOURCE, &drifted_lock));
 }

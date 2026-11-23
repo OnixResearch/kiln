@@ -48,8 +48,8 @@ standalone runtimes and optional Octet gates have the acquisition boundary below
 | Artifact | `e41340bec587b6d049b5cc518ec7db925dde84be` | Transitive `MIT OR Apache-2.0` `artifact-auth-core` and `artifact-auth-ed25519` | [`vendor/artifact.source.json`](../vendor/artifact.source.json) |
 | Bounded Exec | `29dac88ecded94457572db3fdfaaaab95fa91525` | AGPL-3.0-or-later shell and core | [`vendor/bounded-exec.source.json`](../vendor/bounded-exec.source.json) |
 | Mantle | `d75158b00b080535f2ffea12430665ca3d57ea82` | Build-contract producer fixtures and Nickel contract only | [`vendor/mantle.source.json`](../vendor/mantle.source.json) |
-| UCAN | `417f74662b9de2de3bdabe93ad5db996e1bd2861` | AGPL-3.0-or-later root shell and `ucan-nostr`; MPL-2.0 `ucan-core` and `verified-logic` snapshot | [`vendor/ucan.source.json`](../vendor/ucan.source.json) |
-| Basalt | `264d248912e58760b5ae1eced51b7c7d50eb5a96` | AGPL-3.0-or-later Kiln authority adapter, packaged policy and contracts; nested UCAN paths rewritten to the single Kiln snapshot | [`vendor/basalt.source.json`](../vendor/basalt.source.json) |
+| UCAN | `fca62a6ed6895689ff18112b497bc7a986516c20` | AGPL-3.0-or-later root shell and `ucan-nostr`; MPL-2.0 `ucan-core` and `verified-logic` snapshot | [`vendor/ucan.source.json`](../vendor/ucan.source.json) |
+| Basalt | `fac0d7f1fd7ac936ca4d3f251f3287666e93d4bb` | AGPL-3.0-or-later Kiln authority adapter, packaged policy and contracts; nested UCAN paths rewritten to the single Kiln snapshot | [`vendor/basalt.source.json`](../vendor/basalt.source.json) |
 | `detect-coding-agent` | registry `0.1.1` (`sha256:be8df8d4e032e29ed623c6d5815d8ac7b8b82106f2f04a4e174f93fc807145a3`) | `EUPL-1.2 OR MIT OR Apache-2.0` source with one recorded `rust-version` declaration change from 1.91.0 to 1.88.0 | [`vendor/detect-coding-agent.source.json`](../vendor/detect-coding-agent.source.json) |
 
 The external Lattice CI handler is separately pinned to
@@ -157,28 +157,28 @@ it must not reuse Cargo's Git cache.
 
 ### Registry execution transport cohort
 
-`kiln-adapter-iroh` pins registry Iroh `0.95.1` (upstream Rust minimum 1.85)
-under ALPN `kiln.workflow.v1`. Kiln keeps its pinned Rust toolchain and the
-existing imported Lattice workflow contract/transport; Iroh does not enter
+`kiln-adapter-iroh`, `kiln-adapter-iroh-observe` and `kiln-hosted` pin registry
+Iroh `1.1.0` (upstream Rust minimum 1.89) under ALPN `kiln.workflow.v1`, the
+same line `runtime/kiln-aspen-host` pins. They enable only the `tls-ring` and
+`portmapper` features: ring is the TLS provider Iroh 0.95.1 always used, and the
+port mapper was always on in 0.95.1. Kiln keeps its pinned Rust toolchain and
+the existing imported Lattice workflow contract/transport; Iroh does not enter
 provider-neutral cores. Use the committed Cargo-generated lock and `--locked`
-commands. The signing prereleases require their compatible published Iroh lock
-cohort:
+commands.
 
-| Registry package | Locked version |
-|---|---|
-| `ed25519` | `3.0.0-rc.1` |
-| `pkcs8` | `0.11.0-rc.7` |
-| `spki` | `0.8.0-rc.4` |
-| `der` | `0.8.0-rc.9` |
-| `pem-rfc7468` | `1.0.0-rc.3` |
-| `signature` | `3.0.0-rc.4` |
-
-Unconstrained resolution selected newer stable packages incompatible with
-Iroh's `ed25519-dalek 3.0.0-pre.1`. The lock was corrected with Cargo, not local
-registry edits or a patched cryptography implementation. Kiln maintainers must
-recheck compilation on the pinned Rust toolchain, native peer/unknown-outcome
+Iroh moved from `0.95.1` because the Basalt `fac0d7f1` and UCAN `fca62a6e`
+cohort needs `k256` 0.14 and therefore stable `crypto-common` 0.2, while Iroh
+0.95.1 pinned `aead` 0.6.0-rc.2, which needs a `crypto-common` release
+candidate. Cargo cannot select both. Iroh `0.96.0` resolves, but its `ed25519`
+3.0.0-rc.1 does not compile against stable `pkcs8` 0.11.0. With `1.1.0` the
+signing packages Iroh 0.95.1 held at prereleases are stable: `ed25519` 3.0.0,
+`ed25519-dalek` 3.0.0, `pkcs8` 0.11.0, `spki` 0.8.1, `der` 0.8.3,
+`pem-rfc7468` 1.0.0 and `signature` 3.0.0. Kiln maintainers must recheck
+compilation on the pinned Rust toolchain, native peer/unknown-outcome
 conformance, and the workspace gates when changing this cohort. This is
-compatibility evidence, not a cryptographic audit or security guarantee.
+compatibility evidence, not a cryptographic audit or security guarantee. Iroh
+peers on `0.95.1` are not promised to interoperate, so every Kiln Iroh endpoint
+upgrades together.
 
 ### Unified Git binding (2026-11-15)
 
@@ -196,6 +196,11 @@ rejection or optional-display boundary. The dated audit and update observations
 below remain historical; this cutover is not a new security-audit result.
 
 ### Root registry dependency maintenance (2026-10-23)
+
+The Iroh rows below describe the `0.95.1` cohort on that date. The later move
+to Iroh `1.1.0` replaced those edges: the lock now selects `hickory-proto` and
+`hickory-resolver` 0.26.3, `lru` 0.18.5 and 0.19.1, and no `pkarr`. No new
+`cargo audit` result is claimed for that move.
 
 This maintenance changes only the root workspace registry cohort, not immutable
 producer imports or either standalone runtime lock. Cargo 1.88.0 in

@@ -101,7 +101,7 @@ state revision, token time window, holder signature, and one bounded replay
 commit. Every token must be issued by the profile root or delegated from it
 through the configured anchored proof set; holder keys cannot self-issue
 observation authority. Caveats are denied in this backend. The UCAN cohort is vendored at
-`417f74662b9de2de3bdabe93ad5db996e1bd2861`; the root `ucan` crate is
+`fca62a6ed6895689ff18112b497bc7a986516c20`; the root `ucan` crate is
 `AGPL-3.0-or-later`, and `ucan-core` and `verified-logic` are `MPL-2.0` at that
 revision (see [LICENSES.md](../LICENSES.md)). Observation authorization stays
 read-only UCAN with its own bounded replay cache and grants no implementation
@@ -170,9 +170,9 @@ invent a lossy second vocabulary. No host-control source is imported, so no pin
 or third-party notice is added.
 
 UCAN is imported as the exact vendored cohort
-`417f74662b9de2de3bdabe93ad5db996e1bd2861` and used by the optional
+`fca62a6ed6895689ff18112b497bc7a986516c20` and used by the optional
 `ucan_holder_invocation_v1` auth backend. Basalt is imported at
-`264d248912e58760b5ae1eced51b7c7d50eb5a96` (see [LICENSES.md](../LICENSES.md)),
+`fac0d7f1fd7ac936ca4d3f251f3287666e93d4bb` (see [LICENSES.md](../LICENSES.md)),
 but only for implementation authority through `kiln-adapter-basalt`.
 HTTP observation does not bind Basalt behind its auth port. It stays read-only
 UCAN with its own bounded replay cache.

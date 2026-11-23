@@ -35,11 +35,11 @@ case "$name" in
     source_commit=d75158b00b080535f2ffea12430665ca3d57ea82
     archive_blake3=56120c08a7d04520b2af8926bec445bc23e69d69ac5e4a53131777d8d72e5083 ;;
   ucan)
-    source_commit=417f74662b9de2de3bdabe93ad5db996e1bd2861
-    archive_blake3=3a35ee1e0c6db623109e096e563c7ba9c02bb4d406bf72cae6010bdb7fe54fbc ;;
+    source_commit=fca62a6ed6895689ff18112b497bc7a986516c20
+    archive_blake3=55c68cddbaa7dc62bbb9c65ba254917911bda54ce82436534423d1a9f85b6722 ;;
   basalt)
-    source_commit=264d248912e58760b5ae1eced51b7c7d50eb5a96
-    archive_blake3=2d8e91ab7681f2b354fd99308e7c810f2dfba628afb32deb2228f5953795027d ;;
+    source_commit=fac0d7f1fd7ac936ca4d3f251f3287666e93d4bb
+    archive_blake3=8f5d3c4b89d7309c74c49707669e3ad163c0bce606b919df1eaf733e8bd47ecb ;;
   subwayrat)
     source_commit=2e52b3150819a2365aaefd3dcf8bbd2a2fa2e901
     archive_blake3=2e6588dd7b182c5a689c5e7be42f67fb09a5aa806449709f05066f6004e5f8d7 ;;

@@ -102,7 +102,7 @@ ucan-nostr = { version = "0.1.0", path = "../ucan/crates/ucan-nostr" }
 [dev-dependencies]
 ed25519-dalek = "=2.2.0"
 jsonwebtoken = { version = "=11.0.0", default-features = false, features = ["rust_crypto"] }
-k256 = { version = "=0.13.4", default-features = false, features = ["alloc", "arithmetic", "schnorr"] }
+k256 = { version = "=0.14.0", default-features = false, features = ["alloc", "arithmetic", "schnorr"] }
 rand_chacha = "=0.3.1"
 rand_core = "=0.6.4"
 rsa = "=0.9.10"

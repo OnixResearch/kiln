@@ -19,7 +19,7 @@ its state directory. The child environment is cleared and rebuilt only from the
 explicit `environment` map; argv is fixed; stdout and stderr are bounded; the
 process group is terminated on deadline.
 
-Linking `iroh-news` is not used: it targets iroh 1.4 and Kiln pins 0.95, and the
+Linking `iroh-news` is not used: it targets iroh 1.4 and Kiln pins 1.1, and the
 client owns its own identity and provider.
 
 ## Configuration

@@ -29,7 +29,7 @@ let Relay =
   )
 in
 let Cohort = {
-  iroh_version | Exact "0.95.1",
+  iroh_version | Exact "1.1.0",
   iroh_blobs | Exact "deferred",
   bao_tree | Exact "deferred",
   alpn | Exact "kiln.observe.v1",
@@ -67,7 +67,7 @@ let MaxConnections = 16 in
     schema_version = 1,
     profile_id = "iroh-observation-v1",
     cohort = {
-      iroh_version = "0.95.1",
+      iroh_version = "1.1.0",
       iroh_blobs = "deferred",
       bao_tree = "deferred",
       alpn = "kiln.observe.v1",

@@ -25,9 +25,9 @@ pub use issue::{
     validate_issuer_admission,
 };
 pub use model::{
-    CachePolicy, CapabilityPolicy, ExchangeRequest, IssuancePlan, MantleOperation, NetworkPolicy,
-    OidcPolicy, PolicyError, PublicJwk, RejectReason, ReplayKey, ReplayPolicy, TimePolicy,
-    VerifiedSubject, parse_policy,
+    CachePolicy, CapabilityPolicy, ExchangeRequest, HolderDelivery, IssuancePlan, MantleOperation,
+    NetworkPolicy, OidcPolicy, PolicyError, PublicJwk, RejectReason, ReplayKey, ReplayPolicy,
+    TimePolicy, VerifiedSubject, parse_policy,
 };
 pub use network::{
     BoundedHttpDocumentPort, DocumentFailure, DocumentKind, DocumentPort, DocumentResponse,
@@ -39,7 +39,7 @@ pub use receipt::{
 };
 pub use shell::{
     ExchangeFailure, ExchangeFailureClass, ExchangeResult, ReplayCommit, ReplayFailure, ReplayPort,
-    exchange,
+    exchange, exchange_to_recipient,
 };
 
 /// Reviewed `ring` release that verifies RS256 signatures.

@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use crate::Error;
 
 pub const PROFILE_SCHEMA: &str = "kiln.iroh-workflow-profile.v1";
-pub const IROH_VERSION: &str = "0.95.1";
+pub const IROH_VERSION: &str = "1.1.0";
 pub const ALPN: &[u8] = b"kiln.workflow.v1";
 const MAXIMUM_PEERS: usize = 64;
 const MAXIMUM_RELAYS: usize = 8;

@@ -7,7 +7,9 @@
 //!    with an explicit non-exploitable rationale;
 //! 2. the license section denies unlicensed packages;
 //! 3. the workspace lockfile still contains the two pinned crates;
-//! 4. the positive fixture passes the policy and the negative fixture fails it, proving the policy
+//! 4. the lockfile resolves exact `k256` `0.14.0` and no `crypto-bigint` below `0.7.6`, keeping
+//!    `RUSTSEC-2026-0387` out of the locked graph without a pin;
+//! 5. the positive fixture passes the policy and the negative fixture fails it, proving the policy
 //!    rejects a missing pin.
 //!
 //! The Nix `dependency-posture` check compiles and runs this file with rustc;
@@ -34,6 +36,11 @@ const ADVISORY_ANYHOW: &str = "RUSTSEC-2026-0190";
 const PASTE_CRATE: &str = "paste";
 const ANYHOW_CRATE: &str = "anyhow";
 const REQUIRED_LICENSE_IDS: [&str; 2] = ["MPL-2.0", "AGPL-3.0-or-later"];
+const K256_CRATE: &str = "k256";
+const REVIEWED_K256: &str = "0.14.0";
+const CRYPTO_BIGINT_CRATE: &str = "crypto-bigint";
+const ADVISORY_CRYPTO_BIGINT: &str = "RUSTSEC-2026-0387";
+const CRYPTO_BIGINT_PATCHED: (u64, u64, u64) = (0, 7, 6);
 
 fn main() {
     let root = parse_root();
@@ -115,6 +122,37 @@ fn lockfile_has_crate(text: &str, crates: &[&str]) -> Result<(), String> {
     Ok(())
 }
 
+fn locked_versions<'lock>(text: &'lock str, crate_name: &str) -> Vec<&'lock str> {
+    let marker = format!("name = \"{crate_name}\"\nversion = \"");
+    text.match_indices(&marker)
+        .filter_map(|(index, _)| {
+            let rest = &text[index + marker.len()..];
+            rest.find('"').map(|end| &rest[..end])
+        })
+        .collect()
+}
+
+fn version_below(version: &str, floor: (u64, u64, u64)) -> bool {
+    let mut parts = version.split(['.', '-', '+']).map(|part| part.parse::<u64>().unwrap_or(0));
+    let parsed = (parts.next().unwrap_or(0), parts.next().unwrap_or(0), parts.next().unwrap_or(0));
+    parsed < floor
+}
+
+fn lockfile_clears_crypto_bigint_advisory(text: &str) -> Result<(), String> {
+    let k256 = locked_versions(text, K256_CRATE);
+    if k256 != [REVIEWED_K256] {
+        return Err(format!("lockfile resolves {K256_CRATE} {k256:?}, expected exactly {REVIEWED_K256}"));
+    }
+    let affected: Vec<&str> = locked_versions(text, CRYPTO_BIGINT_CRATE)
+        .into_iter()
+        .filter(|version| version_below(version, CRYPTO_BIGINT_PATCHED))
+        .collect();
+    if !affected.is_empty() {
+        return Err(format!("lockfile binds {CRYPTO_BIGINT_CRATE} {affected:?} affected by {ADVISORY_CRYPTO_BIGINT}"));
+    }
+    Ok(())
+}
+
 fn run_all(root: &Path) -> Vec<(bool, String)> {
     let policy_text = read_text(root, DENY_TOML_RELATIVE, "policy");
     let lock_text = read_text(root, LOCKFILE_RELATIVE, "lockfile");
@@ -131,6 +169,10 @@ fn run_all(root: &Path) -> Vec<(bool, String)> {
     }
     match lockfile_has_crate(&lock_text, &[PASTE_CRATE, ANYHOW_CRATE]) {
         Ok(()) => results.push((true, "lockfile binds the pinned crates".to_owned())),
+        Err(reason) => results.push((false, format!("lockfile check failed: {reason}"))),
+    }
+    match lockfile_clears_crypto_bigint_advisory(&lock_text) {
+        Ok(()) => results.push((true, format!("lockfile keeps {ADVISORY_CRYPTO_BIGINT} out of the locked graph"))),
         Err(reason) => results.push((false, format!("lockfile check failed: {reason}"))),
     }
     match policy_accepts(&positive) {

@@ -1,4 +1,4 @@
-# Customer-local key and browser bridge. Remote uses pinned iroh 0.95.1
+# Customer-local key and browser bridge. Remote uses pinned iroh 1.1.0
 # EndpointAddr JSON: { id, addrs = [{ Ip = "IP:port" }, { Relay = "https://…" }] }.
 # Copy the service's endpoint output; an endpoint id alone supplies no route.
 let c = import "github-contracts.ncl" in

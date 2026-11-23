@@ -164,7 +164,8 @@ impl NostrPublicKey {
     pub fn parse(text: &str) -> Result<Self, VerificationIssue> {
         let bytes =
             decode_lower_hex::<PUBLIC_KEY_BYTES>(text).map_err(|_issue| VerificationIssue::InvalidPublicKeyEncoding)?;
-        k256::schnorr::VerifyingKey::from_bytes(&bytes).map_err(|_error| VerificationIssue::InvalidPublicKeyPoint)?;
+        let field = k256::FieldBytes::from(bytes);
+        k256::schnorr::VerifyingKey::from_bytes(&field).map_err(|_error| VerificationIssue::InvalidPublicKeyPoint)?;
         Ok(Self(bytes))
     }
 

@@ -149,6 +149,62 @@ impl std::fmt::Debug for Session {
     }
 }
 
+// r[impl ucan_token_flow.oidc.native_signing]
+/// Canonical request shared by issuers, holder signers and the native receiver.
+///
+/// The policy reference is an explicit deployment binding, not proof that a
+/// policy is loaded or that the caller has authority. Only [`Verifier`] admits
+/// live authority against operator configuration, policy, roots and replay.
+///
+/// # Errors
+/// Returns `Denied` for zero generation, malformed fields or resource bounds.
+pub fn canonical_enforcement(
+    request: &Request,
+    policy_ref: &BasaltPolicyRef,
+) -> Result<EnforcementRequest, Denied> {
+    if request.generation == 0 {
+        return Err(Denied);
+    }
+    let action = request.operation.action();
+    let mut resource = String::from("mantle://gateway/v1/");
+    for field in [
+        request.subject.as_str(),
+        request.account.as_str(),
+        request.project.as_str(),
+        request.endpoint.as_str(),
+        request.audience.as_str(),
+        policy_ref.artifact_ref.as_str(),
+        request.target.as_str(),
+    ] {
+        if field.is_empty()
+            || field.len() > 512
+            || field.trim() != field
+            || !field.is_ascii()
+            || field.bytes().any(|b| b.is_ascii_control())
+        {
+            return Err(Denied);
+        }
+        // Hex encoding prevents delimiter/Unicode normalization ambiguity.
+        write!(&mut resource, "{}/", field.len()).map_err(|_| Denied)?;
+        for byte in field.bytes() {
+            write!(&mut resource, "{byte:02x}").map_err(|_| Denied)?;
+        }
+        resource.push('/');
+    }
+    write!(&mut resource, "{}/", request.generation).map_err(|_| Denied)?;
+    for byte in request.request_digest {
+        write!(&mut resource, "{byte:02x}").map_err(|_| Denied)?;
+    }
+    if resource.len() > 4096 {
+        return Err(Denied);
+    }
+    Ok(EnforcementRequest::new(
+        action.contract_id(),
+        resource,
+        action.ability(),
+    ))
+}
+
 /// Operator-loaded policy/configuration, never caller-supplied admission facts.
 /// The artifact reference must name these exact reviewed policy bytes.
 pub struct Verifier<'a> {
@@ -173,44 +229,7 @@ impl Verifier<'_> {
         {
             return Err(Denied);
         }
-        let action = request.operation.action();
-        let mut resource = String::from("mantle://gateway/v1/");
-        for field in [
-            request.subject.as_str(),
-            request.account.as_str(),
-            request.project.as_str(),
-            request.endpoint.as_str(),
-            request.audience.as_str(),
-            self.policy_ref.artifact_ref.as_str(),
-            request.target.as_str(),
-        ] {
-            if field.is_empty()
-                || field.len() > 512
-                || field.trim() != field
-                || !field.is_ascii()
-                || field.bytes().any(|b| b.is_ascii_control())
-            {
-                return Err(Denied);
-            }
-            // Hex encoding prevents delimiter/Unicode normalization ambiguity.
-            write!(&mut resource, "{}/", field.len()).map_err(|_| Denied)?;
-            for byte in field.bytes() {
-                write!(&mut resource, "{byte:02x}").map_err(|_| Denied)?;
-            }
-            resource.push('/');
-        }
-        write!(&mut resource, "{}/", request.generation).map_err(|_| Denied)?;
-        for byte in request.request_digest {
-            write!(&mut resource, "{byte:02x}").map_err(|_| Denied)?;
-        }
-        if resource.len() > 4096 {
-            return Err(Denied);
-        }
-        Ok(EnforcementRequest::new(
-            action.contract_id(),
-            resource,
-            action.ability(),
-        ))
+        canonical_enforcement(request, self.policy_ref)
     }
 
     fn selected_policy(&self, operation: Operation) -> BasaltPolicyRef {

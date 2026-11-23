@@ -1,8 +1,8 @@
 {
   "source_repository": "https://github.com/OnixResearch/basalt",
-  "source_commit": "264d248912e58760b5ae1eced51b7c7d50eb5a96",
+  "source_commit": "fac0d7f1fd7ac936ca4d3f251f3287666e93d4bb",
   "full_archive_format": "git archive --format=tar <source_commit>",
-  "full_archive_blake3": "75994500e4c22b26d21cae703ef0f81306f04d9e60e591d8e5eb2cc238a5b7f6",
+  "full_archive_blake3": "68ce460383046f3b985772dce0ea20dfcc49f95a1c4e5c67d1d37d4dd4692b48",
   "archive_format": "git archive --format=tar <source_commit> -- <archive_paths...>",
   "archive_paths": [
     "Cargo.toml",
@@ -14,7 +14,7 @@
     "docs",
     "src"
   ],
-  "archive_blake3": "2d8e91ab7681f2b354fd99308e7c810f2dfba628afb32deb2228f5953795027d",
+  "archive_blake3": "8f5d3c4b89d7309c74c49707669e3ad163c0bce606b919df1eaf733e8bd47ecb",
   "importer": "scripts/import-pinned-source.sh",
   "manifest_rewrites": [
     {

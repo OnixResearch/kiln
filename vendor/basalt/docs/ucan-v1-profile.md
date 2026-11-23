@@ -4,7 +4,7 @@ Basalt accepts the final `ucan-wg-1.0.0` profile through a separate adapter. The
 
 ## Source cohort
 
-The adapter binds UCAN revision `417f74662b9de2de3bdabe93ad5db996e1bd2861`.
+The adapter binds UCAN revision `fca62a6ed6895689ff18112b497bc7a986516c20`.
 
 `contracts/ucan-v1-profile/source-evidence.ncl` records these reviewed inputs:
 

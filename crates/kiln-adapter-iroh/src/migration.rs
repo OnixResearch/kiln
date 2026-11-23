@@ -7,8 +7,8 @@ use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
-use iroh::endpoint::{Connection, ConnectionType, RecvStream, SendStream, TransportConfig, VarInt};
-use iroh::{Endpoint, RelayMode, SecretKey, Watcher};
+use iroh::endpoint::{Connection, QuicTransportConfig, RecvStream, SendStream, VarInt, presets};
+use iroh::{Endpoint, RelayMode, SecretKey, TransportAddr};
 use kiln_microvm::bridge::{BridgeEndpoint, BridgeExpectation, MigrationBridgePlan, admit_bridge};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::{UnixListener, UnixStream};
@@ -75,40 +75,39 @@ impl DirectMigrationEndpoint {
         if address.ip().is_unspecified() || address.ip().is_multicast() {
             return Err(BridgeError::Denied);
         }
-        let mut transport = TransportConfig::default();
-        transport
+        let transport = QuicTransportConfig::builder()
             .max_concurrent_bidi_streams(1_u32.into())
             .max_concurrent_uni_streams(0_u32.into())
             .stream_receive_window(VarInt::from_u32(BUFFER_BYTES as u32))
             .receive_window(VarInt::from_u32((BUFFER_BYTES * 2) as u32))
             .send_window((BUFFER_BYTES * 2) as u64)
-            .datagram_receive_buffer_size(None);
-        let builder = Endpoint::builder()
+            .datagram_receive_buffer_size(None)
+            .build();
+        // The minimal preset installs only the ring crypto provider: no address
+        // lookup service, and relays stay disabled.
+        let builder = Endpoint::builder(presets::Minimal)
             .secret_key(key)
-            .clear_discovery()
             .relay_mode(RelayMode::Disabled)
             .transport_config(transport)
-            .alpns(vec![MIGRATION_ALPN.to_vec()]);
+            .alpns(vec![MIGRATION_ALPN.to_vec()])
+            .clear_ip_transports();
         let builder = match address {
-            std::net::SocketAddr::V4(address) => {
-                builder
-                    .bind_addr_v4(address)
-                    .bind_addr_v6(std::net::SocketAddrV6::new(
-                        std::net::Ipv6Addr::LOCALHOST,
-                        0,
-                        0,
-                        0,
-                    ))
-            }
-            std::net::SocketAddr::V6(address) => {
-                builder
-                    .bind_addr_v6(address)
-                    .bind_addr_v4(std::net::SocketAddrV4::new(
-                        std::net::Ipv4Addr::LOCALHOST,
-                        0,
-                    ))
-            }
-        };
+            std::net::SocketAddr::V4(address) => builder.bind_addr(address).and_then(|builder| {
+                builder.bind_addr(std::net::SocketAddrV6::new(
+                    std::net::Ipv6Addr::LOCALHOST,
+                    0,
+                    0,
+                    0,
+                ))
+            }),
+            std::net::SocketAddr::V6(address) => builder.bind_addr(address).and_then(|builder| {
+                builder.bind_addr(std::net::SocketAddrV4::new(
+                    std::net::Ipv4Addr::LOCALHOST,
+                    0,
+                ))
+            }),
+        }
+        .map_err(|_| BridgeError::Denied)?;
         tokio::time::timeout(
             Duration::from_millis(ENDPOINT_BIND_DEADLINE_MS),
             builder.bind(),
@@ -121,16 +120,20 @@ impl DirectMigrationEndpoint {
     pub fn endpoint(&self) -> &Endpoint {
         &self.0
     }
+    /// The selected path's address when every open path of `connection` is a
+    /// direct IP path; any relay or custom-transport path denies.
     fn direct_address(&self, connection: &Connection) -> Result<std::net::SocketAddr, BridgeError> {
-        match self
-            .0
-            .conn_type(connection.remote_id())
-            .ok_or(BridgeError::Denied)?
-            .get()
-        {
-            ConnectionType::Direct(address) => Ok(address),
-            _ => Err(BridgeError::Denied),
+        let paths = connection.paths();
+        let mut selected = None;
+        for path in &paths {
+            let TransportAddr::Ip(address) = path.remote_addr() else {
+                return Err(BridgeError::Denied);
+            };
+            if path.is_selected() {
+                selected = Some(*address);
+            }
         }
+        selected.ok_or(BridgeError::Denied)
     }
 }
 

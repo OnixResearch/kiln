@@ -394,7 +394,7 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
         # request's exact profile hash against this provider-function contract.
         peers = {role: self.command([self.exe["iroh"], "keygen", "--key", self.root / ("iroh-" + role + ".key")]).decode().strip() for role in ("worker", "proxy")}
         assert peers["worker"] != peers["proxy"]
-        settings = {"schema": "kiln.iroh-workflow-profile.v1", "iroh_version": "0.95.1", "alpn": "kiln.workflow.v1", "bind_address": "127.0.0.1:0", "allowed_user_ids": workflow["allowed_user_ids"], "relay_urls": [], "transport_limits": {**workflow["transport_limits"], "maximum_connections": MAXIMUM_CONCURRENT_EXCHANGES}, "contract": contract, "exchange_timeout_ms": 10000}
+        settings = {"schema": "kiln.iroh-workflow-profile.v1", "iroh_version": "1.1.0", "alpn": "kiln.workflow.v1", "bind_address": "127.0.0.1:0", "allowed_user_ids": workflow["allowed_user_ids"], "relay_urls": [], "transport_limits": {**workflow["transport_limits"], "maximum_connections": MAXIMUM_CONCURRENT_EXCHANGES}, "contract": contract, "exchange_timeout_ms": 10000}
         for role, other, socket_name in (("worker", "proxy", "lattice.sock"), ("proxy", "worker", "proxy.sock")):
             self.export("iroh-workflow.ncl", {**settings, "socket_path": str(self.root / socket_name), "allowed_peers": [peers[other]]}, "iroh-" + role)
             self.command([self.exe["iroh"], "validate", "--profile", self.root / ("iroh-" + role + ".json")])

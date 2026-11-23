@@ -11,7 +11,9 @@
 use std::collections::BTreeMap;
 
 use basalt::authority_core::BasaltPolicyRef;
-use basalt::kiln::{Denied, Invocation, Operation, Request, Session, Verifier};
+use basalt::kiln::{
+    Denied, ImplementationFraming, Invocation, LegacyFraming, Operation, Request, Session, Verifier,
+};
 use basalt::ucan_enforcement::UcanEnforcementBoundaries;
 use kiln_core::implementation::authority::{
     AttemptCurrentness, AuthorityCredential, AuthorityDecision, AuthorityDenialReason,
@@ -37,6 +39,16 @@ use state::{BoundReplay, BoundRevocations, NoReplay};
 
 /// Milliseconds per second of UCAN verification time.
 const MILLIS_PER_SECOND: u64 = 1_000;
+
+/// Kiln binds every implementation request with Basalt's frozen
+/// `kiln://implementation/v1/` framing and keeps that framing admitted.
+/// Adopting the attenuable v2 framing is a separate change.
+const IMPLEMENTATION_FRAMING: ImplementationFraming = ImplementationFraming::V1;
+const IMPLEMENTATION_V1: LegacyFraming = LegacyFraming::Accept;
+/// Basalt consults the delegation bound only for attenuable families, never
+/// for v1, so it does not change any decision Kiln requests. Zero admits no
+/// delegated attenuable chain.
+const MAX_DELEGATION_DEPTH: u8 = 0;
 
 /// The instant a revocation view is checked at for a decision at
 /// `now_unix_s`: the last millisecond that second can stand for. Decisions
@@ -434,6 +446,8 @@ impl BasaltAuthority {
             generation: mode.generation,
             audience: &mode.audience,
             trusted_roots: &mode.trusted_roots,
+            max_delegation_depth: MAX_DELEGATION_DEPTH,
+            implementation_v1: IMPLEMENTATION_V1,
         };
         let session = verifier
             .verify(exact, &invocation, &boundaries)
@@ -539,6 +553,8 @@ impl BasaltAuthority {
             generation: mode.generation,
             audience: &mode.audience,
             trusted_roots: &mode.trusted_roots,
+            max_delegation_depth: MAX_DELEGATION_DEPTH,
+            implementation_v1: IMPLEMENTATION_V1,
         }
         .revalidate(session, &boundaries)
         .map_err(|Denied| AuthorityDenialReason::RevalidationDenied)
@@ -690,6 +706,7 @@ fn basalt_request(
         request_digest: request.request_digest,
         target: request.target.clone(),
         candidate: request.candidate,
+        framing: IMPLEMENTATION_FRAMING,
     }
 }
 
@@ -826,6 +843,7 @@ mod tests {
             } else {
                 [0; AUTHORITY_DIGEST_BYTES]
             },
+            framing: IMPLEMENTATION_FRAMING,
         }
     }
 
@@ -857,6 +875,8 @@ mod tests {
             generation: config.generation,
             audience: &config.audience,
             trusted_roots: &config.trusted_roots,
+            max_delegation_depth: MAX_DELEGATION_DEPTH,
+            implementation_v1: IMPLEMENTATION_V1,
         };
         for operation in ProtectedOperation::ALL {
             assert!(
@@ -899,6 +919,8 @@ mod tests {
             generation: config.generation,
             audience: &config.audience,
             trusted_roots: &config.trusted_roots,
+            max_delegation_depth: MAX_DELEGATION_DEPTH,
+            implementation_v1: IMPLEMENTATION_V1,
         };
         assert!(
             verifier

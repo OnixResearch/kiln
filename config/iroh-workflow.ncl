@@ -125,7 +125,7 @@ let TransportLimits = {
 in
 let Settings = {
   schema | Exact "kiln.iroh-workflow-profile.v1",
-  iroh_version | Exact "0.95.1",
+  iroh_version | Exact "1.1.0",
   alpn | Exact "kiln.workflow.v1",
   socket_path | AbsoluteSocketPath,
   bind_address | BindAddress,

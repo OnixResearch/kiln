@@ -1,5 +1,5 @@
 use crate::{EXCHANGE_TIMEOUT_MS, MAX_CONNECTIONS, MAX_FRAME_BYTES, Request, Response};
-use iroh::endpoint::{TransportConfig, VarInt};
+use iroh::endpoint::{QuicTransportConfig, VarInt, presets};
 use iroh::{Endpoint, EndpointAddr, RelayMap, RelayMode, RelayUrl, SecretKey};
 use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
@@ -104,8 +104,7 @@ pub async fn bind(profile: &NetworkProfile) -> Result<Endpoint, String> {
         .collect::<Result<Vec<_>, _>>()?;
     let window =
         VarInt::from_u64((MAX_FRAME_BYTES + 4) as u64).map_err(|_| "receive window rejected")?;
-    let mut transport = TransportConfig::default();
-    transport
+    let transport = QuicTransportConfig::builder()
         .max_concurrent_bidi_streams(1_u32.into())
         .max_concurrent_uni_streams(0_u32.into())
         .stream_receive_window(window)
@@ -116,27 +115,29 @@ pub async fn bind(profile: &NetworkProfile) -> Result<Endpoint, String> {
             Duration::from_millis(EXCHANGE_TIMEOUT_MS)
                 .try_into()
                 .map_err(|_| "idle timeout rejected")?,
-        ));
-    let mut builder = Endpoint::builder()
+        ))
+        .build();
+    // The minimal preset installs only the ring crypto provider: no address
+    // lookup service and no relay unless the profile names one.
+    let builder = Endpoint::builder(presets::Minimal)
         .secret_key(SecretKey::from_bytes(&seed))
-        .clear_discovery()
         .relay_mode(if relays.is_empty() {
             RelayMode::Disabled
         } else {
             RelayMode::Custom(RelayMap::from_iter(relays))
         })
         .transport_config(transport)
-        .alpns(vec![ALPN.to_vec()]);
-    builder = match profile.bind_address {
-        SocketAddr::V4(v) => {
-            builder
-                .bind_addr_v4(v)
-                .bind_addr_v6(SocketAddrV6::new(Ipv6Addr::LOCALHOST, 0, 0, 0))
-        }
+        .alpns(vec![ALPN.to_vec()])
+        .clear_ip_transports();
+    let builder = match profile.bind_address {
+        SocketAddr::V4(v) => builder
+            .bind_addr(v)
+            .and_then(|b| b.bind_addr(SocketAddrV6::new(Ipv6Addr::LOCALHOST, 0, 0, 0))),
         SocketAddr::V6(v) => builder
-            .bind_addr_v6(v)
-            .bind_addr_v4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0)),
-    };
+            .bind_addr(v)
+            .and_then(|b| b.bind_addr(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0))),
+    }
+    .map_err(|_| "endpoint bind failed")?;
     tokio::time::timeout(Duration::from_millis(EXCHANGE_TIMEOUT_MS), builder.bind())
         .await
         .map_err(|_| "endpoint bind deadline")?

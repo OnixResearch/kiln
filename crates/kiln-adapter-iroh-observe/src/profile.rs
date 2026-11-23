@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::{ObserveError, ObserveResult};
 
 pub const PROFILE_SCHEMA: &str = "kiln.iroh.observe-profile.v1";
-pub const IROH_VERSION: &str = "0.95.1";
+pub const IROH_VERSION: &str = "1.1.0";
 pub const IROH_OBSERVATION_ALPN: &[u8] = b"kiln.observe.v1";
 pub const IROH_BLOBS_COHORT: &str = "deferred";
 pub const BAO_TREE_COHORT: &str = "deferred";

@@ -108,7 +108,7 @@ object into `remote` in `config/hosted-client-local.ncl`:
 ```
 
 The shown `Ip` is a same-host direct-route example; replace it with the actual
-endpoint output. The pinned Iroh 0.95.1 `EndpointAddr` is `{id, addrs}` with
+endpoint output. The pinned Iroh 1.1.0 `EndpointAddr` is `{id, addrs}` with
 externally tagged entries `{Ip = "IP:port"}` or
 `{Relay = "https://operator-selected-relay.example"}`. It is not a string ticket
 and is not the older `node_id`/`direct_addresses` shape. Discovery is cleared;

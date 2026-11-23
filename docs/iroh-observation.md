@@ -7,7 +7,7 @@ intake, or canonical state.
 
 ## Cohort and profile
 
-The consumed cohort is pinned to `iroh` `0.95.1`. `iroh-blobs` and `bao-tree`
+The consumed cohort is pinned to `iroh` `1.1.0`. `iroh-blobs` and `bao-tree`
 are recorded as deferred; the shell uses a bounded one-stream request/response
 frame and a Kiln-owned BLAKE3 payload identity instead. A future import must
 record the exact verified-streaming cohort and review before replacing that

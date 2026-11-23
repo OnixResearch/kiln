@@ -4,7 +4,7 @@ let build = import "iroh-workflow.ncl" in
 fun inputs =>
   build {
     schema = "kiln.iroh-workflow-profile.v1",
-    iroh_version = "0.95.1",
+    iroh_version = "1.1.0",
     alpn = "kiln.workflow.v1",
     socket_path = inputs.root ++ "/lattice.sock",
     bind_address = inputs.bind,

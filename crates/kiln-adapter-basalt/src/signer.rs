@@ -21,7 +21,10 @@ use ucan::{
     sign_holder_invocation,
 };
 
-use crate::{VerifiedAuthorityConfig, basalt_operation};
+use crate::{
+    IMPLEMENTATION_FRAMING, IMPLEMENTATION_V1, MAX_DELEGATION_DEPTH, VerifiedAuthorityConfig,
+    basalt_operation,
+};
 
 /// Source of fresh single-use holder nonces.
 pub type NonceSource = Box<dyn Fn() -> Option<[u8; AUTHORITY_NONCE_BYTES]>>;
@@ -176,6 +179,7 @@ impl HolderInvocationSigner for RoleSigner {
             request_digest: request.request_digest,
             target: request.target.clone(),
             candidate: request.candidate,
+            framing: IMPLEMENTATION_FRAMING,
         };
         let operation = exact.operation;
         let enforcement = Verifier {
@@ -184,6 +188,8 @@ impl HolderInvocationSigner for RoleSigner {
             generation: self.generation,
             audience: &self.audience,
             trusted_roots: &[],
+            max_delegation_depth: MAX_DELEGATION_DEPTH,
+            implementation_v1: IMPLEMENTATION_V1,
         }
         .enforcement(&exact)
         .map_err(|_| denied("request has no canonical resource under the policy"))?;

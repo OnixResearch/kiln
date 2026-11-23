@@ -6,7 +6,7 @@ let Connections = 4 in
 let DeadlineMilliseconds = 5000 in
 {
   schema = "kiln.iroh-workflow-profile.v1",
-  iroh_version = "0.95.1",
+  iroh_version = "1.1.0",
   alpn = "kiln.workflow.v1",
   socket_path = "/tmp/kiln-iroh-fixture/lattice.sock",
   bind_address = "127.0.0.1:0",

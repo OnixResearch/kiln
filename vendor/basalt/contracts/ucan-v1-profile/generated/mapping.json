@@ -57,7 +57,7 @@
     "mapping does not prove release eligibility or whole-system safety"
   ],
   "protocol_profile": "ucan-wg-1.0.0",
-  "runtime_revision": "417f74662b9de2de3bdabe93ad5db996e1bd2861",
+  "runtime_revision": "fca62a6ed6895689ff18112b497bc7a986516c20",
   "schema": "basalt.ucan-v1-command-mapping.v1",
   "support_catalog_blake3": "fe77fd63076eaef555b74e702e4c14e483bdba70151ccc955c75b17d97412427"
 }
