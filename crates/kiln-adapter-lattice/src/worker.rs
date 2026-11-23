@@ -1153,8 +1153,9 @@ mod credential_ordering_tests {
         let now = super::clock().unwrap_or_else(|_| unreachable!());
         let work = work();
         let attempt = {
-            let mut owner = Implementer::open(&database, enrollment())
-                .unwrap_or_else(|error| unreachable!("{error}"));
+            let mut owner =
+                Implementer::open_with_local_operator(&database, enrollment(), "test-operator")
+                    .unwrap_or_else(|error| unreachable!("{error}"));
             owner
                 .admit(&work, None)
                 .unwrap_or_else(|error| unreachable!("{error}"));

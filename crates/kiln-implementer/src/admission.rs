@@ -1183,7 +1183,7 @@ fn eligible_inputs(
         })
         .collect()
 }
-fn authorize_claim(
+pub(crate) fn authorize_claim(
     work: &WorkLedger,
     authority: &mut Option<Box<dyn ProtectedAuthority>>,
     profile: &AuthoritySelection,

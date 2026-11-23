@@ -143,7 +143,11 @@ fn completed_worker_keeps_real_controller_outcomes_separate_after_restart() -> T
             actors: BTreeSet::from([work.actor.clone()]),
         };
         let database = root.path().join("attempts.sqlite");
-        let mut ledger = kiln_implementer::Implementer::open(&database, enrollment.clone())?;
+        let mut ledger = kiln_implementer::Implementer::open_with_local_operator(
+            &database,
+            enrollment.clone(),
+            "test-operator",
+        )?;
         ledger.admit(&work, None)?;
         let now = host_time_ms()?;
         let attempt = ledger.claim_next(now, 60_000)?.ok_or("claim missing")?;

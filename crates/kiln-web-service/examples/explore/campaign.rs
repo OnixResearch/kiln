@@ -119,12 +119,13 @@ impl SyntheticWork {
     /// review task is admitted last so nothing claims it.
     fn seed(&self, database: &Path) -> Result {
         let now = now_ms()?;
-        let mut implementer = Implementer::open(
+        let mut implementer = Implementer::open_with_local_operator(
             database,
             Enrollment {
                 repositories: BTreeSet::from([REPOSITORY.to_string()]),
                 actors: BTreeSet::from([ACTOR.to_string()]),
             },
+            "example-operator",
         )?;
         let claim = |implementer: &mut Implementer, work: &ImplementationWork| -> Result<_> {
             let attempt = implementer

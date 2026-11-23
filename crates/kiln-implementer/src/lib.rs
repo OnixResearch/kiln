@@ -561,17 +561,21 @@ impl Implementer {
     ///
     /// A deferred candidate keeps its cause for operator output and does not
     /// consume budget or a lease. Everything else matches [`Self::claim_next`].
+    /// The new claim is admitted as an exact `ClaimAcquire` invocation inside
+    /// the claim transaction; a denial commits nothing.
     ///
     /// # Errors
     /// Returns the ledger diagnostic when admission fails for a reason other
-    /// than another claimant, exhausted budget, prior verification or recovery.
+    /// than another claimant, exhausted budget, prior verification or recovery,
+    /// or the redacted authority refusal for the selected claim.
     pub fn claim_next_deferred(
         &mut self,
         now_ms: u64,
         lease_ms: u64,
         defer: &dyn Fn(&ImplementationWork) -> Option<String>,
     ) -> Result<ClaimSelection, String> {
-        let selection = self.with_claim_ledgers(|ledger, attempts, governed| {
+        let lease = lease_ms.to_string();
+        let selection = self.with_claim_ledgers(|ledger, attempts, governed, authority, profile| {
             attempts.expire(now_ms)?;
             let mut deferred = Vec::new();
             for row in ledger.ranked() {
@@ -604,6 +608,14 @@ impl Implementer {
                 }
                 match attempts.claim(&work, now_ms, lease_ms) {
                     Ok(attempt) => {
+                        admission::authorize_claim(
+                            ledger,
+                            authority,
+                            profile,
+                            Some(&attempt),
+                            &[&lease],
+                            now_ms,
+                        )?;
                         return Ok(ClaimSelection {
                             attempt: Some(attempt),
                             deferred,
@@ -1300,13 +1312,16 @@ impl Implementer {
     }
 
     /// `with_ledgers` plus whether a host-owner admission policy governs every
-    /// claim, read in the same immediate transaction that writes the claim.
+    /// claim, read in the same immediate transaction that writes the claim,
+    /// and the selected authority that admits the claim before it commits.
     fn with_claim_ledgers<T>(
         &mut self,
         apply: impl FnOnce(
             &mut WorkLedger,
             &mut AttemptLedger,
             bool,
+            &mut Option<Box<dyn ProtectedAuthority>>,
+            &AuthoritySelection,
         ) -> Result<T, kiln_core::types::Diagnostic>,
     ) -> Result<T, String> {
         let transaction = self
@@ -1321,8 +1336,14 @@ impl Implementer {
         )?;
         let governed = kiln_core::fair_admission::host_owner_governed(&admission)
             .map_err(|error| format!("{}: {}", error.code, error.message))?;
-        let result = apply(&mut work, &mut attempts, governed)
-            .map_err(|error| format!("{}: {}", error.code, error.message))?;
+        let result = apply(
+            &mut work,
+            &mut attempts,
+            governed,
+            &mut self.authority,
+            &self.authority_profile,
+        )
+        .map_err(|error| format!("{}: {}", error.code, error.message))?;
         save(&transaction, WORK_KIND, work_version, &work)?;
         save(&transaction, ATTEMPT_KIND, attempt_version, &attempts)?;
         transaction.commit().map_err(text)?;
