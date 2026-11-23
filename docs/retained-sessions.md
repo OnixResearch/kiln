@@ -182,7 +182,8 @@ Lattice worker guest for Kiln #51. It contains:
 
 - the reviewed guest kernel shared with the per-job images;
 - an immutable initramfs with Lattice
-  `661499d282c2e79ebefbd0f9b35beb5f8d7795cd`, the admitted `log-triage`
+  `5a8e1d51c2e36100424b761c4fef65e6cd4c68dc` (the single-host KVM run below
+  was recorded with the earlier pin `661499d2`), the admitted `log-triage`
   (Lattice example) and `workspace-journal` (Kiln fixture) workflows, busybox and
   the `kiln-lattice-worker-guest` shell;
 - Cloud Hypervisor 54.0 from the guest nixpkgs pin;

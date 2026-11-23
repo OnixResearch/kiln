@@ -57,7 +57,7 @@
       # Lattice worker guest only: the exact Lattice producer package and its
       # own lock, loaded lazily from a content-addressed subflake.
       latticeWorkerCohort = builtins.getFlake (
-        builtins.unsafeDiscardStringContext "path:${./runtime/lattice-worker-cohort}?narHash=sha256-sItviAZF4DbExmPtXf9pkm33zfCyP1WpFsZGgKH31Cc="
+        builtins.unsafeDiscardStringContext "path:${./runtime/lattice-worker-cohort}?narHash=sha256-L7FUng/7LiODFsWSLtQzylEI9+AS0ozOClNPJeqx+14="
       );
       kamacite-build-support = runtimeBuildCohort.inputs.kamacite-build-support;
       cairnGateSource = ./vendor/cairn;

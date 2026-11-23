@@ -3,7 +3,7 @@
 
   # Lattice keeps its own producer lock: the guest reuses the exact Lattice
   # package rather than rebuilding it against Kiln's nixpkgs.
-  inputs.lattice.url = "github:OnixResearch/lattice/661499d282c2e79ebefbd0f9b35beb5f8d7795cd";
+  inputs.lattice.url = "github:OnixResearch/lattice/5a8e1d51c2e36100424b761c4fef65e6cd4c68dc";
 
   outputs =
     { lattice, ... }:

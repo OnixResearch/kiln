@@ -52,11 +52,12 @@ pub const MAX_ROUTE_WRITABLE: usize = 64;
 /// Host roots Lattice's bubblewrap provider read-only binds into every
 /// sandbox: `SYSTEM_BASES` and the `/run/current-system/sw/bin` bind at
 /// `/usr/bin` (Lattice `src/candidate_worker/sandbox.rs:1` and `:168-178`,
-/// identical at the pinned cohort revision `661499d2` and at the qualified
-/// `7fb6dc47`). Every other host path the sandbox sees is a fresh `/proc`,
-/// `/dev`, `/tmp` or `/workspace`, or a route path. A materialization store at
-/// or below one of these roots would let the worker read every input and
-/// overlay outside its route, so no route places a store there.
+/// identical at the pinned cohort revision `5a8e1d51`, at the earlier pin
+/// `661499d2` and at the qualified `7fb6dc47`). Every other host path the
+/// sandbox sees is a fresh `/proc`, `/dev`, `/tmp` or `/workspace`, or a
+/// route path. A materialization store at or below one of these roots would
+/// let the worker read every input and overlay outside its route, so no route
+/// places a store there.
 pub const RUNTIME_MOUNTED_ROOTS: [&str; 6] = [
     "/nix/store",
     "/usr",

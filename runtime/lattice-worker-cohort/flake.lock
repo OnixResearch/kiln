@@ -711,16 +711,16 @@
     "choregraph": {
       "flake": false,
       "locked": {
-        "lastModified": 1794981305,
-        "narHash": "sha256-3ct+0RK3oCsSqNZlxXpbgdw6EJYJf+e+YmvPS7HgAzw=",
+        "lastModified": 1795104524,
+        "narHash": "sha256-ZByP+RlUb2Gj2M6K28mNXUDdk/ukmjEBSCs8boJn9i0=",
         "ref": "refs/heads/main",
-        "rev": "c3577352ee1e39391f5204ee234d991c7dbeb151",
-        "revCount": 75,
+        "rev": "fcbae0aa17bc0eab1345529adb9ff104a46540ef",
+        "revCount": 76,
         "type": "git",
         "url": "https://seed.radicle.garden/zL2ncTUeASVYwcoGkEXv9JKgGbAF.git"
       },
       "original": {
-        "rev": "c3577352ee1e39391f5204ee234d991c7dbeb151",
+        "rev": "fcbae0aa17bc0eab1345529adb9ff104a46540ef",
         "type": "git",
         "url": "https://seed.radicle.garden/zL2ncTUeASVYwcoGkEXv9JKgGbAF.git"
       }
@@ -2253,17 +2253,17 @@
         "transactional-reconciliation-core": "transactional-reconciliation-core"
       },
       "locked": {
-        "lastModified": 1795101895,
-        "narHash": "sha256-6Et39KfsaVP+7Oo+/eodDN2r0qz87s/wXC5ZncbYINY=",
+        "lastModified": 1795331507,
+        "narHash": "sha256-pU++OMqSsxEjAUtjWTH6g7eumfDVqBVKUFoIQi1kFaU=",
         "owner": "OnixResearch",
         "repo": "lattice",
-        "rev": "661499d282c2e79ebefbd0f9b35beb5f8d7795cd",
+        "rev": "5a8e1d51c2e36100424b761c4fef65e6cd4c68dc",
         "type": "github"
       },
       "original": {
         "owner": "OnixResearch",
         "repo": "lattice",
-        "rev": "661499d282c2e79ebefbd0f9b35beb5f8d7795cd",
+        "rev": "5a8e1d51c2e36100424b761c4fef65e6cd4c68dc",
         "type": "github"
       }
     },

@@ -452,10 +452,10 @@ and does not rebuild it against Kiln's nixpkgs.
 
 | Source | Exact revision | NAR identity |
 |---|---|---|
-| Lattice (`OnixResearch/lattice`) | `661499d282c2e79ebefbd0f9b35beb5f8d7795cd` | `sha256-6Et39KfsaVP+7Oo+/eodDN2r0qz87s/wXC5ZncbYINY=` |
+| Lattice (`OnixResearch/lattice`) | `5a8e1d51c2e36100424b761c4fef65e6cd4c68dc` | `sha256-pU++OMqSsxEjAUtjWTH6g7eumfDVqBVKUFoIQi1kFaU=` |
 
 The root flake loads the cohort lazily through `builtins.getFlake` with subflake
-NAR identity `sha256-sItviAZF4DbExmPtXf9pkm33zfCyP1WpFsZGgKH31Cc=`. Only the
+NAR identity `sha256-L7FUng/7LiODFsWSLtQzylEI9+AS0ozOClNPJeqx+14=`. Only the
 worker guest package selects it. Normal workspace builds, development shells
 and per-job microVM guests do not. `nix flake check` evaluates the package and
 therefore needs the cohort's sources. It is independent of the Lattice

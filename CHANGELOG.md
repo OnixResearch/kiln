@@ -793,6 +793,13 @@ entry describes the source tree prepared for the first tagged release.
   enable projection. The route check now runs after the authority pre-check and
   before the credential read; it previously ran after the credential read, so a
   refused route had already read the credential.
+- The Lattice worker cohort (`runtime/lattice-worker-cohort`) moves from
+  Lattice `661499d2` to `5a8e1d51`, a published Lattice `main` whose
+  implementation attempt carries `dispatch_plan` (added in `4f9b76da`), so a
+  bound request reaches the pinned Lattice. The subflake lock was regenerated
+  by Nix; Lattice's own Cairn pin (`47ea1b86`) is unchanged. The bubblewrap
+  provider's mounted roots are byte-identical. The single-host KVM guest run
+  was recorded with `661499d2`.
 
 ### Fixed
 
