@@ -68,29 +68,43 @@ refreshes it, and a feed is validated whole and imported in one transaction.
 **One view per configured feed.** Several verified configurations can share
 one ledger, and so one `<ledger>.authority`, with different feed files. Each
 feed keeps its own `(generation, observed_at_ms)` row in
-`authority_revocation_feed_view`, keyed by the feed file's canonical path,
-with symlinks resolved as for the ledger, and never by anything the feed's
-content claims. An authority checks freshness only against its own feed's row,
-at selection and at every decision for its whole lifetime, so a stale feed
-never borrows another feed's freshness, and an authority whose feed ages out
-denies however recently another feed was imported. A row only moves to a newer
-pair, compared generation first inside the import transaction: within one
-generation it never moves to an earlier observation, so a process that
-imports a stale copy of the same feed cannot roll back verified sessions that
-share the row. A higher generation with an earlier time does move the time
-back, which fails closed. Revocations stay one shared union across every feed
-and are only ever added. S1 introduced this schema, so no earlier
-`<ledger>.authority` file on Kiln `main` needs migrating.
+`authority_revocation_feed_view`, keyed by its configured path: absolute UTF-8
+with no `.` or `..` component, rebuilt from its components so repeated `/`
+normalize away. The key is never the resolved file and never anything the
+feed's content claims, and the import reads from exactly that path, so no
+filesystem lookup separates the key from the bytes read under it.
+Intermediate symlinked directories are followed when reading; a
+final-component symlink is refused. Canonicalizing would only merge two
+spellings of one file, which as separate rows each must be fresh on their own
+and so fail closed; a producer that re-points a symlinked directory keeps the
+configured feed's row, where a resolved key would leave a long-lived authority
+checking the old target. Selection records the feed and imports it but checks
+no freshness: a stale feed still selects and its decisions deny. Each
+protected decision checks freshness against the authority's own feed's row
+only, so a stale feed never borrows another feed's freshness, and an authority
+whose feed ages out denies however recently another feed was imported. A row
+only moves to a newer pair, compared generation first inside the import
+transaction: within one generation it never moves to an earlier observation,
+so a process that imports a stale copy of the same feed cannot roll back
+verified sessions that share the row. A higher generation with an earlier
+time does move the time back, which fails closed. Revocations stay one shared
+union across every feed and are only ever added. S1 introduced this schema,
+so no earlier `<ledger>.authority` file on Kiln `main` needs migrating.
 
 **Non-claim: feed freshness is trusted to its producer.** `observed_at_ms` is
-an unauthenticated claim of the configured feed producer. Because each
-authority reads only its own feed's row, a backdated time fails closed: the
-view is older and denies sooner. A postdated time, up to the importing
+an unauthenticated claim of the configured feed producer. A backdated
+observation cannot extend freshness: within a generation it is ignored when a
+fresher one exists, and an authority whose own feed's newest observation is
+older than `max_age_ms` denies. A postdated time, up to the importing
 process's clock, cannot be detected by Kiln, so a producer that dates a stale
 revocation state as current extends its freshness. Kiln trusts the producer
 for freshness; removing that trust needs an authenticated observation source,
 such as a signed, timestamped revocation feed. The shared revocation union
 lets any configured feed deny more, never less.
+
+**Non-claim: one mount namespace.** A row identifies a configured path within
+one mount namespace, not a file across namespaces. Processes sharing a ledger
+must see the same feed files at the same configured paths.
 
 ### Holder signing
 

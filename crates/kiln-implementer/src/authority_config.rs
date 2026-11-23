@@ -390,24 +390,27 @@ fn read_proofs(directory: &Path) -> Result<Vec<String>, String> {
 
 // r[impl kiln.implementation.authority.state.scenario.stale]
 /// Import the revocation feed at `path` into its own durable view, keyed by
-/// the feed file's canonical path ([`revocation_feed_key`]) and observed at
-/// the feed's own `observed_at_ms`. Returns that key: the selected authority
-/// checks freshness against this feed's view only, never another feed's.
+/// the configured path, validated and rebuilt ([`revocation_feed_key`]), and
+/// observed at the feed's own `observed_at_ms`. The bytes are read from
+/// exactly that rebuilt path: intermediate symlinked directories are followed
+/// at read time and a final-component symlink is refused. Returns the key:
+/// the selected authority checks freshness at each protected decision against
+/// this feed's view only, never another feed's.
 ///
 /// Importing never refreshes the view: an unchanged feed keeps its age
 /// however often, and however recently, a process imports it, so a feed
-/// older than `max_age_ms` refuses every decision until its producer
-/// observes revocations again. A feed observed after `now_ms` is refused, so
-/// a future-dated feed cannot extend its own freshness. Within one
-/// generation the feed's view never moves to an earlier observation: a stale
-/// copy adds its revocations and leaves the view as it is.
+/// older than `max_age_ms` still selects but refuses every decision until its
+/// producer observes revocations again. A feed observed after `now_ms` is
+/// refused, so a future-dated feed cannot extend its own freshness. Within
+/// one generation the feed's view never moves to an earlier observation: a
+/// stale copy adds its revocations and leaves the view as it is.
 ///
 /// The whole feed is validated before anything is written, then imported in
 /// one transaction: a malformed reference anywhere leaves no revocation and no
 /// generation change behind.
 ///
 /// # Errors
-/// Returns a message for an unresolvable, unreadable, malformed or
+/// Returns a message for an invalid feed path, or an unreadable, malformed or
 /// future-dated feed, or a failed commit.
 pub fn import_revocations(
     state: &SqliteAuthorityState,
@@ -416,7 +419,7 @@ pub fn import_revocations(
 ) -> Result<String, String> {
     let key = revocation_feed_key(path)?;
     let feed: RevocationFeed =
-        serde_json::from_slice(&read_bounded(path, MAX_REVOCATION_FEED_BYTES)?)
+        serde_json::from_slice(&read_bounded(Path::new(&key), MAX_REVOCATION_FEED_BYTES)?)
             .map_err(|error| format!("revocation feed is malformed: {error}"))?;
     if feed.schema != IMPLEMENTATION_AUTHORITY_REVOCATIONS_SCHEMA
         || feed.revoked.len() > MAX_REVOKED_REFERENCES
@@ -539,9 +542,9 @@ impl Implementer {
         }
         let state_path = authority_state_path(&self.database)?;
         let state = SqliteAuthorityState::open(&state_path)?;
-        // This authority's freshness, at selection and at every later
-        // decision, is its own feed's view; another feed sharing the store
-        // never counts.
+        // Selection records and imports this authority's own feed; every
+        // protected decision then checks that feed's view, never another
+        // feed's sharing the store. A stale feed still selects and denies.
         let feed = import_revocations(&state, &config.revocation.path, now_ms)?;
         let signer = RoleSigner::new(
             &verifier,

@@ -73,20 +73,39 @@ pub fn authority_state_path(ledger: &Path) -> Result<PathBuf, String> {
     Ok(PathBuf::from(name))
 }
 
-/// The key of one configured revocation feed's view: the feed file's
-/// canonical path, so every spelling of one feed file (a symlinked directory,
-/// a relative path, `..`) shares one view and distinct files never do. It is
-/// never taken from anything the feed's content claims about itself.
+/// The key of one configured revocation feed's view: the configured feed path
+/// itself, validated and rebuilt from its components, never resolved through
+/// the filesystem and never taken from anything the feed's content claims.
+/// The feed is read from exactly this path, so no lookup separates the key
+/// from the bytes read under it. Two spellings of one file get separate
+/// views, each fresh only on its own imports, which fails closed; a symlinked
+/// directory the producer re-points keeps its row.
+///
+/// The path must be absolute UTF-8 with no `.` or `..` component; empty
+/// components (repeated `/`) normalize away.
 ///
 /// # Errors
-/// Returns a message when the feed cannot be resolved or its canonical path
-/// is not UTF-8.
+/// Returns a message for a relative, non-UTF-8 or dot-component path, or one
+/// that names no component.
 pub fn revocation_feed_key(feed: &Path) -> Result<String, String> {
-    std::fs::canonicalize(feed)
-        .map_err(|error| format!("authority: revocation feed cannot be resolved: {error}"))?
-        .into_os_string()
-        .into_string()
-        .map_err(|_| "authority: revocation feed path is not UTF-8".to_string())
+    let configured = feed
+        .to_str()
+        .ok_or_else(|| "authority: revocation feed path is not UTF-8".to_string())?;
+    if !configured.starts_with('/') {
+        return Err("authority: revocation feed path must be absolute".into());
+    }
+    let mut key = String::with_capacity(configured.len());
+    for component in configured.split('/').filter(|part| !part.is_empty()) {
+        if component == "." || component == ".." {
+            return Err("authority: revocation feed path must not contain `.` or `..`".into());
+        }
+        key.push('/');
+        key.push_str(component);
+    }
+    if key.is_empty() {
+        return Err("authority: revocation feed path names no file".into());
+    }
+    Ok(key)
 }
 
 fn open(path: &Path) -> Result<Connection, String> {

@@ -127,11 +127,12 @@ inside the ledger's `IMMEDIATE` transaction:
 - `authority_revocation` holds the revoked references of every revocation feed
   (`kiln.implementation-authority-revocations.v1`) imported at selection, one
   union across feeds. `authority_revocation_feed_view` keeps one view per
-  feed, keyed by the feed file's canonical path. A process checks only its own
-  feed's view, whose age runs from the feed's own `observed_at_ms`, so
-  importing never refreshes it and another feed's freshness never counts. An
-  absent view, or one observed more than the configured `max_age_ms` ago,
-  denies every verified request.
+  feed, keyed by its configured path, not the resolved file. Each protected
+  decision checks only the process's own feed's view, whose age runs from the
+  feed's own `observed_at_ms`, so importing never refreshes it and another
+  feed's freshness never counts. A stale feed still selects; an absent view,
+  or one observed more than the configured `max_age_ms` ago, denies every
+  verified request.
 - `authority_decision` keeps the newest 65,536 redacted decision records.
 
 The [runbook](implementation-runbook.md#select-implementation-authority-first)
