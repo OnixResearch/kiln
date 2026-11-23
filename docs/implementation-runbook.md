@@ -111,7 +111,9 @@ credential, so the worker cannot verify or publish even if it can reach the
 verifier's ledger.
 
 **Durable state.** The verified profile keeps its state in the SQLite file
-`<ledger>.authority` beside the implementer ledger. It is a separate file because
+`<ledger>.authority` beside the implementer ledger's canonical path: a ledger
+opened through a symlink or another spelling of its path shares one replay,
+revocation and decision store. It is a separate file because
 protected admission runs inside the ledger's `IMMEDIATE` transaction; a second
 connection to the ledger file would wait on that writer lock. A busy authority
 database denies after a bounded wait. Its tables are:

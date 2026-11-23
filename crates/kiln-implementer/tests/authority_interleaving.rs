@@ -243,7 +243,8 @@ fn reconciliation_reuses_the_dispatch_effect_identity_with_a_fresh_nonce() {
     );
     // No transport launch was recorded: the response to the admitted
     // dispatch is lost before the transport intent commits.
-    let recorded = SqliteReplayLedger::open(&authority_state_path(&db))
+    let recorded = authority_state_path(&db)
+        .and_then(|path| SqliteReplayLedger::open(&path))
         .unwrap_or_else(|error| unreachable!("{error}"));
     let before = recorded
         .recorded()

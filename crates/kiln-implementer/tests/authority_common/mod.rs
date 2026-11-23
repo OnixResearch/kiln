@@ -394,7 +394,7 @@ impl ProtectedAuthority for Hooked {
 
 /// Verified port over the ledger's durable authority file.
 pub fn durable_verified(db: &Path, fixture: &Fixture) -> Box<dyn ProtectedAuthority> {
-    let state_path = authority_state_path(db);
+    let state_path = authority_state_path(db).unwrap_or_else(|error| unreachable!("{error}"));
     let state =
         SqliteAuthorityState::open(&state_path).unwrap_or_else(|error| unreachable!("{error}"));
     state

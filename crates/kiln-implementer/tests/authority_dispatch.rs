@@ -82,7 +82,9 @@ fn workflow() -> ExternalRef {
 }
 
 fn replay_rows(db: &Path) -> u64 {
-    ok(SqliteReplayLedger::open(&authority_state_path(db)).and_then(|ledger| ledger.recorded()))
+    ok(authority_state_path(db)
+        .and_then(|path| SqliteReplayLedger::open(&path))
+        .and_then(|ledger| ledger.recorded()))
 }
 
 fn decisions(db: &Path) -> Vec<AuthorityDecision> {

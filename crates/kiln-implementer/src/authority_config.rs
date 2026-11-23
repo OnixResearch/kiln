@@ -532,7 +532,7 @@ impl Implementer {
             )?;
             holders.push(HolderKey::new(role, seed, grant)?);
         }
-        let state_path = authority_state_path(&self.database);
+        let state_path = authority_state_path(&self.database)?;
         let state = SqliteAuthorityState::open(&state_path)?;
         import_revocations(&state, &config.revocation.path, now_ms)?;
         let signer = RoleSigner::new(

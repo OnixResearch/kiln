@@ -25,7 +25,8 @@ fn decisions(i: &Implementer) -> Vec<kiln_core::implementation::authority::Autho
 }
 
 fn replay_rows(db: &std::path::Path) -> u64 {
-    SqliteReplayLedger::open(&authority_state_path(db))
+    authority_state_path(db)
+        .and_then(|path| SqliteReplayLedger::open(&path))
         .and_then(|ledger| ledger.recorded())
         .unwrap_or_else(|error| unreachable!("{error}"))
 }
@@ -386,7 +387,8 @@ fn a_feed_observed_in_the_future_is_refused_at_selection() {
 }
 
 fn revoked_rows(db: &std::path::Path) -> i64 {
-    rusqlite::Connection::open(authority_state_path(db))
+    let path = authority_state_path(db).unwrap_or_else(|error| unreachable!("{error}"));
+    rusqlite::Connection::open(path)
         .and_then(|connection| {
             connection.query_row("SELECT count(*) FROM authority_revocation", [], |row| {
                 row.get(0)
@@ -397,9 +399,55 @@ fn revoked_rows(db: &std::path::Path) -> i64 {
 
 fn view_generation(db: &std::path::Path) -> u64 {
     use kiln_implementer::authority_state::AuthorityStateStore as _;
-    kiln_implementer::authority_state::SqliteAuthorityState::open(&authority_state_path(db))
+    authority_state_path(db)
+        .and_then(|path| kiln_implementer::authority_state::SqliteAuthorityState::open(&path))
         .and_then(|state| state.revocation_generation())
         .unwrap_or_else(|error| unreachable!("{error}"))
+}
+
+#[test]
+// r[verify kiln.implementation.authority.state.scenario.replay]
+fn one_ledger_opened_through_a_symlink_shares_replay_and_revocation() {
+    let dir = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
+    let db = dir.path().join("ledger.db");
+    let link = dir.path().join("link.db");
+    let fixture = Fixture::direct();
+    let config = write_config(dir.path(), &fixture, &[]);
+    let mut i = open_verified(&db, &config);
+    i.admit(&work("through-the-ledger"), None)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    assert!(
+        i.claim_next(T, LEASE_MS)
+            .unwrap_or_else(|error| unreachable!("{error}"))
+            .is_some()
+    );
+    drop(i);
+    std::os::unix::fs::symlink(&db, &link).unwrap_or_else(|error| unreachable!("{error}"));
+    assert_eq!(authority_state_path(&link), authority_state_path(&db));
+    assert_eq!(replay_rows(&link), 1, "the invocation consumed through the real path");
+
+    // An invocation consumed through the symlink lands in the same table.
+    let mut i = open_verified(&link, &config);
+    i.admit(&work("through-the-symlink"), None)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    assert!(
+        i.claim_next(T, LEASE_MS)
+            .unwrap_or_else(|error| unreachable!("{error}"))
+            .is_some()
+    );
+    drop(i);
+    assert_eq!(replay_rows(&db), 2);
+
+    // A revocation imported through the symlink is the real path's view.
+    let grant = test_support::token_ref(fixture.grant(GrantRole::Coding));
+    write_feed(dir.path(), 2, T, &[hex(&grant)]);
+    drop(open_at(&link, &config, T).unwrap_or_else(|error| unreachable!("{error}")));
+    assert_eq!(view_generation(&db), 2);
+    assert_eq!(revoked_rows(&db), 1);
+    assert!(
+        !dir.path().join("link.db.authority").exists(),
+        "no second authority store beside the symlink"
+    );
 }
 
 #[test]

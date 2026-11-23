@@ -57,13 +57,20 @@ CREATE TABLE IF NOT EXISTS authority_decision (
     record TEXT NOT NULL
 );";
 
-/// Authority database path for one ledger file.
-#[must_use]
-pub fn authority_state_path(ledger: &Path) -> PathBuf {
-    let mut name = ledger.as_os_str().to_owned();
+/// Authority database path for one ledger file: beside the ledger's canonical
+/// path, so every spelling of one ledger (a symlink, a relative path, `..`)
+/// shares one replay, revocation and decision store.
+///
+/// # Errors
+/// Returns a message when the ledger cannot be resolved, for example before
+/// it exists.
+pub fn authority_state_path(ledger: &Path) -> Result<PathBuf, String> {
+    let mut name = std::fs::canonicalize(ledger)
+        .map_err(|error| format!("authority: ledger path cannot be resolved: {error}"))?
+        .into_os_string();
     name.push(".");
     name.push(AUTHORITY_STATE_SUFFIX);
-    PathBuf::from(name)
+    Ok(PathBuf::from(name))
 }
 
 fn open(path: &Path) -> Result<Connection, String> {

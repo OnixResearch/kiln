@@ -216,7 +216,7 @@ impl Implementer {
         use authority_state::AuthorityStateStore as _;
         authority_state::SqliteAuthorityState::open(&authority_state::authority_state_path(
             &self.database,
-        ))?
+        )?)?
         .decisions(range)
     }
 
