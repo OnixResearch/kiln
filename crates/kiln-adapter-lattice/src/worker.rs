@@ -688,13 +688,14 @@ fn run_with(
     // The admitted request alone names the one variable that may reach Lattice.
     let credential =
         settlement::credential_variable(&request).map_err(|error| error.to_string())?;
-    let mut implementer = Implementer::open_with_authority(
-        &required(flags, "--database")?,
-        enrollment,
+    // One resolved selection: the profile this run selects and the projection
+    // authority its route check reads come from the same configuration.
+    let selection = kiln_implementer::authority_config::ImplementationAuthorityConfig::resolve(
         flags.get("--local-operator").map(String::as_str),
         flags.get("--authority-config").map(Path::new),
-        &worker_holder_roles(),
     )?;
+    let mut implementer = Implementer::open(&required(flags, "--database")?, enrollment)?;
+    implementer.select_authority(&selection, &worker_holder_roles())?;
     let attempt = implementer.authorize_current(&plan.attempt_identity, plan.fence, clock()?)?;
     // The exact Dispatch request the plan reservation below makes is admitted
     // first, changing nothing, so an authority denial reads no credential.
@@ -703,13 +704,11 @@ fn run_with(
     // A pinned projected workspace runs only under a profile that enables
     // projection and only with its exact route. The route is checked after
     // the authority pre-check and before the credential read, so a refused
-    // route reads no credential. This shell selects at most the
-    // local-operator profile, which never enables projection.
-    let projection_authority = if flags.contains_key("--local-operator") {
-        crate::projected_workspace::ProjectionAuthority::LocalOperator
-    } else {
-        crate::projected_workspace::ProjectionAuthority::Absent
-    };
+    // route reads no credential. Only a selected verified profile with
+    // `projection_enabled` enables projection; the local-operator profile
+    // never does.
+    let projection_authority =
+        crate::projected_workspace::ProjectionAuthority::of_selected(&selection);
     crate::projected_workspace::check_route(
         flags
             .get(crate::projected_workspace::ROUTE_FLAG)
@@ -1509,6 +1508,82 @@ mod credential_ordering_tests {
         serde_json::json!({"provider": "env", "key": VARIABLE})
     }
 
+    /// Write under `dir` an exported verified-UCAN configuration whose
+    /// root-issued holder grants and revocation feed are valid now, with
+    /// `projection_enabled` as given. Returns the configuration path.
+    fn verified_config(dir: &Path, projection_enabled: bool) -> String {
+        use kiln_adapter_basalt::test_support::{self, Fixture};
+        use kiln_core::implementation::grant::GrantRole;
+        use std::os::unix::fs::PermissionsExt;
+        let hex = |bytes: &[u8]| -> String { bytes.iter().map(|b| format!("{b:02x}")).collect() };
+        let now_ms = super::clock().unwrap_or_else(|_| unreachable!());
+        let fixture = Fixture::direct_from(test_support::ROOT_SEED, now_ms / 1_000 + 3_600);
+        let proofs = dir.join("proofs");
+        std::fs::create_dir_all(&proofs).unwrap_or_else(|_| unreachable!());
+        for (index, (_, token)) in fixture.grants.iter().enumerate() {
+            std::fs::write(proofs.join(format!("{index}.ucan")), token)
+                .unwrap_or_else(|_| unreachable!());
+        }
+        let mut holders = serde_json::Map::new();
+        for (name, role) in [
+            ("coordinator", GrantRole::Coding),
+            ("verifier", GrantRole::Verification),
+            ("publisher", GrantRole::Publication),
+        ] {
+            let path = dir.join(format!("{name}.seed"));
+            std::fs::write(&path, test_support::seed(test_support::role_seed(role)))
+                .unwrap_or_else(|_| unreachable!());
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600))
+                .unwrap_or_else(|_| unreachable!());
+            holders.insert(name.into(), serde_json::json!({ "seed_path": path }));
+        }
+        let feed = dir.join("revocations.json");
+        // The feed's producer observed it this second.
+        write(
+            &feed,
+            &serde_json::json!({
+                "schema": "kiln.implementation-authority-revocations.v1",
+                "generation": 1,
+                "observed_at_ms": now_ms / 1_000 * 1_000,
+                "revoked": [],
+            }),
+        );
+        let keys: Vec<_> = [
+            test_support::ROOT_SEED,
+            test_support::COORDINATOR_SEED,
+            test_support::VERIFIER_SEED,
+            test_support::PUBLISHER_SEED,
+        ]
+        .into_iter()
+        .map(|seed| {
+            serde_json::json!({
+                "did": test_support::did(seed),
+                "ed25519": hex(&test_support::public_key(seed)),
+            })
+        })
+        .collect();
+        let path = dir.join("authority.json");
+        write(
+            &path,
+            &serde_json::json!({
+                "schema": "kiln.implementation-authority-config.v1",
+                "profile": { "verified_ucan": {
+                    "audience": test_support::AUDIENCE,
+                    "generation": test_support::GENERATION,
+                    "policy": "packaged",
+                    "trusted_roots": fixture.roots,
+                    "keys": keys,
+                    "proofs_dir": proofs,
+                    "revocation": { "path": feed, "max_age_ms": 600_000 },
+                    "replay": { "retention_ms": 60_000 },
+                    "holders": holders,
+                    "projection_enabled": projection_enabled,
+                } },
+            }),
+        );
+        path.display().to_string()
+    }
+
     // r[verify kiln.implementation.lattice_cli.scenario.credential]
     #[test]
     fn a_refused_credential_is_rejected_before_any_plan_reservation() {
@@ -1608,6 +1683,68 @@ mod credential_ordering_tests {
         let reads = Cell::new(0);
         let (unpinned, reserved) =
             dispatch_with(declared(), OPERATOR, false, &counted(&reads, Some("token")));
+        assert!(
+            unpinned
+                .as_ref()
+                .is_err_and(|error| error.contains("not an admitted immutable Nix program")),
+            "{unpinned:?}"
+        );
+        assert_eq!(reads.get(), 1);
+        assert!(!reserved);
+    }
+
+    // r[verify kiln.source.projection.route.scenario.dispatch]
+    #[test]
+    fn the_selected_profile_decides_projection_at_the_route_check() {
+        let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+        let profile = |name: &str, projection_enabled: bool| {
+            let dir = directory.path().join(name);
+            std::fs::create_dir_all(&dir).unwrap_or_else(|_| unreachable!());
+            verified_config(&dir, projection_enabled)
+        };
+        // A selected verified profile with `projection_enabled` passes the
+        // pre-check and the route check's profile gate: the pinned plan is
+        // refused only for its missing route.
+        let enabled = profile("enabled", true);
+        let reads = Cell::new(0);
+        let (unrouted, reserved) = dispatch_with(
+            declared(),
+            Some(("--authority-config", &enabled)),
+            true,
+            &counted(&reads, Some("token")),
+        );
+        assert!(
+            unrouted.as_ref().is_err_and(|error| error
+                .starts_with("the plan pins a projected workspace and requires its route")),
+            "{unrouted:?}"
+        );
+        assert_eq!(reads.get(), 0);
+        assert!(!reserved);
+        // The same verified profile without `projection_enabled`, and the
+        // local operator, never enable projection.
+        let disabled = profile("disabled", false);
+        for authority in [Some(("--authority-config", disabled.as_str())), OPERATOR] {
+            let reads = Cell::new(0);
+            let (refused, reserved) =
+                dispatch_with(declared(), authority, true, &counted(&reads, Some("token")));
+            assert!(
+                refused
+                    .as_ref()
+                    .is_err_and(|error| error.starts_with("projection-requires-operator:")),
+                "{authority:?}: {refused:?}"
+            );
+            assert_eq!(reads.get(), 0);
+            assert!(!reserved);
+        }
+        // A verified profile without projection still admits an unpinned
+        // plan, which reads its credential once.
+        let reads = Cell::new(0);
+        let (unpinned, reserved) = dispatch_with(
+            declared(),
+            Some(("--authority-config", &disabled)),
+            false,
+            &counted(&reads, Some("token")),
+        );
         assert!(
             unpinned
                 .as_ref()

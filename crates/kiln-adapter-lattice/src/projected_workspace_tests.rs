@@ -442,3 +442,56 @@ fn requests_differing_from_the_route_are_refused_before_dispatch() {
     ok(std::os::unix::fs::symlink(&moved, overlay));
     assert!(refused(&fixture.request));
 }
+
+// r[verify kiln.source.projection.route.scenario.dispatch]
+#[test]
+fn only_a_selected_verified_profile_with_projection_enables_projection() {
+    use kiln_implementer::authority_config::{
+        HoldersConfig, PolicyConfig, ProfileConfig, ReplayConfig, RevocationConfig, SecretRef,
+        VerifiedUcanConfig,
+    };
+    let verified = |projection_enabled: bool| {
+        let seed = |name: &str| SecretRef {
+            seed_path: format!("/run/kiln/{name}.seed").into(),
+        };
+        let mut selection = ImplementationAuthorityConfig::absent();
+        selection.profile = ProfileConfig::VerifiedUcan(Box::new(VerifiedUcanConfig {
+            audience: "kiln".into(),
+            generation: 1,
+            policy: PolicyConfig::Packaged,
+            trusted_roots: vec!["did:key:root".into()],
+            keys: Vec::new(),
+            proofs_dir: "/run/kiln/proofs".into(),
+            revocation: RevocationConfig {
+                path: "/run/kiln/revocations.json".into(),
+                max_age_ms: 60_000,
+            },
+            replay: ReplayConfig {
+                retention_ms: 60_000,
+            },
+            holders: HoldersConfig {
+                coordinator: seed("coordinator"),
+                verifier: seed("verifier"),
+                publisher: seed("publisher"),
+            },
+            projection_enabled,
+        }));
+        selection
+    };
+    assert_eq!(
+        ProjectionAuthority::of_selected(&verified(true)),
+        ProjectionAuthority::ProjectionEnabled
+    );
+    assert_eq!(
+        ProjectionAuthority::of_selected(&ImplementationAuthorityConfig::local_operator(
+            "operator"
+        )),
+        ProjectionAuthority::LocalOperator
+    );
+    for selection in [verified(false), ImplementationAuthorityConfig::absent()] {
+        assert_eq!(
+            ProjectionAuthority::of_selected(&selection),
+            ProjectionAuthority::Absent
+        );
+    }
+}

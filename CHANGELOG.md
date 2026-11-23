@@ -785,6 +785,14 @@ entry describes the source tree prepared for the first tagged release.
   `repository_id` 0) or base reference before any GitHub call, as webhook
   intake already did. It previously checked only the selection, so such a
   policy could admit polled work.
+- `kiln-lattice-dispatch` now derives a projected dispatch's projection
+  authority from the profile it selected: a `--authority-config` verified UCAN
+  profile with `projection_enabled` enables projection, `--local-operator` is
+  the local-operator profile, and every other selection is absent. It
+  previously keyed only on the `--local-operator` flag, so no selection could
+  enable projection. The route check now runs after the authority pre-check and
+  before the credential read; it previously ran after the credential read, so a
+  refused route had already read the credential.
 
 ### Fixed
 

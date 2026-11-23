@@ -24,6 +24,7 @@ name = "kiln-lattice-dispatch"
 path = "src/bin/lattice-dispatch.rs"
 
 [dev-dependencies]
+kiln-adapter-basalt = { workspace = true, features = ["test-support"] }
 rusqlite.workspace = true
 tempfile = "3.27.0"
 

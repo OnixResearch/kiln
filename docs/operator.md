@@ -2646,9 +2646,11 @@ derived from. `worker::materialize::prepare_route` creates missing creation
 destinations. `kiln-lattice-dispatch --projected-workspace-route FILE`
 refuses, after the dispatch authority pre-check and before the credential read
 or any durable step, a projected dispatch under any authority
-profile that does not enable projection (`projection-requires-operator`; the
-local-operator profile never does, so projected dispatch waits for the
-verified profile with `projection_enabled`), a pinned plan without its route,
+profile that does not enable projection (`projection-requires-operator`). Only
+a selected `--authority-config` verified UCAN profile with
+`projection_enabled` enables projection; `--local-operator`, a verified profile
+without `projection_enabled` and the absent profile never do. It also refuses
+a pinned plan without its route,
 a route for another pin or an unpinned plan, a route that derived again for
 the plan's own permitted paths has other paths, a linked overlay root, and a
 request whose `workspace_root`, `read_paths`, `write_paths` or network

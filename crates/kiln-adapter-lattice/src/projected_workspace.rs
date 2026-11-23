@@ -16,6 +16,7 @@ use kiln_core::implementation::authority::AuthorityDenialReason;
 use kiln_core::projection::materialization::{
     ProjectedWorkspaceRoute, RUNTIME_MOUNTED_ROOTS, store_outside_runtime_mounts,
 };
+use kiln_implementer::authority_config::{ImplementationAuthorityConfig, ProfileConfig};
 
 /// The `kiln-lattice-dispatch` flag naming the route file.
 pub const ROUTE_FLAG: &str = "--projected-workspace-route";
@@ -36,6 +37,24 @@ pub enum ProjectionAuthority {
     /// (`verified_ucan.projection_enabled`). Only the verified authority
     /// composition selects it.
     ProjectionEnabled,
+}
+
+impl ProjectionAuthority {
+    /// The projection authority of the profile a dispatch selected: a
+    /// `verified_ucan` profile whose configuration enables projection is
+    /// `ProjectionEnabled`, the local-operator profile is `LocalOperator`,
+    /// and every other selection (a verified profile without projection, or
+    /// the absent profile) is `Absent`.
+    #[must_use]
+    pub fn of_selected(selection: &ImplementationAuthorityConfig) -> Self {
+        match &selection.profile {
+            ProfileConfig::VerifiedUcan(verified) if verified.projection_enabled => {
+                Self::ProjectionEnabled
+            }
+            ProfileConfig::LocalOperator { .. } => Self::LocalOperator,
+            ProfileConfig::VerifiedUcan(_) | ProfileConfig::Absent => Self::Absent,
+        }
+    }
 }
 
 // r[impl kiln.source.projection.route.scenario.dispatch]
