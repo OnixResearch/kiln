@@ -25,7 +25,7 @@ use ucan::{HolderInvocationLimits, VerificationLimits};
 
 use crate::authority_state::{
     RecordingAuthority, SqliteAuthorityState, SqliteReplayLedger, SqliteRevocationView,
-    authority_state_path,
+    authority_state_path, revocation_feed_key,
 };
 use crate::{Implementer, diagnostic, text};
 
@@ -389,31 +389,34 @@ fn read_proofs(directory: &Path) -> Result<Vec<String>, String> {
 }
 
 // r[impl kiln.implementation.authority.state.scenario.stale]
-/// Import the revocation feed into the durable view, observed at the feed's
-/// own `observed_at_ms`.
+/// Import the revocation feed at `path` into its own durable view, keyed by
+/// the feed file's canonical path ([`revocation_feed_key`]) and observed at
+/// the feed's own `observed_at_ms`. Returns that key: the selected authority
+/// checks freshness against this feed's view only, never another feed's.
 ///
 /// Importing never refreshes the view: an unchanged feed keeps its age
 /// however often, and however recently, a process imports it, so a feed
 /// older than `max_age_ms` refuses every decision until its producer
 /// observes revocations again. A feed observed after `now_ms` is refused, so
-/// a future-dated feed cannot extend its own freshness. The view only moves
-/// to a newer `(generation, observed_at_ms)`: a feed older than the recorded
-/// view adds its revocations and leaves the view as it is.
+/// a future-dated feed cannot extend its own freshness. Within one
+/// generation the feed's view never moves to an earlier observation: a stale
+/// copy adds its revocations and leaves the view as it is.
 ///
 /// The whole feed is validated before anything is written, then imported in
 /// one transaction: a malformed reference anywhere leaves no revocation and no
 /// generation change behind.
 ///
 /// # Errors
-/// Returns a message for an unreadable, malformed or future-dated feed, or a
-/// failed commit.
+/// Returns a message for an unresolvable, unreadable, malformed or
+/// future-dated feed, or a failed commit.
 pub fn import_revocations(
     state: &SqliteAuthorityState,
-    feed: &Path,
+    path: &Path,
     now_ms: u64,
-) -> Result<u64, String> {
+) -> Result<String, String> {
+    let key = revocation_feed_key(path)?;
     let feed: RevocationFeed =
-        serde_json::from_slice(&read_bounded(feed, MAX_REVOCATION_FEED_BYTES)?)
+        serde_json::from_slice(&read_bounded(path, MAX_REVOCATION_FEED_BYTES)?)
             .map_err(|error| format!("revocation feed is malformed: {error}"))?;
     if feed.schema != IMPLEMENTATION_AUTHORITY_REVOCATIONS_SCHEMA
         || feed.revoked.len() > MAX_REVOKED_REFERENCES
@@ -428,8 +431,8 @@ pub fn import_revocations(
         .iter()
         .map(|reference| hex32(reference, "revoked reference"))
         .collect::<Result<Vec<_>, _>>()?;
-    state.import_revocation_feed(feed.generation, feed.observed_at_ms, &revoked)?;
-    Ok(feed.generation)
+    state.import_revocation_feed(&key, feed.generation, feed.observed_at_ms, &revoked)?;
+    Ok(key)
 }
 
 impl Implementer {
@@ -536,7 +539,10 @@ impl Implementer {
         }
         let state_path = authority_state_path(&self.database)?;
         let state = SqliteAuthorityState::open(&state_path)?;
-        import_revocations(&state, &config.revocation.path, now_ms)?;
+        // This authority's freshness, at selection and at every later
+        // decision, is its own feed's view; another feed sharing the store
+        // never counts.
+        let feed = import_revocations(&state, &config.revocation.path, now_ms)?;
         let signer = RoleSigner::new(
             &verifier,
             holders,
@@ -547,6 +553,7 @@ impl Implementer {
             proof_store: Box::new(proofs),
             revocations: Box::new(SqliteRevocationView::open(
                 &state_path,
+                feed,
                 config.revocation.max_age_ms,
             )?),
             caveat_policies: Box::new(DenyUnknownCaveats),

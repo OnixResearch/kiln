@@ -35,9 +35,10 @@ branch and plan; integration binds the base ref and merge commit.
 ### Durable authority state (C3)
 
 Tables `authority_replay`, `authority_revocation`,
-`authority_revocation_view` and `authority_decision` as specified in C3.
-`AuthorityStateStore` exposes `revoke`, `revocation_generation` and
-`decisions` for S5 and S6.
+`authority_revocation_feed_view` and `authority_decision` as specified in C3.
+`AuthorityStateStore` exposes `revoke`, `revocation_generation` (the highest
+generation any feed view or revocation recorded) and `decisions` for S5 and
+S6.
 
 **Deviation: a separate authority database.** The plan placed these tables in
 the ledger file. They live instead in `<ledger>.authority`, beside it.
@@ -63,19 +64,33 @@ the decision. A `max_age_ms` below one second cannot be enforced at that
 resolution and is refused by the Nickel contract and the Rust loader. The
 view's age runs from the feed's own `observed_at_ms`; importing never
 refreshes it, and a feed is validated whole and imported in one transaction.
-The view only moves to a newer `(generation, observed_at_ms)` pair, compared
-inside that transaction. A process that imports a stale copy of the feed, or a
-second configured feed path, still adds every revocation it carries, since
-revocations are only ever added, but never moves the view back to an earlier
-observation that would fail verified sessions sharing the store.
+
+**One view per configured feed.** Several verified configurations can share
+one ledger, and so one `<ledger>.authority`, with different feed files. Each
+feed keeps its own `(generation, observed_at_ms)` row in
+`authority_revocation_feed_view`, keyed by the feed file's canonical path,
+with symlinks resolved as for the ledger, and never by anything the feed's
+content claims. An authority checks freshness only against its own feed's row,
+at selection and at every decision for its whole lifetime, so a stale feed
+never borrows another feed's freshness, and an authority whose feed ages out
+denies however recently another feed was imported. A row only moves to a newer
+pair, compared generation first inside the import transaction: within one
+generation it never moves to an earlier observation, so a process that
+imports a stale copy of the same feed cannot roll back verified sessions that
+share the row. A higher generation with an earlier time does move the time
+back, which fails closed. Revocations stay one shared union across every feed
+and are only ever added. S1 introduced this schema, so no earlier
+`<ledger>.authority` file on Kiln `main` needs migrating.
 
 **Non-claim: feed freshness is trusted to its producer.** `observed_at_ms` is
-an unauthenticated claim of the configured feed producer. A backdated time
-fails closed: the view is older and denies sooner. A postdated time, up to the
-importing process's clock, cannot be detected by Kiln, so a producer that
-dates a stale revocation state as current extends its freshness. Kiln trusts
-the producer for freshness; removing that trust needs an authenticated
-observation source, such as a signed, timestamped revocation feed.
+an unauthenticated claim of the configured feed producer. Because each
+authority reads only its own feed's row, a backdated time fails closed: the
+view is older and denies sooner. A postdated time, up to the importing
+process's clock, cannot be detected by Kiln, so a producer that dates a stale
+revocation state as current extends its freshness. Kiln trusts the producer
+for freshness; removing that trust needs an authenticated observation source,
+such as a signed, timestamped revocation feed. The shared revocation union
+lets any configured feed deny more, never less.
 
 ### Holder signing
 

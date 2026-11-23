@@ -47,8 +47,8 @@ CREATE TABLE IF NOT EXISTS authority_revocation (
     revoked_at_ms INTEGER NOT NULL,
     revocation_generation INTEGER NOT NULL
 );
-CREATE TABLE IF NOT EXISTS authority_revocation_view (
-    id INTEGER PRIMARY KEY CHECK (id = 1),
+CREATE TABLE IF NOT EXISTS authority_revocation_feed_view (
+    feed TEXT PRIMARY KEY,
     revocation_generation INTEGER NOT NULL,
     observed_at_ms INTEGER NOT NULL
 );
@@ -73,6 +73,22 @@ pub fn authority_state_path(ledger: &Path) -> Result<PathBuf, String> {
     Ok(PathBuf::from(name))
 }
 
+/// The key of one configured revocation feed's view: the feed file's
+/// canonical path, so every spelling of one feed file (a symlinked directory,
+/// a relative path, `..`) shares one view and distinct files never do. It is
+/// never taken from anything the feed's content claims about itself.
+///
+/// # Errors
+/// Returns a message when the feed cannot be resolved or its canonical path
+/// is not UTF-8.
+pub fn revocation_feed_key(feed: &Path) -> Result<String, String> {
+    std::fs::canonicalize(feed)
+        .map_err(|error| format!("authority: revocation feed cannot be resolved: {error}"))?
+        .into_os_string()
+        .into_string()
+        .map_err(|_| "authority: revocation feed path is not UTF-8".to_string())
+}
+
 fn open(path: &Path) -> Result<Connection, String> {
     let connection = Connection::open(path).map_err(text)?;
     connection
@@ -94,7 +110,8 @@ pub trait AuthorityStateStore {
     /// Returns a message when the store cannot commit.
     fn revoke(&self, proof_ref: [u8; REPLAY_DIGEST_BYTES], generation: u64) -> Result<(), String>;
 
-    /// Current revocation generation; zero before any revocation view.
+    /// Highest revocation generation any feed view or revocation recorded;
+    /// zero before either.
     ///
     /// # Errors
     /// Returns a message when the store cannot be read.
@@ -109,7 +126,7 @@ pub trait AuthorityStateStore {
 }
 
 // r[impl kiln.implementation.authority.state]
-/// Revocations, the revocation view and the decision log.
+/// Revocations, the per-feed revocation views and the decision log.
 pub struct SqliteAuthorityState {
     connection: RefCell<Connection>,
 }
@@ -120,18 +137,20 @@ impl std::fmt::Debug for SqliteAuthorityState {
     }
 }
 
-/// Advance the one revocation view row to `(?1 generation, ?2 observed_at_ms)`
-/// only when that pair is newer, compared generation first: concurrent or
-/// differently configured imports can never move the view back to an older
-/// generation or an earlier observation, and an equal pair is a no-op.
+/// Advance feed `?1`'s view row to `(?2 generation, ?3 observed_at_ms)` only
+/// when that pair is newer, compared generation first: within one generation
+/// a concurrent import of a stale copy never moves the feed's observation
+/// back, and an equal pair is a no-op. A higher generation with an earlier
+/// time does move the time back, which fails closed.
 const ADVANCE_REVOCATION_VIEW: &str =
-    "INSERT INTO authority_revocation_view (id, revocation_generation, observed_at_ms)
-     VALUES (1, ?1, ?2)
-     ON CONFLICT(id) DO UPDATE SET
+    "INSERT INTO authority_revocation_feed_view (feed, revocation_generation, observed_at_ms)
+     VALUES (?1, ?2, ?3)
+     ON CONFLICT(feed) DO UPDATE SET
        revocation_generation = excluded.revocation_generation,
        observed_at_ms = excluded.observed_at_ms
      WHERE (excluded.revocation_generation, excluded.observed_at_ms)
-         > (authority_revocation_view.revocation_generation, authority_revocation_view.observed_at_ms)";
+         > (authority_revocation_feed_view.revocation_generation,
+            authority_revocation_feed_view.observed_at_ms)";
 
 impl SqliteAuthorityState {
     /// Open or create the authority database.
@@ -144,14 +163,15 @@ impl SqliteAuthorityState {
         })
     }
 
-    /// Record that the revocation view was observed current at `observed_at_ms`
-    /// with `generation`. The view only moves to a newer
+    /// Record that feed `feed`'s view was observed current at
+    /// `observed_at_ms` with `generation`. The view only moves to a newer
     /// `(generation, observed_at_ms)` pair.
     ///
     /// # Errors
     /// Returns a message when the store cannot commit.
     pub fn observe_revocation_view(
         &self,
+        feed: &str,
         generation: u64,
         observed_at_ms: u64,
     ) -> Result<(), String> {
@@ -162,7 +182,7 @@ impl SqliteAuthorityState {
         transaction
             .execute(
                 ADVANCE_REVOCATION_VIEW,
-                params![sql_u64(generation)?, sql_u64(observed_at_ms)?],
+                params![feed, sql_u64(generation)?, sql_u64(observed_at_ms)?],
             )
             .map_err(text)?;
         transaction.commit().map_err(text)
@@ -170,16 +190,18 @@ impl SqliteAuthorityState {
 
     /// Import one validated revocation feed atomically: every revoked
     /// reference and, when the feed's `(generation, observed_at_ms)` is newer
-    /// than the recorded view, that pair commit in one immediate transaction,
-    /// or nothing does. Revocations are only ever added: an older or equal
-    /// feed still adds the references it carries but leaves the view as it
-    /// is, so a process importing a stale copy, or another configured feed
-    /// path, never moves the view back.
+    /// than the view recorded for `feed`, that pair commit in one immediate
+    /// transaction, or nothing does. Revocations are one union across every
+    /// feed and are only ever added: an older or equal feed still adds the
+    /// references it carries but leaves its view as it is, so a process
+    /// importing a stale copy never moves the feed's observation back. Another
+    /// feed's view is never touched.
     ///
     /// # Errors
     /// Returns a message for a failed commit; nothing is written then.
     pub fn import_revocation_feed(
         &self,
+        feed: &str,
         generation: u64,
         observed_at_ms: u64,
         revoked: &[[u8; REPLAY_DIGEST_BYTES]],
@@ -209,7 +231,7 @@ impl SqliteAuthorityState {
         transaction
             .execute(
                 ADVANCE_REVOCATION_VIEW,
-                params![sql_u64(generation)?, sql_u64(observed_at_ms)?],
+                params![feed, sql_u64(generation)?, sql_u64(observed_at_ms)?],
             )
             .map_err(text)?;
         transaction.commit().map_err(text)
@@ -246,36 +268,28 @@ impl SqliteAuthorityState {
 impl AuthorityStateStore for SqliteAuthorityState {
     fn revoke(&self, proof_ref: [u8; REPLAY_DIGEST_BYTES], generation: u64) -> Result<(), String> {
         let now_ms = super::current_unix_ms();
-        let mut connection = self.connection.borrow_mut();
-        let transaction = connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(text)?;
-        transaction
+        self.connection
+            .borrow()
             .execute(
                 "INSERT INTO authority_revocation (proof_ref, revoked_at_ms, revocation_generation)
                  VALUES (?1, ?2, ?3) ON CONFLICT(proof_ref) DO NOTHING",
                 params![proof_ref.as_slice(), sql_u64(now_ms)?, sql_u64(generation)?],
             )
-            .map_err(text)?;
-        transaction
-            .execute(
-                "UPDATE authority_revocation_view
-                 SET revocation_generation = max(revocation_generation, ?1) WHERE id = 1",
-                params![sql_u64(generation)?],
-            )
-            .map_err(text)?;
-        transaction.commit().map_err(text)
+            .map(drop)
+            .map_err(text)
     }
 
     fn revocation_generation(&self) -> Result<u64, String> {
         let connection = self.connection.borrow();
         let generation: Option<i64> = connection
             .query_row(
-                "SELECT revocation_generation FROM authority_revocation_view WHERE id = 1",
+                "SELECT max(generation) FROM (
+                   SELECT revocation_generation AS generation FROM authority_revocation_feed_view
+                   UNION ALL
+                   SELECT revocation_generation FROM authority_revocation)",
                 [],
                 |row| row.get(0),
             )
-            .optional()
             .map_err(text)?;
         u64::try_from(generation.unwrap_or(0)).map_err(text)
     }
@@ -383,22 +397,28 @@ impl ReplayLedger for SqliteReplayLedger {
     }
 }
 
-/// Revocation view over `authority_revocation`, failing closed when the view
-/// is absent or older than its maximum age.
+// r[impl kiln.implementation.authority.state.scenario.stale]
+/// Revocation view over the shared `authority_revocation` union, fresh only
+/// by its own feed's observation: it fails closed when that feed's view is
+/// absent or older than its maximum age, however recently another feed
+/// sharing the store was imported.
 #[derive(Debug)]
 pub struct SqliteRevocationView {
     connection: RefCell<Connection>,
+    feed: String,
     max_age_ms: u64,
 }
 
 impl SqliteRevocationView {
-    /// Open the view with its maximum age.
+    /// Open the view of feed `feed` ([`revocation_feed_key`]) with its
+    /// maximum age.
     ///
     /// # Errors
     /// Returns a message when the database cannot be opened.
-    pub fn open(path: &Path, max_age_ms: u64) -> Result<Self, String> {
+    pub fn open(path: &Path, feed: impl Into<String>, max_age_ms: u64) -> Result<Self, String> {
         Ok(Self {
             connection: RefCell::new(open(path)?),
+            feed: feed.into(),
             max_age_ms,
         })
     }
@@ -413,8 +433,8 @@ impl RevocationView for SqliteRevocationView {
         let connection = self.connection.borrow();
         let observed: Option<i64> = connection
             .query_row(
-                "SELECT observed_at_ms FROM authority_revocation_view WHERE id = 1",
-                [],
+                "SELECT observed_at_ms FROM authority_revocation_feed_view WHERE feed = ?1",
+                params![self.feed],
                 |row| row.get(0),
             )
             .optional()

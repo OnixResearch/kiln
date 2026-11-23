@@ -392,20 +392,23 @@ impl ProtectedAuthority for Hooked {
     }
 }
 
+/// Feed key of the view [`durable_verified`] observes.
+pub const DURABLE_FEED: &str = "durable-test-feed";
+
 /// Verified port over the ledger's durable authority file.
 pub fn durable_verified(db: &Path, fixture: &Fixture) -> Box<dyn ProtectedAuthority> {
     let state_path = authority_state_path(db).unwrap_or_else(|error| unreachable!("{error}"));
     let state =
         SqliteAuthorityState::open(&state_path).unwrap_or_else(|error| unreachable!("{error}"));
     state
-        .observe_revocation_view(1, T)
+        .observe_revocation_view(DURABLE_FEED, 1, T)
         .unwrap_or_else(|error| unreachable!("{error}"));
     let mut services = fixture.services();
     services.replay = Box::new(
         SqliteReplayLedger::open(&state_path).unwrap_or_else(|error| unreachable!("{error}")),
     );
     services.revocations = Box::new(
-        SqliteRevocationView::open(&state_path, MAX_AGE_MS)
+        SqliteRevocationView::open(&state_path, DURABLE_FEED, MAX_AGE_MS)
             .unwrap_or_else(|error| unreachable!("{error}")),
     );
     let authority = kiln_adapter_basalt::BasaltAuthority::verified(fixture.config(), services)

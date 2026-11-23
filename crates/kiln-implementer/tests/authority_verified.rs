@@ -507,15 +507,15 @@ fn a_feed_with_a_malformed_reference_imports_nothing() {
     assert_eq!(revoked_rows(&db), 1);
 }
 
-/// The recorded `(generation, observed_at_ms)` and the revoked references of
-/// one authority file.
-fn view_and_revocations(path: &std::path::Path) -> ((u64, u64), Vec<Vec<u8>>) {
+/// Feed `feed`'s recorded `(generation, observed_at_ms)` and the revoked
+/// references of one authority file.
+fn view_and_revocations(path: &std::path::Path, feed: &str) -> ((u64, u64), Vec<Vec<u8>>) {
     let connection =
         rusqlite::Connection::open(path).unwrap_or_else(|error| unreachable!("{error}"));
     let (generation, observed_at_ms): (i64, i64) = connection
         .query_row(
-            "SELECT revocation_generation, observed_at_ms FROM authority_revocation_view WHERE id = 1",
-            [],
+            "SELECT revocation_generation, observed_at_ms FROM authority_revocation_feed_view WHERE feed = ?1",
+            [feed],
             |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .unwrap_or_else(|error| unreachable!("{error}"));
@@ -540,37 +540,114 @@ fn an_older_feed_never_moves_the_view_back_and_only_adds_revocations() {
     let dir = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
     let path = dir.path().join("ledger.db.authority");
     let state = SqliteAuthorityState::open(&path).unwrap_or_else(|error| unreachable!("{error}"));
-    let (fresh, stale, later) = ([1; 32], [2; 32], [3; 32]);
-    let import = |generation, observed_at_ms, revoked: &[[u8; 32]]| {
+    let (fresh, stale, later, other) = ([1; 32], [2; 32], [3; 32], [4; 32]);
+    const FEED: &str = "/feeds/a.json";
+    const OTHER: &str = "/feeds/b.json";
+    let import = |feed: &str, generation, observed_at_ms, revoked: &[[u8; 32]]| {
         state
-            .import_revocation_feed(generation, observed_at_ms, revoked)
+            .import_revocation_feed(feed, generation, observed_at_ms, revoked)
             .unwrap_or_else(|error| unreachable!("{error}"));
     };
 
     // Process B imports the refreshed generation-1 feed; process A then
     // writes the copy it read earlier: the fresh time stays, and A's extra
     // revocation is kept.
-    import(1, T + 30_000, &[fresh]);
-    import(1, T, &[stale]);
+    import(FEED, 1, T + 30_000, &[fresh]);
+    import(FEED, 1, T, &[stale]);
     assert_eq!(
-        view_and_revocations(&path),
+        view_and_revocations(&path, FEED),
         ((1, T + 30_000), vec![fresh.to_vec(), stale.to_vec()])
     );
     // An equal pair is idempotent.
-    import(1, T + 30_000, &[fresh]);
+    import(FEED, 1, T + 30_000, &[fresh]);
     assert_eq!(
-        view_and_revocations(&path),
+        view_and_revocations(&path, FEED),
         ((1, T + 30_000), vec![fresh.to_vec(), stale.to_vec()])
     );
     // A newer generation advances the view; an older one, even observed
     // later, does not move it back but still adds its revocation.
-    import(2, T + 40_000, &[]);
-    import(1, T + 50_000, &[later]);
+    import(FEED, 2, T + 40_000, &[]);
+    import(FEED, 1, T + 50_000, &[later]);
     assert_eq!(
-        view_and_revocations(&path),
+        view_and_revocations(&path, FEED),
         (
             (2, T + 40_000),
             vec![fresh.to_vec(), stale.to_vec(), later.to_vec()]
         )
+    );
+    // Another feed sharing the store keeps its own view and never touches
+    // this one; its revocations join the one shared union.
+    import(OTHER, 1, T + 90_000, &[other]);
+    assert_eq!(
+        view_and_revocations(&path, FEED),
+        (
+            (2, T + 40_000),
+            vec![
+                fresh.to_vec(),
+                stale.to_vec(),
+                later.to_vec(),
+                other.to_vec()
+            ]
+        )
+    );
+    assert_eq!(view_and_revocations(&path, OTHER).0, (1, T + 90_000));
+}
+
+/// Two verified configurations on one ledger, so one authority file, each
+/// with its own feed file; returns the ledger and both configuration paths.
+fn two_feed_configs(dir: &std::path::Path) -> (std::path::PathBuf, [std::path::PathBuf; 2]) {
+    let fixture = Fixture::direct();
+    let configs = ["fresh", "stale"].map(|name| {
+        let config_dir = dir.join(name);
+        std::fs::create_dir_all(&config_dir).unwrap_or_else(|error| unreachable!("{error}"));
+        write_config(&config_dir, &fixture, &[])
+    });
+    (dir.join("ledger.db"), configs)
+}
+
+#[test]
+// r[verify kiln.implementation.authority.state.scenario.stale]
+fn a_stale_feed_never_borrows_another_feeds_freshness() {
+    let dir = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
+    let (db, [fresh, stale]) = two_feed_configs(dir.path());
+    // The second configuration's producer observed its feed past its age.
+    write_feed(&dir.path().join("stale"), 1, T - MAX_AGE_MS - 1_000, &[]);
+    // The first configuration imports its fresh feed into the shared file.
+    drop(open_at(&db, &fresh, T).unwrap_or_else(|error| unreachable!("{error}")));
+    let mut i = open_at(&db, &stale, T).unwrap_or_else(|error| unreachable!("{error}"));
+    i.admit(&work("borrowed-freshness"), None)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    assert!(
+        i.claim_next(T, LEASE_MS).is_err(),
+        "a stale feed must deny although another feed on the ledger is fresh"
+    );
+    assert!(no_attempts(&mut i), "a refused claim commits nothing");
+}
+
+#[test]
+// r[verify kiln.implementation.authority.state.scenario.stale]
+fn a_long_lived_authority_denies_once_its_own_feed_ages_out() {
+    let dir = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
+    let (db, [fresh, stale]) = two_feed_configs(dir.path());
+    // Both feeds are fresh at `T`; the second authority stays selected.
+    let mut i = open_at(&db, &stale, T).unwrap_or_else(|error| unreachable!("{error}"));
+    i.admit(&work("own-feed-fresh"), None)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    assert!(
+        i.claim_next(T, LEASE_MS)
+            .unwrap_or_else(|error| unreachable!("{error}"))
+            .is_some()
+    );
+    // Its feed ages past `max_age_ms` while the first feed keeps refreshing.
+    let later = T + MAX_AGE_MS + 1_000;
+    assert!(later / 1_000 < test_support::EXPIRES_S);
+    write_feed(&dir.path().join("fresh"), 1, later, &[]);
+    drop(open_at(&db, &fresh, later).unwrap_or_else(|error| unreachable!("{error}")));
+    i.set_clock_ms(later);
+    i.admit(&work("own-feed-stale"), None)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    assert!(
+        i.claim_next(later, LEASE_MS).is_err(),
+        "an authority's own aged feed must deny however recently another feed refreshed"
     );
 }
