@@ -498,10 +498,12 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
     // The admitted request alone names the one variable that may reach Lattice.
     let credential =
         settlement::credential_variable(&request).map_err(|error| error.to_string())?;
-    let mut implementer = Implementer::open(&required(flags, "--database")?, enrollment)?;
-    if let Some(operator) = flags.get("--local-operator") {
-        implementer.select_local_operator(operator.clone())?;
-    }
+    let mut implementer = Implementer::open_with_authority(
+        &required(flags, "--database")?,
+        enrollment,
+        flags.get("--local-operator").map(String::as_str),
+        flags.get("--authority-config").map(Path::new),
+    )?;
     let attempt = implementer.authorize_current(&plan.attempt_identity, plan.fence, clock()?)?;
     // Before any durable step (plan reservation, request seal, admission or
     // transport intent), a fresh run needs its one credential variable.

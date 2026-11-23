@@ -134,6 +134,27 @@ if ! cmp -s "$host_owner_export" fixtures/fair-admission/host-owner.json; then
   exit 1
 fi
 
+# Implementation authority config (kiln.implementation-authority-config.v1):
+# accept fixtures export; reject fixtures must break a contract, not fail to load.
+for fixture in config/fixtures/implementation-authority-accept-*.ncl; do
+  positive_count=$((positive_count + 1))
+  if ! nickel export --format json "$fixture" >/dev/null; then
+    printf 'positive Nickel fixture failed: %s\n' "$fixture" >&2
+    exit 1
+  fi
+done
+for fixture in config/fixtures/implementation-authority-reject-*.ncl; do
+  negative_count=$((negative_count + 1))
+  if refusal=$(nickel export "$fixture" 2>&1 >/dev/null); then
+    printf 'negative Nickel fixture passed: %s\n' "$fixture" >&2
+    exit 1
+  fi
+  if ! grep -q 'contract broken' <<<"$refusal"; then
+    printf 'negative Nickel fixture failed without a contract violation: %s\n' "$fixture" >&2
+    exit 1
+  fi
+done
+
 for profile in config/*.ncl deployment/*.ncl; do
   if ! nickel typecheck "$profile" >/dev/null; then
     printf 'Nickel typecheck failed: %s\n' "$profile" >&2

@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 
 use kiln_core::implementation::Enrollment;
 use kiln_implementer::Implementer;
+use kiln_implementer::authority_config::ImplementationAuthorityConfig;
 
 use crate::config::read_bounded;
 
@@ -22,19 +23,22 @@ pub const MAX_ENROLLMENT_BYTES: u64 = 256 * 1_024;
 pub struct Store {
     pub database: PathBuf,
     pub enrollment: Enrollment,
-    /// Explicit local-operator profile selected for protected effects.
-    pub authority_operator: Option<String>,
+    /// Authority profile selected for protected effects.
+    pub authority: ImplementationAuthorityConfig,
 }
 
 impl Store {
-    /// Load the enrollment file and remember the database path.
+    /// Load the enrollment file, resolve the authority selection and remember
+    /// the database path.
     ///
     /// # Errors
-    /// Returns a diagnostic for an unreadable or malformed enrollment.
+    /// Returns a diagnostic for an unreadable or malformed enrollment, or an
+    /// invalid authority selection.
     pub fn load(
         database: &Path,
         enrollment: &Path,
-        authority_operator: Option<String>,
+        authority_operator: Option<&str>,
+        authority_config: Option<&Path>,
     ) -> Result<Self, String> {
         let bytes = read_bounded(enrollment, MAX_ENROLLMENT_BYTES)?;
         let enrollment: Enrollment = serde_json::from_slice(&bytes)
@@ -42,7 +46,10 @@ impl Store {
         Ok(Self {
             database: database.to_path_buf(),
             enrollment,
-            authority_operator,
+            authority: ImplementationAuthorityConfig::resolve(
+                authority_operator,
+                authority_config,
+            )?,
         })
     }
 
@@ -52,9 +59,7 @@ impl Store {
     /// Returns the store diagnostic.
     pub fn open(&self) -> Result<Implementer, String> {
         let mut implementer = Implementer::open(&self.database, self.enrollment.clone())?;
-        if let Some(operator) = &self.authority_operator {
-            implementer.select_local_operator(operator.clone())?;
-        }
+        implementer.select_authority(&self.authority)?;
         Ok(implementer)
     }
 }

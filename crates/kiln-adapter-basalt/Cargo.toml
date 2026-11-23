@@ -7,15 +7,22 @@ rust-version.workspace = true
 license.workspace = true
 publish = false
 
+[features]
+# In-process signed-token fixtures for consumers' tests. Never enabled by a
+# production composition.
+test-support = []
+
 [dependencies]
 kiln-core = { workspace = true }
 basalt = { workspace = true }
 blake3 = { workspace = true }
+getrandom = { workspace = true }
 ucan = { workspace = true }
 serde = { workspace = true }
 
 [dev-dependencies]
 serde_json = { workspace = true }
+kiln-adapter-basalt = { path = ".", features = ["test-support"] }
 
 [lints]
 workspace = true

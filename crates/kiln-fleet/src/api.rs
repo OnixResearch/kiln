@@ -106,7 +106,8 @@ impl Service {
         let store = Store::load(
             &config.implementer.database,
             &config.implementer.enrollment,
-            config.authority_operator.clone(),
+            config.authority_operator.as_deref(),
+            config.authority_config.as_deref(),
         )?;
         let swarm = match config.active_swarm() {
             Some(swarm) => Some(Arc::new(SwarmLink::new(swarm)?)),

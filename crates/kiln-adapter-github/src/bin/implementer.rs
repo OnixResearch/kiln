@@ -1596,22 +1596,15 @@ fn open_implementer(flags: &BTreeMap<String, String>) -> Result<Implementer, Str
     let database = required_path(flags, "--database")?;
     let enrollment_file = required_path(flags, "--enrollment")?;
     let enrollment: Enrollment = read_json(&enrollment_file)?;
-    let mut implementer =
-        Implementer::open(&database, enrollment).map_err(|error| error.to_string())?;
-    if let Some(operator) = flags.get("--local-operator") {
-        let authority = kiln_core::implementation::authority::LocalOperatorAuthority::new(
-            operator.clone(),
-            false,
-        )
-        .map_err(|error| format!("{}: {}", error.code, error.message))?;
-        implementer.set_authority(
-            Box::new(authority),
-            kiln_core::implementation::authority::AuthorityProfile::LocalOperator {
-                operator: operator.clone(),
-            },
-        );
-    }
-    Ok(implementer)
+    // One composition helper: `--authority-config` (exported
+    // `kiln.implementation-authority-config.v1`) or the explicit
+    // `--local-operator` shorthand; neither selects the absent profile.
+    Implementer::open_with_authority(
+        &database,
+        enrollment,
+        flags.get("--local-operator").map(String::as_str),
+        flags.get("--authority-config").map(std::path::Path::new),
+    )
 }
 
 fn drain(flags: &BTreeMap<String, String>) -> Result<(), ()> {

@@ -11,6 +11,8 @@
 
 pub mod admission;
 mod authority_bridge;
+pub mod authority_config;
+pub mod authority_state;
 pub mod campaign;
 pub mod campaign_consumer;
 pub mod campaign_operator;
@@ -26,12 +28,12 @@ pub mod verification;
 pub use fleet::{FLEET_STATE_KIND, FLEET_STATE_SCHEMA, FleetState};
 pub use queue::{DeliveryQueue, QueuedDelivery};
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use kiln_core::implementation::authority::{
-    AuthorityDecision, AuthorityProfile, AuthorityRequest, AuthoritySessionId, ProtectedAuthority,
-    ProtectedOperation,
+    AuthorityDecision, AuthorityRequest, AuthoritySelection, AuthoritySessionId,
+    NO_EXPECTED_TARGET, ProtectedAuthority, ProtectedOperation,
 };
 use kiln_core::implementation::{
     AdmissionDecision, AttemptLedger, AttemptMetrics, AttemptUsage, CandidateHandoff,
@@ -69,11 +71,12 @@ pub struct Recovery {
 
 pub struct Implementer {
     connection: Connection,
+    database: PathBuf,
     enrollment: Enrollment,
     mirror: Option<Box<dyn MirrorObserver>>,
     overlap: Option<OverlapCheck>,
     authority: Option<Box<dyn ProtectedAuthority>>,
-    authority_profile: AuthorityProfile,
+    authority_profile: AuthoritySelection,
     authority_last: Option<(AuthoritySessionId, AuthorityRequest)>,
     clock_ms: Option<u64>,
 }
@@ -124,27 +127,27 @@ impl Implementer {
         connection.execute_batch(SCHEMA).map_err(text)?;
         Ok(Self {
             connection,
+            database: path.to_path_buf(),
             enrollment,
             mirror: None,
             overlap: None,
             authority: None,
-            authority_profile: AuthorityProfile::Missing,
+            authority_profile: AuthoritySelection::Absent,
             authority_last: None,
             clock_ms: None,
         })
     }
 
-    /// Select the explicit authority profile used by every protected operation.
-    ///
-    /// Selecting [`AuthorityProfile::LocalOperator`] is an explicit local-operator
-    /// choice; the local guard refuses it when no compatible profile is configured.
+    /// Install one authority port with the profile selected for it. Shells
+    /// compose through [`Self::select_authority`]; this seam exists for
+    /// adapters and tests that wrap a composed port.
     pub fn set_authority(
         &mut self,
         authority: Box<dyn ProtectedAuthority>,
-        profile: AuthorityProfile,
+        selection: AuthoritySelection,
     ) {
         self.authority = Some(authority);
-        self.authority_profile = profile;
+        self.authority_profile = selection;
         self.authority_last = None;
     }
 
@@ -153,17 +156,9 @@ impl Implementer {
     /// # Errors
     /// Returns a message for an invalid operator identity.
     pub fn select_local_operator(&mut self, operator: impl Into<String>) -> Result<(), String> {
-        let operator = operator.into();
-        let authority = kiln_core::implementation::authority::LocalOperatorAuthority::new(
-            operator.clone(),
-            false,
+        self.select_authority(
+            &authority_config::ImplementationAuthorityConfig::local_operator(operator),
         )
-        .map_err(diagnostic)?;
-        self.set_authority(
-            Box::new(authority),
-            AuthorityProfile::LocalOperator { operator },
-        );
-        Ok(())
     }
 
     /// Open with the explicitly selected local-operator compatibility profile.
@@ -179,18 +174,45 @@ impl Implementer {
         enrollment: Enrollment,
         operator: impl Into<String>,
     ) -> Result<Self, String> {
-        let operator = operator.into();
-        let authority = kiln_core::implementation::authority::LocalOperatorAuthority::new(
-            operator.clone(),
-            false,
-        )
-        .map_err(diagnostic)?;
         let mut implementer = Self::open(path, enrollment)?;
-        implementer.set_authority(
-            Box::new(authority),
-            AuthorityProfile::LocalOperator { operator },
-        );
+        implementer.select_local_operator(operator)?;
         Ok(implementer)
+    }
+
+    /// Open and select the authority profile resolved from a shell's explicit
+    /// local operator or exported authority configuration; neither selects the
+    /// absent profile, which denies every protected operation.
+    ///
+    /// # Errors
+    /// Returns a message when the ledger cannot open or the selection is invalid.
+    pub fn open_with_authority(
+        path: &Path,
+        enrollment: Enrollment,
+        local_operator: Option<&str>,
+        authority_config: Option<&Path>,
+    ) -> Result<Self, String> {
+        let config = authority_config::ImplementationAuthorityConfig::resolve(
+            local_operator,
+            authority_config,
+        )?;
+        let mut implementer = Self::open(path, enrollment)?;
+        implementer.select_authority(&config)?;
+        Ok(implementer)
+    }
+
+    /// Persisted redacted decisions of the verified profile's durable store.
+    ///
+    /// # Errors
+    /// Returns a message when the store cannot be read.
+    pub fn persisted_authority_decisions(
+        &self,
+        range: std::ops::Range<u64>,
+    ) -> Result<Vec<(u64, AuthorityDecision)>, String> {
+        use authority_state::AuthorityStateStore as _;
+        authority_state::SqliteAuthorityState::open(&authority_state::authority_state_path(
+            &self.database,
+        ))?
+        .decisions(range)
     }
 
     /// Fix the shell clock for deterministic replay and fixtures.
@@ -658,12 +680,12 @@ impl Implementer {
         now_ms: u64,
         lease_ms: u64,
     ) -> Result<u64, String> {
-        let (work, attempt) = self.authority_facts(identity, fence)?;
+        let facts = self.authority_facts(identity, fence)?;
         let lease = lease_ms.to_string();
-        let request = authority_bridge::request_for(
+        let request = facts.request(
             ProtectedOperation::ClaimRenew,
-            &work,
-            &attempt,
+            identity.as_str(),
+            NO_EXPECTED_TARGET,
             &[&lease],
             None,
         )?;
@@ -740,6 +762,29 @@ impl Implementer {
         now_ms: u64,
         observed: &kiln_core::types::ExternalRef,
     ) -> Result<(), String> {
+        // r[impl kiln.implementation.authority.reconcile]
+        // Adopting an observed run settles the original dispatch effect: a
+        // fresh invocation (new nonce) bound to the same reservation effect.
+        let facts = self.authority_facts(identity, fence)?;
+        let effect = facts
+            .attempt
+            .dispatch
+            .as_ref()
+            .map(|dispatch| dispatch.effect_id.as_str().to_string())
+            .ok_or("dispatch reconciliation requires a durable reservation")?;
+        let request = facts.request(
+            ProtectedOperation::Dispatch,
+            &effect,
+            NO_EXPECTED_TARGET,
+            &[
+                observed.provider_namespace.as_str(),
+                observed.native_kind.as_str(),
+                observed.native_id.as_str(),
+            ],
+            None,
+        )?;
+        let currentness = self.attempt_currentness(identity, fence, now_ms);
+        self.authorize_and_revalidate(&request, currentness, now_ms)?;
         self.with_ledgers(|_, attempts| {
             attempts.reconcile_dispatch(identity, fence, now_ms, observed)
         })
@@ -842,14 +887,14 @@ impl Implementer {
         now_ms: u64,
         handoff: &CandidateHandoff,
     ) -> Result<ContentId, String> {
-        let (work_facts, attempt_facts) = self.authority_facts(identity, fence)?;
+        let facts = self.authority_facts(identity, fence)?;
         let handoff_identity =
-            kiln_core::implementation::admit_candidate_handoff(work, &attempt_facts, handoff)
+            kiln_core::implementation::admit_candidate_handoff(work, &facts.attempt, handoff)
                 .map_err(diagnostic)?;
-        let request = authority_bridge::request_for(
+        let request = facts.request(
             ProtectedOperation::CandidateSubmit,
-            &work_facts,
-            &attempt_facts,
+            handoff_identity.as_str(),
+            NO_EXPECTED_TARGET,
             &[handoff_identity.as_str()],
             Some(&handoff.candidate),
         )?;
@@ -873,11 +918,12 @@ impl Implementer {
         verification: &CandidateVerification,
         plan: &PublicationPlan,
     ) -> Result<ContentId, String> {
-        let (work_facts, attempt_facts) = self.authority_facts(identity, fence)?;
-        let request = authority_bridge::request_for(
+        let facts = self.authority_facts(identity, fence)?;
+        let expected = format!("refs/heads/{}@absent", plan.branch);
+        let request = facts.request(
             ProtectedOperation::PublicationPublish,
-            &work_facts,
-            &attempt_facts,
+            plan.handoff.as_str(),
+            &expected,
             &[
                 plan.handoff.as_str(),
                 plan.verification.as_str(),
@@ -910,11 +956,16 @@ impl Implementer {
         now_ms: u64,
         receipt: &IntegrationReceipt,
     ) -> Result<ContentId, String> {
-        let (work_facts, attempt_facts) = self.authority_facts(identity, fence)?;
-        let request = authority_bridge::request_for(
+        let facts = self.authority_facts(identity, fence)?;
+        let expected = format!(
+            "{}@{}",
+            receipt.base_ref,
+            receipt.merge_commit.native_id.as_str()
+        );
+        let request = facts.request(
             ProtectedOperation::IntegrationLand,
-            &work_facts,
-            &attempt_facts,
+            receipt.pull_request.native_id.as_str(),
+            &expected,
             &[
                 receipt.handoff.as_str(),
                 receipt.verification.as_str(),
@@ -946,17 +997,18 @@ impl Implementer {
         plan: &SourceStatusPlan,
         receipt: &SourceStatusReceipt,
     ) -> Result<ContentId, String> {
-        let (work_facts, attempt_facts) = self.authority_facts(identity, fence)?;
-        let candidate = attempt_facts
+        let facts = self.authority_facts(identity, fence)?;
+        let candidate = facts
+            .attempt
             .publication
             .as_ref()
             .map(|publication| &publication.plan.candidate)
-            .or(attempt_facts.candidate.as_ref());
+            .or(facts.attempt.candidate.as_ref());
         let observed = receipt.observed_revision.to_string();
-        let request = authority_bridge::request_for(
+        let request = facts.request(
             ProtectedOperation::PublicationPublish,
-            &work_facts,
-            &attempt_facts,
+            plan.source.native_id.as_str(),
+            &observed,
             &[
                 plan.source.native_id.as_str(),
                 receipt.state.as_str(),
@@ -985,16 +1037,17 @@ impl Implementer {
         now_ms: u64,
         remote_head: &kiln_core::types::ExternalRef,
     ) -> Result<(), String> {
-        let (work, attempt) = self.authority_facts(identity, fence)?;
-        let candidate = attempt
+        let facts = self.authority_facts(identity, fence)?;
+        let candidate = facts
+            .attempt
             .publication
             .as_ref()
             .map(|publication| &publication.plan.candidate)
-            .or(attempt.candidate.as_ref());
-        let request = authority_bridge::request_for(
+            .or(facts.attempt.candidate.as_ref());
+        let request = facts.request(
             ProtectedOperation::PublicationPublish,
-            &work,
-            &attempt,
+            identity.as_str(),
+            remote_head.native_id.as_str(),
             &[
                 remote_head.provider_namespace.as_str(),
                 remote_head.native_kind.as_str(),
@@ -1017,16 +1070,17 @@ impl Implementer {
         pull_request: &kiln_core::types::ExternalRef,
         head: &kiln_core::types::ExternalRef,
     ) -> Result<(), String> {
-        let (work, attempt) = self.authority_facts(identity, fence)?;
-        let candidate = attempt
+        let facts = self.authority_facts(identity, fence)?;
+        let candidate = facts
+            .attempt
             .publication
             .as_ref()
             .map(|publication| &publication.plan.candidate)
-            .or(attempt.candidate.as_ref());
-        let request = authority_bridge::request_for(
+            .or(facts.attempt.candidate.as_ref());
+        let request = facts.request(
             ProtectedOperation::PublicationPublish,
-            &work,
-            &attempt,
+            pull_request.native_id.as_str(),
+            head.native_id.as_str(),
             &[
                 pull_request.provider_namespace.as_str(),
                 pull_request.native_id.as_str(),
@@ -1050,18 +1104,18 @@ impl Implementer {
         handoff: &CandidateHandoff,
         verification: &CandidateVerification,
     ) -> Result<ContentId, String> {
-        let (work_facts, attempt_facts) = self.authority_facts(identity, fence)?;
+        let facts = self.authority_facts(identity, fence)?;
         let verification_identity = kiln_core::implementation::admit_candidate_verification(
             work,
-            &attempt_facts,
+            &facts.attempt,
             handoff,
             verification,
         )
         .map_err(diagnostic)?;
-        let request = authority_bridge::request_for(
+        let request = facts.request(
             ProtectedOperation::VerificationAdmit,
-            &work_facts,
-            &attempt_facts,
+            verification_identity.as_str(),
+            NO_EXPECTED_TARGET,
             &[verification_identity.as_str()],
             Some(&handoff.candidate),
         )?;
@@ -1149,11 +1203,11 @@ impl Implementer {
         now_ms: u64,
         cause: &str,
     ) -> Result<(), String> {
-        let (work, attempt) = self.authority_facts(identity, fence)?;
-        let request = authority_bridge::request_for(
+        let facts = self.authority_facts(identity, fence)?;
+        let request = facts.request(
             ProtectedOperation::AttemptCancel,
-            &work,
-            &attempt,
+            identity.as_str(),
+            NO_EXPECTED_TARGET,
             &[cause],
             None,
         )?;

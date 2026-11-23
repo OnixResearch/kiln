@@ -3023,6 +3023,8 @@ version = "0.1.0"
 dependencies = [
  "basalt",
  "blake3",
+ "getrandom 0.3.4",
+ "kiln-adapter-basalt",
  "onix-kiln-core",
  "serde",
  "serde_json",
@@ -3593,6 +3595,7 @@ dependencies = [
  "blake3",
  "bounded-exec",
  "git2",
+ "kiln-adapter-basalt",
  "kiln-adapter-git",
  "kiln-provider-api",
  "onix-kiln-core",
@@ -3600,6 +3603,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+ "ucan",
 ]
 
 [[package]]

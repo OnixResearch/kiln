@@ -693,6 +693,27 @@ entry describes the source tree prepared for the first tagged release.
   comparison, and replay frozen synthetic cases (one changed, one prevented,
   one unchanged, two unavailable). (#93; pure-core, durable-store, CLI and
   Nickel-fixture tests; no captured agent plan or measured quality gain)
+- Verified implementation-authority composition. Every shell selects one
+  closed `kiln.implementation-authority-config.v1` profile through
+  `Implementer::select_authority`: `--authority-config FILE` (exported from
+  `config/implementation-authority.ncl`) or `--local-operator`, never both, and
+  an `authority_config` field in campaign drive and fleet profiles (native Git
+  requests remain `local_operator` only).
+  Neither selects `absent`, which denies every protected operation. The verified
+  UCAN profile composes the packaged or BLAKE3-pinned Basalt policy, static
+  Ed25519 keys, a bounded proof directory, deny-all caveats and three
+  role-separated holder keys (coordinator, verifier and publisher), each signing
+  its own operations with a fresh nonce. Replay, revocation and redacted
+  decisions persist in `<ledger>.authority`. Replay is insert-or-deny as the
+  final consuming step, and an absent or stale revocation view denies.
+  Protected payloads bind `kiln.implementation-authority-payload.v2`: operation,
+  incarnation, stable effect identity and expected target. Dispatch
+  reconciliation presents a fresh invocation for the original effect, and the
+  fence is re-read inside the transport transaction.
+  `kiln.implementation-authority-coverage.v2` classifies every entry point. The
+  runbook records which GitHub effects are remotely conditional; those
+  guarantees remain live-only qualification. (#69; no live GitHub or Basalt
+  deployment)
 
 ### Changed
 

@@ -13,6 +13,7 @@
 // allocation only on the denial path and break the single record-and-return shape.
 #![allow(clippy::result_large_err)]
 
+use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -21,7 +22,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::{ContentId, CoreResult, Diagnostic};
 
-pub const IMPLEMENTATION_AUTHORITY_SCHEMA: &str = "kiln.implementation-authority-coverage.v1";
+pub const IMPLEMENTATION_AUTHORITY_SCHEMA: &str = "kiln.implementation-authority-coverage.v2";
 pub const MAX_OWNER_PATH_BYTES: usize = 256;
 
 /// Closed protected implementation operations, one-to-one with the reviewed
@@ -197,7 +198,7 @@ pub const COVERAGE: [CoverageEntry; 9] = [
         operation: ProtectedOperation::CandidateSubmit,
         basalt_operation: "candidate-submit",
         owner: EnforcementBoundary::Campaign,
-        owner_path: "crates/kiln-implementer/src/campaign.rs",
+        owner_path: "crates/kiln-implementer/src/lib.rs",
         effect: AuthorityEffect::Mutation,
         candidate_bound: true,
     },
@@ -205,7 +206,7 @@ pub const COVERAGE: [CoverageEntry; 9] = [
         operation: ProtectedOperation::VerificationAdmit,
         basalt_operation: "verification-admit",
         owner: EnforcementBoundary::Verification,
-        owner_path: "crates/kiln-implementer/src/verification.rs",
+        owner_path: "crates/kiln-implementer/src/lib.rs",
         effect: AuthorityEffect::Mutation,
         candidate_bound: true,
     },
@@ -213,7 +214,7 @@ pub const COVERAGE: [CoverageEntry; 9] = [
         operation: ProtectedOperation::AttemptCancel,
         basalt_operation: "attempt-cancel",
         owner: EnforcementBoundary::Campaign,
-        owner_path: "crates/kiln-implementer/src/campaign.rs",
+        owner_path: "crates/kiln-implementer/src/lib.rs",
         effect: AuthorityEffect::Mutation,
         candidate_bound: false,
     },
@@ -352,6 +353,182 @@ const fn authority_effect(operation: ProtectedOperation) -> AuthorityEffect {
         ProtectedOperation::IntegrationLand => AuthorityEffect::Integration,
         ProtectedOperation::LifecycleComplete => AuthorityEffect::Lifecycle,
     }
+}
+
+mod entry_points;
+pub use entry_points::ENTRY_POINTS;
+
+/// Maximum bytes in one entry-point item name.
+pub const MAX_ENTRY_ITEM_BYTES: usize = 128;
+/// Maximum reviewed entry points.
+pub const MAX_ENTRY_POINTS: usize = 512;
+
+/// How one externally reachable entry point relates to protected authority.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EntryClass {
+    /// Admits a fresh exact invocation of the operation before its effect.
+    Protected(ProtectedOperation),
+    /// Records or re-observes the outcome of an effect already admitted under
+    /// the operation, bound to that effect's original identity. It never
+    /// starts a new effect; where it adopts a provider outcome it presents a
+    /// fresh invocation for the original effect identity.
+    Reconcile(ProtectedOperation),
+    /// Reads state only. It confers and consumes no authority.
+    ObservationOnly,
+    /// Operator-owned configuration, intake or ledger maintenance that the
+    /// deployment authenticates outside implementation authority.
+    OperatorConfig,
+}
+
+impl EntryClass {
+    /// Stable redacted class label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Protected(_) => "protected",
+            Self::Reconcile(_) => "reconcile",
+            Self::ObservationOnly => "observation-only",
+            Self::OperatorConfig => "operator-config",
+        }
+    }
+
+    /// Operation the class names, if any.
+    #[must_use]
+    pub const fn operation(self) -> Option<ProtectedOperation> {
+        match self {
+            Self::Protected(operation) | Self::Reconcile(operation) => Some(operation),
+            Self::ObservationOnly | Self::OperatorConfig => None,
+        }
+    }
+}
+
+/// One reviewed externally reachable entry point: an `Implementer` public
+/// function, an implementer CLI subcommand, a fleet API route or a web control
+/// route.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EntryPoint {
+    /// Repository path of the item.
+    pub path: &'static str,
+    /// Function name, subcommand or `METHOD route`.
+    pub item: &'static str,
+    /// Reviewed class.
+    pub class: EntryClass,
+}
+
+// r[impl kiln.implementation.authority.coverage.entry_points]
+/// Verify that an entry-point table is bounded, unique and covers every
+/// protected operation at its reviewed owner.
+///
+/// # Errors
+/// Returns a diagnostic for an empty or oversized table, an invalid path or
+/// item, a duplicate `(path, item)` pair, or a protected operation with no
+/// `Protected` entry at its coverage owner path.
+pub fn validate_entry_points(entries: &[EntryPoint]) -> CoreResult<()> {
+    if entries.is_empty() || entries.len() > MAX_ENTRY_POINTS {
+        return Err(Diagnostic::new(
+            "authority_entry_points_bound",
+            "entry_points",
+            "entry-point table must be non-empty and bounded",
+        ));
+    }
+    for (index, entry) in entries.iter().enumerate() {
+        if entry.path.is_empty()
+            || entry.path.len() > MAX_OWNER_PATH_BYTES
+            || entry.path.trim() != entry.path
+            || entry.item.is_empty()
+            || entry.item.len() > MAX_ENTRY_ITEM_BYTES
+            || entry.item.trim() != entry.item
+        {
+            return Err(Diagnostic::new(
+                "authority_entry_point_name",
+                "entry_points.item",
+                "entry point path and item must be bounded non-empty trimmed text",
+            ));
+        }
+        if entries
+            .iter()
+            .skip(index + 1)
+            .any(|other| other.path == entry.path && other.item == entry.item)
+        {
+            return Err(Diagnostic::new(
+                "authority_entry_point_duplicate",
+                "entry_points.item",
+                "entry point appears more than once",
+            ));
+        }
+    }
+    for operation in ProtectedOperation::ALL {
+        let owner = coverage(operation).owner_path;
+        if !entries
+            .iter()
+            .any(|entry| entry.path == owner && entry.class == EntryClass::Protected(operation))
+        {
+            return Err(Diagnostic::new(
+                "authority_entry_point_unowned",
+                "entry_points.class",
+                "every protected operation needs a protected entry at its owner path",
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// Domain of the canonical protected-payload digest.
+pub const IMPLEMENTATION_AUTHORITY_PAYLOAD_SCHEMA: &str =
+    "kiln.implementation-authority-payload.v2";
+/// Incarnation label before the attempt's first transport launch is recorded.
+pub const PRE_LAUNCH_INCARNATION: &str = "pre-launch";
+/// Domain of a worker incarnation identity.
+pub const INCARNATION_SCHEMA: &str = "kiln.implementation-incarnation.v1";
+
+/// BLAKE3 identity of one recorded transport launch: the worker incarnation
+/// bound into [`payload_digest_v2`]. Receivers recompute it from the launch.
+///
+/// # Errors
+/// Returns the content-identity diagnostic; it does not occur for a BLAKE3 digest.
+pub fn incarnation_identity(launch: &super::TransportLaunch) -> CoreResult<ContentId> {
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(INCARNATION_SCHEMA.as_bytes());
+    hash_authority_text(&mut hasher, &launch.lattice_program);
+    hash_authority_text(&mut hasher, launch.executable_blake3.as_str());
+    hash_authority_text(&mut hasher, &launch.state_directory);
+    ContentId::from_blake3_hex(hasher.finalize().to_hex().to_string())
+}
+
+/// Expected-target label for operations that change no remote target.
+pub const NO_EXPECTED_TARGET: &str = "none";
+
+// r[impl kiln.implementation.authority.payload]
+/// Canonical digest of one protected payload.
+///
+/// The digest binds the operation, the worker incarnation (the attempt's
+/// recorded transport launch, or [`PRE_LAUNCH_INCARNATION`]), the stable
+/// effect identity, the expected remote target state and the exact payload
+/// parts. Every field is length-framed; the receiving owner recomputes it from
+/// its own facts. A fresh invocation of the same effect reuses the effect
+/// identity; only its holder nonce differs.
+#[must_use]
+pub fn payload_digest_v2(
+    operation: ProtectedOperation,
+    incarnation: Option<&ContentId>,
+    effect: &str,
+    expected_target: &str,
+    parts: &[&str],
+) -> [u8; AUTHORITY_DIGEST_BYTES] {
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(IMPLEMENTATION_AUTHORITY_PAYLOAD_SCHEMA.as_bytes());
+    hash_authority_text(&mut hasher, operation.basalt_operation());
+    hash_authority_text(
+        &mut hasher,
+        incarnation.map_or(PRE_LAUNCH_INCARNATION, ContentId::as_str),
+    );
+    hash_authority_text(&mut hasher, effect);
+    hash_authority_text(&mut hasher, expected_target);
+    hasher.update(&(parts.len() as u64).to_be_bytes());
+    for part in parts {
+        hash_authority_text(&mut hasher, part);
+    }
+    *hasher.finalize().as_bytes()
 }
 
 /// Digest width used by authority request and decision identities.
@@ -494,6 +671,74 @@ impl core::fmt::Debug for AuthorityProfile {
                 .debug_struct("AuthorityProfile::LocalOperator")
                 .field("operator", operator)
                 .finish(),
+        }
+    }
+}
+
+// r[impl kiln.implementation.authority.selection]
+/// Shell port that signs one exact request as the holder of the request's
+/// role ([`GrantRole::of`](super::grant::GrantRole::of)).
+///
+/// Each call produces a single-use holder invocation with a fresh nonce over
+/// the exact canonical request. Role keys stay inside the implementation;
+/// a key for one role cannot sign another role's operations.
+pub trait HolderInvocationSigner {
+    /// Sign one exact request.
+    ///
+    /// # Errors
+    /// Returns a diagnostic when the role has no key or grant, or signing fails.
+    fn sign(&self, request: &AuthorityRequest) -> CoreResult<AuthorityCredential>;
+}
+
+/// Authority profile selected once at composition for every protected
+/// operation of one owner.
+pub enum AuthoritySelection {
+    /// No profile was selected. Every protected operation denies.
+    Absent,
+    /// The explicit local-operator compatibility profile.
+    LocalOperator {
+        /// Selected operator identity.
+        operator: String,
+    },
+    /// The verified UCAN profile. Every request is signed afresh.
+    Verified(Box<dyn HolderInvocationSigner>),
+}
+
+impl AuthoritySelection {
+    /// The presented profile for one exact request. A signer failure presents
+    /// no evidence, so the request denies as missing authority.
+    #[must_use]
+    pub fn profile_for(&self, request: &AuthorityRequest) -> AuthorityProfile {
+        match self {
+            Self::Absent => AuthorityProfile::Missing,
+            Self::LocalOperator { operator } => AuthorityProfile::LocalOperator {
+                operator: operator.clone(),
+            },
+            Self::Verified(signer) => signer
+                .sign(request)
+                .map_or(AuthorityProfile::Missing, AuthorityProfile::VerifiedUcan),
+        }
+    }
+
+    /// Stable redacted profile label.
+    #[must_use]
+    pub const fn label(&self) -> &'static str {
+        match self {
+            Self::Absent => "absent",
+            Self::LocalOperator { .. } => "local-operator",
+            Self::Verified(_) => "verified-ucan",
+        }
+    }
+}
+
+impl core::fmt::Debug for AuthoritySelection {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::LocalOperator { operator } => formatter
+                .debug_struct("AuthoritySelection::LocalOperator")
+                .field("operator", operator)
+                .finish(),
+            Self::Absent | Self::Verified(_) => formatter.write_str(self.label()),
         }
     }
 }

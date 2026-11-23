@@ -103,15 +103,16 @@ fn run() -> Result<(), ()> {
         Ok(enrollment) => enrollment,
         Err(error) => return fail(&error),
     };
-    let mut implementer = match Implementer::open(&database, enrollment) {
+    let implementer = Implementer::open_with_authority(
+        &database,
+        enrollment,
+        flags.get("--local-operator").map(String::as_str),
+        flags.get("--authority-config").map(std::path::Path::new),
+    );
+    let mut implementer = match implementer {
         Ok(implementer) => implementer,
         Err(error) => return fail(&error),
     };
-    if let Some(operator) = flags.get("--local-operator")
-        && let Err(error) = implementer.select_local_operator(operator.clone())
-    {
-        return fail(&error);
-    }
     let work = match implementer.work() {
         Ok(work) => work,
         Err(error) => return fail(&error),

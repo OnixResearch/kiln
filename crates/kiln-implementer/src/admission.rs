@@ -3,7 +3,7 @@
 //! No second database, claim or physical resource ledger is created.
 use crate::{ATTEMPT_KIND, Implementer, WORK_KIND, diagnostic, load, save, text};
 use kiln_core::fair_admission::*;
-use kiln_core::implementation::authority::{AuthorityProfile, ProtectedAuthority};
+use kiln_core::implementation::authority::{AuthoritySelection, ProtectedAuthority};
 use kiln_core::implementation::{AttemptLedger, Eligibility, ImplementationAttempt, WorkLedger};
 use kiln_core::types::{ContentId, Diagnostic, ProviderProfileId};
 use rusqlite::TransactionBehavior;
@@ -252,6 +252,10 @@ impl Implementer {
         let (work, _) = load::<WorkLedger>(&tx, WORK_KIND)?;
         let (mut attempts, attempt_version) = load::<AttemptLedger>(&tx, ATTEMPT_KIND)?;
         let (mut ledger, version) = load::<AdmissionLedger>(&tx, ADMISSION_KIND)?;
+        let (launches, _) = load::<kiln_core::implementation::TransportLaunches>(
+            &tx,
+            crate::TRANSPORT_LAUNCH_KIND,
+        )?;
         let authority_slot = &mut self.authority;
         let authority_profile = &self.authority_profile;
         let result = (|| -> Result<AdmissionResult, Diagnostic> {
@@ -573,10 +577,27 @@ impl Implementer {
                                 .is_ok_and(|identity| identity == reservation.work_version)
                         })
                         .ok_or_else(|| refusal("reservation work missing"))?;
+                    // The stable effect is the attempt's dispatch reservation
+                    // when one exists, else this owner reservation.
+                    let effect = reservation_attempt
+                        .dispatch
+                        .as_ref()
+                        .map_or(reservation.operation.as_str(), |dispatch| {
+                            dispatch.effect_id.as_str()
+                        });
+                    let incarnation = super::authority_bridge::incarnation(
+                        launches.recall(&reservation_attempt.identity).as_ref(),
+                    );
                     let request = super::authority_bridge::request_for(
                         kiln_core::implementation::authority::ProtectedOperation::Dispatch,
                         reservation_work,
                         reservation_attempt,
+                        super::authority_bridge::PayloadBinding {
+                            incarnation: incarnation.as_ref(),
+                            effect,
+                            expected_target:
+                                kiln_core::implementation::authority::NO_EXPECTED_TARGET,
+                        },
                         &[reservation.operation.as_str()],
                         None,
                     )
@@ -663,16 +684,22 @@ impl Implementer {
         fresh: &[EligibilityInput],
         now_ms: u64,
     ) -> Result<(), String> {
-        let (work_facts, attempt_facts) = self.authority_facts(attempt, fence)?;
-        let plan = attempt_facts
+        let facts = self.authority_facts(attempt, fence)?;
+        let plan = facts
+            .attempt
             .dispatch
             .as_ref()
             .map(|dispatch| dispatch.plan.as_str())
             .unwrap_or_default();
-        let request = super::authority_bridge::request_for(
+        let effect = facts
+            .attempt
+            .dispatch
+            .as_ref()
+            .map_or(attempt.as_str(), |dispatch| dispatch.effect_id.as_str());
+        let request = facts.request(
             kiln_core::implementation::authority::ProtectedOperation::Dispatch,
-            &work_facts,
-            &attempt_facts,
+            effect,
+            kiln_core::implementation::authority::NO_EXPECTED_TARGET,
             &[plan],
             None,
         )?;
@@ -685,6 +712,13 @@ impl Implementer {
             .map_err(text)?;
         let (work, _) = load::<WorkLedger>(&tx, WORK_KIND)?;
         let (attempts, _) = load::<AttemptLedger>(&tx, ATTEMPT_KIND)?;
+        // r[impl kiln.implementation.authority.interleaving]
+        // The fence is re-read inside this transaction: a change committed
+        // after the authority check above refuses transport with or without
+        // an admission policy.
+        if !attempts.is_current(attempt, fence, now_ms) {
+            return Err("admission: stale attempt/fence".to_string());
+        }
         let (mut ledger, version) = load::<AdmissionLedger>(&tx, ADMISSION_KIND)?;
         let Some(policy) = ledger.policy.as_ref() else {
             tx.commit().map_err(text)?;
@@ -1152,7 +1186,7 @@ fn eligible_inputs(
 fn authorize_claim(
     work: &WorkLedger,
     authority: &mut Option<Box<dyn ProtectedAuthority>>,
-    profile: &AuthorityProfile,
+    profile: &AuthoritySelection,
     attempt: Option<&ImplementationAttempt>,
     payload: &[&str],
     now_ms: u64,
@@ -1164,6 +1198,11 @@ fn authorize_claim(
         work,
         attempt,
         kiln_core::implementation::authority::ProtectedOperation::ClaimAcquire,
+        super::authority_bridge::PayloadBinding {
+            incarnation: None,
+            effect: attempt.identity.as_str(),
+            expected_target: kiln_core::implementation::authority::NO_EXPECTED_TARGET,
+        },
         payload,
         None,
     )

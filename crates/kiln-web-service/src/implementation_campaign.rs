@@ -122,20 +122,27 @@ struct ImplementationCampaignDriveProfile {
     /// Explicit local-operator profile selection for protected campaign effects.
     #[serde(default)]
     pub local_operator: Option<String>,
+    /// Exported `kiln.implementation-authority-config.v1`; exclusive with
+    /// `local_operator`.
+    #[serde(default)]
+    pub authority_config: Option<PathBuf>,
 }
 impl ImplementationCampaignDriveProfile {
-    /// Select the explicitly configured local-operator profile, if any.
+    /// Select the configured authority profile through the one composition
+    /// helper; neither field selects the absent profile.
     ///
     /// # Errors
-    /// Returns a message when the operator identity is invalid.
+    /// Returns a message when the selection is invalid.
     pub(super) fn configure_authority(
         &self,
         implementer: &mut kiln_implementer::Implementer,
     ) -> Result<(), String> {
-        if let Some(operator) = &self.local_operator {
-            implementer.select_local_operator(operator.clone())?;
-        }
-        Ok(())
+        implementer.select_authority(
+            &kiln_implementer::authority_config::ImplementationAuthorityConfig::resolve(
+                self.local_operator.as_deref(),
+                self.authority_config.as_deref(),
+            )?,
+        )
     }
 
     pub fn validate(&self) -> Result<(), String> {

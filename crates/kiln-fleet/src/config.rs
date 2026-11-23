@@ -77,6 +77,10 @@ pub struct FleetConfig {
     /// Explicit local-operator profile for protected implementation effects.
     #[serde(default)]
     pub authority_operator: Option<String>,
+    /// Exported `kiln.implementation-authority-config.v1`; exclusive with
+    /// `authority_operator`.
+    #[serde(default)]
+    pub authority_config: Option<PathBuf>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
