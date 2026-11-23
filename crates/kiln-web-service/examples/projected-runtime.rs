@@ -50,14 +50,14 @@ use kiln_core::implementation::{
     acceptance_digest,
 };
 use kiln_core::monorepo::{GraphFacts, ProjectInput, ProjectScope, admit_scope};
-use kiln_core::projection::build_inputs::{BuildInputPlan, BuildProfile, BuildRequest, plan_cargo, plan_nix};
+use kiln_core::projection::build_inputs::{
+    BuildInputPlan, BuildProfile, BuildRequest, plan_cargo, plan_nix,
+};
 use kiln_core::projection::materialization::{
     MATERIALIZER_PROFILE_SCHEMA, MaterializerKind, MaterializerProfile, ProjectedWorkspaceRoute,
     RouteRequest, plan, route,
 };
-use kiln_core::projection::writeback::{
-    Captured, CurrentAttempt, candidate_facts, capture,
-};
+use kiln_core::projection::writeback::{Captured, CurrentAttempt, candidate_facts, capture};
 use kiln_core::projection::{
     ComponentVersion, Coverage, EntryKind, ProjectionDefinition, ProjectionFacts,
     ProjectionOperation, ProjectionProfile, ProviderBinding, RepositoryEnrollment,
@@ -230,7 +230,10 @@ fn run() -> Result<bool> {
         nix: fs::canonicalize(flag("--nix")?)?,
         out: flag("--out")?,
         probe: PathBuf::new(),
-        path: format!("{}:{path}", flag("--nix")?.parent().ok_or("nix path")?.display()),
+        path: format!(
+            "{}:{path}",
+            flag("--nix")?.parent().ok_or("nix path")?.display()
+        ),
         scratch,
     };
     programs.probe = probe(&programs)?;
@@ -243,11 +246,24 @@ fn run() -> Result<bool> {
         (CARGO_CORPUS, cargo_writable as fn(&str) -> Vec<String>),
         (NIX_CORPUS, nix_writable as fn(&str) -> Vec<String>),
     ] {
-        let corpus = read_corpus(Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").join(corpus_path))?;
+        let corpus = read_corpus(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../..")
+                .join(corpus_path),
+        )?;
         for case in corpus.cases.iter().filter(|case| {
-            matches!(case.id.as_str(), "alpha-tests" | "beta-tests" | "nix-alpha" | "nix-beta")
+            matches!(
+                case.id.as_str(),
+                "alpha-tests" | "beta-tests" | "nix-alpha" | "nix-beta"
+            )
         }) {
-            let receipt = qualify(&programs, &corpus, case, &writable_of(&case.id), endpoint_port)?;
+            let receipt = qualify(
+                &programs,
+                &corpus,
+                case,
+                &writable_of(&case.id),
+                endpoint_port,
+            )?;
             passed &= receipt.negatives_denied
                 // `beta-tests` reads a file of alpha's package that no
                 // manifest declares; the route does not hold it, so the
@@ -256,7 +272,7 @@ fn run() -> Result<bool> {
                 && (receipt.command_exit == Some(0)) != (case.id == "beta-tests")
                 && receipt.dispatch.get("exit").and_then(Value::as_i64).is_some()
                 && receipt.refused_dispatches.iter().all(|refusal| {
-                    refusal.get("exit").and_then(Value::as_i64) != Some(0)
+                    refusal.pointer("/outcome/exit").and_then(Value::as_i64) != Some(0)
                 })
                 && receipt.host_checks.iter().all(|check| check["ok"] == true);
             receipts.push(receipt);
@@ -287,7 +303,11 @@ fn run() -> Result<bool> {
 }
 
 fn cargo_writable(case: &str) -> Vec<String> {
-    let project = if case.starts_with("alpha") { "alpha" } else { "beta" };
+    let project = if case.starts_with("alpha") {
+        "alpha"
+    } else {
+        "beta"
+    };
     vec![format!("projects/{project}/src"), "shared/proto/src".into()]
 }
 
@@ -330,7 +350,12 @@ fn probe(programs: &Programs) -> Result<PathBuf> {
     )?;
     fs::set_permissions(&script, fs::Permissions::from_mode(0o755))?;
     let output = Command::new(&programs.nix)
-        .args(["--extra-experimental-features", "nix-command", "store", "add-path"])
+        .args([
+            "--extra-experimental-features",
+            "nix-command",
+            "store",
+            "add-path",
+        ])
         .arg(&directory)
         .output()?;
     if !output.status.success() {
@@ -400,7 +425,10 @@ fn command(program: &Path, args: &[&std::ffi::OsStr]) -> Result<(i64, String, St
 }
 
 /// Commit the corpus at a fixed time, with every file also in the checkout.
-fn commit(checkout: &Path, corpus: &Corpus) -> Result<(Repository, Oid, Oid, BTreeMap<String, Oid>)> {
+fn commit(
+    checkout: &Path,
+    corpus: &Corpus,
+) -> Result<(Repository, Oid, Oid, BTreeMap<String, Oid>)> {
     let repository = Repository::init(checkout)?;
     let mut objects = BTreeMap::new();
     let mut update = TreeUpdateBuilder::new();
@@ -410,7 +438,11 @@ fn commit(checkout: &Path, corpus: &Corpus) -> Result<(Repository, Oid, Oid, BTr
             fs::create_dir_all(parent)?;
         }
         fs::write(&path, &file.text)?;
-        let mode = if file.executable { FileMode::BlobExecutable } else { FileMode::Blob };
+        let mode = if file.executable {
+            FileMode::BlobExecutable
+        } else {
+            FileMode::Blob
+        };
         let oid = repository.blob(file.text.as_bytes())?;
         update.upsert(file.path.as_str(), oid, mode);
         objects.insert(file.path.clone(), oid);
@@ -441,12 +473,18 @@ fn facts(
         .files
         .iter()
         .map(|file| -> Result<SourceEntry> {
-            let oid = objects.get(&file.path).ok_or("a corpus file has no object")?;
+            let oid = objects
+                .get(&file.path)
+                .ok_or("a corpus file has no object")?;
             Ok(SourceEntry {
                 path: file.path.clone(),
                 object: ExternalRef::new("git", "blob", &oid.to_string())
                     .map_err(|error| error.message)?,
-                kind: if file.executable { EntryKind::Executable } else { EntryKind::File },
+                kind: if file.executable {
+                    EntryKind::Executable
+                } else {
+                    EntryKind::File
+                },
             })
         })
         .collect::<Result<Vec<_>>>()?;
@@ -455,8 +493,14 @@ fn facts(
         exact_revision: ExternalRef::new("git", "commit", &revision.to_string())
             .map_err(|error| error.message)?,
         canonical_tree: content(&tree.to_string())?,
-        evaluator: ComponentVersion { name: "kiln-projection".into(), version: "1".into() },
-        adapter: ComponentVersion { name: "git-source".into(), version: "1".into() },
+        evaluator: ComponentVersion {
+            name: "kiln-projection".into(),
+            version: "1".into(),
+        },
+        adapter: ComponentVersion {
+            name: "git-source".into(),
+            version: "1".into(),
+        },
         source_capabilities: vec![
             SourceCapability::ExactTree,
             SourceCapability::ExecutableBit,
@@ -502,7 +546,10 @@ fn work(base: Oid, case: &str, writable: &[String]) -> Result<ImplementationWork
         permitted_paths: writable.to_vec(),
         permitted_effects: BTreeSet::from(["write_source".to_string()]),
         verification_profile: content("projected-runtime-verification")?,
-        budget: WorkBudget { attempts: 3, minutes_per_attempt: DEADLINE_MINUTES },
+        budget: WorkBudget {
+            attempts: 3,
+            minutes_per_attempt: DEADLINE_MINUTES,
+        },
         terminal_policy: TerminalPolicy::VerifiedPullRequest,
         priority: 1,
         aliases: vec![SourceRef {
@@ -515,7 +562,11 @@ fn work(base: Oid, case: &str, writable: &[String]) -> Result<ImplementationWork
 }
 
 /// Admit, set up the fixture's local admission, and claim one attempt.
-fn claim(directory: &Path, programs: &Programs, work: &ImplementationWork) -> Result<(PathBuf, PathBuf, ImplementationAttempt)> {
+fn claim(
+    directory: &Path,
+    programs: &Programs,
+    work: &ImplementationWork,
+) -> Result<(PathBuf, PathBuf, ImplementationAttempt)> {
     let enrollment = Enrollment {
         repositories: BTreeSet::from([REPOSITORY.to_string()]),
         actors: BTreeSet::from(["operator".to_string()]),
@@ -528,7 +579,13 @@ fn claim(directory: &Path, programs: &Programs, work: &ImplementationWork) -> Re
     drop(owner);
     let (exit, _, stderr) = command(
         &programs.fixture,
-        &["prepare-intake".as_ref(), "--database".as_ref(), database.as_os_str(), "--enrollment".as_ref(), enrollment_file.as_os_str()],
+        &[
+            "prepare-intake".as_ref(),
+            "--database".as_ref(),
+            database.as_os_str(),
+            "--enrollment".as_ref(),
+            enrollment_file.as_os_str(),
+        ],
     )?;
     if exit != 0 {
         return Err(format!("prepare-intake failed: {stderr}").into());
@@ -538,9 +595,21 @@ fn claim(directory: &Path, programs: &Programs, work: &ImplementationWork) -> Re
     // compatibility profile, as `kiln-lattice-dispatch --local-operator` does.
     owner.select_local_operator(OPERATOR)?;
     let now = now_ms()?;
-    let inputs: Vec<EligibilityInput> = owner.admission_snapshot()?.eligibility.into_values().collect();
-    match owner.admission_apply(AdmissionCommand::Claim { inputs, lease_ms: LEASE_MS }, now)? {
-        AdmissionResult::Claimed { attempt: Some(attempt) } => Ok((database, enrollment_file, *attempt)),
+    let inputs: Vec<EligibilityInput> = owner
+        .admission_snapshot()?
+        .eligibility
+        .into_values()
+        .collect();
+    match owner.admission_apply(
+        AdmissionCommand::Claim {
+            inputs,
+            lease_ms: LEASE_MS,
+        },
+        now,
+    )? {
+        AdmissionResult::Claimed {
+            attempt: Some(attempt),
+        } => Ok((database, enrollment_file, *attempt)),
         other => Err(format!("claim did not produce an attempt: {other:?}").into()),
     }
 }
@@ -555,7 +624,11 @@ fn qualify(
 ) -> Result<CaseReceipt> {
     // Short names keep Lattice's broker socket, below the state root, within
     // the 108-byte UNIX socket path bound.
-    let short: String = case.id.split('-').filter_map(|part| part.chars().next()).collect();
+    let short: String = case
+        .id
+        .split('-')
+        .filter_map(|part| part.chars().next())
+        .collect();
     let directory = programs.scratch.join(short);
     fs::create_dir(&directory)?;
     fs::set_permissions(&directory, fs::Permissions::from_mode(PRIVATE_DIRECTORY))?;
@@ -566,10 +639,16 @@ fn qualify(
             repository_id: "projected-runtime-corpus".into(),
             binding: ProviderBinding {
                 source_provider: ProviderProfileId::new("git-source-v1").map_err(|e| e.message)?,
-                native_repository: ExternalRef::new("git", "repository", "projected-runtime-corpus")
-                    .map_err(|e| e.message)?,
+                native_repository: ExternalRef::new(
+                    "git",
+                    "repository",
+                    "projected-runtime-corpus",
+                )
+                .map_err(|e| e.message)?,
             },
-            locators: vec![RepositoryLocator::LocalPath { path: checkout.to_string_lossy().into_owned() }],
+            locators: vec![RepositoryLocator::LocalPath {
+                path: checkout.to_string_lossy().into_owned(),
+            }],
         }],
         &[],
     )
@@ -613,7 +692,10 @@ fn qualify(
     let profile = MaterializerProfile {
         schema: MATERIALIZER_PROFILE_SCHEMA.into(),
         kind: MaterializerKind::EagerLocalDirectory,
-        materializer: ComponentVersion { name: "kiln-eager-local".into(), version: "1".into() },
+        materializer: ComponentVersion {
+            name: "kiln-eager-local".into(),
+            version: "1".into(),
+        },
         platform: TargetProfile::POSIX,
     };
     let materialized = plan(&write, &profile).map_err(diagnostics)?;
@@ -645,7 +727,8 @@ fn qualify(
     let unix_socket = directory.join("host.sock");
     let _unix = UnixListener::bind(&unix_socket)?;
     let abstract_name = format!("kiln-projected-runtime-{}-{}", std::process::id(), case.id);
-    let _abstract = UnixListener::bind_addr(&SocketAddr::from_abstract_name(abstract_name.as_bytes())?)?;
+    let _abstract =
+        UnixListener::bind_addr(&SocketAddr::from_abstract_name(abstract_name.as_bytes())?)?;
     let tcp = std::net::TcpListener::bind("127.0.0.1:0")?;
     let tcp_port = tcp.local_addr()?.port();
     let shared = &corpus.shared_edit;
@@ -663,7 +746,12 @@ fn qualify(
         .inputs()
         .iter()
         .map(|input| input.path.clone())
-        .find(|path| !routed.write_paths.iter().any(|write| path == write || path.starts_with(&format!("{write}/"))))
+        .find(|path| {
+            !routed
+                .write_paths
+                .iter()
+                .any(|write| path == write || path.starts_with(&format!("{write}/")))
+        })
         .ok_or("no read-only planned input")?;
     let mut prompt = vec![
         format!("socat={}", programs.socat.display()),
@@ -681,7 +769,10 @@ fn qualify(
         checkout.join(".git/HEAD"),
         checkout.clone(),
         PathBuf::from("/workspace/.git"),
-        store.join("inputs").join(pin.input.as_str()).join(&read_only),
+        store
+            .join("inputs")
+            .join(pin.input.as_str())
+            .join(&read_only),
         store.clone(),
         overlay.join(&read_only),
         PathBuf::from("/nix/var/nix/daemon-socket/socket"),
@@ -699,13 +790,18 @@ fn qualify(
         prompt.push(format!("deny_write={target}"));
     }
     if let Some(top) = routed.read_paths.first() {
-        prompt.push(format!("deny_write=/workspace/{top}/probe-outside-write-paths"));
+        prompt.push(format!(
+            "deny_write=/workspace/{top}/probe-outside-write-paths"
+        ));
     }
     prompt.push(format!("deny_unix={}", unix_socket.display()));
     prompt.push(format!("deny_abstract={abstract_name}"));
     prompt.push(format!("deny_tcp={tcp_port}"));
     if let Some(creation) = &creation {
-        prompt.push(format!("deny_link=/workspace/{creation}|{}", checkout.join(".git").display()));
+        prompt.push(format!(
+            "deny_link=/workspace/{creation}|{}",
+            checkout.join(".git").display()
+        ));
     }
     prompt.push("run".into());
     for (path, text) in &edits {
@@ -740,13 +836,20 @@ fn qualify(
     )?;
     let dispatch = |request: &Path, route: Option<&Path>| -> Result<Value> {
         let mut args: Vec<&std::ffi::OsStr> = vec![
-            "--database".as_ref(), database.as_os_str(),
-            "--enrollment".as_ref(), enrollment_file.as_os_str(),
-            "--dispatch-plan".as_ref(), plan_file.as_os_str(),
-            "--worker-request".as_ref(), request.as_os_str(),
-            "--worker-transport-profile".as_ref(), transport.as_os_str(),
-            "--admission-observations".as_ref(), observations_file.as_os_str(),
-            "--local-operator".as_ref(), OPERATOR.as_ref(),
+            "--database".as_ref(),
+            database.as_os_str(),
+            "--enrollment".as_ref(),
+            enrollment_file.as_os_str(),
+            "--dispatch-plan".as_ref(),
+            plan_file.as_os_str(),
+            "--worker-request".as_ref(),
+            request.as_os_str(),
+            "--worker-transport-profile".as_ref(),
+            transport.as_os_str(),
+            "--admission-observations".as_ref(),
+            observations_file.as_os_str(),
+            "--local-operator".as_ref(),
+            OPERATOR.as_ref(),
         ];
         if let Some(route) = route {
             args.push("--projected-workspace-route".as_ref());
@@ -767,7 +870,10 @@ fn qualify(
     for (label, change) in [
         ("write_paths_widened", json!({"write_paths": widened_paths})),
         ("read_paths_widened", json!({"read_paths": with_git})),
-        ("workspace_root_moved", json!({"workspace_root": routed.input_root})),
+        (
+            "workspace_root_moved",
+            json!({"workspace_root": routed.input_root}),
+        ),
     ] {
         let mut changed = request.clone();
         if let (Some(fields), Some(change)) = (changed.as_object_mut(), change.as_object()) {
@@ -777,13 +883,11 @@ fn qualify(
         }
         let file = directory.join(format!("request-{label}.json"));
         write_json(&file, &changed)?;
-        let mut outcome = dispatch(&file, Some(&route_file))?;
-        outcome["case"] = json!(label);
-        refused_dispatches.push(outcome);
+        let outcome = dispatch(&file, Some(&route_file))?;
+        refused_dispatches.push(json!({"case": label, "outcome": outcome}));
     }
-    let mut missing = dispatch(&request_file, None)?;
-    missing["case"] = json!("route_missing");
-    refused_dispatches.push(missing);
+    let missing = dispatch(&request_file, None)?;
+    refused_dispatches.push(json!({"case": "route_missing", "outcome": missing}));
 
     let read_only_before = fs::read(overlay.join(&read_only))?;
     let dispatched = dispatch(&request_file, Some(&route_file))?;
@@ -794,7 +898,12 @@ fn qualify(
         .and_then(|event| event["exit"].as_i64());
     let negatives: Vec<&Value> = observations
         .iter()
-        .filter(|event| matches!(event["probe"].as_str(), Some("read" | "write" | "unix" | "abstract" | "tcp" | "link")))
+        .filter(|event| {
+            matches!(
+                event["probe"].as_str(),
+                Some("read" | "write" | "unix" | "abstract" | "tcp" | "link")
+            )
+        })
         .collect();
     let positive_read = format!("/workspace/{read_only}");
     let negatives_denied = !negatives.is_empty()
@@ -824,7 +933,10 @@ fn qualify(
         &pin,
         &observed,
         &[],
-        CurrentAttempt { source: &source, fence: attempt.fence },
+        CurrentAttempt {
+            source: &source,
+            fence: attempt.fence,
+        },
     )
     .map_err(diagnostics)?;
     let capture = match captured {
@@ -835,12 +947,16 @@ fn qualify(
                 .map(|project| -> Result<ProjectInput> {
                     Ok(ProjectInput {
                         project_id: project.id.clone(),
-                        scope: Some(admit_scope(&project.id, &project.scope).map_err(|e| format!("{e:?}"))?),
+                        scope: Some(
+                            admit_scope(&project.id, &project.scope)
+                                .map_err(|e| format!("{e:?}"))?,
+                        ),
                     })
                 })
                 .collect::<Result<Vec<_>>>()?;
             let graphs: Vec<GraphFacts> = vec![graph];
-            let facts = candidate_facts(&sealed, Some(&build_plan), &projects, &graphs).map_err(diagnostics)?;
+            let facts = candidate_facts(&sealed, Some(&build_plan), &projects, &graphs)
+                .map_err(diagnostics)?;
             json!({"sealed": sealed, "facts": facts})
         }
         Captured::Conflict(conflict) => json!({"conflict": conflict}),
@@ -938,7 +1054,14 @@ fn bind(
     let prepared = directory.join("request-probe.json");
     let (exit, _, stderr) = command(
         &programs.lattice,
-        &["implementation-attempt".as_ref(), "prepare".as_ref(), "--request".as_ref(), seed_file.as_os_str(), "--output".as_ref(), prepared.as_os_str()],
+        &[
+            "implementation-attempt".as_ref(),
+            "prepare".as_ref(),
+            "--request".as_ref(),
+            seed_file.as_os_str(),
+            "--output".as_ref(),
+            prepared.as_os_str(),
+        ],
     )?;
     if exit != 0 {
         return Err(format!("lattice prepare failed: {stderr}").into());
@@ -961,7 +1084,11 @@ fn bind(
         provider_profile: ProviderProfileId::new("scripted-local-omp").map_err(|e| e.message)?,
         permitted_paths: work.permitted_paths.clone(),
         permitted_effects: work.permitted_effects.clone(),
-        controls: DispatchControls { cancel: true, pause: false, resume: false },
+        controls: DispatchControls {
+            cancel: true,
+            pause: false,
+            resume: false,
+        },
         deadline_minutes: DEADLINE_MINUTES,
         token_budget: TOKEN_BUDGET,
         invocation_budget: u32::try_from(MAX_TURNS)?,
@@ -975,13 +1102,20 @@ fn bind(
         &programs.fixture,
         &[
             "bind-execution".as_ref(),
-            "--database".as_ref(), database.as_os_str(),
-            "--enrollment".as_ref(), enrollment.as_os_str(),
-            "--attempt".as_ref(), attempt.identity.as_str().as_ref(),
-            "--fence".as_ref(), attempt.fence.to_string().as_ref(),
-            "--worker-request".as_ref(), prepared.as_os_str(),
-            "--dispatch-plan-template".as_ref(), template.as_os_str(),
-            "--projected-workspace-route".as_ref(), route_file.as_os_str(),
+            "--database".as_ref(),
+            database.as_os_str(),
+            "--enrollment".as_ref(),
+            enrollment.as_os_str(),
+            "--attempt".as_ref(),
+            attempt.identity.as_str().as_ref(),
+            "--fence".as_ref(),
+            attempt.fence.to_string().as_ref(),
+            "--worker-request".as_ref(),
+            prepared.as_os_str(),
+            "--dispatch-plan-template".as_ref(),
+            template.as_os_str(),
+            "--projected-workspace-route".as_ref(),
+            route_file.as_os_str(),
         ],
     )?;
     if exit != 0 {
@@ -992,19 +1126,31 @@ fn bind(
         return Err("bind-execution did not emit the bound route".into());
     }
     let planned_seed = directory.join("seed-planned.json");
-    write_json(&planned_seed, &bound["worker_seed"])?;
+    let field = |name: &str| {
+        bound
+            .get(name)
+            .ok_or_else(|| format!("bind-execution omitted {name}"))
+    };
+    write_json(&planned_seed, field("worker_seed")?)?;
     let request = directory.join("request.json");
     let (exit, _, stderr) = command(
         &programs.lattice,
-        &["implementation-attempt".as_ref(), "prepare".as_ref(), "--request".as_ref(), planned_seed.as_os_str(), "--output".as_ref(), request.as_os_str()],
+        &[
+            "implementation-attempt".as_ref(),
+            "prepare".as_ref(),
+            "--request".as_ref(),
+            planned_seed.as_os_str(),
+            "--output".as_ref(),
+            request.as_os_str(),
+        ],
     )?;
     if exit != 0 {
         return Err(format!("lattice prepare of the planned seed failed: {stderr}").into());
     }
     let plan_file = directory.join("plan.json");
-    write_json(&plan_file, &bound["dispatch_plan"])?;
+    write_json(&plan_file, field("dispatch_plan")?)?;
     let observations = directory.join("observations.json");
-    write_json(&observations, &bound["admission_observations"])?;
+    write_json(&observations, field("admission_observations")?)?;
     Ok((request, plan_file, observations))
 }
 
@@ -1013,12 +1159,17 @@ fn retained_events(state: &Path) -> Result<Vec<Value>> {
     let mut events = Vec::new();
     let mut pending = vec![state.to_path_buf()];
     while let Some(directory) = pending.pop() {
-        let Ok(entries) = fs::read_dir(&directory) else { continue };
+        let Ok(entries) = fs::read_dir(&directory) else {
+            continue;
+        };
         for entry in entries {
             let path = entry?.path();
             if path.is_dir() {
                 pending.push(path);
-            } else if path.file_name().is_some_and(|name| name == "raw-events.jsonl") {
+            } else if path
+                .file_name()
+                .is_some_and(|name| name == "raw-events.jsonl")
+            {
                 for line in fs::read_to_string(&path)?.lines() {
                     if let Ok(event) = serde_json::from_str::<Value>(line)
                         && event.get("probe").is_some()
@@ -1036,14 +1187,15 @@ fn base64(bytes: &[u8]) -> String {
     const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let mut encoded = String::new();
     for chunk in bytes.chunks(3) {
-        let triple = chunk
-            .iter()
-            .enumerate()
-            .fold(0u32, |acc, (index, byte)| acc | (u32::from(*byte) << (16 - 8 * index)));
+        let triple = chunk.iter().enumerate().fold(0u32, |acc, (index, byte)| {
+            acc | (u32::from(*byte) << (16 - 8 * index))
+        });
         for index in 0..4 {
             if index <= chunk.len() {
                 let sextet = (triple >> (18 - 6 * index)) & 0x3f;
-                encoded.push(char::from(ALPHABET.get(sextet as usize).copied().unwrap_or(b'A')));
+                encoded.push(char::from(
+                    ALPHABET.get(sextet as usize).copied().unwrap_or(b'A'),
+                ));
             } else {
                 encoded.push('=');
             }

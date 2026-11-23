@@ -736,10 +736,25 @@ fn a_route_binds_only_the_build_plan_of_its_own_manifest() {
             build_plan: Some(build_plan),
         }
     }
-    let routed = ok(route(&admitted, &alpha, &materialized, &pin, request(&build)));
+    let routed = ok(route(
+        &admitted,
+        &alpha,
+        &materialized,
+        &pin,
+        request(&build),
+    ));
     assert_eq!(routed.build_plan.as_ref(), Some(build.identity()));
     assert!(routed.write_paths.is_empty());
     let whole = ok(plan_alpha(&view(&WORKSPACE), &glob_layout()));
-    let crossed = refused(route(&admitted, &alpha, &materialized, &pin, request(&whole)));
-    assert_eq!(codes(&crossed), BTreeSet::from(["route_build_plan_mismatch"]));
+    let crossed = refused(route(
+        &admitted,
+        &alpha,
+        &materialized,
+        &pin,
+        request(&whole),
+    ));
+    assert_eq!(
+        codes(&crossed),
+        BTreeSet::from(["route_build_plan_mismatch"])
+    );
 }

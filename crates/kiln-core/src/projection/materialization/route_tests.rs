@@ -131,7 +131,8 @@ struct View {
 
 fn view_for(definition: &ProjectionDefinition, operation: ProjectionOperation) -> View {
     let definition = ok(admit_definition(definition));
-    let complete = ok(ok(resolve(&definition, &repository(), &facts())).require_complete(operation));
+    let complete =
+        ok(ok(resolve(&definition, &repository(), &facts())).require_complete(operation));
     let profile = MaterializerProfile {
         schema: MATERIALIZER_PROFILE_SCHEMA.into(),
         kind: MaterializerKind::EagerLocalDirectory,
@@ -175,7 +176,10 @@ fn strings(paths: &[&str]) -> Vec<String> {
 #[test]
 fn a_write_route_grants_only_writable_origins_and_creation_destinations() {
     let view = view_for(&writable(), ProjectionOperation::Write);
-    let derived = ok(derive(&view, &["projects/alpha/src", "shared/proto/lib.rs"]));
+    let derived = ok(derive(
+        &view,
+        &["projects/alpha/src", "shared/proto/lib.rs"],
+    ));
     assert_eq!(derived.schema, WORKSPACE_ROUTE_SCHEMA);
     assert_eq!(derived.runtime, LATTICE_BWRAP_RUNTIME);
     assert_eq!(
@@ -211,7 +215,13 @@ fn a_write_route_grants_only_writable_origins_and_creation_destinations() {
         &derived.write_paths
     ));
     // Derivation is reproducible and the identity follows the grant.
-    assert_eq!(ok(derive(&view, &["projects/alpha/src", "shared/proto/lib.rs"])), derived);
+    assert_eq!(
+        ok(derive(
+            &view,
+            &["projects/alpha/src", "shared/proto/lib.rs"]
+        )),
+        derived
+    );
     let narrower = ok(derive(&view, &["projects/alpha/src"]));
     assert_ne!(narrower.identity, derived.identity);
     assert_eq!(
@@ -334,9 +344,8 @@ fn unsafe_or_crossed_route_requests_are_refused() {
 fn a_recorded_route_verifies_only_unchanged() {
     let view = view_for(&writable(), ProjectionOperation::Write);
     let derived = ok(derive(&view, &["projects/alpha/src"]));
-    let recorded: ProjectedWorkspaceRoute = ok(serde_json::from_slice(&ok(serde_json::to_vec(
-        &derived,
-    ))));
+    let recorded: ProjectedWorkspaceRoute =
+        ok(serde_json::from_slice(&ok(serde_json::to_vec(&derived))));
     ok(recorded.verify());
     let refused = |change: fn(&mut ProjectedWorkspaceRoute), code: &str| {
         let mut changed = derived.clone();
@@ -381,7 +390,11 @@ fn a_recorded_route_verifies_only_unchanged() {
     let mut wider = derived.write_paths.clone();
     wider.push("vendor".into());
     assert!(!derived.admits(&derived.overlay_root, &derived.read_paths, &wider));
-    assert!(!derived.admits(&derived.input_root, &derived.read_paths, &derived.write_paths));
+    assert!(!derived.admits(
+        &derived.input_root,
+        &derived.read_paths,
+        &derived.write_paths
+    ));
     let mut fewer = derived.read_paths.clone();
     fewer.pop();
     assert!(!derived.admits(&derived.overlay_root, &fewer, &derived.write_paths));

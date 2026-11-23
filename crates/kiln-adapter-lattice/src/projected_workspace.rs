@@ -77,8 +77,7 @@ pub fn check_route(
     // The runtime canonicalizes its root: a linked root or ancestor would
     // mount another directory than the pinned overlay.
     let overlay = Path::new(&route.overlay_root);
-    let real = std::fs::symlink_metadata(overlay)
-        .is_ok_and(|metadata| metadata.is_dir())
+    let real = std::fs::symlink_metadata(overlay).is_ok_and(|metadata| metadata.is_dir())
         && std::fs::canonicalize(overlay).is_ok_and(|canonical| canonical == overlay);
     if !real {
         return Err(

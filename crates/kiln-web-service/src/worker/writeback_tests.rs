@@ -408,7 +408,10 @@ fn declared_renames_and_forks_seal_exactly_their_paths() {
     );
     assert_eq!(after.len(), before.len() + 1);
     // Changed bytes after capture are refused, as for edits.
-    ok(fs::write(overlay.join("projects/alpha/src/copy.rs"), b"changed\n"));
+    ok(fs::write(
+        overlay.join("projects/alpha/src/copy.rs"),
+        b"changed\n",
+    ));
     assert!(seal(&fixture.repository, &overlay, &fixture.facts, &candidate).is_err());
 }
 

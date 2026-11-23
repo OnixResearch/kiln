@@ -398,7 +398,9 @@ fn moved(changes: &[(&str, Option<&str>)]) -> ProjectionFacts {
             });
         }
     }
-    source.entries.sort_by(|left, right| left.path.cmp(&right.path));
+    source
+        .entries
+        .sort_by(|left, right| left.path.cmp(&right.path));
     source
 }
 
@@ -500,7 +502,11 @@ fn renames_forks_aliases_and_membership_are_distinct_outcomes() {
         ])
     );
     let rebuilt = ok(renamed.reconstruct(&view.base));
-    assert!(rebuilt.iter().all(|entry| entry.path != "projects/alpha/src/lib.rs"));
+    assert!(
+        rebuilt
+            .iter()
+            .all(|entry| entry.path != "projects/alpha/src/lib.rs")
+    );
     assert!(rebuilt.iter().any(|entry| {
         entry.path == "projects/alpha/src/core.rs" && entry.object == blob("alpha-lib")
     }));
@@ -632,17 +638,26 @@ fn declarations_the_overlay_does_not_show_are_refused() {
     let cases: [(Vec<ObservedFile>, Vec<Declaration>, &str); 8] = [
         (
             changed_file,
-            vec![rename("projects/alpha/src/lib.rs", "projects/alpha/src/core.rs")],
+            vec![rename(
+                "projects/alpha/src/lib.rs",
+                "projects/alpha/src/core.rs",
+            )],
             "declaration_mismatch",
         ),
         (
             moved_file.clone(),
-            vec![rename("projects/alpha/src/missing.rs", "projects/alpha/src/core.rs")],
+            vec![rename(
+                "projects/alpha/src/missing.rs",
+                "projects/alpha/src/core.rs",
+            )],
             "declaration_invalid",
         ),
         (
             moved_file.clone(),
-            vec![rename("projects/alpha/src/lib.rs", "projects/alpha/LICENSE")],
+            vec![rename(
+                "projects/alpha/src/lib.rs",
+                "projects/alpha/LICENSE",
+            )],
             "declaration_invalid",
         ),
         (
@@ -674,7 +689,10 @@ fn declarations_the_overlay_does_not_show_are_refused() {
                 "projects/alpha/moved.rs",
                 "alpha-lib",
             ),
-            vec![rename("projects/alpha/src/lib.rs", "projects/alpha/moved.rs")],
+            vec![rename(
+                "projects/alpha/src/lib.rs",
+                "projects/alpha/moved.rs",
+            )],
             "undeclared_new_file",
         ),
         (

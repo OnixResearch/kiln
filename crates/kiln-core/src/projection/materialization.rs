@@ -295,9 +295,9 @@ impl ProjectedWorkspaceRoute {
         if let Err(invalid) = self.pin.validate() {
             findings.push(&invalid.code, invalid.field, &invalid.message);
         }
-        let roots = self.store().is_some_and(|store| {
-            self.input_root == root(store, INPUTS_DIRECTORY, &self.pin.input)
-        });
+        let roots = self
+            .store()
+            .is_some_and(|store| self.input_root == root(store, INPUTS_DIRECTORY, &self.pin.input));
         if !roots {
             findings.push(
                 "route_roots",
@@ -348,7 +348,12 @@ impl ProjectedWorkspaceRoute {
     /// Whether a runtime request names exactly this route's workspace root,
     /// read paths and write paths.
     #[must_use]
-    pub fn admits(&self, workspace_root: &str, read_paths: &[String], write_paths: &[String]) -> bool {
+    pub fn admits(
+        &self,
+        workspace_root: &str,
+        read_paths: &[String],
+        write_paths: &[String],
+    ) -> bool {
         workspace_root == self.overlay_root
             && read_paths == self.read_paths.as_slice()
             && write_paths == self.write_paths.as_slice()
@@ -541,10 +546,7 @@ fn route_identity(route: &ProjectedWorkspaceRoute) -> ContentId {
 
 /// An absolute canonical path within the target path bound.
 fn store_path(path: &str) -> bool {
-    path.len() <= MAX_TARGET_PATH_BYTES
-        && path
-            .strip_prefix('/')
-            .is_some_and(|rest| paths::canonical(rest))
+    path.len() <= MAX_TARGET_PATH_BYTES && path.strip_prefix('/').is_some_and(paths::canonical)
 }
 
 /// A canonical relative route path within the target path bound.

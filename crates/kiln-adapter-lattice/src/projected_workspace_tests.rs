@@ -9,9 +9,9 @@ use kiln_core::projection::materialization::{
 };
 use kiln_core::projection::{
     ComponentVersion, Coverage, DEFINITION_SCHEMA, EntryKind, GeneratedInputs, Mount,
-    ProjectionDefinition, ProjectionFacts, ProjectionOperation, ProjectionProfile,
-    ProviderBinding, RepositoryEnrollment, RepositoryLocator, Selection, SourceCapability,
-    SourceEntry, TargetProfile, admit_definition, admit_repositories, resolve,
+    ProjectionDefinition, ProjectionFacts, ProjectionOperation, ProjectionProfile, ProviderBinding,
+    RepositoryEnrollment, RepositoryLocator, Selection, SourceCapability, SourceEntry,
+    TargetProfile, admit_definition, admit_repositories, resolve,
 };
 use kiln_core::types::{ContentId, ExternalRef, ProviderProfileId};
 
@@ -98,8 +98,9 @@ fn fixture() -> Fixture {
         target: TargetProfile::POSIX,
         compatibility: None,
     }));
-    let complete = ok(ok(resolve(&definition, &repository, &facts))
-        .require_complete(ProjectionOperation::Write));
+    let complete =
+        ok(ok(resolve(&definition, &repository, &facts))
+            .require_complete(ProjectionOperation::Write));
     let materialization = ok(plan(
         &complete,
         &MaterializerProfile {
@@ -125,7 +126,10 @@ fn fixture() -> Fixture {
     ));
     ok(std::fs::create_dir_all(&derived.overlay_root));
     let route_file = root.path().join("route.json");
-    ok(std::fs::write(&route_file, ok(serde_json::to_vec(&derived))));
+    ok(std::fs::write(
+        &route_file,
+        ok(serde_json::to_vec(&derived)),
+    ));
     let plan = ImplementationDispatchPlan {
         schema: DISPATCH_PLAN_SCHEMA.into(),
         work_identity: digest("work"),
@@ -203,7 +207,9 @@ fn requests_differing_from_the_route_are_refused_before_dispatch() {
     };
     for request in [
         mutate(&|request| request["write_paths"] = serde_json::json!(["alpha"])),
-        mutate(&|request| request["write_paths"] = serde_json::json!(["alpha/src/lib.rs", "alpha/Cargo.toml"])),
+        mutate(&|request| {
+            request["write_paths"] = serde_json::json!(["alpha/src/lib.rs", "alpha/Cargo.toml"])
+        }),
         mutate(&|request| request["write_paths"] = serde_json::json!([])),
         mutate(&|request| request["read_paths"] = serde_json::json!(["alpha", ".git"])),
         mutate(&|request| request["workspace_root"] = serde_json::json!(fixture.route.input_root)),
@@ -230,7 +236,10 @@ fn requests_differing_from_the_route_are_refused_before_dispatch() {
     assert!(check_route(Some(&fixture.route_file), &other, &fixture.request).is_err());
     let mut forged = fixture.route.clone();
     forged.write_paths = vec!["alpha".into()];
-    ok(std::fs::write(&fixture.route_file, ok(serde_json::to_vec(&forged))));
+    ok(std::fs::write(
+        &fixture.route_file,
+        ok(serde_json::to_vec(&forged)),
+    ));
     let widened = mutate(&|request| request["write_paths"] = serde_json::json!(["alpha"]));
     assert!(refused(&widened));
     ok(std::fs::write(

@@ -267,11 +267,12 @@ impl SealedCandidate {
                 );
             }
         }
-        let holds = |entries: &BTreeMap<String, SourceEntry>, path: &str, expected: &ExternalRef| {
-            entries
-                .get(path)
-                .is_some_and(|entry| entry.object == *expected)
-        };
+        let holds =
+            |entries: &BTreeMap<String, SourceEntry>, path: &str, expected: &ExternalRef| {
+                entries
+                    .get(path)
+                    .is_some_and(|entry| entry.object == *expected)
+            };
         let add = |entries: &mut BTreeMap<String, SourceEntry>,
                    path: &str,
                    object: &ExternalRef,
@@ -609,18 +610,27 @@ fn declare<'a>(
                     .get(from.as_str())
                     .and_then(|path| origins.get_key_value(path))
                 else {
-                    invalid(findings, "the declared source destination holds no native origin");
+                    invalid(
+                        findings,
+                        "the declared source destination holds no native origin",
+                    );
                     continue;
                 };
                 let Some((&new, file)) = files
                     .get_key_value(to.as_str())
                     .filter(|(destination, _)| !held.contains(**destination))
                 else {
-                    invalid(findings, "the declared new destination is not a new overlay file");
+                    invalid(
+                        findings,
+                        "the declared new destination is not a new overlay file",
+                    );
                     continue;
                 };
                 if !consumed.origins.insert(path) || !consumed.files.insert(new) {
-                    invalid(findings, "an origin or new file appears in two declarations");
+                    invalid(
+                        findings,
+                        "an origin or new file appears in two declarations",
+                    );
                     continue;
                 }
                 let states = seen(origin);
@@ -630,15 +640,17 @@ fn declare<'a>(
                     Declaration::Fork { .. } => {
                         states.iter().all(|state| unchanged(origin, *state))
                     }
-                    _ => origin.destinations.iter().zip(&states).all(
-                        |(destination, state)| {
+                    _ => origin
+                        .destinations
+                        .iter()
+                        .zip(&states)
+                        .all(|(destination, state)| {
                             if *destination == from.as_str() {
                                 state.is_none()
                             } else {
                                 unchanged(origin, *state)
                             }
-                        },
-                    ),
+                        }),
                 };
                 if !copied || !shape {
                     findings.push(
@@ -1279,7 +1291,11 @@ pub fn candidate_facts(
             "the build plan was made for another view or base",
         );
     }
-    let decided = affected(projects, &ChangedFiles::Exact(sealed.changed_paths()), graphs);
+    let decided = affected(
+        projects,
+        &ChangedFiles::Exact(sealed.changed_paths()),
+        graphs,
+    );
     let affected_projects: Vec<String> = decided
         .decisions
         .into_iter()
