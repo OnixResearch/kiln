@@ -1,0 +1,59 @@
+{
+  "schema": "kiln.projection.writeback-candidate.v1",
+  "repository": "1bb0b2ee92e52a839483dc242869642738648092210893518abf38eb432d459b",
+  "base_revision": {
+    "contract_version": 1,
+    "provider_namespace": "git",
+    "native_kind": "commit",
+    "native_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "base_tree": "17762fddd969a453925d65717ac3eea21320b66b54342fde15128d6caf21215f",
+  "definition": "4dbb335f4f00792fc5455f69bcf4157db26a2c4df971f744a726de9098d9ebfa",
+  "manifest": "b5d8d6c0c96a447c72514f34aba01064f333054d550d4baa04b6f66072638775",
+  "overlay": "33f06d1e59f7179b45ae93744554d02ab94a448cb2ff385c3664ae8e9f8ee8c1",
+  "attempt": "ebe1b628d2c9532c18bc3af49ce460ce6b6a26e0356ad52540699a0d785b1df0",
+  "fence": 1,
+  "operations": [
+    {
+      "operation": "delete",
+      "path": "projects/alpha/Cargo.toml",
+      "expected": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "blob",
+        "native_id": "alpha-manifest"
+      }
+    },
+    {
+      "operation": "create",
+      "path": "projects/alpha/src/new.rs",
+      "destination": "projects/alpha/src/new.rs",
+      "object": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "blob",
+        "native_id": "new"
+      },
+      "kind": "file"
+    },
+    {
+      "operation": "edit",
+      "path": "shared/proto/lib.rs",
+      "destination": "shared/proto/lib.rs",
+      "expected": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "blob",
+        "native_id": "proto"
+      },
+      "object": {
+        "contract_version": 1,
+        "provider_namespace": "git",
+        "native_kind": "blob",
+        "native_id": "proto-2"
+      },
+      "kind": "file"
+    }
+  ],
+  "identity": "443e958e30d9a211d132d287a153a4df8d2e518d2daab1d249e93cbc3be28681"
+}

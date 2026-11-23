@@ -7,7 +7,7 @@ use kiln_core::projection::materialization::{
     MATERIALIZER_PROFILE_SCHEMA, MaterializationPlan, MaterializerKind, MaterializerProfile,
     WorkspacePin, plan,
 };
-use kiln_core::projection::writeback::{CurrentAttempt, capture};
+use kiln_core::projection::writeback::{Captured, CurrentAttempt, Declaration, capture};
 use kiln_core::projection::{
     AdmittedDefinition, AdmittedRepository, CompleteProjection, ComponentVersion, Coverage,
     EntryOrigin, GeneratedInputs, Mount, ProjectionDefinition, ProjectionOperation,
@@ -197,16 +197,29 @@ impl Fixture {
     }
 
     fn capture(&self, pin: &WorkspacePin, overlay: &Path) -> SealedCandidate {
-        ok(capture(
+        self.declared(pin, overlay, &[])
+    }
+
+    fn declared(
+        &self,
+        pin: &WorkspacePin,
+        overlay: &Path,
+        declared: &[Declaration],
+    ) -> SealedCandidate {
+        match ok(capture(
             &self.definition,
             &self.complete,
             pin,
             &ok(observe(overlay)),
+            declared,
             CurrentAttempt {
                 source: &self.facts,
                 fence: 1,
             },
-        ))
+        )) {
+            Captured::Sealed(candidate) => candidate,
+            Captured::Conflict(conflict) => unreachable!("unexpected conflict {conflict:?}"),
+        }
     }
 }
 
@@ -340,6 +353,65 @@ fn a_sealed_candidate_is_immutable() {
     );
 }
 
+// r[verify kiln.source.projection.writeback.structural]
+#[test]
+fn declared_renames_and_forks_seal_exactly_their_paths() {
+    let fixture = fixture();
+    let (pin, overlay) = fixture.overlay("attempt-one");
+    let lib = overlay.join("projects/alpha/src/lib.rs");
+    let bytes = ok(fs::read(&lib));
+    ok(fs::copy(&lib, overlay.join("projects/alpha/src/copy.rs")));
+    ok(fs::rename(
+        overlay.join("projects/alpha/LICENSE"),
+        overlay.join("projects/alpha/src/LICENSE"),
+    ));
+    let candidate = fixture.declared(
+        &pin,
+        &overlay,
+        &[
+            Declaration::Fork {
+                from: "projects/alpha/src/lib.rs".into(),
+                to: "projects/alpha/src/copy.rs".into(),
+            },
+            Declaration::Rename {
+                from: "projects/alpha/LICENSE".into(),
+                to: "projects/alpha/src/LICENSE".into(),
+            },
+        ],
+    );
+    let labels: Vec<&str> = candidate
+        .operations()
+        .iter()
+        .map(|operation| match operation {
+            SourceOperation::Rename { .. } => "rename",
+            SourceOperation::Fork { .. } => "fork",
+            _ => "other",
+        })
+        .collect();
+    assert_eq!(labels, ["rename", "fork"]);
+    let sealed = ok(seal(
+        &fixture.repository,
+        &overlay,
+        &fixture.facts,
+        &candidate,
+    ));
+    let before = tree_of(&fixture.repository, fixture.base);
+    let after = tree_of(&fixture.repository, sealed);
+    assert!(!after.contains_key("projects/alpha/LICENSE"));
+    assert_eq!(
+        after.get("projects/alpha/src/LICENSE"),
+        before.get("projects/alpha/LICENSE")
+    );
+    assert_eq!(
+        after.get("projects/alpha/src/copy.rs").map(|(oid, _)| *oid),
+        Some(ok(Oid::hash_object(ObjectType::Blob, &bytes)))
+    );
+    assert_eq!(after.len(), before.len() + 1);
+    // Changed bytes after capture are refused, as for edits.
+    ok(fs::write(overlay.join("projects/alpha/src/copy.rs"), b"changed\n"));
+    assert!(seal(&fixture.repository, &overlay, &fixture.facts, &candidate).is_err());
+}
+
 #[test]
 fn observation_reports_kinds_and_links_for_capture_to_refuse() {
     let fixture = fixture();
@@ -359,6 +431,7 @@ fn observation_reports_kinds_and_links_for_capture_to_refuse() {
         &fixture.complete,
         &pin,
         &ok(observe(&overlay)),
+        &[],
         CurrentAttempt {
             source: &fixture.facts,
             fence: 1,
