@@ -127,6 +127,7 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     protected(ADMISSION, "admission_before_transport", Op::Dispatch),
     protected(ADMISSION, "admission_reserve_with_owner", Op::Dispatch),
     reconcile(ADMISSION, "admission_execution_observed", Op::Dispatch),
+    reconcile(ADMISSION, "admission_settle_observed_draw", Op::Dispatch),
     // Withdraws a queued admission item through its owner; ending the attempt
     // itself is `cancel` (AttemptCancel).
     operator(ADMISSION, "admission_cancel_with_owner"),
@@ -249,6 +250,7 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     protected(FLEET, "fleet_authorize_launch", Op::Dispatch),
     operator(FLEET, "fleet_clear_placing"),
     operator(FLEET, "fleet_record_issued"),
+    operator(FLEET, "fleet_record_issued_with_policy"),
     operator(FLEET, "fleet_answer_decision"),
     reconcile(FLEET, "fleet_observe", Op::Dispatch),
     reconcile(FLEET, "fleet_raise_decision", Op::Dispatch),
