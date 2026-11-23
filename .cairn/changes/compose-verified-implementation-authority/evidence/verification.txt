@@ -1,0 +1,64 @@
+compose-verified-implementation-authority: gate evidence
+
+Toolchain: the dev shell's environment (`nix develop path:$PWD`, Rust 1.97.1),
+cargo --locked, CARGO_BUILD_JOBS=4 under nice -n 10, one target directory on
+the datapool; nix with --option builders '' --option min-free 0.
+Cairn: /nix/store/x37qabfj71nzk5661f3x735nni4m96qk-cairn-0.1.0/bin/cairn.
+
+== Final gates (dispatch path, campaign role authority, scoped holder seeds) ==
+$ cargo fmt --all --check                                                   -> exit 0
+$ cargo clippy --locked --workspace --all-targets -- -D warnings            -> exit 0
+$ cargo clippy --locked --workspace --all-targets --all-features -- -D warnings -> exit 0
+$ cargo build  --locked -p onix-kiln-core -p kiln-observe-core -p kiln-radicle-source-contract --target wasm32-unknown-unknown -> exit 0
+$ cargo clippy --locked -p onix-kiln-core -p kiln-observe-core -p kiln-radicle-source-contract --target wasm32-unknown-unknown -- -D warnings -> exit 0
+$ scripts/check-nickel-fixtures.sh                                          -> exit 0 (107 positive, 665 negative)
+$ nix build path:$PWD#checks.x86_64-linux.octet --no-link -L                -> exit 0 (consumer checks clean, 0 findings)
+$ cairn validate                                                            -> exit 0 (valid, 0 issues)
+$ cairn gate proposal|design|tasks compose-verified-implementation-authority -> exit 0, PASS
+$ cairn traceability coverage --profile kiln-active-development             -> exit 0 (pass, 2280 requirements, 0 dangling, 0 missing)
+$ cairn traceability coverage (accepted only)                               -> exit 1: 24 dangling, exactly this
+                                                                               change's ids; expected until it is archived
+$ cairn release-readiness --root .                                          -> exit 0
+$ cargo test --locked --workspace --no-fail-fast                            -> exit 101: 2551 passed, 3 failed, 16 ignored
+    kiln-fleet --test dispatch (2): environmental, see below.
+    kiln-implementer --test authority_dispatch (1): the new wall-clock drive/worker
+      test, which found a real defect (whole-second revocation view, fixed below).
+$ cargo test --locked -p kiln-implementer --no-fail-fast (after the fix)    -> exit 0 (150 passed, 7 ignored)
+$ kiln-fleet --test dispatch, minimal PATH, TMPDIR=/tmp                     -> exit 0 (2 passed, 1 ignored)
+$ cargo test --locked -p kiln-adapter-gitea --lib status:: (alone)          -> exit 0 (11 passed)
+$ nix flake check path:$PWD --no-write-lock-file -L                         -> exit 0 (all checks, including the
+                                                                               VM deployment test; 47 derivations built)
+
+kiln-fleet --test dispatch is environmental twice over:
+  - The test copies the ambient PATH into the herdr inventory, which caps it at
+    4 KiB (Kiln #114). Run with PATH limited to the directories of the programs it
+    executes (git, gnutar, bash, coreutils; 241 bytes).
+  - Its capture step expects materialization to refuse the fixture's verifier
+    authority, which happens only when an ancestor of the temporary repository is
+    group- or world-writable (/tmp). With TMPDIR on an owner-only datapool path,
+    materialization succeeds and the assertion fails. Run with TMPDIR=/tmp.
+kiln-adapter-gitea --lib status tests: passed in this run both under the full
+workspace load and alone. The three earlier failures did not reproduce, which is
+consistent with load, not with a defect; this crate is untouched by the change.
+
+Defect found and fixed: the revocation view was recorded with millisecond time
+while decisions read it at whole seconds, so the verified profile denied every
+decision in the second the profile was selected. The fixed-clock regression test
+a_view_imported_within_the_current_second_admits_decisions_in_that_second fails
+without the fix and passes with it.
+
+Coverage mutation check: classifying the CLI `start` row as OperatorConfig fails
+every_cli_subcommand_loads_the_holder_role_of_every_check_it_reaches with
+"`start` reaches Dispatch".
+
+== Earlier gates on 4ab16a12 ==
+fmt, clippy (both), wasm build and clippy, Nickel fixtures, Octet, cairn validate
+and gates: exit 0. Workspace tests: 2536 passed, 5 failed (the 2 fleet dispatch
+tests above and 3 gitea status tests under load), 16 ignored.
+
+== Secret scan ==
+$ gitleaks detect --log-opts 90a9fb64..HEAD (on 4ab16a12)                   -> exit 1, 38 generic-api-key hits.
+  Every hit is a public did:key identifier (an Ed25519 public key, not a secret) in
+  config/fixtures/implementation-authority-*.ncl. The same rule already fires on
+  config/default.ncl and config/fixtures/ucan-observation-positive.ncl. No gitleaks
+  configuration is added; the hits are recorded here.
