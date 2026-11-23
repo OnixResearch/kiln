@@ -38,6 +38,17 @@ use state::{BoundReplay, BoundRevocations, NoReplay};
 /// Milliseconds per second of UCAN verification time.
 const MILLIS_PER_SECOND: u64 = 1_000;
 
+/// The instant a revocation view is checked at for a decision at
+/// `now_unix_s`: the last millisecond that second can stand for. Decisions
+/// know the shell clock only to the second, so a view that is older than its
+/// maximum age at any instant of that second denies, and a view observed
+/// earlier in the same second is not dated after the decision.
+const fn revocation_instant_ms(now_unix_s: u64) -> u64 {
+    now_unix_s
+        .saturating_mul(MILLIS_PER_SECOND)
+        .saturating_add(MILLIS_PER_SECOND - 1)
+}
+
 /// Maximum live sessions retained by one adapter.
 pub const MAX_AUTHORITY_SESSIONS: usize = 64;
 /// Maximum local-operator identity bytes.
@@ -381,7 +392,7 @@ impl BasaltAuthority {
         let verification_time = VerificationTime::from_unix_seconds(now_unix_s);
         let revocations = BoundRevocations {
             view: mode.services.revocations.as_ref(),
-            now_ms,
+            now_ms: revocation_instant_ms(now_unix_s),
         };
         // Read the effective deadline before the consuming step, so the
         // replay record outlives the token. A token that does not verify
@@ -510,7 +521,7 @@ impl BasaltAuthority {
             .ok_or(AuthorityDenialReason::SessionNotFound)?;
         let revocations = BoundRevocations {
             view: mode.services.revocations.as_ref(),
-            now_ms: now_unix_s.saturating_mul(MILLIS_PER_SECOND),
+            now_ms: revocation_instant_ms(now_unix_s),
         };
         let boundaries = UcanEnforcementBoundaries {
             verification_time: VerificationTime::from_unix_seconds(now_unix_s),

@@ -50,6 +50,10 @@ pub trait ReplayLedger {
 pub trait RevocationView {
     /// Whether one proof reference is revoked at `now_ms`.
     ///
+    /// `now_ms` is the last millisecond of the decision's whole-second
+    /// verification time, so an age bound checked against it holds at every
+    /// instant that second can stand for.
+    ///
     /// # Errors
     /// Returns `Stale` when the view is older than its configured age and
     /// `Backend` when it cannot be read.

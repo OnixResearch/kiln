@@ -135,9 +135,11 @@ process's clock, is refused. The view's age is measured from
 the feed's own `observed_at_ms`, never from the import, so importing an
 unchanged feed never makes it fresh. The view fails closed: if it is absent,
 or its feed was observed more than `revocation.max_age_ms` ago, every verified
-request denies. Have the producer republish the feed with a new
-`observed_at_ms` before it goes stale; a shell imports it at its next
-selection.
+request denies. Decisions read time to the whole second, so the age is checked
+at the last millisecond of the decision's second: a feed that is too old at
+any instant of that second denies. `max_age_ms` must be at least 1,000.
+Have the producer republish the feed with a new `observed_at_ms` before it
+goes stale; a shell imports it at its next selection.
 
 **Payload v2.** Every request carries `request_digest` = BLAKE3 over the domain
 `kiln.implementation-authority-payload.v2`, the operation, the worker

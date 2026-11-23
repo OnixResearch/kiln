@@ -54,6 +54,10 @@ pub const MAX_REVOKED_REFERENCES: usize = 65_536;
 pub const MAX_AUTHORITY_PATH_BYTES: usize = 4_096;
 /// Longest audience, operator or DID.
 pub const MAX_AUTHORITY_NAME_BYTES: usize = 256;
+/// Smallest `revocation.max_age_ms`. Decisions read the shell clock to the
+/// whole second and check the view at the last millisecond of that second, so
+/// a sub-second bound could never be met reliably; it is refused instead.
+pub const MIN_REVOCATION_MAX_AGE_MS: u64 = 1_000;
 /// Extension of compact tokens in the proof directory.
 pub const PROOF_FILE_EXTENSION: &str = "ucan";
 /// Width of hex-encoded 32-byte values.
@@ -261,8 +265,13 @@ impl VerifiedUcanConfig {
         }
         absolute(&self.proofs_dir, "proofs_dir")?;
         absolute(&self.revocation.path, "revocation path")?;
-        if self.revocation.max_age_ms == 0 || self.replay.retention_ms == 0 {
-            return Err("revocation age and replay retention must be non-zero".into());
+        if self.revocation.max_age_ms < MIN_REVOCATION_MAX_AGE_MS {
+            return Err(format!(
+                "revocation max_age_ms must be at least {MIN_REVOCATION_MAX_AGE_MS}: decisions read time to the whole second"
+            ));
+        }
+        if self.replay.retention_ms == 0 {
+            return Err("replay retention must be non-zero".into());
         }
         let seeds = [
             &self.holders.coordinator.seed_path,

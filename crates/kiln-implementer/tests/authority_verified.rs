@@ -239,22 +239,15 @@ fn expired_or_untrusted_grants_are_never_selected_from_config() {
 
 #[test]
 // r[verify kiln.implementation.authority.state.scenario.stale]
-fn a_view_imported_within_the_current_second_admits_decisions_in_that_second() {
-    // Decisions read the revocation view at whole-second resolution. A shell
-    // that selects the profile at `T + 500` ms and claims at `T + 700` ms
-    // acts in the same second; the view must not lie after that decision.
+fn a_feed_observed_earlier_in_the_decision_second_admits() {
+    // Decisions read time to the whole second and check the view at that
+    // second's last millisecond. A feed observed at `T + 500` ms, imported
+    // then and used at `T + 700` ms, is not dated after the decision.
     let dir = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
     let db = dir.path().join("ledger.db");
     let config = write_config(dir.path(), &Fixture::direct(), &[]);
-    let mut i =
-        Implementer::open(&db, enrollment()).unwrap_or_else(|error| unreachable!("{error}"));
-    i.set_clock_ms(T + 500);
-    i.select_authority(
-        &ImplementationAuthorityConfig::load(&config)
-            .unwrap_or_else(|error| unreachable!("{error}")),
-        &std::collections::BTreeSet::from([GrantRole::Coding]),
-    )
-    .unwrap_or_else(|error| unreachable!("{error}"));
+    write_feed(dir.path(), 1, T + 500, &[]);
+    let mut i = open_at(&db, &config, T + 500).unwrap_or_else(|error| unreachable!("{error}"));
     i.admit(&work("sub-second-view"), None)
         .unwrap_or_else(|error| unreachable!("{error}"));
     assert!(
@@ -262,6 +255,61 @@ fn a_view_imported_within_the_current_second_admits_decisions_in_that_second() {
             .unwrap_or_else(|error| unreachable!("{error}"))
             .is_some()
     );
+}
+
+fn set_max_age(config: &std::path::Path, max_age_ms: u64) {
+    let mut document: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(config).unwrap_or_else(|error| unreachable!("{error}")),
+    )
+    .unwrap_or_else(|error| unreachable!("{error}"));
+    *document
+        .pointer_mut("/profile/verified_ucan/revocation/max_age_ms")
+        .unwrap_or_else(|| unreachable!("max_age_ms")) = max_age_ms.into();
+    std::fs::write(
+        config,
+        serde_json::to_vec(&document).unwrap_or_else(|error| unreachable!("{error}")),
+    )
+    .unwrap_or_else(|error| unreachable!("{error}"));
+}
+
+#[test]
+// r[verify kiln.implementation.authority.state.scenario.stale]
+fn a_one_second_revocation_age_holds_at_every_instant_of_the_decision_second() {
+    let dir = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
+    let db = dir.path().join("ledger.db");
+    let config = write_config(dir.path(), &Fixture::direct(), &[]);
+    set_max_age(&config, 1_000);
+    let mut i = open_at(&db, &config, T).unwrap_or_else(|error| unreachable!("{error}"));
+    i.admit(&work("one-second-fresh"), None)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    // 999 ms after the observation the feed is fresh at every instant.
+    assert!(
+        i.claim_next(T + 999, LEASE_MS)
+            .unwrap_or_else(|error| unreachable!("{error}"))
+            .is_some()
+    );
+    // 1,999 ms after it the feed is older than its bound, although the
+    // decision's whole-second time is only one second later.
+    i.admit(&work("one-second-stale"), None)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    assert!(
+        i.claim_next(T + 1_999, LEASE_MS).is_err(),
+        "a feed 1,999 ms old must not pass a 1,000 ms bound"
+    );
+}
+
+#[test]
+// r[verify kiln.implementation.authority.config]
+fn a_sub_second_revocation_age_is_refused() {
+    let dir = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
+    let config = write_config(dir.path(), &Fixture::direct(), &[]);
+    set_max_age(&config, 999);
+    let error = ImplementationAuthorityConfig::load(&config)
+        .err()
+        .unwrap_or_else(|| unreachable!("a 999 ms bound must be refused"));
+    assert!(error.contains("max_age_ms"), "{error}");
+    set_max_age(&config, 1_000);
+    assert!(ImplementationAuthorityConfig::load(&config).is_ok());
 }
 
 fn open_at(db: &std::path::Path, config: &std::path::Path, now_ms: u64) -> Result<Implementer, String> {

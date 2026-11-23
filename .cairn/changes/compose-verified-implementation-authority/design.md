@@ -55,12 +55,14 @@ invocation but not a fresh one. That is the same outcome as a lost response.
 `RecordingAuthority` persists every decision. An allowed decision that cannot
 be persisted closes its session and denies.
 
-The revocation view is recorded at whole-second resolution, the resolution at
-which decisions read it. A shell selects the profile and acts in the same
-second; a view recorded with milliseconds would be dated after that decision,
-and the view refuses an observation from the future, so the verified profile
-would deny whatever a shell did in its first second. The wall-clock
-end-to-end test found this, and a fixed-clock regression test covers it.
+Decisions read the shell clock to the whole second, the resolution of UCAN
+verification time. The revocation view is checked at the last millisecond of
+the decision's second, so its maximum age holds at every instant that second
+can stand for, and a feed observed earlier in that second is not dated after
+the decision. A `max_age_ms` below one second cannot be enforced at that
+resolution and is refused by the Nickel contract and the Rust loader. The
+view's age runs from the feed's own `observed_at_ms`; importing never
+refreshes it, and a feed is validated whole and imported in one transaction.
 
 ### Holder signing
 

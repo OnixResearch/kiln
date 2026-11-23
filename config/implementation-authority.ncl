@@ -64,6 +64,13 @@ let Positive =
     std.is_number value && value > 0 && value <= MAX_U64 && value == std.number.truncate value
   )
 in
+# Decisions read time to the whole second, so a revocation age below one
+# second cannot be enforced; `MIN_REVOCATION_MAX_AGE_MS` in Rust.
+let RevocationAge =
+  std.contract.from_predicate (fun value =>
+    std.is_number value && value >= 1000 && value <= MAX_U64 && value == std.number.truncate value
+  )
+in
 let SecretRef = { seed_path | AbsolutePath } in
 let Key = { did | DidKey, ed25519 | Hex32 } in
 let Policy =
@@ -95,7 +102,7 @@ let VerifiedUcan = {
       && unique (std.array.map (fun key => key.did) keys)
     ),
   proofs_dir | AbsolutePath,
-  revocation | { path | AbsolutePath, max_age_ms | Positive },
+  revocation | { path | AbsolutePath, max_age_ms | RevocationAge },
   replay | { retention_ms | Positive },
   holders
     | { coordinator | SecretRef, verifier | SecretRef, publisher | SecretRef }
