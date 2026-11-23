@@ -1,8 +1,3 @@
-use crate::{
-    BoundedText, GateApplicability, GateFinding, GateRequest, GateResult, NativeGateObservation,
-    ToolCohort,
-};
-
 const REQUEST_IDENTITY_DOMAIN: &str = "cairn.gate-request.identity.v1";
 const RESULT_IDENTITY_DOMAIN: &str = "cairn.gate-result.identity.v1";
 
@@ -28,6 +23,13 @@ impl Frame {
         self.bytes(label, &[u8::from(value)]);
     }
 
+    #[cfg_attr(
+        dylint_lib = "octet",
+        allow(
+            missing_const_fn,
+            reason = "Cairn gate-contract owner: frame writes call the non-const BLAKE3 hasher."
+        )
+    )]
     fn count(&mut self, label: &str, value: usize) {
         match u64::try_from(value) {
             Ok(value) => self.bytes(label, &value.to_le_bytes()),
@@ -35,6 +37,13 @@ impl Frame {
         }
     }
 
+    #[cfg_attr(
+        dylint_lib = "octet",
+        allow(
+            missing_const_fn,
+            reason = "Cairn gate-contract owner: blake3::Hasher::update cannot run in const evaluation."
+        )
+    )]
     fn length_prefixed(&mut self, bytes: &[u8]) {
         match u64::try_from(bytes.len()) {
             Ok(length) => {
@@ -54,7 +63,7 @@ impl Frame {
 }
 
 #[must_use]
-pub fn request_identity(request: &GateRequest) -> crate::Identity {
+pub fn request_identity(request: &crate::GateRequest) -> crate::Identity {
     let mut frame = Frame::new(REQUEST_IDENTITY_DOMAIN);
     frame.string("schema", &request.schema);
     frame.string("idempotency_key", request.idempotency_key.as_str());
@@ -66,7 +75,7 @@ pub fn request_identity(request: &GateRequest) -> crate::Identity {
 }
 
 #[must_use]
-pub fn result_identity(result: &GateResult) -> crate::Identity {
+pub fn result_identity(result: &crate::GateResult) -> crate::Identity {
     let mut frame = Frame::new(RESULT_IDENTITY_DOMAIN);
     frame.string("schema", &result.schema);
     frame.string("request_identity", result.request_identity.as_str());
@@ -80,7 +89,7 @@ pub fn result_identity(result: &GateResult) -> crate::Identity {
     frame.finish()
 }
 
-fn frame_applicability(frame: &mut Frame, value: &GateApplicability) {
+fn frame_applicability(frame: &mut Frame, value: &crate::GateApplicability) {
     frame.string("candidate_identity", value.candidate_identity.as_str());
     frame.string(
         "candidate_root_identity",
@@ -91,10 +100,7 @@ fn frame_applicability(frame: &mut Frame, value: &GateApplicability) {
         value.pipeline_revision_identity.as_str(),
     );
     frame.string("policy_identity", value.policy_identity.as_str());
-    frame.count("evidence_count", value.evidence_identities.len());
-    for evidence in &value.evidence_identities {
-        frame.string("evidence_identity", evidence.as_str());
-    }
+    frame_evidence(frame, &value.evidence_identities);
     frame.string(
         "provider_profile_identity",
         value.provider_profile_identity.as_str(),
@@ -102,7 +108,14 @@ fn frame_applicability(frame: &mut Frame, value: &GateApplicability) {
     frame.string("effect_identity", value.effect_identity.as_str());
 }
 
-fn frame_tool(frame: &mut Frame, value: &ToolCohort) {
+fn frame_evidence(frame: &mut Frame, identities: &[crate::Identity]) {
+    frame.count("evidence_count", identities.len());
+    for identity in identities {
+        frame.string("evidence_identity", identity.as_str());
+    }
+}
+
+fn frame_tool(frame: &mut Frame, value: &crate::ToolCohort) {
     frame.string("tool_source_revision", value.source_revision.as_str());
     frame.string(
         "tool_executable_identity",
@@ -114,7 +127,7 @@ fn frame_tool(frame: &mut Frame, value: &ToolCohort) {
     frame.string("tool_gate_receipt_schema", &value.gate_receipt_schema);
 }
 
-fn frame_observation(frame: &mut Frame, value: &NativeGateObservation) {
+fn frame_observation(frame: &mut Frame, value: &crate::NativeGateObservation) {
     frame.string("observation_schema", &value.schema);
     frame.string("observation_change", value.change.as_str());
     frame.string("observation_stage", value.stage.as_str());
@@ -129,13 +142,13 @@ fn frame_observation(frame: &mut Frame, value: &NativeGateObservation) {
     }
 }
 
-fn frame_finding(frame: &mut Frame, value: &GateFinding) {
+fn frame_finding(frame: &mut Frame, value: &crate::GateFinding) {
     frame.string("finding_code", value.code.as_str());
     frame_text(frame, "finding_message", &value.message);
     frame.string("finding_scope", value.scope.as_str());
     frame.string("finding_promoted", value.promoted.as_str());
 }
 
-fn frame_text(frame: &mut Frame, label: &str, value: &BoundedText) {
+fn frame_text(frame: &mut Frame, label: &str, value: &crate::BoundedText) {
     frame.string(label, value.as_str());
 }

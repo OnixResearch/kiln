@@ -1,8 +1,8 @@
 {
-  "source_repository": "ssh://git@github.com/OnixResearch/cairn.git",
-  "source_commit": "15f00875562025e7ea7e0d1f4af24d1a2e2ac06f",
+  "source_repository": "https://github.com/OnixResearch/cairn.git",
+  "source_commit": "9082e1aece4f04bcbead5eeea087e496bc48a675",
   "full_archive_format": "git archive --format=tar <source_commit>",
-  "full_archive_blake3": "d1772cba5a4c70c7648a5977fbe67ea8344eeaeeb6e2ad8ab7391f7667c651c3",
+  "full_archive_blake3": "5ad172aded6f574deca11e1274c5a754b8a4e050ff49d17e319022d8c2e21779",
   "archive_format": "git archive --format=tar <source_commit> -- <archive_paths...>",
   "archive_paths": [
     "Cargo.toml",
@@ -16,7 +16,7 @@
     "fixtures/cairn-gate-contract",
     "contracts/cairn-gate-contract.ncl"
   ],
-  "archive_blake3": "fe983828dde8c99867f3479ca561fa2b88ffb3a4190bbea61a14ca3985ee6a0a",
+  "archive_blake3": "34d5bc3d335c23161b0a832727866d5d4d3cd309f459e5f1db1cbbb3c777ef3c",
   "importer": "scripts/import-pinned-source.sh",
   "package_licenses": {
     "cairn-gate-contract": "MIT OR Apache-2.0"

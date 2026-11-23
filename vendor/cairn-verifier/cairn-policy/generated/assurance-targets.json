@@ -9,25 +9,34 @@
     "max_document_bytes": 1048576,
     "max_input_bytes": 4194304,
     "max_list_items": 256,
+    "max_realization_receipt_bytes": 16777216,
     "max_registry_rows": 4096,
     "max_targets_per_contract": 256,
     "max_text_bytes": 4096,
+    "max_tool_graph_bytes": 268435456,
     "max_trusted_signers": 8
   },
   "case_schema": "cairn.convergence-case.v1",
   "mantle": {
-    "proof_acceptance_relay": "not-evaluated-by-mantle",
+    "proof_acceptance_relays": [
+      "not-evaluated-by-mantle",
+      "externally-reported-by-octet"
+    ],
     "realization_complete_status": "complete",
     "realized_states": [
       "realized",
       "provenance-audited"
+    ],
+    "root_dispositions": [
+      "built",
+      "reused"
     ]
   },
   "non_claims": [
     "a current target shows only that, for one revision, the supplied Mantle records and Octet decision bind to the declared target",
     "does not show that any code is correct or that the evidence is true",
     "does not show that a reused output was re-verified; a cache hit preserves an earlier acceptance and is not fresh proof work",
-    "does not show that the supplied records were honestly produced; Cairn re-runs and authenticates none of them and does not verify signatures",
+    "does not show that the supplied records were honestly produced; Cairn re-runs and authenticates none of them, compares only recorded builder fingerprints and the recorded reuse link, and does not verify signature bytes",
     "does not show that a verifier, builder, sandbox or the Nickel exporter is sound",
     "does not show that Mantle built the tool graph from source unless the recorded route says so",
     "does not show that a claim captures its requirement's full meaning; see informal_remainder",
@@ -50,14 +59,20 @@
   "schemas": {
     "mantle_build_report": "crunch-build-report-v1",
     "mantle_observation": "mantle-external-evidence-observation-v1",
-    "mantle_realization_receipt": "mantle-foreign-realization-receipt-v1",
+    "mantle_realization_receipts": [
+      "mantle-foreign-realization-receipt-v1",
+      "mantle-foreign-realization-receipt-v2"
+    ],
     "mantle_store_info": "mantle-store-info-v3",
     "octet_contract": "octet-requirement-contract/v1",
     "octet_decision": "octet-requirement-decision/v1",
     "octet_evidence": "octet-requirement-evidence/v1",
     "octet_formal_proof_envelope": "octet-formal-proof-envelope/v1",
-    "octet_producer_job": "octet-mantle-producer-job/v1",
     "octet_proof_cards": "octet-proof-cards/v1",
+    "producer_jobs": {
+      "octet": "octet-mantle-producer-job/v1",
+      "trellis": "trellis-mantle-producer-job/v1"
+    },
     "registry": "cairn.content-bound-requirement-registry.v1"
   },
   "sources_schema": "cairn.assurance-target-sources.v1",

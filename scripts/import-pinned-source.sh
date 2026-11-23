@@ -14,11 +14,11 @@ case "$name" in
     source_commit=70496e67c7fd4a8b05914161a8e09de2759bebc8
     archive_blake3=56120c08a7d04520b2af8926bec445bc23e69d69ac5e4a53131777d8d72e5083 ;;
   cairn)
-    source_commit=15f00875562025e7ea7e0d1f4af24d1a2e2ac06f
-    archive_blake3=56120c08a7d04520b2af8926bec445bc23e69d69ac5e4a53131777d8d72e5083 ;;
+    source_commit=9082e1aece4f04bcbead5eeea087e496bc48a675
+    archive_blake3=34d5bc3d335c23161b0a832727866d5d4d3cd309f459e5f1db1cbbb3c777ef3c ;;
   cairn-verifier)
-    source_commit=8f6cd0b373962ca8c370e00ef20dfbf0c398e0d0
-    archive_blake3=867504a36da1ba047bdaef11f5b9dfb58b2abfb9d728a6d64b59be477aec56c0 ;;
+    source_commit=9082e1aece4f04bcbead5eeea087e496bc48a675
+    archive_blake3=cb6b7a2f7fe2f39ba3b814803cd0c609be436c1854a6205faf301f0302cd10ed ;;
   cairn-kiln-core)
     source_commit=5d99f4e9bb954743443e340baece31256b4c53f1
     archive_blake3=c99e9f1d5dfec309187fa7f807062fd5da6f014a65188ea51ccecb0f6f96097e ;;

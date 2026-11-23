@@ -16,12 +16,14 @@ extern crate alloc;
 // r[impl cairn.gate_interchange.boundary]
 // r[verify cairn.gate_interchange.boundary.scenario.scope]
 mod admission;
-mod identity;
+mod binding;
 mod model;
+mod primitive;
 
 pub use admission::{build_result, validate_diagnostic, validate_request, validate_result};
-pub use identity::{request_identity, result_identity};
+pub use binding::{request_identity, result_identity};
 pub use model::*;
+pub use primitive::*;
 
 #[cfg(test)]
 mod tests;

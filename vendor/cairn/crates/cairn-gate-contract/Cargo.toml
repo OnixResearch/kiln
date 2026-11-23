@@ -16,6 +16,7 @@ serde_json = "1.0"
 
 [lints.rust]
 unsafe_code = "forbid"
+unexpected_cfgs = { level = "deny", check-cfg = ['cfg(dylint_lib, values("octet"))'] }
 
 [lints.clippy]
 dbg_macro = "deny"

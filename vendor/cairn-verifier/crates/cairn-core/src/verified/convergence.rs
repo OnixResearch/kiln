@@ -12,9 +12,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::{json, Value};
 
 use super::assurance_targets::{
-    bind_targets_to_registry, compare_projection, project_contract, AssuranceTarget,
-    AssuranceTargetIssue, AssuranceTargetsPolicy, GeneratedSources, TargetContract, TargetsFile,
-    ISSUE_STALE_ROW,
+    admitted_producer_job_schema, bind_targets_to_registry, compare_projection, project_contract,
+    AssuranceTarget, AssuranceTargetIssue, AssuranceTargetsPolicy, GeneratedSources,
+    TargetContract, TargetsFile, ISSUE_STALE_ROW,
 };
 use super::content_bound_requirement_registry::ContentBoundRequirementRegistry;
 use super::evidence::{blake3_hex, canonical_json};
@@ -60,6 +60,9 @@ pub const CONVERGENCE_ISSUE_DECISION_INCOMPLETE: &str = "convergence.decision_in
 pub const CONVERGENCE_ISSUE_PROOF_ACCEPTANCE_RELAY: &str = "convergence.proof_acceptance_relay";
 pub const CONVERGENCE_ISSUE_REVISION_MISMATCH: &str = "convergence.revision_mismatch";
 pub const CONVERGENCE_ISSUE_JOB_ID_MISMATCH: &str = "convergence.job_id_mismatch";
+pub const CONVERGENCE_ISSUE_MISSING_PRODUCER_OWNER: &str = "convergence.missing_producer_owner";
+pub const CONVERGENCE_ISSUE_UNKNOWN_PRODUCER_OWNER: &str = "convergence.unknown_producer_owner";
+pub const CONVERGENCE_ISSUE_PRODUCER_SCHEMA_MISMATCH: &str = "convergence.producer_schema_mismatch";
 pub const CONVERGENCE_ISSUE_PRODUCER_JOB_IDENTITY_MISMATCH: &str =
     "convergence.producer_job_identity_mismatch";
 pub const CONVERGENCE_ISSUE_TOOL_GRAPH_IDENTITY_MISMATCH: &str =
@@ -83,6 +86,21 @@ pub const CONVERGENCE_ISSUE_STORE_INFO_MISSING: &str = "convergence.store_info_m
 pub const CONVERGENCE_ISSUE_STORE_INFO_PATH_MISSING: &str = "convergence.store_info_path_missing";
 pub const CONVERGENCE_ISSUE_NAR_MISMATCH: &str = "convergence.nar_mismatch";
 pub const CONVERGENCE_ISSUE_UNTRUSTED_SIGNER: &str = "convergence.untrusted_signer";
+pub const CONVERGENCE_ISSUE_REUSE_LINK_INVALID: &str = "convergence.reuse_link_invalid";
+
+/// Mantle's realization receipt v2 schema. Version 1 stays the default for
+/// every other route.
+pub const REALIZATION_RECEIPT_SCHEMA_V2: &str = "mantle-foreign-realization-receipt-v2";
+/// Version 1 records no root disposition; Cairn derives `preserved` from this
+/// route because Mantle did not build or execute the root.
+pub const CACHE_ONLY_PRESERVE_ROUTE: &str = "cache-only-preserve-v1";
+/// Every version 1 build-route receipt means Mantle built the root.
+pub const CACHE_INPUTS_BUILD_ROOTS_ROUTE_V1: &str = "cache-inputs-build-roots-v1";
+pub const ROOT_DISPOSITION_BUILT: &str = "built";
+pub const ROOT_DISPOSITION_REUSED: &str = "reused";
+pub const ROOT_DISPOSITION_PRESERVED: &str = "preserved";
+/// The only signer role that may attest a version 2 root.
+pub const BUILDER_SIGNER_ROLE: &str = "builder";
 
 /// An already-read JSON file: its BLAKE3 identity and parsed value.
 #[derive(Debug, Clone)]
@@ -124,12 +142,18 @@ pub struct ProducerOutputFacts {
 #[derive(Debug, Clone)]
 pub struct ContractCaseFacts {
     pub contract_id: String,
+    /// Absolute path the evidence recorded for the realized output when the
+    /// retained copy lives elsewhere; absolute deck locators resolve against it.
+    pub producer_output_locator: Option<String>,
     pub contract: FileFacts,
     pub decision: FileFacts,
     pub evidence: FileFacts,
     pub handoff: HandoffFacts,
     pub producer_output: ProducerOutputFacts,
     pub realization: Option<FileFacts>,
+    /// The earlier version 2 receipt a `reused` root links to, when the case
+    /// supplies it.
+    pub original_realization: Option<FileFacts>,
     pub store_info: Option<FileFacts>,
 }
 
@@ -151,6 +175,9 @@ pub struct ConvergenceRequest {
     /// domain-separated identity.
     pub root_specification_digests: BTreeMap<String, String>,
     pub trusted_signers: Vec<String>,
+    /// Builder public-key fingerprints (`public_key_blake3`) the case trusts.
+    /// A version 2 root signer must name one of these.
+    pub trusted_builder_keys: Vec<String>,
     pub contracts: Vec<ContractCaseFacts>,
 }
 
@@ -229,8 +256,12 @@ struct RowOutcome {
 }
 
 struct RealizationBinding {
+    node_id: Option<String>,
+    target_derivation: Option<String>,
     target_path: Option<String>,
     nar_sha256: Option<String>,
+    root_disposition: Option<String>,
+    original_receipt_blake3: Option<String>,
 }
 
 /// Evaluate every registry row in registry order and seal the receipt.
@@ -326,6 +357,7 @@ pub fn evaluate_convergence(request: &ConvergenceRequest) -> Value {
         .map(|case| {
             json!({
                 "contract_id": case.contract_id,
+                "producer_output_locator": case.producer_output_locator,
                 "contract_blake3": case.contract.blake3,
                 "decision_blake3": case.decision.blake3,
                 "evidence_blake3": case.evidence.blake3,
@@ -471,13 +503,26 @@ fn evaluate_target(
         job_id: target.evidence_job.as_ref().map(|job| job.job_id.clone()),
     };
     if outcome.state == CONVERGENCE_STATE_CURRENT {
+        // Mantle records the route it used on the realization receipt; a null or
+        // non-string value states no route rather than inventing one.
+        let realization_route = case
+            .realization
+            .as_ref()
+            .and_then(|facts| facts.value.pointer("/cache_policy/realization_route"))
+            .and_then(Value::as_str)
+            .map(ToOwned::to_owned);
         outcome.bound = Some(json!({
             "source_revision": request.registry.revision.value,
             "producer_job_identity": observed_string(&case.handoff.observation.value, "producer_job_identity").unwrap_or_default(),
             "receipt_identity": observed_string(&case.handoff.observation.value, "receipt_identity").unwrap_or_default(),
             "root_derivation": case.handoff.root_derivation.text.as_deref().map(str::trim).unwrap_or_default(),
+            "node_id": binding.node_id.unwrap_or_default(),
+            "target_derivation": binding.target_derivation.unwrap_or_default(),
             "target_path": binding.target_path.unwrap_or_default(),
             "signer": signer.unwrap_or_default(),
+            "realization_route": realization_route,
+            "root_disposition": binding.root_disposition,
+            "original_receipt_blake3": binding.original_receipt_blake3,
         }));
     }
     outcome
@@ -665,6 +710,53 @@ fn decision_issue_code(mapped: &str) -> &'static str {
     }
 }
 
+/// A handoff producer job the policy does not admit for its own owner.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProducerJobAdmissionIssue {
+    pub code: &'static str,
+    pub message: String,
+}
+
+/// Admit the handoff `job.json` against the policy's owner-scoped map.
+///
+/// The job must name a non-empty `owner`; the policy must admit a schema for
+/// that owner (matched without ASCII case); and the job's `schema_version`
+/// must equal it. A missing owner, an unknown owner and a schema/owner
+/// mismatch each fail with their own stable code.
+pub fn admit_producer_job<'a>(
+    policy: &'a AssuranceTargetsPolicy,
+    job: &Value,
+) -> Result<&'a str, ProducerJobAdmissionIssue> {
+    let owner = job
+        .get("owner")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|owner| !owner.is_empty());
+    let Some(owner) = owner else {
+        return Err(ProducerJobAdmissionIssue {
+            code: CONVERGENCE_ISSUE_MISSING_PRODUCER_OWNER,
+            message: "handoff job.json must declare a non-empty owner".to_string(),
+        });
+    };
+    let Some(admitted) = admitted_producer_job_schema(policy, owner) else {
+        return Err(ProducerJobAdmissionIssue {
+            code: CONVERGENCE_ISSUE_UNKNOWN_PRODUCER_OWNER,
+            message: format!(
+                "policy admits no producer-job schema for owner {owner:?}; schemas.producer_jobs must name it"
+            ),
+        });
+    };
+    if job.get("schema_version").and_then(Value::as_str) != Some(admitted) {
+        return Err(ProducerJobAdmissionIssue {
+            code: CONVERGENCE_ISSUE_PRODUCER_SCHEMA_MISMATCH,
+            message: format!(
+                "handoff job.json schema_version must equal {admitted} for owner {owner}"
+            ),
+        });
+    }
+    Ok(admitted)
+}
+
 fn check_handoff(
     request: &ConvergenceRequest,
     target: &AssuranceTarget,
@@ -673,7 +765,14 @@ fn check_handoff(
 ) {
     let observation = &case.handoff.observation.value;
     let proof_acceptance = observation.get("proof_acceptance").and_then(Value::as_str);
-    if proof_acceptance != Some(request.policy.mantle.proof_acceptance_relay.as_str()) {
+    if !proof_acceptance.is_some_and(|relay| {
+        request
+            .policy
+            .mantle
+            .proof_acceptance_relays
+            .iter()
+            .any(|admitted| admitted == relay)
+    }) {
         evaluation.mark(Rank::Unsupported, CONVERGENCE_ISSUE_PROOF_ACCEPTANCE_RELAY);
     }
 
@@ -691,6 +790,15 @@ fn check_handoff(
     let target_job_id = target.evidence_job.as_ref().map(|job| job.job_id.as_str());
     if job_id.is_none() || job_id != target_job_id {
         evaluation.mark(Rank::Stale, CONVERGENCE_ISSUE_JOB_ID_MISMATCH);
+    }
+
+    if let Err(admission) = admit_producer_job(&request.policy, &case.handoff.job.value) {
+        let rank = match admission.code {
+            CONVERGENCE_ISSUE_UNKNOWN_PRODUCER_OWNER => Rank::Unsupported,
+            CONVERGENCE_ISSUE_PRODUCER_SCHEMA_MISMATCH => Rank::Stale,
+            _ => Rank::Incomplete,
+        };
+        evaluation.mark(rank, admission.code);
     }
 
     if !observed_digest_matches(
@@ -806,8 +914,12 @@ fn check_realization(
     evaluation: &mut Evaluation,
 ) -> RealizationBinding {
     let mut binding = RealizationBinding {
+        node_id: None,
+        target_derivation: None,
         target_path: None,
         nar_sha256: None,
+        root_disposition: None,
+        original_receipt_blake3: None,
     };
     let Some(realization) = case.realization.as_ref() else {
         evaluation.mark(Rank::Unrealized, CONVERGENCE_ISSUE_REALIZATION_MISSING);
@@ -829,19 +941,30 @@ fn check_realization(
         evaluation.mark(Rank::Unrealized, CONVERGENCE_ISSUE_REALIZATION_INCOMPLETE);
     }
 
-    let root_derivation = case
-        .handoff
-        .root_derivation
-        .text
-        .as_deref()
-        .map(str::trim)
-        .unwrap_or_default();
+    if value.get("schema").and_then(Value::as_str) == Some(REALIZATION_RECEIPT_SCHEMA_V2) {
+        check_realization_v2(request, case, value, &mut binding, evaluation);
+    } else {
+        check_realization_v1(case, value, &mut binding, evaluation);
+    }
+    binding
+}
+
+/// Version 1 receipts keep their existing binding: the unit's node_id and the
+/// output whose path the bridge consumed. Their disposition is derived, never
+/// read: the preserve route did not build, the version 1 build route always did.
+fn check_realization_v1(
+    case: &ContractCaseFacts,
+    value: &Value,
+    binding: &mut RealizationBinding,
+    evaluation: &mut Evaluation,
+) {
+    let expected_node_id = expected_root_node_id(case);
     let unit = value
         .get("units")
         .and_then(Value::as_array)
         .and_then(|units| {
             units.iter().find(|unit| {
-                unit.get("target_derivation").and_then(Value::as_str) == Some(root_derivation)
+                unit.get("node_id").and_then(Value::as_str) == Some(expected_node_id.as_str())
             })
         });
     let Some(unit) = unit else {
@@ -849,8 +972,16 @@ fn check_realization(
             Rank::Stale,
             CONVERGENCE_ISSUE_REALIZATION_DERIVATION_MISMATCH,
         );
-        return binding;
+        return;
     };
+    binding.node_id = unit
+        .get("node_id")
+        .and_then(Value::as_str)
+        .map(ToOwned::to_owned);
+    binding.target_derivation = unit
+        .get("target_derivation")
+        .and_then(Value::as_str)
+        .map(ToOwned::to_owned);
     let dir_name = case.producer_output.dir_name.as_str();
     let output = unit
         .get("outputs")
@@ -866,7 +997,7 @@ fn check_realization(
         });
     let Some(output) = output else {
         evaluation.mark(Rank::Stale, CONVERGENCE_ISSUE_REALIZATION_OUTPUT_MISMATCH);
-        return binding;
+        return;
     };
     binding.target_path = output
         .get("target_path")
@@ -876,7 +1007,210 @@ fn check_realization(
         .get("nar_sha256")
         .and_then(Value::as_str)
         .map(ToOwned::to_owned);
-    binding
+    binding.root_disposition = v1_root_disposition(value).map(ToOwned::to_owned);
+}
+
+/// Version 2 receipts name each selected root. Cairn admits a root only when
+/// the policy admits its disposition, its signer has the builder role and a
+/// fingerprint the case trusts, and a `reused` root links a `built` original.
+///
+/// r[impl cairn.convergence.realization.root_disposition]
+/// r[impl cairn.convergence.realization.reuse_link]
+fn check_realization_v2(
+    request: &ConvergenceRequest,
+    case: &ContractCaseFacts,
+    value: &Value,
+    binding: &mut RealizationBinding,
+    evaluation: &mut Evaluation,
+) {
+    let expected_node_id = expected_root_node_id(case);
+    let dir_name = case.producer_output.dir_name.as_str();
+    let roots = value.get("roots").and_then(Value::as_array);
+    let node_roots: Vec<&Value> = roots
+        .map(|roots| {
+            roots
+                .iter()
+                .filter(|root| {
+                    root.get("node_id").and_then(Value::as_str) == Some(expected_node_id.as_str())
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    if node_roots.is_empty() {
+        evaluation.mark(
+            Rank::Stale,
+            CONVERGENCE_ISSUE_REALIZATION_DERIVATION_MISMATCH,
+        );
+        return;
+    }
+    let root = node_roots.iter().copied().find(|root| {
+        root.get("path")
+            .and_then(Value::as_str)
+            .map(final_component)
+            == Some(dir_name)
+    });
+    let Some(root) = root else {
+        evaluation.mark(Rank::Stale, CONVERGENCE_ISSUE_REALIZATION_OUTPUT_MISMATCH);
+        return;
+    };
+    binding.node_id = root
+        .get("node_id")
+        .and_then(Value::as_str)
+        .map(ToOwned::to_owned);
+    binding.target_derivation = root
+        .get("target_derivation")
+        .and_then(Value::as_str)
+        .map(ToOwned::to_owned);
+    binding.target_path = root
+        .get("path")
+        .and_then(Value::as_str)
+        .map(ToOwned::to_owned);
+    binding.nar_sha256 = root
+        .get("nar_sha256")
+        .and_then(Value::as_str)
+        .map(ToOwned::to_owned);
+
+    let disposition = root.get("disposition").and_then(Value::as_str);
+    let Some(disposition) = disposition.filter(|disposition| {
+        request
+            .policy
+            .mantle
+            .root_dispositions
+            .iter()
+            .any(|admitted| admitted == disposition)
+    }) else {
+        evaluation.mark(Rank::Unrealized, CONVERGENCE_ISSUE_REALIZATION_INCOMPLETE);
+        return;
+    };
+    binding.root_disposition = Some(disposition.to_string());
+
+    let built = root.get("built").filter(|value| !value.is_null());
+    let reused = root.get("reused").filter(|value| !value.is_null());
+    let shape_ok = match disposition {
+        ROOT_DISPOSITION_BUILT => built.is_some() && reused.is_none(),
+        ROOT_DISPOSITION_REUSED => reused.is_some() && built.is_none(),
+        _ => false,
+    };
+    if !shape_ok {
+        evaluation.mark(Rank::Unrealized, CONVERGENCE_ISSUE_REALIZATION_INCOMPLETE);
+    }
+
+    let signer = root.get("signer");
+    let role_is_builder = signer
+        .and_then(|signer| signer.get("role"))
+        .and_then(Value::as_str)
+        == Some(BUILDER_SIGNER_ROLE);
+    let fingerprint = signer_fingerprint(root);
+    let fingerprint_trusted = fingerprint.is_some_and(|fingerprint| {
+        request
+            .trusted_builder_keys
+            .iter()
+            .any(|trusted| trusted == fingerprint)
+    });
+    if !(role_is_builder && fingerprint_trusted) {
+        evaluation.mark(Rank::Unrealized, CONVERGENCE_ISSUE_UNTRUSTED_SIGNER);
+    }
+
+    if disposition == ROOT_DISPOSITION_REUSED {
+        let link = reused
+            .and_then(|reused| reused.get("original_receipt_blake3"))
+            .and_then(Value::as_str);
+        let Some(link) = link else {
+            evaluation.mark(Rank::Stale, CONVERGENCE_ISSUE_REUSE_LINK_INVALID);
+            return;
+        };
+        binding.original_receipt_blake3 = Some(link.to_string());
+        if !reuse_link_is_valid(root, link, case.original_realization.as_ref()) {
+            evaluation.mark(Rank::Stale, CONVERGENCE_ISSUE_REUSE_LINK_INVALID);
+        }
+    }
+}
+
+/// A version 2 `reused` root must link a parseable version 2 original whose
+/// recorded digest is the link, whose matching root was `built` with the same
+/// NAR hash, and whose signer fingerprint is the same.
+///
+/// Cairn checks the recorded identities; it does not verify signature bytes.
+fn reuse_link_is_valid(root: &Value, link: &str, original: Option<&FileFacts>) -> bool {
+    let Some(original) = original else {
+        return false;
+    };
+    let original_value = &original.value;
+    if original_value.get("schema").and_then(Value::as_str) != Some(REALIZATION_RECEIPT_SCHEMA_V2) {
+        return false;
+    }
+    if original_value.get("receipt_blake3").and_then(Value::as_str) != Some(link) {
+        return false;
+    }
+    let original_root = original_value
+        .get("roots")
+        .and_then(Value::as_array)
+        .and_then(|roots| {
+            roots.iter().find(|candidate| {
+                candidate.get("node_id") == root.get("node_id")
+                    && candidate.get("target_derivation") == root.get("target_derivation")
+                    && candidate.get("output_name") == root.get("output_name")
+                    && candidate.get("path") == root.get("path")
+            })
+        });
+    let Some(original_root) = original_root else {
+        return false;
+    };
+    if original_root.get("disposition").and_then(Value::as_str) != Some(ROOT_DISPOSITION_BUILT) {
+        return false;
+    }
+    if original_root.get("built").is_none_or(Value::is_null)
+        || original_root
+            .get("reused")
+            .is_some_and(|value| !value.is_null())
+    {
+        return false;
+    }
+    let same_nar = match (
+        root.get("nar_sha256").and_then(Value::as_str),
+        original_root.get("nar_sha256").and_then(Value::as_str),
+    ) {
+        (Some(current), Some(original)) => digest_eq(current, original),
+        _ => false,
+    };
+    same_nar
+        && matches!(
+            (signer_fingerprint(root), signer_fingerprint(original_root)),
+            (Some(current), Some(original)) if current == original
+        )
+}
+
+/// The version 1 route's meaning for `bound.root_disposition`: the preserve
+/// route built nothing, and the version 1 build route always built. Any other
+/// route, including none, makes no claim.
+fn v1_root_disposition(value: &Value) -> Option<&'static str> {
+    match value
+        .pointer("/cache_policy/realization_route")
+        .and_then(Value::as_str)
+    {
+        Some(CACHE_ONLY_PRESERVE_ROUTE) => Some(ROOT_DISPOSITION_PRESERVED),
+        Some(CACHE_INPUTS_BUILD_ROOTS_ROUTE_V1) => Some(ROOT_DISPOSITION_BUILT),
+        _ => None,
+    }
+}
+
+fn signer_fingerprint(root: &Value) -> Option<&str> {
+    root.pointer("/signer/public_key_blake3")
+        .and_then(Value::as_str)
+}
+
+/// Mantle names a foreign unit `nix:` plus the foreign derivation's file name;
+/// `target_derivation` is Mantle's translated derivation, which differs from the
+/// frozen root even on the preserve route.
+fn expected_root_node_id(case: &ContractCaseFacts) -> String {
+    let root_derivation = case
+        .handoff
+        .root_derivation
+        .text
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or_default();
+    format!("nix:{}", final_component(root_derivation))
 }
 
 fn check_store_info(

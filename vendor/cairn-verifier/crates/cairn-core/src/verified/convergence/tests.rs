@@ -27,11 +27,14 @@ const JOB_ID: &str = "pilot.job.v1";
 const EVIDENCE_ID: &str = "pilot.evidence.deck";
 const DECK_PATH: &str = "artifacts/proof-cards.json";
 const RECEIPT_LOCATOR: &str = "external-receipt.json";
-const JOB_TEXT: &str = r#"{"schema":"octet-mantle-producer-job/v1","job_id":"pilot.job.v1"}"#;
+const JOB_TEXT: &str =
+    r#"{"schema_version":"octet-mantle-producer-job/v1","owner":"Octet","job_id":"pilot.job.v1"}"#;
 const HANDOFF_RECEIPT_TEXT: &str = "handoff external receipt bytes";
 const HANDOFF_PROFILE_TEXT: &str = "handoff external profile bytes";
 const TOOL_GRAPH_TEXT: &str = "tool closure derivation json bytes";
 const ROOT_DERIVATION: &str = "/nix/store/00000000000000000000000000000000-pilot-root.drv";
+const TRANSLATED_DERIVATION: &str =
+    "/nix/store/11111111111111111111111111111111-pilot-translated.drv";
 const PRODUCER_DIR: &str = "abc123-pilot-output";
 const STORE_PATH: &str = "/nix/store/abc123-pilot-output";
 const NAR_SHA256: &str = "2222222222222222222222222222222222222222222222222222222222222222";
@@ -261,7 +264,8 @@ fn build_request(full: bool) -> ConvergenceRequest {
         "strongest_state": "realized",
         "selected_root_paths": [STORE_PATH],
         "units": [{
-            "target_derivation": ROOT_DERIVATION,
+            "node_id": format!("nix:{}", ROOT_DERIVATION.rsplit('/').next().unwrap_or(ROOT_DERIVATION)),
+            "target_derivation": TRANSLATED_DERIVATION,
             "outputs": [{
                 "target_path": STORE_PATH,
                 "nar_sha256": NAR_SHA256,
@@ -305,14 +309,17 @@ fn build_request(full: bool) -> ConvergenceRequest {
             plain_specification_blake3,
         )]),
         trusted_signers: vec!["pilot-key".to_string()],
+        trusted_builder_keys: Vec::new(),
         contracts: vec![ContractCaseFacts {
             contract_id: CONTRACT_ID.to_string(),
+            producer_output_locator: None,
             contract,
             decision,
             evidence,
             handoff,
             producer_output,
             realization: Some(realization),
+            original_realization: None,
             store_info: Some(store_info),
         }],
     }
@@ -374,6 +381,28 @@ fn positive_case_reports_current_and_untargeted() {
     assert_eq!(receipt["rows"][0]["bound"]["signer"], "pilot-key");
     assert_eq!(receipt["rows"][0]["bound"]["target_path"], STORE_PATH);
     assert_eq!(receipt["rows"][0]["bound"]["source_revision"], REVISION);
+    assert_eq!(
+        receipt["rows"][0]["bound"]["root_derivation"],
+        ROOT_DERIVATION
+    );
+    assert_eq!(
+        receipt["rows"][0]["bound"]["node_id"],
+        format!(
+            "nix:{}",
+            ROOT_DERIVATION
+                .rsplit('/')
+                .next()
+                .unwrap_or(ROOT_DERIVATION)
+        )
+    );
+    assert_eq!(
+        receipt["rows"][0]["bound"]["target_derivation"],
+        TRANSLATED_DERIVATION
+    );
+    assert_eq!(
+        receipt["rows"][0]["bound"]["realization_route"],
+        Value::Null
+    );
 
     assert_eq!(state_of(&receipt, 1), CONVERGENCE_STATE_UNTARGETED);
     assert!(issues_of(&receipt, 1).is_empty());
@@ -702,9 +731,23 @@ fn clause_status_maps_through_policy() {
 }
 
 #[test]
-fn proof_acceptance_relay_mismatch_is_unsupported() {
+fn both_bridge_relay_values_bind() {
+    for relay in ["not-evaluated-by-mantle", "externally-reported-by-octet"] {
+        let mut request = build_request(false);
+        observation_mut(&mut request)["proof_acceptance"] = json!(relay);
+        let receipt = evaluate_convergence(&request);
+        assert_eq!(
+            state_of(&receipt, 0),
+            CONVERGENCE_STATE_CURRENT,
+            "relay {relay}"
+        );
+    }
+}
+
+#[test]
+fn proof_acceptance_relay_outside_the_closed_set_is_unsupported() {
     let mut request = build_request(false);
-    observation_mut(&mut request)["proof_acceptance"] = json!("evaluated-by-mantle");
+    observation_mut(&mut request)["proof_acceptance"] = json!("accepted-by-mantle");
     let receipt = evaluate_convergence(&request);
     assert_row(
         &receipt,
@@ -737,6 +780,64 @@ fn handoff_job_id_mismatch_is_stale() {
         0,
         CONVERGENCE_STATE_STALE,
         CONVERGENCE_ISSUE_JOB_ID_MISMATCH,
+    );
+}
+
+// r[verify cairn.convergence.inputs]
+#[test]
+fn trellis_owner_job_binds_current() {
+    let mut request = build_request(false);
+    request.contracts[0].handoff.job.value = json!({
+        "schema_version": "trellis-mantle-producer-job/v1",
+        "owner": "Trellis",
+        "job_id": JOB_ID,
+    });
+    let receipt = evaluate_convergence(&request);
+    assert_eq!(state_of(&receipt, 0), CONVERGENCE_STATE_CURRENT);
+    assert!(issues_of(&receipt, 0).is_empty());
+}
+
+// r[verify cairn.convergence.inputs]
+#[test]
+fn unknown_producer_owner_is_unsupported() {
+    let mut request = build_request(false);
+    request.contracts[0].handoff.job.value["owner"] = json!("Unknown");
+    let receipt = evaluate_convergence(&request);
+    assert_row(
+        &receipt,
+        0,
+        CONVERGENCE_STATE_UNSUPPORTED,
+        CONVERGENCE_ISSUE_UNKNOWN_PRODUCER_OWNER,
+    );
+}
+
+// r[verify cairn.convergence.inputs]
+#[test]
+fn producer_schema_owner_mismatch_is_stale() {
+    let mut request = build_request(false);
+    request.contracts[0].handoff.job.value =
+        json!({"schema_version": "trellis-mantle-producer-job/v1", "owner": "Octet"});
+    let receipt = evaluate_convergence(&request);
+    assert_row(
+        &receipt,
+        0,
+        CONVERGENCE_STATE_STALE,
+        CONVERGENCE_ISSUE_PRODUCER_SCHEMA_MISMATCH,
+    );
+}
+
+// r[verify cairn.convergence.inputs]
+#[test]
+fn missing_producer_owner_is_incomplete() {
+    let mut request = build_request(false);
+    request.contracts[0].handoff.job.value =
+        json!({"schema_version": "octet-mantle-producer-job/v1", "job_id": JOB_ID});
+    let receipt = evaluate_convergence(&request);
+    assert_row(
+        &receipt,
+        0,
+        CONVERGENCE_STATE_INCOMPLETE,
+        CONVERGENCE_ISSUE_MISSING_PRODUCER_OWNER,
     );
 }
 
@@ -886,6 +987,31 @@ fn proof_card_with_a_foreign_artifact_locator_is_stale() {
 
 // r[verify cairn.convergence.realization]
 #[test]
+fn a_preserved_realization_route_is_recorded_in_the_binding() {
+    let mut request = build_request(false);
+    if let Some(realization) = request.contracts[0].realization.as_mut() {
+        realization.value["cache_policy"] = json!({"realization_route": "cache-only-preserve-v1"});
+    }
+    let receipt = evaluate_convergence(&request);
+    assert_eq!(state_of(&receipt, 0), CONVERGENCE_STATE_CURRENT);
+    assert_eq!(
+        receipt["rows"][0]["bound"]["realization_route"],
+        "cache-only-preserve-v1"
+    );
+
+    let mut non_string = build_request(false);
+    if let Some(realization) = non_string.contracts[0].realization.as_mut() {
+        realization.value["cache_policy"] = json!({"realization_route": 7});
+    }
+    let receipt = evaluate_convergence(&non_string);
+    assert_eq!(
+        receipt["rows"][0]["bound"]["realization_route"],
+        Value::Null
+    );
+}
+
+// r[verify cairn.convergence.realization]
+#[test]
 fn missing_realization_is_unrealized() {
     let mut request = build_request(false);
     request.contracts[0].realization = None;
@@ -917,7 +1043,10 @@ fn incomplete_realization_is_unrealized() {
 fn realization_derivation_mismatch_is_stale() {
     let mut request = build_request(false);
     if let Some(realization) = request.contracts[0].realization.as_mut() {
-        realization.value["units"][0]["target_derivation"] = json!("other.drv");
+        // The unit is selected by the foreign `node_id`; a matching
+        // `target_derivation` alone does not bind it.
+        realization.value["units"][0]["node_id"] = json!("nix:other.drv");
+        realization.value["units"][0]["target_derivation"] = json!(ROOT_DERIVATION);
     }
     let receipt = evaluate_convergence(&request);
     assert_row(
@@ -1106,4 +1235,327 @@ fn externally_reported_outcome_is_never_acceptance() {
         CONVERGENCE_ISSUE_DECISION_FAILED,
     );
     assert!(!issues_of(&receipt, 0).is_empty());
+}
+
+const BUILDER_FINGERPRINT: &str =
+    "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb01";
+const ORIGINAL_RECEIPT_BLAKE3: &str =
+    "1111111111111111111111111111111111111111111111111111111111111111";
+const REUSED_RECEIPT_BLAKE3: &str =
+    "2222222222222222222222222222222222222222222222222222222222222222";
+
+/// One version 2 root entry for the fixture's selected root.
+fn v2_root(disposition: &str, fingerprint: &str) -> Value {
+    let (built, reused) = match disposition {
+        ROOT_DISPOSITION_BUILT => (
+            json!({
+                "mantle_version": "0.2.1",
+                "execution_profile_digest_blake3": "3".repeat(64),
+                "input_closure_blake3": "4".repeat(64),
+            }),
+            Value::Null,
+        ),
+        ROOT_DISPOSITION_REUSED => (
+            Value::Null,
+            json!({
+                "original_receipt_blake3": ORIGINAL_RECEIPT_BLAKE3,
+                "source": "local",
+                "builds": 0,
+                "downloads": 0,
+            }),
+        ),
+        other => panic!("test helper has no shape for disposition {other}"),
+    };
+    json!({
+        "node_id": format!("nix:{}", final_component(ROOT_DERIVATION)),
+        "target_derivation": TRANSLATED_DERIVATION,
+        "output_name": "out",
+        "path": STORE_PATH,
+        "nar_sha256": NAR_SHA256,
+        "nar_size": 42,
+        "references": [STORE_PATH],
+        "disposition": disposition,
+        "signer": {
+            "key_name": "crunch-host-1",
+            "public_key_blake3": fingerprint,
+            "role": BUILDER_SIGNER_ROLE,
+        },
+        "trust_policy_blake3": "5".repeat(64),
+        "built": built,
+        "reused": reused,
+    })
+}
+
+fn v2_receipt(root: Value, receipt_blake3: &str) -> Value {
+    json!({
+        "schema": REALIZATION_RECEIPT_SCHEMA_V2,
+        "status": "complete",
+        "strongest_state": "realized",
+        "receipt_blake3": receipt_blake3,
+        "cache_policy": {"realization_route": "cache-inputs-build-roots-v2"},
+        "roots": [root],
+    })
+}
+
+/// A request whose realization receipt is version 2. A `reused` request also
+/// carries the `built` original the link names.
+fn v2_request(disposition: &str) -> ConvergenceRequest {
+    let mut request = build_request(false);
+    request.trusted_builder_keys = vec![BUILDER_FINGERPRINT.to_string()];
+    request.contracts[0].realization = Some(json_facts(v2_receipt(
+        v2_root(disposition, BUILDER_FINGERPRINT),
+        REUSED_RECEIPT_BLAKE3,
+    )));
+    if disposition == ROOT_DISPOSITION_REUSED {
+        request.contracts[0].original_realization = Some(json_facts(v2_receipt(
+            v2_root(ROOT_DISPOSITION_BUILT, BUILDER_FINGERPRINT),
+            ORIGINAL_RECEIPT_BLAKE3,
+        )));
+    }
+    request
+}
+
+fn realization_mut(request: &mut ConvergenceRequest) -> &mut Value {
+    &mut request.contracts[0]
+        .realization
+        .as_mut()
+        .expect("realization must exist")
+        .value
+}
+
+fn original_realization_mut(request: &mut ConvergenceRequest) -> &mut Value {
+    &mut request.contracts[0]
+        .original_realization
+        .as_mut()
+        .expect("original realization must exist")
+        .value
+}
+
+// r[verify cairn.convergence.realization.root_disposition]
+#[test]
+fn a_v2_built_root_reports_built() {
+    let request = v2_request(ROOT_DISPOSITION_BUILT);
+    let receipt = evaluate_convergence(&request);
+    assert_eq!(state_of(&receipt, 0), CONVERGENCE_STATE_CURRENT);
+    assert_eq!(receipt["rows"][0]["bound"]["root_disposition"], "built");
+    assert_eq!(
+        receipt["rows"][0]["bound"]["original_receipt_blake3"],
+        Value::Null
+    );
+}
+
+// r[verify cairn.convergence.realization.reuse_link]
+#[test]
+fn a_v2_reused_root_reports_reused_and_the_original_link() {
+    let request = v2_request(ROOT_DISPOSITION_REUSED);
+    let receipt = evaluate_convergence(&request);
+    assert_eq!(state_of(&receipt, 0), CONVERGENCE_STATE_CURRENT);
+    assert_eq!(receipt["rows"][0]["bound"]["root_disposition"], "reused");
+    assert_eq!(
+        receipt["rows"][0]["bound"]["original_receipt_blake3"],
+        ORIGINAL_RECEIPT_BLAKE3
+    );
+}
+
+#[test]
+fn a_v2_reused_root_without_the_original_is_stale() {
+    let mut request = v2_request(ROOT_DISPOSITION_REUSED);
+    request.contracts[0].original_realization = None;
+    let receipt = evaluate_convergence(&request);
+    assert_row(
+        &receipt,
+        0,
+        CONVERGENCE_STATE_STALE,
+        CONVERGENCE_ISSUE_REUSE_LINK_INVALID,
+    );
+    assert_eq!(receipt["rows"][0]["bound"], Value::Null);
+}
+
+#[test]
+fn a_v2_reused_root_whose_original_is_not_v2_is_stale() {
+    let mut request = v2_request(ROOT_DISPOSITION_REUSED);
+    original_realization_mut(&mut request)["schema"] =
+        json!("mantle-foreign-realization-receipt-v1");
+    let receipt = evaluate_convergence(&request);
+    assert_row(
+        &receipt,
+        0,
+        CONVERGENCE_STATE_STALE,
+        CONVERGENCE_ISSUE_REUSE_LINK_INVALID,
+    );
+}
+
+#[test]
+fn a_v2_reused_root_with_a_tampered_original_digest_is_stale() {
+    let mut request = v2_request(ROOT_DISPOSITION_REUSED);
+    original_realization_mut(&mut request)["receipt_blake3"] = json!("0".repeat(64));
+    let receipt = evaluate_convergence(&request);
+    assert_row(
+        &receipt,
+        0,
+        CONVERGENCE_STATE_STALE,
+        CONVERGENCE_ISSUE_REUSE_LINK_INVALID,
+    );
+}
+
+#[test]
+fn a_v2_reused_root_whose_original_was_not_built_is_stale() {
+    let mut request = v2_request(ROOT_DISPOSITION_REUSED);
+    original_realization_mut(&mut request)["roots"][0]["disposition"] = json!("reused");
+    let receipt = evaluate_convergence(&request);
+    assert_row(
+        &receipt,
+        0,
+        CONVERGENCE_STATE_STALE,
+        CONVERGENCE_ISSUE_REUSE_LINK_INVALID,
+    );
+}
+
+#[test]
+fn a_v2_reused_root_with_a_mismatched_original_nar_is_stale() {
+    let mut request = v2_request(ROOT_DISPOSITION_REUSED);
+    original_realization_mut(&mut request)["roots"][0]["nar_sha256"] = json!("0".repeat(64));
+    let receipt = evaluate_convergence(&request);
+    assert_row(
+        &receipt,
+        0,
+        CONVERGENCE_STATE_STALE,
+        CONVERGENCE_ISSUE_REUSE_LINK_INVALID,
+    );
+}
+
+#[test]
+fn a_v2_reused_root_with_a_mismatched_original_signer_is_stale() {
+    let mut request = v2_request(ROOT_DISPOSITION_REUSED);
+    original_realization_mut(&mut request)["roots"][0]["signer"]["public_key_blake3"] =
+        json!("c".repeat(64));
+    let receipt = evaluate_convergence(&request);
+    assert_row(
+        &receipt,
+        0,
+        CONVERGENCE_STATE_STALE,
+        CONVERGENCE_ISSUE_REUSE_LINK_INVALID,
+    );
+}
+
+#[test]
+fn a_v2_untrusted_builder_fingerprint_is_unrealized() {
+    for disposition in [ROOT_DISPOSITION_BUILT, ROOT_DISPOSITION_REUSED] {
+        let mut request = v2_request(disposition);
+        request.trusted_builder_keys = vec!["c".repeat(64)];
+        let receipt = evaluate_convergence(&request);
+        assert_row(
+            &receipt,
+            0,
+            CONVERGENCE_STATE_UNREALIZED,
+            CONVERGENCE_ISSUE_UNTRUSTED_SIGNER,
+        );
+    }
+}
+
+#[test]
+fn a_v2_cache_role_signer_is_unrealized() {
+    let mut request = v2_request(ROOT_DISPOSITION_BUILT);
+    realization_mut(&mut request)["roots"][0]["signer"]["role"] = json!("cache");
+    let receipt = evaluate_convergence(&request);
+    assert_row(
+        &receipt,
+        0,
+        CONVERGENCE_STATE_UNREALIZED,
+        CONVERGENCE_ISSUE_UNTRUSTED_SIGNER,
+    );
+}
+
+#[test]
+fn a_v2_disposition_outside_the_policy_is_unrealized() {
+    let mut request = v2_request(ROOT_DISPOSITION_BUILT);
+    realization_mut(&mut request)["roots"][0]["disposition"] = json!("preserved");
+    let receipt = evaluate_convergence(&request);
+    assert_row(
+        &receipt,
+        0,
+        CONVERGENCE_STATE_UNREALIZED,
+        CONVERGENCE_ISSUE_REALIZATION_INCOMPLETE,
+    );
+    assert_eq!(receipt["rows"][0]["bound"], Value::Null);
+}
+
+#[test]
+fn a_v2_root_whose_built_and_reused_do_not_match_the_disposition_is_unrealized() {
+    let mut request = v2_request(ROOT_DISPOSITION_REUSED);
+    realization_mut(&mut request)["roots"][0]["built"] = json!({"mantle_version": "0.2.1"});
+    let receipt = evaluate_convergence(&request);
+    assert_row(
+        &receipt,
+        0,
+        CONVERGENCE_STATE_UNREALIZED,
+        CONVERGENCE_ISSUE_REALIZATION_INCOMPLETE,
+    );
+}
+
+#[test]
+fn a_v2_receipt_without_the_selected_root_is_stale() {
+    let mut request = v2_request(ROOT_DISPOSITION_BUILT);
+    realization_mut(&mut request)["roots"] = json!([]);
+    let receipt = evaluate_convergence(&request);
+    assert_row(
+        &receipt,
+        0,
+        CONVERGENCE_STATE_STALE,
+        CONVERGENCE_ISSUE_REALIZATION_DERIVATION_MISMATCH,
+    );
+}
+
+#[test]
+fn a_v2_root_for_another_path_is_stale() {
+    let mut request = v2_request(ROOT_DISPOSITION_BUILT);
+    realization_mut(&mut request)["roots"][0]["path"] = json!("/nix/store/other-name");
+    let receipt = evaluate_convergence(&request);
+    assert_row(
+        &receipt,
+        0,
+        CONVERGENCE_STATE_STALE,
+        CONVERGENCE_ISSUE_REALIZATION_OUTPUT_MISMATCH,
+    );
+}
+
+// r[verify cairn.convergence.realization.root_disposition]
+#[test]
+fn a_v1_route_names_its_derived_disposition_or_none() {
+    let request = build_request(false);
+    let receipt = evaluate_convergence(&request);
+    assert_eq!(
+        receipt["rows"][0]["bound"]["root_disposition"],
+        Value::Null,
+        "the ordinary route makes no disposition claim"
+    );
+
+    let mut preserve = build_request(false);
+    if let Some(realization) = preserve.contracts[0].realization.as_mut() {
+        realization.value["cache_policy"] = json!({"realization_route": "cache-only-preserve-v1"});
+    }
+    let receipt = evaluate_convergence(&preserve);
+    assert_eq!(receipt["rows"][0]["bound"]["root_disposition"], "preserved");
+
+    let mut build = build_request(false);
+    if let Some(realization) = build.contracts[0].realization.as_mut() {
+        realization.value["cache_policy"] =
+            json!({"realization_route": "cache-inputs-build-roots-v1"});
+    }
+    let receipt = evaluate_convergence(&build);
+    assert_eq!(receipt["rows"][0]["bound"]["root_disposition"], "built");
+}
+
+#[test]
+fn a_v2_reused_root_with_a_failing_decision_is_not_current() {
+    let mut request = v2_request(ROOT_DISPOSITION_REUSED);
+    decision_mut(&mut request)["aggregate_result"] = json!("failed");
+    decision_mut(&mut request)["clauses"][0]["status"] = json!("failed");
+    let receipt = evaluate_convergence(&request);
+    assert_row(
+        &receipt,
+        0,
+        CONVERGENCE_STATE_FAILED,
+        CONVERGENCE_ISSUE_DECISION_FAILED,
+    );
 }

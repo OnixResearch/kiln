@@ -1,12 +1,15 @@
-use alloc::{format, string::ToString, vec, vec::Vec};
+use alloc::string::ToString;
+
+mod scalars;
 
 use crate::*;
 
 const IDENTITY_HEX_LENGTH: usize = BLAKE3_HEX_LENGTH;
 const REVISION_HEX_LENGTH: usize = GIT_REVISION_HEX_LENGTH;
+const EXCESS_FINDING_COUNT: usize = MAXIMUM_FINDINGS.strict_add(1);
 
 fn identity(digit: char) -> Identity {
-    Identity::new(format!(
+    Identity::new(alloc::format!(
         "b3:{}",
         digit.to_string().repeat(IDENTITY_HEX_LENGTH)
     ))
@@ -43,7 +46,7 @@ fn request() -> GateRequest {
             candidate_root_identity: identity('5'),
             pipeline_revision_identity: identity('6'),
             policy_identity: identity('7'),
-            evidence_identities: vec![identity('8'), identity('9')],
+            evidence_identities: alloc::vec![identity('8'), identity('9')],
             provider_profile_identity: identity('a'),
             effect_identity: identity('b'),
         },
@@ -54,6 +57,8 @@ fn request() -> GateRequest {
         tool: tool(),
     };
     request.identity = request_identity(&request);
+    assert_eq!(validate_request(&request), Ok(()));
+    assert_eq!(request.target.stage, GateStage::Tasks);
     request
 }
 
@@ -67,7 +72,7 @@ fn pass_observation() -> NativeGateObservation {
         input_identity: identity('c'),
         policy_identity: identity('7'),
         receipt_identity: identity('d'),
-        findings: Vec::new(),
+        findings: alloc::vec::Vec::new(),
     }
 }
 
@@ -109,11 +114,11 @@ fn admits_exact_passing_and_blocked_results() {
 fn request_rejects_schema_identity_and_evidence_drift() {
     // r[verify cairn.gate_interchange.contract.scenario.schema]
     // r[verify cairn.gate_interchange.request.scenario.evidence]
-    let mut unsupported = request();
-    unsupported.schema = "cairn.gate-request.v2".into();
-    unsupported.identity = request_identity(&unsupported);
+    let mut wrong_schema = request();
+    wrong_schema.schema = "cairn.gate-request.v2".into();
+    wrong_schema.identity = request_identity(&wrong_schema);
     assert_eq!(
-        validate_request(&unsupported),
+        validate_request(&wrong_schema),
         Err(ContractError::UnsupportedSchema)
     );
 
@@ -133,7 +138,7 @@ fn request_rejects_schema_identity_and_evidence_drift() {
     );
 
     let mut duplicate = request();
-    duplicate.applicability.evidence_identities = vec![identity('8'), identity('8')];
+    duplicate.applicability.evidence_identities = alloc::vec![identity('8'), identity('8')];
     duplicate.identity = request_identity(&duplicate);
     assert_eq!(
         validate_request(&duplicate),
@@ -244,7 +249,7 @@ fn result_rejects_contradictory_verdicts() {
 fn result_rejects_finding_overflow_and_non_claim_drift() {
     let request = request();
     let mut overflow = block_observation();
-    overflow.findings = vec![finding(); MAXIMUM_FINDINGS + 1];
+    overflow.findings = alloc::vec![finding(); EXCESS_FINDING_COUNT];
     assert_eq!(
         build_result(&request, overflow),
         Err(ContractError::FindingLimitExceeded)
@@ -271,31 +276,10 @@ fn validates_bounded_machine_diagnostic_schema() {
     };
     assert_eq!(validate_diagnostic(&diagnostic), Ok(()));
 
-    let mut unsupported = diagnostic;
-    unsupported.schema = "cairn.cli-machine-diagnostic.v2".into();
+    let mut wrong_schema = diagnostic;
+    wrong_schema.schema = "cairn.cli-machine-diagnostic.v2".into();
     assert_eq!(
-        validate_diagnostic(&unsupported),
+        validate_diagnostic(&wrong_schema),
         Err(ContractError::InvalidDiagnostic)
-    );
-}
-
-#[test]
-fn bounded_values_reject_malformed_input() {
-    // r[verify cairn.gate_interchange.conformance.scenario.negative]
-    assert_eq!(
-        Identity::new("not-an-identity".into()),
-        Err(ValueError::InvalidIdentity)
-    );
-    assert_eq!(
-        Label::new("Uppercase".into()),
-        Err(ValueError::InvalidLabel)
-    );
-    assert_eq!(
-        BoundedText::new("line\nbreak".into()),
-        Err(ValueError::InvalidText)
-    );
-    assert_eq!(
-        GitRevision::new("A".repeat(REVISION_HEX_LENGTH)),
-        Err(ValueError::InvalidGitRevision)
     );
 }

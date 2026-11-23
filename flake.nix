@@ -2194,8 +2194,11 @@
                   "$PWD/kiln-cli-evidence-rejected.json"
                 cp -r traces "$out"
               '';
+          # The imported contract library moves with Cairn; the reviewed gate
+          # executable cohort stays at 15f00875, so its wire fixtures and
+          # contract must remain byte-identical in the newer import.
           cairn-gate-cohort = pkgs.runCommand "kiln-cairn-gate-cohort" { } ''
-            test '${cairnGateRevision}' = '15f00875562025e7ea7e0d1f4af24d1a2e2ac06f'
+            test '${cairnGateRevision}' = '9082e1aece4f04bcbead5eeea087e496bc48a675'
             cmp ${cairnGateSource}/fixtures/cairn-gate-contract/producer/fixtures-v1.json \
               ${self}/fixtures/cairn/gate-contract/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/producer-fixtures-v1.json
             cmp ${cairnGateSource}/contracts/cairn-gate-contract.ncl \

@@ -1,41 +1,32 @@
-use alloc::vec::Vec;
-
-use crate::{
-    request_identity, result_identity, BoundedText, ContractError, GateRequest, GateResult,
-    GateVerdict, MachineDiagnostic, NativeGateObservation, GATE_RECEIPT_SCHEMA,
-    MACHINE_DIAGNOSTIC_SCHEMA, MACHINE_SCHEMA, MAXIMUM_EVIDENCE_IDENTITIES, MAXIMUM_FINDINGS,
-    NATIVE_OBSERVATION_SCHEMA, POLICY_SCHEMA, REQUEST_SCHEMA, REQUIRED_NON_CLAIMS, RESULT_SCHEMA,
-};
-
-pub fn validate_request(request: &GateRequest) -> Result<(), ContractError> {
+pub fn validate_request(request: &crate::GateRequest) -> Result<(), crate::ContractError> {
     // r[impl cairn.gate_interchange.request]
-    if request.schema != REQUEST_SCHEMA {
-        return Err(ContractError::UnsupportedSchema);
+    if request.schema != crate::REQUEST_SCHEMA {
+        return Err(crate::ContractError::UnsupportedSchema);
     }
     validate_tool(request)?;
-    if request.applicability.evidence_identities.len() > MAXIMUM_EVIDENCE_IDENTITIES {
-        return Err(ContractError::EvidenceLimitExceeded);
+    if request.applicability.evidence_identities.len() > crate::MAXIMUM_EVIDENCE_IDENTITIES {
+        return Err(crate::ContractError::EvidenceLimitExceeded);
     }
     if !evidence_is_strictly_sorted(&request.applicability.evidence_identities) {
-        return Err(ContractError::EvidenceNotCanonical);
+        return Err(crate::ContractError::EvidenceNotCanonical);
     }
-    if request.identity != request_identity(request) {
-        return Err(ContractError::RequestIdentityMismatch);
+    if request.identity != crate::request_identity(request) {
+        return Err(crate::ContractError::RequestIdentityMismatch);
     }
     Ok(())
 }
 
 pub fn build_result(
-    request: &GateRequest,
-    observation: NativeGateObservation,
-) -> Result<GateResult, ContractError> {
+    request: &crate::GateRequest,
+    observation: crate::NativeGateObservation,
+) -> Result<crate::GateResult, crate::ContractError> {
     // r[impl cairn.gate_interchange.result]
     // r[verify cairn.gate_interchange.reconciliation.scenario.unknown]
     validate_request(request)?;
     validate_observation(request, &observation)?;
     let non_claims = required_non_claims()?;
-    let mut result = GateResult {
-        schema: RESULT_SCHEMA.into(),
+    let mut result = crate::GateResult {
+        schema: crate::RESULT_SCHEMA.into(),
         identity: request.identity.clone(),
         request_identity: request.identity.clone(),
         applicability: request.applicability.clone(),
@@ -43,76 +34,118 @@ pub fn build_result(
         observation,
         non_claims,
     };
-    result.identity = result_identity(&result);
+    result.identity = crate::result_identity(&result);
     validate_result(request, &result)?;
     Ok(result)
 }
 
-pub fn validate_result(request: &GateRequest, result: &GateResult) -> Result<(), ContractError> {
+pub fn validate_result(
+    request: &crate::GateRequest,
+    result: &crate::GateResult,
+) -> Result<(), crate::ContractError> {
     // r[impl cairn.gate_interchange.result]
     // r[impl cairn.gate_interchange.reconciliation]
     validate_request(request)?;
-    if result.schema != RESULT_SCHEMA {
-        return Err(ContractError::UnsupportedSchema);
+    if result.schema != crate::RESULT_SCHEMA {
+        return Err(crate::ContractError::UnsupportedSchema);
     }
     if result.request_identity != request.identity {
-        return Err(ContractError::RequestIdentityMismatch);
+        return Err(crate::ContractError::RequestIdentityMismatch);
     }
     if result.applicability != request.applicability {
-        return Err(ContractError::ApplicabilityMismatch);
+        return Err(crate::ContractError::ApplicabilityMismatch);
     }
     if result.tool != request.tool {
-        return Err(ContractError::ToolCohortMismatch);
+        return Err(crate::ContractError::ToolCohortMismatch);
     }
     validate_observation(request, &result.observation)?;
     if result.non_claims != required_non_claims()? {
-        return Err(ContractError::InvalidNonClaims);
+        return Err(crate::ContractError::InvalidNonClaims);
     }
-    if result.identity != result_identity(result) {
-        return Err(ContractError::ResultIdentityMismatch);
+    if result.identity != crate::result_identity(result) {
+        return Err(crate::ContractError::ResultIdentityMismatch);
+    }
+    debug_assert_eq!(result.request_identity, request.identity);
+    debug_assert_eq!(result.applicability, request.applicability);
+    Ok(())
+}
+
+pub fn validate_diagnostic(
+    diagnostic: &crate::MachineDiagnostic,
+) -> Result<(), crate::ContractError> {
+    if diagnostic.schema != crate::MACHINE_DIAGNOSTIC_SCHEMA {
+        return Err(crate::ContractError::InvalidDiagnostic);
     }
     Ok(())
 }
 
-pub fn validate_diagnostic(diagnostic: &MachineDiagnostic) -> Result<(), ContractError> {
-    if diagnostic.schema != MACHINE_DIAGNOSTIC_SCHEMA {
-        return Err(ContractError::InvalidDiagnostic);
-    }
-    Ok(())
-}
-
-fn validate_tool(request: &GateRequest) -> Result<(), ContractError> {
+#[cfg_attr(
+    dylint_lib = "octet",
+    allow(
+        missing_const_fn,
+        reason = "Cairn gate-contract owner: String equality is not const on the pinned toolchain."
+    )
+)]
+fn validate_tool(request: &crate::GateRequest) -> Result<(), crate::ContractError> {
     let tool = &request.tool;
-    if tool.machine_schema != MACHINE_SCHEMA
-        || tool.diagnostic_schema != MACHINE_DIAGNOSTIC_SCHEMA
-        || tool.policy_schema != POLICY_SCHEMA
-        || tool.gate_receipt_schema != GATE_RECEIPT_SCHEMA
-    {
-        return Err(ContractError::InvalidToolCohort);
+    if tool.machine_schema != crate::MACHINE_SCHEMA {
+        return Err(crate::ContractError::InvalidToolCohort);
+    }
+    if tool.diagnostic_schema != crate::MACHINE_DIAGNOSTIC_SCHEMA {
+        return Err(crate::ContractError::InvalidToolCohort);
+    }
+    if tool.policy_schema != crate::POLICY_SCHEMA {
+        return Err(crate::ContractError::InvalidToolCohort);
+    }
+    if tool.gate_receipt_schema != crate::GATE_RECEIPT_SCHEMA {
+        return Err(crate::ContractError::InvalidToolCohort);
     }
     Ok(())
 }
 
+#[cfg_attr(
+    dylint_lib = "octet",
+    allow(
+        missing_const_fn,
+        reason = "Cairn gate-contract owner: runtime String and derived value comparisons are not const."
+    )
+)]
+#[cfg_attr(
+    dylint_lib = "octet",
+    allow(
+        fragile_exhaustive_enum_match,
+        reason = "Cairn gate-contract owner: a new closed-schema verdict requires an explicit admission decision."
+    )
+)]
 fn validate_observation(
-    request: &GateRequest,
-    observation: &NativeGateObservation,
-) -> Result<(), ContractError> {
-    if observation.schema != NATIVE_OBSERVATION_SCHEMA {
-        return Err(ContractError::UnsupportedSchema);
+    request: &crate::GateRequest,
+    observation: &crate::NativeGateObservation,
+) -> Result<(), crate::ContractError> {
+    if observation.schema != crate::NATIVE_OBSERVATION_SCHEMA {
+        return Err(crate::ContractError::UnsupportedSchema);
     }
-    if observation.findings.len() > MAXIMUM_FINDINGS {
-        return Err(ContractError::FindingLimitExceeded);
+    if observation.findings.len() > crate::MAXIMUM_FINDINGS {
+        return Err(crate::ContractError::FindingLimitExceeded);
     }
     if observation.change != request.target.change || observation.stage != request.target.stage {
-        return Err(ContractError::TargetMismatch);
+        return Err(crate::ContractError::TargetMismatch);
     }
     if observation.policy_identity != request.applicability.policy_identity {
-        return Err(ContractError::PolicyMismatch);
+        return Err(crate::ContractError::PolicyMismatch);
     }
+    debug_assert_eq!(observation.stage, request.target.stage);
+    debug_assert_eq!(
+        observation.policy_identity,
+        request.applicability.policy_identity
+    );
     match observation.verdict {
-        GateVerdict::Pass if observation.valid && observation.findings.is_empty() => Ok(()),
-        GateVerdict::Block if !observation.valid && !observation.findings.is_empty() => Ok(()),
-        GateVerdict::Pass | GateVerdict::Block => Err(ContractError::ContradictoryVerdict),
+        crate::GateVerdict::Pass if observation.valid && observation.findings.is_empty() => Ok(()),
+        crate::GateVerdict::Block if !observation.valid && !observation.findings.is_empty() => {
+            Ok(())
+        }
+        crate::GateVerdict::Pass | crate::GateVerdict::Block => {
+            Err(crate::ContractError::ContradictoryVerdict)
+        }
     }
 }
 
@@ -127,10 +160,11 @@ fn evidence_is_strictly_sorted(evidence: &[crate::Identity]) -> bool {
     true
 }
 
-fn required_non_claims() -> Result<Vec<BoundedText>, ContractError> {
-    let mut non_claims = Vec::with_capacity(REQUIRED_NON_CLAIMS.len());
-    for value in REQUIRED_NON_CLAIMS {
-        let value = BoundedText::new(value.into()).map_err(|_| ContractError::InvalidNonClaims)?;
+fn required_non_claims() -> Result<alloc::vec::Vec<crate::BoundedText>, crate::ContractError> {
+    let mut non_claims = alloc::vec::Vec::with_capacity(crate::REQUIRED_NON_CLAIMS.len());
+    for value in crate::REQUIRED_NON_CLAIMS {
+        let value = crate::BoundedText::new(value.into())
+            .map_err(|_| crate::ContractError::InvalidNonClaims)?;
         non_claims.push(value);
     }
     Ok(non_claims)

@@ -25,3 +25,11 @@ artifact	crates/cairn-core/LICENSE-APACHE	Apache License
 artifact	crates/cairn-cli/LICENSE	GNU AFFERO GENERAL PUBLIC LICENSE
 contains	docs/licensing.md	Copying a reusable template does not by itself apply the CLI license
 forbid	crates/cairn-core/Cargo.toml	cairn-cli
+contains	docs/licensing.md	| `contracts/**` and `cairn-policy/assurance-targets.ncl` | `MIT OR Apache-2.0`, at every revision and for byte-for-byte copies |
+contains	docs/licensing.md	3dc654d38404d595ff07ca994925789f45941ffe
+contains	docs/licensing.md	f20bcb4aa00268fdaa630cbce07633250f18a681
+contains	cairn-policy/LICENSING.md	## Consumer contracts and assurance-targets policy offer
+contains	cairn-policy/LICENSING.md	`../contracts/**`
+contains	cairn-policy/LICENSING.md	`assurance-targets.ncl`
+contains	cairn-policy/LICENSING.md	3dc654d38404d595ff07ca994925789f45941ffe
+contains	cairn-policy/LICENSING.md	f20bcb4aa00268fdaa630cbce07633250f18a681

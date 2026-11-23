@@ -291,6 +291,24 @@ fn unknown_field_is_rejected() {
 
 // r[verify cairn.assurance_targets.contract]
 #[test]
+fn producer_record_bounds_are_required() {
+    for key in ["max_tool_graph_bytes", "max_realization_receipt_bytes"] {
+        let mut policy_value = value(POLICY_JSON);
+        policy_value["bounds"]
+            .as_object_mut()
+            .expect("bounds must be an object")
+            .remove(key);
+        let issues = expect_rejected(parse_assurance_targets_policy(&policy_value));
+        assert_code(&issues, ISSUE_UNKNOWN_FIELD);
+        assert!(
+            issues.iter().any(|issue| issue.field_path.ends_with(key)),
+            "missing {key} must be named: {issues:?}"
+        );
+    }
+}
+
+// r[verify cairn.assurance_targets.contract]
+#[test]
 fn unknown_schema_is_rejected() {
     let mut targets_value = value(TARGETS_JSON);
     targets_value["schema_version"] = json!("cairn.assurance-targets.v2");
@@ -561,4 +579,44 @@ fn projection_mismatch_is_detected() {
     let issues = compare_projection(&projected, &weakened);
     assert_code(&issues, ISSUE_PROJECTION_MISMATCH);
     assert!(issues.iter().any(|issue| issue.field_path == "contract_id"));
+}
+
+// r[verify cairn.assurance_targets.contract]
+#[test]
+fn producer_job_schemas_are_owner_scoped() {
+    let policy = policy();
+    assert_eq!(
+        admitted_producer_job_schema(&policy, "Octet"),
+        Some("octet-mantle-producer-job/v1")
+    );
+    assert_eq!(
+        admitted_producer_job_schema(&policy, "Trellis"),
+        Some("trellis-mantle-producer-job/v1")
+    );
+    assert_eq!(admitted_producer_job_schema(&policy, "unknown"), None);
+}
+
+// r[verify cairn.assurance_targets.contract]
+#[test]
+fn invalid_producer_job_maps_are_rejected() {
+    let mut empty = value(POLICY_JSON);
+    empty["schemas"]["producer_jobs"] = json!({});
+    assert_code(
+        &expect_rejected(parse_assurance_targets_policy(&empty)),
+        ISSUE_INVALID_PRODUCER_JOBS,
+    );
+
+    let mut blank = value(POLICY_JSON);
+    blank["schemas"]["producer_jobs"]["octet"] = json!("");
+    assert_code(
+        &expect_rejected(parse_assurance_targets_policy(&blank)),
+        ISSUE_INVALID_PRODUCER_JOBS,
+    );
+
+    let mut duplicate = value(POLICY_JSON);
+    duplicate["schemas"]["producer_jobs"]["OCTET"] = json!("octet-mantle-producer-job/v2");
+    assert_code(
+        &expect_rejected(parse_assurance_targets_policy(&duplicate)),
+        ISSUE_INVALID_PRODUCER_JOBS,
+    );
 }

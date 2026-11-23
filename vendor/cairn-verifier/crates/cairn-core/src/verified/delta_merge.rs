@@ -91,6 +91,10 @@ struct AcceptedDocument {
     prefix: String,
     preamble: String,
     blocks: Vec<AcceptedBlock>,
+    /// Pre-state requirement IDs that occur in more than one accepted block,
+    /// mapped to their headings. A repair operation may target one of these
+    /// blocks by its unique heading because its ID is not a usable target.
+    duplicate_ids: std::collections::BTreeMap<String, Vec<String>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -368,6 +372,7 @@ fn parse_accepted_document(
             prefix: accepted.trim_end().to_string(),
             preamble: String::new(),
             blocks: Vec::new(),
+            duplicate_ids: std::collections::BTreeMap::new(),
         };
     };
     let (preamble, raw_blocks) = accepted_requirement_blocks(&requirements);
@@ -399,15 +404,10 @@ fn parse_accepted_document(
         });
     }
 
+    let mut duplicate_ids = std::collections::BTreeMap::<String, Vec<String>>::new();
     for (requirement_id, headings) in locations {
         if headings.len() > 1 {
-            diagnostics.push(diagnostic(
-                "delta_merge.duplicate_accepted_id",
-                format!(
-                    "accepted requirement ID `{requirement_id}` occurs in conflicting blocks: {}",
-                    headings.join(", ")
-                ),
-            ));
+            duplicate_ids.insert(requirement_id, headings);
         }
     }
 
@@ -415,6 +415,7 @@ fn parse_accepted_document(
         prefix,
         preamble,
         blocks,
+        duplicate_ids,
     }
 }
 
@@ -543,69 +544,233 @@ fn apply_operations(
     diagnostics: &mut Vec<DeltaMergeDiagnostic>,
 ) -> (String, Vec<DeltaOperationOutcome>) {
     let original = render_accepted_document(&document);
-    let mut outcomes = Vec::new();
+    let duplicates = document.duplicate_ids.clone();
+    let repairs = repair_operation_indices(&document, operations, &duplicates);
+    let mut outcomes: Vec<Option<DeltaOperationOutcome>> = vec![None; operations.len()];
 
-    for operation in operations {
-        let position = document
-            .blocks
-            .iter()
-            .position(|block| block.requirement_id == operation.requirement_id);
-        match (operation.kind, position) {
-            (DeltaOperationKind::Added, None) => {
-                document.blocks.push(AcceptedBlock {
-                    requirement_id: operation.requirement_id.clone(),
-                    heading: operation.heading.clone(),
-                    block: operation.block.clone(),
-                });
-                outcomes.push(outcome(operation, DeltaOperationState::Applied));
-            }
-            (DeltaOperationKind::Added, Some(index)) => {
-                if document.blocks[index].block == operation.block {
-                    outcomes.push(outcome(operation, DeltaOperationState::AlreadyApplied));
-                } else {
-                    diagnostics.push(diagnostic(
-                        "delta_merge.add_conflict",
-                        format!(
-                            "ADDED operation for `{}` conflicts with existing heading `{}`; use MODIFIED for a reviewed replacement",
-                            operation.requirement_id, document.blocks[index].heading
-                        ),
-                    ));
-                }
-            }
-            (DeltaOperationKind::Modified, Some(index)) => {
-                if document.blocks[index].block == operation.block {
-                    outcomes.push(outcome(operation, DeltaOperationState::AlreadyApplied));
-                } else {
-                    document.blocks[index] = AcceptedBlock {
-                        requirement_id: operation.requirement_id.clone(),
-                        heading: operation.heading.clone(),
-                        block: operation.block.clone(),
-                    };
-                    outcomes.push(outcome(operation, DeltaOperationState::Applied));
-                }
-            }
-            (DeltaOperationKind::Modified, None) => diagnostics.push(diagnostic(
-                "delta_merge.unknown_modify_target",
-                format!(
-                    "MODIFIED operation targets absent requirement ID `{}`; use ADDED for a new requirement",
-                    operation.requirement_id
-                ),
-            )),
-            (DeltaOperationKind::Removed, Some(index)) => {
-                document.blocks.remove(index);
-                outcomes.push(outcome(operation, DeltaOperationState::Applied));
-            }
-            (DeltaOperationKind::Removed, None) => {
-                outcomes.push(outcome(operation, DeltaOperationState::AlreadyApplied));
-            }
-        }
+    // A duplicated accepted ID is not a usable target, so heading-targeted
+    // repairs run first against the pre-state duplicate set. Every other
+    // operation then resolves against the repaired document.
+    for &index in &repairs {
+        let operation = &operations[index];
+        let heading_matches = heading_matches(&document, &operation.heading);
+        let Some(target) = heading_matches.first().copied() else {
+            continue;
+        };
+        document.blocks[target] = AcceptedBlock {
+            requirement_id: operation.requirement_id.clone(),
+            heading: operation.heading.clone(),
+            block: operation.block.clone(),
+        };
+        outcomes[index] = Some(outcome(operation, DeltaOperationState::Applied));
     }
 
+    for (index, operation) in operations.iter().enumerate() {
+        if repairs.contains(&index) {
+            continue;
+        }
+        outcomes[index] = apply_operation(&mut document, operation, diagnostics);
+    }
+
+    if diagnostics.is_empty() {
+        diagnostics.extend(merged_duplicate_diagnostics(&document, &duplicates));
+    }
+
+    let outcomes = outcomes.into_iter().flatten().collect::<Vec<_>>();
     if diagnostics.is_empty() {
         (render_accepted_document(&document), outcomes)
     } else {
         (original, outcomes)
     }
+}
+
+fn repair_operation_indices(
+    // r[impl cairn.sync_archive.delta_merge.identity.duplicate.repair]
+    document: &AcceptedDocument,
+    operations: &[DeltaOperation],
+    duplicates: &std::collections::BTreeMap<String, Vec<String>>,
+) -> Vec<usize> {
+    operations
+        .iter()
+        .enumerate()
+        .filter_map(|(index, operation)| {
+            if operation.kind != DeltaOperationKind::Modified {
+                return None;
+            }
+            let matches = heading_matches(document, &operation.heading);
+            let [target] = matches.as_slice() else {
+                return None;
+            };
+            let target_id = &document.blocks[*target].requirement_id;
+            // Only a block that already owns a duplicated ID may be retargeted
+            // by heading, and only onto a different ID. The merged document is
+            // rechecked for duplicates afterwards, so a repair that adopts an
+            // existing ID is refused instead of creating a second collision.
+            (duplicates.contains_key(target_id) && target_id != &operation.requirement_id)
+                .then_some(index)
+        })
+        .collect()
+}
+
+fn heading_matches(document: &AcceptedDocument, heading: &str) -> Vec<usize> {
+    document
+        .blocks
+        .iter()
+        .enumerate()
+        .filter_map(|(index, block)| (block.heading == heading).then_some(index))
+        .collect()
+}
+
+fn apply_operation(
+    document: &mut AcceptedDocument,
+    operation: &DeltaOperation,
+    diagnostics: &mut Vec<DeltaMergeDiagnostic>,
+) -> Option<DeltaOperationOutcome> {
+    let matches: Vec<usize> = document
+        .blocks
+        .iter()
+        .enumerate()
+        .filter_map(|(index, block)| {
+            (block.requirement_id == operation.requirement_id).then_some(index)
+        })
+        .collect();
+    match operation.kind {
+        DeltaOperationKind::Added => {
+            if matches.is_empty() {
+                document.blocks.push(AcceptedBlock {
+                    requirement_id: operation.requirement_id.clone(),
+                    heading: operation.heading.clone(),
+                    block: operation.block.clone(),
+                });
+                return Some(outcome(operation, DeltaOperationState::Applied));
+            }
+            if matches.len() == 1 && document.blocks[matches[0]].block == operation.block {
+                return Some(outcome(operation, DeltaOperationState::AlreadyApplied));
+            }
+            if matches.len() > 1 {
+                push_duplicate_accepted_id(document, &operation.requirement_id, diagnostics);
+            } else {
+                diagnostics.push(diagnostic(
+                    "delta_merge.add_conflict",
+                    format!(
+                        "ADDED operation for `{}` conflicts with existing heading `{}`; use MODIFIED for a reviewed replacement",
+                        operation.requirement_id, document.blocks[matches[0]].heading
+                    ),
+                ));
+            }
+            None
+        }
+        DeltaOperationKind::Modified => {
+            if matches.len() > 1 {
+                push_duplicate_accepted_id(document, &operation.requirement_id, diagnostics);
+                return None;
+            }
+            if let Some(&index) = matches.first() {
+                if document.blocks[index].block == operation.block {
+                    return Some(outcome(operation, DeltaOperationState::AlreadyApplied));
+                }
+                document.blocks[index] = AcceptedBlock {
+                    requirement_id: operation.requirement_id.clone(),
+                    heading: operation.heading.clone(),
+                    block: operation.block.clone(),
+                };
+                return Some(outcome(operation, DeltaOperationState::Applied));
+            }
+            // The ID is absent. A heading-targeted repair is applied in the
+            // first pass; reaching here means exactly one accepted block owns
+            // the heading but its ID is not duplicated, so the operation must
+            // not silently retarget a different requirement by heading.
+            let matches = heading_matches(document, &operation.heading);
+            if matches.len() > 1 {
+                diagnostics.push(diagnostic(
+                    "delta_merge.ambiguous_accepted_heading_target",
+                    format!(
+                        "MODIFIED operation `{}` targets no requirement ID and its heading matches {} accepted blocks; restore unique requirement IDs before retargeting by heading",
+                        operation.heading,
+                        matches.len()
+                    ),
+                ));
+            } else {
+                diagnostics.push(diagnostic(
+                    "delta_merge.unknown_modify_target",
+                    format!(
+                        "MODIFIED operation targets absent requirement ID `{}`; use ADDED for a new requirement",
+                        operation.requirement_id
+                    ),
+                ));
+            }
+            None
+        }
+        DeltaOperationKind::Removed => {
+            if matches.len() > 1 {
+                push_duplicate_accepted_id(document, &operation.requirement_id, diagnostics);
+                return None;
+            }
+            match matches.first() {
+                Some(&index) => {
+                    document.blocks.remove(index);
+                    Some(outcome(operation, DeltaOperationState::Applied))
+                }
+                None => Some(outcome(operation, DeltaOperationState::AlreadyApplied)),
+            }
+        }
+    }
+}
+
+fn push_duplicate_accepted_id(
+    document: &AcceptedDocument,
+    requirement_id: &str,
+    diagnostics: &mut Vec<DeltaMergeDiagnostic>,
+) {
+    let headings = document
+        .blocks
+        .iter()
+        .filter(|block| block.requirement_id == requirement_id)
+        .map(|block| block.heading.clone())
+        .collect::<Vec<_>>();
+    diagnostics.push(diagnostic(
+        "delta_merge.duplicate_accepted_id",
+        format!(
+            "accepted requirement ID `{requirement_id}` occurs in conflicting blocks: {}",
+            headings.join(", ")
+        ),
+    ));
+}
+
+fn merged_duplicate_diagnostics(
+    document: &AcceptedDocument,
+    duplicates: &std::collections::BTreeMap<String, Vec<String>>,
+) -> Vec<DeltaMergeDiagnostic> {
+    let mut locations = std::collections::BTreeMap::<&str, Vec<String>>::new();
+    for block in &document.blocks {
+        locations
+            .entry(&block.requirement_id)
+            .or_default()
+            .push(block.heading.clone());
+    }
+    locations
+        .into_iter()
+        .filter(|(_, headings)| headings.len() > 1)
+        .map(|(requirement_id, headings)| {
+            if duplicates.contains_key(requirement_id) {
+                diagnostic(
+                    "delta_merge.duplicate_accepted_id",
+                    format!(
+                        "accepted requirement ID `{requirement_id}` occurs in conflicting blocks: {}",
+                        headings.join(", ")
+                    ),
+                )
+            } else {
+                diagnostic(
+                    "delta_merge.introduced_duplicate_id",
+                    format!(
+                        "merged document would contain requirement ID `{requirement_id}` in conflicting blocks: {}",
+                        headings.join(", ")
+                    ),
+                )
+            }
+        })
+        .collect()
 }
 
 fn outcome(operation: &DeltaOperation, state: DeltaOperationState) -> DeltaOperationOutcome {
@@ -831,6 +996,142 @@ mod tests {
             .expect("duplicate diagnostic");
         assert!(duplicate.message.contains("Existing"));
         assert!(duplicate.message.contains("Duplicate"));
+    }
+
+    const DUPLICATED_FETCH_ADD: &str = "# Fetch Add Specification\n\n## Purpose\n\nDefine fetch-add behavior.\n\n## Requirements\n\n### Requirement: Commutativity\n\nr[fetch-add.associativity] The system MUST return the same result for swapped operands.\n\n#### Scenario: Swapped operands\n\nr[fetch-add.associativity.commutative]\n- GIVEN two operands\n- WHEN they are swapped\n- THEN the result MUST be equal\n\n### Requirement: Associativity\n\nr[fetch-add.associativity] The system MUST group additions consistently.\n\n#### Scenario: Grouped additions\n\nr[fetch-add.associativity.grouped]\n- GIVEN three operands\n- WHEN they are grouped differently\n- THEN the result MUST be equal\n";
+
+    fn duplicate_codes(merged: &DeltaMerge) -> Vec<&str> {
+        diagnostic_codes(merged)
+    }
+
+    #[test]
+    fn modified_by_heading_repairs_a_duplicated_accepted_id() {
+        // r[verify cairn.sync_archive.delta_merge.identity.duplicate.repair]
+        let delta = "## MODIFIED Requirements\n\n### Requirement: Commutativity\n\nr[fetch-add.commutativity] The system MUST return the same result for swapped operands.\n\n#### Scenario: Swapped operands\n\nr[fetch-add.commutativity.commutative]\n- GIVEN two operands\n- WHEN they are swapped\n- THEN the result MUST be equal\n";
+        let merged = merge_delta_spec(Some(DUPLICATED_FETCH_ADD), delta, "fetch-add");
+        assert!(!merged.blocked, "{:?}", merged.diagnostics);
+        assert!(merged.changed);
+        assert_eq!(
+            merged
+                .markdown
+                .matches("r[fetch-add.associativity]")
+                .count(),
+            1
+        );
+        assert_eq!(
+            merged
+                .markdown
+                .matches("r[fetch-add.commutativity]")
+                .count(),
+            1
+        );
+        assert!(merged.markdown.contains("### Requirement: Commutativity"));
+        assert!(merged.markdown.contains("### Requirement: Associativity"));
+        assert_eq!(
+            merged.outcomes,
+            vec![DeltaOperationOutcome {
+                kind: DeltaOperationKind::Modified,
+                requirement_id: "fetch-add.commutativity".to_owned(),
+                state: DeltaOperationState::Applied,
+            }]
+        );
+        let replayed = merge_delta_spec(Some(&merged.markdown), delta, "fetch-add");
+        assert!(!replayed.blocked, "{:?}", replayed.diagnostics);
+        assert!(!replayed.changed);
+        assert_eq!(
+            replayed.outcomes[0].state,
+            DeltaOperationState::AlreadyApplied
+        );
+    }
+
+    #[test]
+    fn repairs_apply_before_id_targeted_operations_on_the_same_document() {
+        // r[verify cairn.sync_archive.delta_merge.identity.duplicate.repair]
+        // The ID-targeted modification is listed first and must still resolve
+        // after the heading-targeted repair, which runs in a separate pass.
+        let delta = "## MODIFIED Requirements\n\n### Requirement: Associativity\n\nr[fetch-add.associativity] The system MUST group additions associatively.\n\n### Requirement: Commutativity\n\nr[fetch-add.commutativity] The system MUST return the same result for swapped operands.\n";
+        let merged = merge_delta_spec(Some(DUPLICATED_FETCH_ADD), delta, "fetch-add");
+        assert!(!merged.blocked, "{:?}", merged.diagnostics);
+        assert_eq!(
+            merged
+                .markdown
+                .matches("r[fetch-add.associativity]")
+                .count(),
+            1
+        );
+        assert!(merged
+            .markdown
+            .contains("The system MUST group additions associatively."));
+        assert!(merged.markdown.contains("r[fetch-add.commutativity]"));
+    }
+
+    #[test]
+    fn repair_that_leaves_a_duplicate_is_refused() {
+        // r[verify cairn.sync_archive.delta_merge.identity.duplicate.repair]
+        let keeps_duplicate = "## MODIFIED Requirements\n\n### Requirement: Commutativity\n\nr[fetch-add.associativity] The system MUST return a different result for swapped operands.\n";
+        let merged = merge_delta_spec(Some(DUPLICATED_FETCH_ADD), keeps_duplicate, "fetch-add");
+        assert!(merged.blocked);
+        assert!(!merged.changed);
+        assert_eq!(merged.markdown, DUPLICATED_FETCH_ADD);
+        assert!(duplicate_codes(&merged).contains(&"delta_merge.duplicate_accepted_id"));
+
+        let three_ways = format!(
+            "{DUPLICATED_FETCH_ADD}\n### Requirement: Third\n\nr[fetch-add.associativity] The system MUST also collide.\n"
+        );
+        let repairs_one = "## MODIFIED Requirements\n\n### Requirement: Commutativity\n\nr[fetch-add.commutativity] The system MUST return the same result for swapped operands.\n";
+        let merged = merge_delta_spec(Some(&three_ways), repairs_one, "fetch-add");
+        assert!(merged.blocked);
+        assert_eq!(merged.markdown, three_ways);
+        assert!(duplicate_codes(&merged).contains(&"delta_merge.duplicate_accepted_id"));
+    }
+
+    #[test]
+    fn heading_repair_with_an_ambiguous_accepted_heading_is_refused() {
+        // r[verify cairn.sync_archive.delta_merge.identity.duplicate.repair]
+        let accepted = format!(
+            "{DUPLICATED_FETCH_ADD}\n### Requirement: Commutativity\n\nr[fetch-add.third] The system MUST repeat the heading.\n"
+        );
+        let delta = "## MODIFIED Requirements\n\n### Requirement: Commutativity\n\nr[fetch-add.commutativity] The system MUST return the same result for swapped operands.\n";
+        let merged = merge_delta_spec(Some(&accepted), delta, "fetch-add");
+        assert!(merged.blocked);
+        assert!(!merged.changed);
+        assert_eq!(merged.markdown, accepted);
+        assert!(duplicate_codes(&merged).contains(&"delta_merge.ambiguous_accepted_heading_target"));
+    }
+
+    #[test]
+    fn repair_that_introduces_a_new_duplicate_is_refused() {
+        // r[verify cairn.sync_archive.delta_merge.identity.duplicate.repair]
+        let accepted = format!(
+            "{DUPLICATED_FETCH_ADD}\n### Requirement: Existing\n\nr[fetch-add.existing] The system MUST keep another requirement.\n"
+        );
+        let delta = "## MODIFIED Requirements\n\n### Requirement: Commutativity\n\nr[fetch-add.existing] The system MUST return the same result for swapped operands.\n";
+        let merged = merge_delta_spec(Some(&accepted), delta, "fetch-add");
+        assert!(merged.blocked);
+        assert!(!merged.changed);
+        assert_eq!(merged.markdown, accepted);
+        assert!(
+            duplicate_codes(&merged).contains(&"delta_merge.introduced_duplicate_id"),
+            "{:?}",
+            merged.diagnostics
+        );
+    }
+
+    #[test]
+    fn unrelated_delta_against_a_duplicated_document_is_refused() {
+        // r[verify cairn.sync_archive.delta_merge.identity.duplicate]
+        let delta = "## ADDED Requirements\n\n### Requirement: New\n\nr[fetch-add.new] The system MUST add another requirement.\n";
+        let merged = merge_delta_spec(Some(DUPLICATED_FETCH_ADD), delta, "fetch-add");
+        assert!(merged.blocked);
+        assert!(!merged.changed);
+        assert_eq!(merged.markdown, DUPLICATED_FETCH_ADD);
+        let duplicate = merged
+            .diagnostics
+            .iter()
+            .find(|diagnostic| diagnostic.code == "delta_merge.duplicate_accepted_id")
+            .expect("duplicate diagnostic");
+        assert!(duplicate.message.contains("Commutativity"));
+        assert!(duplicate.message.contains("Associativity"));
     }
 
     #[test]

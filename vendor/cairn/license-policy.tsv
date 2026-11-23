@@ -2,11 +2,34 @@
 workspace-package-set	Cargo.toml	strict
 package	crates/cairn-core/Cargo.toml	MIT OR Apache-2.0
 package	crates/cairn-cli/Cargo.toml	AGPL-3.0-or-later
+package	crates/cairn-gate-contract/Cargo.toml	MIT OR Apache-2.0
+package	crates/cairn-radicle-cob/Cargo.toml	MIT OR Apache-2.0
 artifact	LICENSES/MIT.txt	MIT License
 artifact	LICENSES/Apache-2.0.txt	Apache License
 artifact	LICENSES/AGPL-3.0-or-later.txt	GNU AFFERO GENERAL PUBLIC LICENSE
+artifact	LICENSES/english-rs-LICENSE	Copyright (c) 2026 Aaryan Kapoor
+artifact	cairn-policy/LICENSING.md	AGPL-3.0-or-later OR MIT OR Apache-2.0
+contains	cairn-policy/LICENSING.md	b6759012db4dab0158936e995b7bad39ac10465b
+contains	cairn-policy/LICENSING.md	`default.ncl`
+contains	cairn-policy/LICENSING.md	`0d04be0a1d3fbe3fa94157aab68cd75c7e3dccb6`
+contains	cairn-policy/LICENSING.md	`contracts.ncl`
+contains	cairn-policy/LICENSING.md	`293e587cff35e80c6b089cb5c4a2b12d6996a621`
+contains	cairn-policy/LICENSING.md	`lifecycle-store-contracts.ncl`
+contains	cairn-policy/LICENSING.md	`ea7becf0212d09af78e6c9f777d60c2e2a0086de`
+contains	cairn-policy/LICENSING.md	`nominal-evidence-identities.ncl`
+contains	cairn-policy/LICENSING.md	`ba2c825f194bc82759d0eae916bb31912d435bae`
+contains	cairn-policy/LICENSING.md	`generated/cairn-policy.json`
+contains	cairn-policy/LICENSING.md	`57d1f8194930ceacde797af4b53f90ad1daeac18`
 artifact	crates/cairn-core/LICENSE-MIT	MIT License
 artifact	crates/cairn-core/LICENSE-APACHE	Apache License
 artifact	crates/cairn-cli/LICENSE	GNU AFFERO GENERAL PUBLIC LICENSE
 contains	docs/licensing.md	Copying a reusable template does not by itself apply the CLI license
 forbid	crates/cairn-core/Cargo.toml	cairn-cli
+contains	docs/licensing.md	| `contracts/**` and `cairn-policy/assurance-targets.ncl` | `MIT OR Apache-2.0`, at every revision and for byte-for-byte copies |
+contains	docs/licensing.md	3dc654d38404d595ff07ca994925789f45941ffe
+contains	docs/licensing.md	f20bcb4aa00268fdaa630cbce07633250f18a681
+contains	cairn-policy/LICENSING.md	## Consumer contracts and assurance-targets policy offer
+contains	cairn-policy/LICENSING.md	`../contracts/**`
+contains	cairn-policy/LICENSING.md	`assurance-targets.ncl`
+contains	cairn-policy/LICENSING.md	3dc654d38404d595ff07ca994925789f45941ffe
+contains	cairn-policy/LICENSING.md	f20bcb4aa00268fdaa630cbce07633250f18a681

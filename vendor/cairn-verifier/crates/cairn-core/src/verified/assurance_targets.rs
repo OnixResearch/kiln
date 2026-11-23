@@ -9,7 +9,7 @@
 //! one registry row and (for projected targets) one evidence job. Evidence
 //! truth, producer honesty, verifier soundness and release eligibility remain
 //! outside the claim.
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
@@ -38,6 +38,7 @@ pub const ISSUE_MISSING_GENERATED_SOURCES: &str = "assurance_targets.missing_gen
 pub const ISSUE_UNEXPECTED_GENERATED_SOURCES: &str =
     "assurance_targets.unexpected_generated_sources";
 pub const ISSUE_PROJECTION_MISMATCH: &str = "assurance_targets.projection_mismatch";
+pub const ISSUE_INVALID_PRODUCER_JOBS: &str = "assurance_targets.invalid_producer_jobs";
 
 /// Target keys a hand author must never supply; source and tool identity come
 /// only from the generated source record.
@@ -185,9 +186,14 @@ pub struct PolicySchemas {
     pub octet_decision: String,
     pub octet_proof_cards: String,
     pub octet_formal_proof_envelope: String,
-    pub octet_producer_job: String,
+    /// Producer-job schemas admitted per owner. A handoff `job.json` selects
+    /// its entry by the job's own `owner` field.
+    pub producer_jobs: BTreeMap<String, String>,
     pub mantle_observation: String,
-    pub mantle_realization_receipt: String,
+    /// Realization receipt schema generations the policy admits. Version 1
+    /// keeps its existing meaning; version 2 adds the per-root disposition,
+    /// builder signer and reuse link.
+    pub mantle_realization_receipts: Vec<String>,
     pub mantle_store_info: String,
     pub mantle_build_report: String,
 }
@@ -204,7 +210,9 @@ pub struct PolicyOctet {
 pub struct PolicyMantle {
     pub realization_complete_status: String,
     pub realized_states: Vec<String>,
-    pub proof_acceptance_relay: String,
+    pub proof_acceptance_relays: Vec<String>,
+    /// Root dispositions a version 2 realization receipt may record.
+    pub root_dispositions: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -216,6 +224,12 @@ pub struct PolicyBounds {
     pub max_text_bytes: usize,
     pub max_list_items: usize,
     pub max_input_bytes: usize,
+    /// Bound for the handoff tool graph, equal to Mantle's
+    /// `MAX_TOOL_GRAPH_BYTES` in the verification bridge producer.
+    pub max_tool_graph_bytes: usize,
+    /// Bound for a Mantle realization receipt, equal to
+    /// `MAX_FOREIGN_REALIZATION_RECEIPT_BYTES` in Mantle's store commands.
+    pub max_realization_receipt_bytes: usize,
     pub max_document_bytes: usize,
     pub max_trusted_signers: usize,
 }
@@ -253,6 +267,7 @@ pub fn parse_assurance_targets_policy(
                     "policy must name the supported generated source schema",
                 );
             }
+            check_producer_jobs(&policy, &mut issues);
             if issues.is_empty() {
                 Ok(policy)
             } else {
@@ -264,6 +279,58 @@ pub fn parse_assurance_targets_policy(
             Err(issues)
         }
     }
+}
+
+/// A policy's owner-scoped producer-job map must admit at least one owner, each
+/// owner key and schema value must be non-empty, and no two keys may name the
+/// same owner when ASCII case is ignored.
+fn check_producer_jobs(policy: &AssuranceTargetsPolicy, issues: &mut Vec<AssuranceTargetIssue>) {
+    let producer_jobs = &policy.schemas.producer_jobs;
+    if producer_jobs.is_empty() {
+        push_issue(
+            issues,
+            ISSUE_INVALID_PRODUCER_JOBS,
+            "schemas.producer_jobs",
+            "policy must admit at least one owner-scoped producer-job schema",
+        );
+        return;
+    }
+    let mut seen = BTreeSet::new();
+    for (owner, schema) in producer_jobs {
+        if owner.trim().is_empty() || schema.trim().is_empty() {
+            push_issue(
+                issues,
+                ISSUE_INVALID_PRODUCER_JOBS,
+                "schemas.producer_jobs",
+                "every admitted producer owner and schema must be non-empty",
+            );
+        }
+        if !seen.insert(owner.to_ascii_lowercase()) {
+            push_issue(
+                issues,
+                ISSUE_INVALID_PRODUCER_JOBS,
+                "schemas.producer_jobs",
+                "producer owners must be unique without regard to ASCII case",
+            );
+        }
+    }
+}
+
+/// The admitted producer-job schema for an owner name.
+///
+/// Owner keys are matched without ASCII case: the handoff job is authored by
+/// its owner and both Octet and Trellis write a capitalised `owner`, while the
+/// policy keys are lower case.
+pub fn admitted_producer_job_schema<'a>(
+    policy: &'a AssuranceTargetsPolicy,
+    owner: &str,
+) -> Option<&'a str> {
+    policy
+        .schemas
+        .producer_jobs
+        .iter()
+        .find(|(admitted_owner, _)| admitted_owner.eq_ignore_ascii_case(owner))
+        .map(|(_, schema)| schema.as_str())
 }
 
 /// Admit a targets file against the checked policy export.
