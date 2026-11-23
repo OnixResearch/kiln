@@ -96,6 +96,28 @@ fn program(name: &str) -> TestResult<PathBuf> {
         .ok_or_else(|| format!("{name} is not on PATH").into())
 }
 
+fn minimal_search_path() -> TestResult<String> {
+    let mut directories = Vec::new();
+    for candidate in [
+        program("sh")?,
+        program("git")?,
+        program("rm")?,
+        program("tar")?,
+        FAKE_HERDR.clone(),
+    ] {
+        if let Some(parent) = candidate.parent()
+            && !directories
+                .iter()
+                .any(|existing: &PathBuf| existing == parent)
+        {
+            directories.push(parent.to_path_buf());
+        }
+    }
+    std::env::join_paths(&directories)?
+        .into_string()
+        .map_err(|_| "minimal PATH is not UTF-8".into())
+}
+
 fn git(directory: &Path, args: &[&str]) -> TestResult<String> {
     let output = Command::new("git")
         .args([
@@ -143,7 +165,16 @@ fn fleet(real: bool) -> TestResult<Fleet> {
     write_enrollment(&root)?;
     let state = root.join("herdr-home");
     let checkout = root.join("checkout");
-    let authority = root.join("authority");
+    let authority = if real {
+        root.join("authority")
+    } else {
+        // Explicitly construct a world-writable ancestor so the fixture's
+        // expected materialization refusal does not depend on ambient TMPDIR.
+        let shared = root.join("world-writable");
+        fs::create_dir(&shared)?;
+        fs::set_permissions(&shared, fs::Permissions::from_mode(0o777))?;
+        shared.join("authority")
+    };
     let evidence = root.join("evidence");
     for path in [
         &state,
@@ -215,7 +246,7 @@ fn fleet(real: bool) -> TestResult<Fleet> {
         "schema": "kiln.fleet-inventory.v1",
         "executable": *FAKE_HERDR,
         "session": "kiln-test",
-        "environment": { "home": state, "path": std::env::var("PATH")? },
+        "environment": { "home": state, "path": minimal_search_path()? },
         "timeout_ms": 20_000,
         "start_timeout_ms": 1_000,
         "machines": [{
