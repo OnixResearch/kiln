@@ -565,6 +565,14 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
                 .into(),
         );
     }
+    // A pinned projected workspace runs only with its exact route.
+    crate::projected_workspace::check_route(
+        flags
+            .get(crate::projected_workspace::ROUTE_FLAG)
+            .map(Path::new),
+        &plan,
+        &request,
+    )?;
     let ledger = implementer.work()?;
     let work = ledger
         .current()

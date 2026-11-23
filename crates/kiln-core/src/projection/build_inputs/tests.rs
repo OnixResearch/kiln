@@ -710,3 +710,36 @@ fn restricted_nix_views_are_refused_and_whole_views_include_path_inputs() {
     let unknown = refused(plan_nix(&whole, &source, &nix_graph(), &unknown));
     assert_eq!(codes(&unknown), BTreeSet::from(["unknown_target"]));
 }
+
+// r[verify kiln.source.projection.route.scenario.refused]
+#[test]
+fn a_route_binds_only_the_build_plan_of_its_own_manifest() {
+    use super::super::materialization::{
+        MATERIALIZER_PROFILE_SCHEMA, MaterializerKind, MaterializerProfile, RouteRequest, plan,
+        route,
+    };
+    let alpha = view(&ALPHA_VIEW);
+    let build = ok(plan_alpha(&alpha, &glob_layout()));
+    let profile = MaterializerProfile {
+        schema: MATERIALIZER_PROFILE_SCHEMA.into(),
+        kind: MaterializerKind::EagerLocalDirectory,
+        materializer: component("kiln-eager-local", "1"),
+        platform: TargetProfile::POSIX,
+    };
+    let materialized = ok(plan(&alpha, &profile));
+    let pin = ok(materialized.pin(&digest("attempt"), 1));
+    let admitted = ok(admit_definition(&definition(&ALPHA_VIEW, &[("", "")])));
+    fn request(build_plan: &BuildInputPlan) -> RouteRequest<'_> {
+        RouteRequest {
+            store: "/var/lib/kiln/store",
+            writable: &[],
+            build_plan: Some(build_plan),
+        }
+    }
+    let routed = ok(route(&admitted, &alpha, &materialized, &pin, request(&build)));
+    assert_eq!(routed.build_plan.as_ref(), Some(build.identity()));
+    assert!(routed.write_paths.is_empty());
+    let whole = ok(plan_alpha(&view(&WORKSPACE), &glob_layout()));
+    let crossed = refused(route(&admitted, &alpha, &materialized, &pin, request(&whole)));
+    assert_eq!(codes(&crossed), BTreeSet::from(["route_build_plan_mismatch"]));
+}

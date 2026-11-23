@@ -5,21 +5,26 @@
 //! identity shared by every attempt over the same manifest and profile, and an
 //! overlay identity bound to one attempt and fence. A [`WorkspacePin`] carries
 //! both, with the source, definition, manifest and profile they came from, so
-//! dispatch and the retained overlay agree on one workspace. The shell reads,
-//! verifies and writes; this module performs no I/O and grants no read, write
-//! or execution authority.
+//! dispatch and the retained overlay agree on one workspace. A
+//! [`ProjectedWorkspaceRoute`] derives, from the pin and the plan, the exact
+//! workspace root, read paths and write paths a restricted runtime receives.
+//! The shell reads, verifies and writes; this module performs no I/O and
+//! grants no read, write or execution authority.
 
+use alloc::collections::BTreeSet;
 use alloc::format;
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
 use serde::{Deserialize, Serialize};
 
+use super::build_inputs::BuildInputPlan;
 use super::{
-    CompleteProjection, ComponentVersion, EntryKind, EntryOrigin, Findings, ProjectionOperation,
-    TargetProfile, shown, update_target,
+    CompleteProjection, ComponentVersion, EntryKind, EntryOrigin, Findings, MAX_TARGET_PATH_BYTES,
+    ProjectionOperation, TargetProfile, shown, update_target,
 };
-use crate::monorepo::{finish, update_field};
+use crate::monorepo::{finish, update_field, update_set};
+use crate::paths;
 use crate::types::{ContentId, Diagnostic, ExternalRef};
 
 pub const MATERIALIZER_PROFILE_SCHEMA: &str = "kiln.materializer-profile.v1";
@@ -27,6 +32,20 @@ pub const WORKSPACE_PIN_SCHEMA: &str = "kiln.materialization.workspace-pin.v1";
 const PROFILE_IDENTITY_SCHEMA: &str = "kiln.materializer-profile.identity.v1";
 const INPUT_IDENTITY_SCHEMA: &str = "kiln.materialization.input.v1";
 const OVERLAY_IDENTITY_SCHEMA: &str = "kiln.materialization.overlay.v1";
+pub const WORKSPACE_ROUTE_SCHEMA: &str = "kiln.projected-workspace-route.v1";
+const ROUTE_IDENTITY_SCHEMA: &str = "kiln.projected-workspace-route.identity.v1";
+/// The one restricted runtime a route names: Lattice's bubblewrap provider,
+/// which mounts only the route's paths below a private workspace.
+pub const LATTICE_BWRAP_RUNTIME: &str = "lattice-bwrap";
+/// Directory of published inputs below a materialization store.
+pub const INPUTS_DIRECTORY: &str = "inputs";
+/// Directory of attempt overlays below a materialization store.
+pub const OVERLAYS_DIRECTORY: &str = "overlays";
+/// Read paths, and separately write paths, one route may name. Each is one
+/// runtime mount.
+pub const MAX_ROUTE_PATHS: usize = 256;
+/// Writable source paths one route request may name.
+pub const MAX_ROUTE_WRITABLE: usize = 64;
 
 /// How a materializer constructs the initial tree.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -218,6 +237,358 @@ impl WorkspacePin {
             ));
         }
         Ok(())
+    }
+}
+
+/// What a route is derived for, besides its view, plan and pin.
+#[derive(Clone, Copy, Debug)]
+pub struct RouteRequest<'a> {
+    /// Absolute materialization store holding the input and the overlay.
+    pub store: &'a str,
+    /// Source paths, or source directories, the attempt may change. Only a
+    /// completeness witness for a write admits any.
+    pub writable: &'a [String],
+    /// The build-input plan the attempt runs, when it runs one.
+    pub build_plan: Option<&'a BuildInputPlan>,
+}
+
+/// `kiln.projected-workspace-route.v1`: what one attempt's restricted runtime
+/// receives. The workspace root is the attempt overlay, which holds the
+/// planned entries of the immutable input; read paths are its top-level
+/// directories and files, mounted read-only; write paths are the overlay
+/// destinations of the writable origins and the writable creation
+/// destinations. Every path is relative to the overlay, as Lattice's
+/// implementation request names them. A recorded route is a claim:
+/// [`ProjectedWorkspaceRoute::verify`] checks it, and only [`route`] derives
+/// one from a view.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProjectedWorkspaceRoute {
+    pub schema: String,
+    pub pin: WorkspacePin,
+    pub input_root: String,
+    pub overlay_root: String,
+    pub read_paths: Vec<String>,
+    pub write_paths: Vec<String>,
+    pub build_plan: Option<ContentId>,
+    pub runtime: String,
+    /// BLAKE3 over every other field.
+    pub identity: ContentId,
+}
+
+impl ProjectedWorkspaceRoute {
+    // r[impl kiln.source.projection.route.scenario.refused]
+    /// The route is internally consistent: its schema and runtime are the
+    /// supported ones, its pin is valid, its roots are the pin's input and
+    /// overlay in one store, its paths are sorted canonical relative paths
+    /// within the bounds, every write path lies within a read path and no
+    /// write path lies within another, and its identity covers every field.
+    pub fn verify(&self) -> Result<(), Vec<Diagnostic>> {
+        let mut findings = Findings::default();
+        if self.schema != WORKSPACE_ROUTE_SCHEMA || self.runtime != LATTICE_BWRAP_RUNTIME {
+            findings.push(
+                "route_schema",
+                "schema",
+                "unsupported route schema or runtime",
+            );
+        }
+        if let Err(invalid) = self.pin.validate() {
+            findings.push(&invalid.code, invalid.field, &invalid.message);
+        }
+        let roots = self.store().is_some_and(|store| {
+            self.input_root == root(store, INPUTS_DIRECTORY, &self.pin.input)
+        });
+        if !roots {
+            findings.push(
+                "route_roots",
+                "roots",
+                "the roots are not the pin's input and overlay in one store",
+            );
+        }
+        let sorted = |paths: &[String]| {
+            paths.len() <= MAX_ROUTE_PATHS
+                && paths.iter().all(|path| route_path(path))
+                && paths
+                    .windows(2)
+                    .all(|pair| matches!(pair, [left, right] if left < right))
+        };
+        let nested = self.write_paths.iter().all(|path| {
+            within(&self.read_paths, path)
+                && !self
+                    .write_paths
+                    .iter()
+                    .any(|other| other != path && dir_contains(other, path))
+        });
+        if !sorted(&self.read_paths) || !sorted(&self.write_paths) || !nested {
+            findings.push(
+                "route_paths",
+                "paths",
+                "route paths must be sorted, canonical, bounded and writable only within read paths",
+            );
+        }
+        if route_identity(self) != self.identity {
+            findings.push(
+                "route_identity",
+                "identity",
+                "the route identity does not cover its fields",
+            );
+        }
+        findings.finish(())
+    }
+
+    /// The store both roots lie in, when the overlay root is the pin's.
+    #[must_use]
+    pub fn store(&self) -> Option<&str> {
+        let suffix = format!("/{OVERLAYS_DIRECTORY}/{}", self.pin.overlay.as_str());
+        self.overlay_root
+            .strip_suffix(suffix.as_str())
+            .filter(|store| store_path(store))
+    }
+
+    /// Whether a runtime request names exactly this route's workspace root,
+    /// read paths and write paths.
+    #[must_use]
+    pub fn admits(&self, workspace_root: &str, read_paths: &[String], write_paths: &[String]) -> bool {
+        workspace_root == self.overlay_root
+            && read_paths == self.read_paths.as_slice()
+            && write_paths == self.write_paths.as_slice()
+    }
+}
+
+// r[impl kiln.source.projection.route]
+// r[impl kiln.source.projection.route.scenario.derived]
+// r[impl kiln.source.projection.route.scenario.refused]
+/// Derive the restricted-runtime route of one attempt's projected workspace.
+///
+/// The plan must be the projection's and the pin the one the plan derives
+/// for its attempt and fence. Read paths are the top-level components of
+/// every planned destination and, for a write, of every creation
+/// destination. Write paths exist only for a write: each destination whose
+/// native origin lies within a writable source path, and each creation
+/// destination whose every mounted source path does; a write path within
+/// another is dropped. A build witness with writable paths, a build plan of
+/// another manifest, an unsafe store or writable path and every bound
+/// violation are refused before anything is derived.
+pub fn route(
+    definition: &super::AdmittedDefinition,
+    complete: &CompleteProjection,
+    plan: &MaterializationPlan,
+    pin: &WorkspacePin,
+    request: RouteRequest<'_>,
+) -> Result<ProjectedWorkspaceRoute, Vec<Diagnostic>> {
+    let mut findings = Findings::default();
+    let manifest = complete.manifest();
+    if plan.manifest != manifest.identity || *definition.identity() != manifest.definition {
+        findings.push(
+            "route_plan_mismatch",
+            "plan",
+            "the plan or definition is not the projection's",
+        );
+    }
+    if plan
+        .pin(&pin.attempt, pin.fence)
+        .ok()
+        .is_none_or(|derived| derived != *pin)
+    {
+        findings.push(
+            "route_pin_mismatch",
+            "pin",
+            "the pin is not the one the plan derives for its attempt and fence",
+        );
+    }
+    if !store_path(request.store) {
+        findings.push(
+            "route_store",
+            "store",
+            "the store must be an absolute canonical path within the path bound",
+        );
+    }
+    if request.writable.len() > MAX_ROUTE_WRITABLE {
+        findings.push(
+            "route_bound",
+            "writable",
+            "more writable paths than the named bound",
+        );
+    }
+    for path in request.writable {
+        if !paths::canonical(path) {
+            findings.push(
+                "route_writable_invalid",
+                format!("writable.{}", shown(path)),
+                "a writable path must be a canonical relative source path",
+            );
+        }
+    }
+    let write = complete.operation() == ProjectionOperation::Write;
+    if !write && !request.writable.is_empty() {
+        findings.push(
+            "route_write_requires_write_witness",
+            "writable",
+            "only a completeness witness for a write admits writable paths",
+        );
+    }
+    if request
+        .build_plan
+        .is_some_and(|build| *build.manifest() != manifest.identity)
+    {
+        findings.push(
+            "route_build_plan_mismatch",
+            "build_plan",
+            "the build plan was made for another manifest",
+        );
+    }
+    let mut read = BTreeSet::new();
+    for entry in &manifest.entries {
+        read.insert(top(&entry.destination).to_string());
+    }
+    let mut written = BTreeSet::new();
+    if write {
+        let creation = complete.view().creation_destinations();
+        for destination in creation {
+            read.insert(top(destination).to_string());
+        }
+        for entry in &manifest.entries {
+            if let EntryOrigin::Native { path, .. } = &entry.origin
+                && within(request.writable, path)
+            {
+                written.insert(entry.destination.clone());
+            }
+        }
+        for destination in creation {
+            let sources: Vec<String> = definition
+                .mounts()
+                .iter()
+                .filter_map(|mount| mounted(mount, destination))
+                .collect();
+            if !sources.is_empty()
+                && sources
+                    .iter()
+                    .all(|source| within(request.writable, source))
+            {
+                written.insert(destination.clone());
+            }
+        }
+    }
+    let write_paths: Vec<String> = written
+        .iter()
+        .filter(|path| {
+            !written
+                .iter()
+                .any(|other| other != *path && dir_contains(other, path))
+        })
+        .cloned()
+        .collect();
+    if read.len() > MAX_ROUTE_PATHS || write_paths.len() > MAX_ROUTE_PATHS {
+        findings.push(
+            "route_bound",
+            "paths",
+            "the route needs more runtime mounts than the named bound",
+        );
+    }
+    let mut derived = ProjectedWorkspaceRoute {
+        schema: WORKSPACE_ROUTE_SCHEMA.into(),
+        pin: pin.clone(),
+        input_root: root(request.store, INPUTS_DIRECTORY, &pin.input),
+        overlay_root: root(request.store, OVERLAYS_DIRECTORY, &pin.overlay),
+        read_paths: read.into_iter().collect(),
+        write_paths,
+        build_plan: request.build_plan.map(|build| build.identity().clone()),
+        runtime: LATTICE_BWRAP_RUNTIME.into(),
+        identity: finish(blake3::Hasher::new()),
+    };
+    derived.identity = route_identity(&derived);
+    findings.finish(derived)
+}
+
+fn route_identity(route: &ProjectedWorkspaceRoute) -> ContentId {
+    let mut hasher = blake3::Hasher::new();
+    update_field(&mut hasher, "schema", ROUTE_IDENTITY_SCHEMA.as_bytes());
+    update_field(&mut hasher, "route.schema", route.schema.as_bytes());
+    let pin = &route.pin;
+    update_field(&mut hasher, "pin.schema", pin.schema.as_bytes());
+    for (label, identity) in [
+        ("pin.repository", &pin.repository),
+        ("pin.definition", &pin.definition),
+        ("pin.manifest", &pin.manifest),
+        ("pin.profile", &pin.profile),
+        ("pin.input", &pin.input),
+        ("pin.overlay", &pin.overlay),
+        ("pin.attempt", &pin.attempt),
+    ] {
+        update_field(&mut hasher, label, identity.as_str().as_bytes());
+    }
+    super::update_external(&mut hasher, "pin.source", &pin.source);
+    update_field(&mut hasher, "pin.fence", &pin.fence.to_le_bytes());
+    update_field(&mut hasher, "input_root", route.input_root.as_bytes());
+    update_field(&mut hasher, "overlay_root", route.overlay_root.as_bytes());
+    update_set(
+        &mut hasher,
+        "read_paths",
+        route.read_paths.iter().map(String::as_str),
+    );
+    update_set(
+        &mut hasher,
+        "write_paths",
+        route.write_paths.iter().map(String::as_str),
+    );
+    match &route.build_plan {
+        Some(plan) => update_field(&mut hasher, "build_plan", plan.as_str().as_bytes()),
+        None => update_field(&mut hasher, "build_plan.none", b""),
+    }
+    update_field(&mut hasher, "runtime", route.runtime.as_bytes());
+    finish(hasher)
+}
+
+/// An absolute canonical path within the target path bound.
+fn store_path(path: &str) -> bool {
+    path.len() <= MAX_TARGET_PATH_BYTES
+        && path
+            .strip_prefix('/')
+            .is_some_and(|rest| paths::canonical(rest))
+}
+
+/// A canonical relative route path within the target path bound.
+fn route_path(path: &str) -> bool {
+    path.len() <= MAX_TARGET_PATH_BYTES && paths::canonical(path)
+}
+
+fn root(store: &str, directory: &str, identity: &ContentId) -> String {
+    format!("{store}/{directory}/{}", identity.as_str())
+}
+
+/// The first component of a relative path.
+fn top(path: &str) -> &str {
+    path.split_once('/').map_or(path, |(first, _)| first)
+}
+
+/// Whether `path` lies strictly below directory `dir`.
+fn dir_contains(dir: &str, path: &str) -> bool {
+    path.strip_prefix(dir)
+        .is_some_and(|rest| rest.starts_with('/'))
+}
+
+/// Whether `path` is one of `roots` or lies below one.
+fn within(roots: &[String], path: &str) -> bool {
+    roots
+        .iter()
+        .any(|root| root == path || dir_contains(root, path))
+}
+
+/// The source path `mount` gives a destination at or below its prefix.
+fn mounted(mount: &super::Mount, destination: &str) -> Option<String> {
+    let rest = if mount.destination_prefix.is_empty() {
+        destination
+    } else if destination == mount.destination_prefix {
+        ""
+    } else {
+        destination
+            .strip_prefix(mount.destination_prefix.as_str())?
+            .strip_prefix('/')?
+    };
+    match (mount.source_prefix.is_empty(), rest.is_empty()) {
+        (true, _) => Some(rest.to_string()),
+        (false, true) => Some(mount.source_prefix.clone()),
+        (false, false) => Some(format!("{}/{rest}", mount.source_prefix)),
     }
 }
 
@@ -612,3 +983,6 @@ mod tests {
         assert_eq!(codes(&diagnostics), vec!["materializer_generated_entry"]);
     }
 }
+
+#[cfg(test)]
+mod route_tests;

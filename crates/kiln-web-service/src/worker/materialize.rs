@@ -17,7 +17,10 @@ use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use git2::{ObjectType, Oid, Repository};
-use kiln_core::projection::materialization::{MaterializationPlan, PlannedEntry, WorkspacePin};
+use kiln_core::projection::materialization::{
+    INPUTS_DIRECTORY, MaterializationPlan, OVERLAYS_DIRECTORY, PlannedEntry,
+    ProjectedWorkspaceRoute, WorkspacePin,
+};
 use kiln_core::types::ContentId;
 use nix::fcntl::{AT_FDCWD, RenameFlags, renameat2};
 use serde::{Deserialize, Serialize};
@@ -25,8 +28,8 @@ use serde::{Deserialize, Serialize};
 use super::files::owned_directory;
 
 const BINDING_SCHEMA: &str = "kiln.materialization.binding.v2";
-const INPUTS: &str = "inputs";
-const OVERLAYS: &str = "overlays";
+const INPUTS: &str = INPUTS_DIRECTORY;
+const OVERLAYS: &str = OVERLAYS_DIRECTORY;
 const PREPARING_PREFIX: &str = ".preparing-";
 /// Largest binding record read back.
 const MAX_BINDING_BYTES: u64 = 4_096;
@@ -141,6 +144,56 @@ pub fn prepare_overlay(
     }
     publish(&preparing, &published, &binding_path, &expected)?;
     Ok(published)
+}
+
+// r[impl kiln.source.projection.route.scenario.derived]
+/// Make a prepared overlay ready for its route: the route must verify, name
+/// this `store`, and its overlay must be published and bound to the route's
+/// pin. Every write path must then be an ordinary file of the overlay or a
+/// directory, which is created when it is a missing creation destination, so
+/// the runtime can mount it. Nothing outside the overlay is touched. Returns
+/// the overlay root.
+pub fn prepare_route(
+    store: &Path,
+    plan: &MaterializationPlan,
+    route: &ProjectedWorkspaceRoute,
+) -> Result<PathBuf, String> {
+    route.verify().map_err(|diagnostics| {
+        diagnostics
+            .into_iter()
+            .map(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))
+            .collect::<Vec<_>>()
+            .join("; ")
+    })?;
+    if route.store() != store.to_str() {
+        return Err("the route names another materialization store".into());
+    }
+    let overlays = store.join(OVERLAYS);
+    let overlay = overlays.join(route.pin.overlay.as_str());
+    let mut expected = Binding::input(plan);
+    expected.overlay = Some(route.pin.clone());
+    let binding = overlays.join(format!("{}.json", route.pin.overlay.as_str()));
+    if !bound(&overlay, &binding, &expected, "overlay")? {
+        return Err("the route's overlay has not been prepared".into());
+    }
+    for write in &route.write_paths {
+        let mut path = overlay.clone();
+        for component in relative(write)?.components() {
+            path.push(component);
+            match fs::symlink_metadata(&path) {
+                Ok(metadata) if metadata.is_dir() || metadata.is_file() => {}
+                Ok(_) => return Err(format!("{write}: a route path crosses a link")),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                    fs::DirBuilder::new()
+                        .mode(WRITABLE_DIRECTORY)
+                        .create(&path)
+                        .map_err(|error| error.to_string())?;
+                }
+                Err(error) => return Err(error.to_string()),
+            }
+        }
+    }
+    Ok(overlay)
 }
 
 /// Whether `directory` is published with exactly `expected`. A directory or

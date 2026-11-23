@@ -1,0 +1,11 @@
+## Phase 1: Contracts
+
+- [x] [serial] Derive and verify the projected workspace route from the definition, witness, plan and pin, with positive and negative tests. r[kiln.source.projection.route] r[kiln.source.projection.route.scenario.derived] r[kiln.source.projection.route.scenario.refused]
+- [x] [serial] [depends:kiln.source.projection.route] Prepare an overlay for its route, refuse requests that differ from the route in `kiln-lattice-dispatch` before any durable step, and bind and emit the route in `bind-execution`. r[kiln.source.projection.route.scenario.dispatch]
+- [x] [serial] Add declared renames, forks, alias and membership changes, the conflict outcome with the Archil fixtures, and read-only verification of recorded v1 candidates, and seal renames and forks in the shell. r[kiln.source.projection.writeback.structural] r[kiln.source.projection.writeback.structural.scenario.distinct] r[kiln.source.projection.writeback.conflict] r[kiln.source.projection.writeback.conflict.scenario.archil] r[kiln.source.projection.writeback.compatibility] r[kiln.source.projection.writeback.compatibility.scenario.v1]
+- [x] [serial] [depends:kiln.source.projection.writeback.structural] Derive projected candidate facts with the affected-consumer selection and evidence applicability. r[kiln.source.projection.candidate_facts] r[kiln.source.projection.candidate_facts.scenario.affected] r[kiln.source.projection.candidate_facts.scenario.applicability]
+
+## Phase 2: Restricted runtime
+
+- [ ] [serial] [depends:kiln.source.projection.route] Dispatch the two-project Cargo and Nix corpora through `kiln-lattice-dispatch` to the real Lattice binary under bubblewrap, run each planned build, record the confinement negatives and capture the overlay into facts. r[kiln.source.projection.runtime] r[kiln.source.projection.runtime.scenario.qualified] r[kiln.source.projection.runtime.scenario.confined]
+- [ ] [serial] Document routes, the runtime and writeback v2 in the operator guide, close the non-authority half of `materialize-projected-workspaces`, and run the gates. r[kiln.source.projection.route]

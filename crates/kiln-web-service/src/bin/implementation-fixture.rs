@@ -9,6 +9,7 @@ use kiln_core::implementation::{
 };
 use kiln_core::inventory::{AttemptBinding, FactRef, ResourceRequirement, WorkNeeds};
 use kiln_core::operations::{FairnessStrategy, TenantUsage, UsageValue};
+use kiln_core::projection::materialization::ProjectedWorkspaceRoute;
 use kiln_core::types::{Alias, ContentId, ProviderProfileId};
 use kiln_implementer::{
     Implementer,
@@ -23,7 +24,7 @@ use std::path::{Path, PathBuf};
 
 const MAX_INPUT: u64 = 16 * 1024 * 1024;
 const MAX_OUTPUT: usize = 16 * 1024 * 1024;
-const USAGE: &str = "usage: kiln-implementation-fixture prepare-ci --verification-profile ABS_PROFILE --service-profile-template ABS_SEED | prepare-intake --database DB --enrollment FILE | bind-execution --database DB --enrollment FILE --attempt ID --fence N --worker-request FILE --dispatch-plan-template FILE | prepare-remote --profile ABS_NATIVE_REMOTE_JSON | prepare-remote-template --profile ABS_NATIVE_REMOTE_JSON";
+const USAGE: &str = "usage: kiln-implementation-fixture prepare-ci --verification-profile ABS_PROFILE --service-profile-template ABS_SEED | prepare-intake --database DB --enrollment FILE | bind-execution --database DB --enrollment FILE --attempt ID --fence N --worker-request FILE --dispatch-plan-template FILE [--projected-workspace-route FILE] | prepare-remote --profile ABS_NATIVE_REMOTE_JSON | prepare-remote-template --profile ABS_NATIVE_REMOTE_JSON";
 
 fn diagnostic(error: kiln_core::types::Diagnostic) -> String {
     format!("{}: {}", error.code, error.message)
@@ -603,18 +604,33 @@ fn prepare_remote_template(flags: &BTreeMap<String, String>) -> Result<Value, St
     )
 }
 
+// r[impl kiln.source.projection.route.scenario.dispatch]
 fn bind_execution(flags: &BTreeMap<String, String>) -> Result<Value, String> {
-    exact_flags(
-        flags,
-        &[
-            "--database",
-            "--enrollment",
-            "--attempt",
-            "--fence",
-            "--worker-request",
-            "--dispatch-plan-template",
-        ],
-    )?;
+    const ROUTE: &str = kiln_adapter_lattice::projected_workspace::ROUTE_FLAG;
+    let mut expected = vec![
+        "--database",
+        "--enrollment",
+        "--attempt",
+        "--fence",
+        "--worker-request",
+        "--dispatch-plan-template",
+    ];
+    if flags.contains_key(ROUTE) {
+        expected.push(ROUTE);
+    }
+    exact_flags(flags, &expected)?;
+    // A projected workspace replaces the fixture's fixed source paths with
+    // the exact route of the plan's pinned overlay.
+    let projected: Option<ProjectedWorkspaceRoute> = match flags.get(ROUTE) {
+        Some(path) => {
+            let route: ProjectedWorkspaceRoute = read_json(Path::new(path))?;
+            route.verify().map_err(|diagnostics| {
+                format!("projected workspace route is invalid: {diagnostics:?}")
+            })?;
+            Some(route)
+        }
+        None => None,
+    };
     let enrollment: Enrollment = read_json(&required(flags, "--enrollment")?)?;
     let attempt = ContentId::from_blake3_hex(flags["--attempt"].clone())
         .map_err(|e| format!("{}: {}", e.code, e.message))?;
@@ -741,8 +757,29 @@ fn bind_execution(flags: &BTreeMap<String, String>) -> Result<Value, String> {
         .ok_or("prepared request must declare exactly the primary model route")?
         .to_owned();
     let host_local = json!({"kind": "host_local"});
-    if !exact_strings("read_paths", &["src", ".cairn"])
-        || !exact_strings("write_paths", &["src/scripted_model_result.txt"])
+    let strings = |field: &str| -> Option<Vec<String>> {
+        request
+            .get(field)?
+            .as_array()?
+            .iter()
+            .map(|value| value.as_str().map(str::to_owned))
+            .collect()
+    };
+    let paths_bound = match &projected {
+        Some(route) => match (
+            request.get("workspace_root").and_then(Value::as_str),
+            strings("read_paths"),
+            strings("write_paths"),
+        ) {
+            (Some(root), Some(read), Some(write)) => route.admits(root, &read, &write),
+            _ => false,
+        },
+        None => {
+            exact_strings("read_paths", &["src", ".cairn"])
+                && exact_strings("write_paths", &["src/scripted_model_result.txt"])
+        }
+    };
+    if !paths_bound
         || request.get("network").and_then(Value::as_bool) != Some(false)
         || request.get("network_namespace").is_some()
         || request.get("worker_compute") != Some(&host_local)
@@ -805,7 +842,14 @@ fn bind_execution(flags: &BTreeMap<String, String>) -> Result<Value, String> {
         || plan.repository != work.repository
         || plan.base != work.base
         || plan.provider_profile.as_str() != "scripted-local-omp"
-        || plan.permitted_paths != vec!["src/scripted_model_result.txt".to_string()]
+        || match &projected {
+            Some(route) => {
+                plan.permitted_paths != work.permitted_paths
+                    || plan.workspace.projection.as_ref() != Some(&route.pin)
+                    || plan.workspace.identity != route.pin.overlay
+            }
+            None => plan.permitted_paths != vec!["src/scripted_model_result.txt".to_string()],
+        }
         || plan.permitted_effects != BTreeSet::from(["write_source".to_string()])
         || plan.permitted_effects != work.permitted_effects
         || plan.deadline_minutes != 2
@@ -927,9 +971,14 @@ fn bind_execution(flags: &BTreeMap<String, String>) -> Result<Value, String> {
         .into_values()
         .filter(|i| i.valid_until_ms >= now)
         .collect();
-    Ok(
-        json!({"schema":"kiln.scripted-execution-binding.v2","scope":"synthetic-local-only","dispatch_plan":plan,"dispatch_plan_identity":plan_identity,"admission_observations":observations,"worker_seed":request}),
-    )
+    let mut binding = json!({"schema":"kiln.scripted-execution-binding.v2","scope":"synthetic-local-only","dispatch_plan":plan,"dispatch_plan_identity":plan_identity,"admission_observations":observations,"worker_seed":request});
+    if let (Some(route), Some(fields)) = (projected, binding.as_object_mut()) {
+        fields.insert(
+            "projected_workspace_route".into(),
+            serde_json::to_value(route).map_err(|e| e.to_string())?,
+        );
+    }
+    Ok(binding)
 }
 fn run() -> Result<(), String> {
     let (op, flags) = parse(std::env::args().skip(1))?;
