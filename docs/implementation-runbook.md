@@ -125,12 +125,17 @@ database denies after a bounded wait. Its tables are:
 
 **Revocation feed.** `revocation.path` names a
 `kiln.implementation-authority-revocations.v1` document
-(`{schema, generation, revoked: [Hex32]}`, at most 65,536 references). Selection
-imports it; a feed whose generation is older than the recorded view is refused.
-The view fails closed: if it is absent, or was observed more than
-`revocation.max_age_ms` ago, every verified request denies. Each selection
-imports the feed anew; refresh it, and restart long-running shells, before the
-view goes stale.
+(`{schema, generation, observed_at_ms, revoked: [Hex32]}`, at most 65,536
+references). `observed_at_ms` is when the feed's producer observed that
+revocation state, in Unix milliseconds. Selection imports the feed; a feed
+whose generation is older than the recorded view, or that is observed after
+the selecting process's clock, is refused. The view's age is measured from
+the feed's own `observed_at_ms`, never from the import, so importing an
+unchanged feed never makes it fresh. The view fails closed: if it is absent,
+or its feed was observed more than `revocation.max_age_ms` ago, every verified
+request denies. Have the producer republish the feed with a new
+`observed_at_ms` before it goes stale; a shell imports it at its next
+selection.
 
 **Payload v2.** Every request carries `request_digest` = BLAKE3 over the domain
 `kiln.implementation-authority-payload.v2`, the operation, the worker

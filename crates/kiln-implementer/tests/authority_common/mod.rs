@@ -236,12 +236,30 @@ pub fn confirm(i: &mut Implementer, r: &OwnerReservation) {
     .unwrap_or_else(|error| unreachable!("{error}"));
 }
 
-fn hex(bytes: &[u8]) -> String {
+pub fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
-/// Write the fixture's seeds, grants, revocation feed and exported config
-/// under `dir`, returning the config path.
+/// Write `revocations.json` under `dir`: its producer observed this state at
+/// `observed_at_ms`. Returns the feed path.
+pub fn write_feed(dir: &Path, generation: u64, observed_at_ms: u64, revoked: &[String]) -> PathBuf {
+    let feed = dir.join("revocations.json");
+    std::fs::write(
+        &feed,
+        serde_json::to_vec(&serde_json::json!({
+            "schema": "kiln.implementation-authority-revocations.v1",
+            "generation": generation,
+            "observed_at_ms": observed_at_ms,
+            "revoked": revoked,
+        }))
+        .unwrap_or_else(|error| unreachable!("{error}")),
+    )
+    .unwrap_or_else(|error| unreachable!("{error}"));
+    feed
+}
+
+/// Write the fixture's seeds, grants, a revocation feed observed at `T` and
+/// the exported config under `dir`, returning the config path.
 pub fn write_config(dir: &Path, fixture: &Fixture, revoked: &[[u8; 32]]) -> PathBuf {
     use std::os::unix::fs::PermissionsExt;
     let proofs = dir.join("proofs");
@@ -269,17 +287,8 @@ pub fn write_config(dir: &Path, fixture: &Fixture, revoked: &[[u8; 32]]) -> Path
             .unwrap_or_else(|error| unreachable!("{error}"));
         holders.insert(name, serde_json::json!({ "seed_path": path }));
     }
-    let feed = dir.join("revocations.json");
-    std::fs::write(
-        &feed,
-        serde_json::to_vec(&serde_json::json!({
-            "schema": "kiln.implementation-authority-revocations.v1",
-            "generation": 1,
-            "revoked": revoked.iter().map(|reference| hex(reference)).collect::<Vec<_>>(),
-        }))
-        .unwrap_or_else(|error| unreachable!("{error}")),
-    )
-    .unwrap_or_else(|error| unreachable!("{error}"));
+    let revoked: Vec<String> = revoked.iter().map(|reference| hex(reference)).collect();
+    let feed = write_feed(dir, 1, T, &revoked);
     let keys: Vec<_> = [
         test_support::ROOT_SEED,
         test_support::DELEGATE_SEED,

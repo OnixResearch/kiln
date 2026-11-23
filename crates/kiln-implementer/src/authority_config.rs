@@ -146,11 +146,16 @@ pub struct SecretRef {
 }
 
 /// Revocation feed, `kiln.implementation-authority-revocations.v1`.
+///
+/// `observed_at_ms` is when the feed's producer observed this revocation
+/// state, in Unix milliseconds. The view's age is measured from it, never
+/// from when a process imported the feed.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RevocationFeed {
     pub schema: String,
     pub generation: u64,
+    pub observed_at_ms: u64,
     pub revoked: Vec<String>,
 }
 
@@ -374,17 +379,19 @@ fn read_proofs(directory: &Path) -> Result<Vec<String>, String> {
         .collect()
 }
 
-/// Import the revocation feed into the durable view, observed at `now_ms`
-/// rounded down to the whole second.
+// r[impl kiln.implementation.authority.state.scenario.stale]
+/// Import the revocation feed into the durable view, observed at the feed's
+/// own `observed_at_ms`.
 ///
-/// Authority decisions read the view at whole-second resolution
-/// (`now_ms / 1_000 * 1_000`). A sub-second observation time would place the
-/// view after every decision made in the same second, and the view refuses
-/// an observation from the future, so a shell that selected the profile and
-/// acted within that second would be denied.
+/// Importing never refreshes the view: an unchanged feed keeps its age
+/// however often, and however recently, a process imports it, so a feed
+/// older than `max_age_ms` refuses every decision until its producer
+/// observes revocations again. A feed observed after `now_ms` is refused, so
+/// a future-dated feed cannot extend its own freshness.
 ///
 /// # Errors
-/// Returns a message for an unreadable or malformed feed, or a failed commit.
+/// Returns a message for an unreadable, malformed or future-dated feed, or a
+/// failed commit.
 pub fn import_revocations(
     state: &SqliteAuthorityState,
     feed: &Path,
@@ -398,13 +405,16 @@ pub fn import_revocations(
     {
         return Err("revocation feed schema or bound is invalid".into());
     }
+    if feed.observed_at_ms > now_ms {
+        return Err("revocation feed is observed in the future".into());
+    }
     if feed.generation < state.revocation_generation()? {
         return Err("revocation feed is older than the recorded view".into());
     }
     for reference in &feed.revoked {
         state.revoke(hex32(reference, "revoked reference")?, feed.generation)?;
     }
-    state.observe_revocation_view(feed.generation, now_ms - now_ms % 1_000)?;
+    state.observe_revocation_view(feed.generation, feed.observed_at_ms)?;
     Ok(feed.generation)
 }
 

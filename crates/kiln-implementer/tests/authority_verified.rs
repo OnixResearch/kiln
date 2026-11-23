@@ -263,3 +263,76 @@ fn a_view_imported_within_the_current_second_admits_decisions_in_that_second() {
             .is_some()
     );
 }
+
+fn open_at(db: &std::path::Path, config: &std::path::Path, now_ms: u64) -> Result<Implementer, String> {
+    let mut i = Implementer::open(db, enrollment())?;
+    i.set_clock_ms(now_ms);
+    i.select_authority(
+        &ImplementationAuthorityConfig::load(config)?,
+        &std::collections::BTreeSet::from([GrantRole::Coding]),
+    )?;
+    Ok(i)
+}
+
+#[test]
+// r[verify kiln.implementation.authority.state.scenario.stale]
+fn importing_an_unchanged_feed_never_makes_it_fresh() {
+    let dir = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
+    let db = dir.path().join("ledger.db");
+    let config = write_config(dir.path(), &Fixture::direct(), &[]);
+    // The producer observed the feed long before this process imports it.
+    write_feed(dir.path(), 1, T - MAX_AGE_MS - 1_000, &[]);
+    let mut i = open_at(&db, &config, T).unwrap_or_else(|error| unreachable!("{error}"));
+    i.admit(&work("old-feed"), None)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    assert!(
+        i.claim_next(T, LEASE_MS).is_err(),
+        "a feed observed past its age must refuse although it was just imported"
+    );
+    assert!(no_attempts(&mut i), "a refused claim commits nothing");
+    drop(i);
+
+    // A feed fresh at `T` admits; reopening later with the same feed does not
+    // refresh it, so a revocation published since cannot be missed.
+    write_feed(dir.path(), 1, T, &[]);
+    let mut i = open_at(&db, &config, T).unwrap_or_else(|error| unreachable!("{error}"));
+    assert!(
+        i.claim_next(T, LEASE_MS)
+            .unwrap_or_else(|error| unreachable!("{error}"))
+            .is_some()
+    );
+    drop(i);
+    let later = T + MAX_AGE_MS + 1_000;
+    assert!(later / 1_000 < test_support::EXPIRES_S);
+    let mut i = open_at(&db, &config, later).unwrap_or_else(|error| unreachable!("{error}"));
+    i.admit(&work("unchanged-feed"), None)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    assert!(
+        i.claim_next(later, LEASE_MS).is_err(),
+        "re-importing an unchanged feed must not refresh its age"
+    );
+    drop(i);
+
+    // The producer observes again: the refreshed feed admits.
+    write_feed(dir.path(), 1, later, &[]);
+    let mut i = open_at(&db, &config, later).unwrap_or_else(|error| unreachable!("{error}"));
+    assert!(
+        i.claim_next(later, LEASE_MS)
+            .unwrap_or_else(|error| unreachable!("{error}"))
+            .is_some()
+    );
+}
+
+#[test]
+// r[verify kiln.implementation.authority.state.scenario.stale]
+fn a_feed_observed_in_the_future_is_refused_at_selection() {
+    let dir = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
+    let db = dir.path().join("ledger.db");
+    let config = write_config(dir.path(), &Fixture::direct(), &[]);
+    write_feed(dir.path(), 1, T + 1, &[]);
+    let error = open_at(&db, &config, T)
+        .err()
+        .unwrap_or_else(|| unreachable!("a future-dated feed must not be imported"));
+    assert!(error.contains("observed in the future"), "{error}");
+    assert!(open_at(&db, &config, T + 1).is_ok());
+}

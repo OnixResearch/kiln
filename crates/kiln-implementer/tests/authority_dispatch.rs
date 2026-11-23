@@ -525,6 +525,9 @@ fn a_worker_selected_from_the_drives_authority_config_reaches_the_transport_chec
     let db = dir.path().join("ledger.db");
     let fixture = Fixture::direct_from(test_support::ROOT_SEED, now_ms / 1_000 + 3_600);
     let config = write_config(dir.path(), &fixture, &[]);
+    // The feed's producer observed it this second; selections import it
+    // afterwards.
+    write_feed(dir.path(), 1, now_ms / 1_000 * 1_000, &[]);
     let work = based_work("drive-worker");
     // Drive and worker are coordinator entry points: they load the
     // coordinator seed only.
