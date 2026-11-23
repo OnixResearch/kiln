@@ -136,9 +136,10 @@ r[kiln.implementation.authority.state] The verified profile MUST consume each
 holder invocation once in a durable replay table in its own immediate
 transaction. It MUST deny when the revocation view is absent or older than its
 maximum age, and when a proof in the chain is revoked. The view's age MUST be
-measured from the revocation feed's own observation time; importing a feed
-MUST NOT refresh it. It MUST persist every redacted decision, and an allowed
-decision that cannot be persisted MUST deny.
+measured from the observation time of the authority's own configured
+revocation feed; importing a feed MUST NOT refresh it, and another feed
+sharing the same durable state MUST NOT count. It MUST persist every redacted
+decision, and an allowed decision that cannot be persisted MUST deny.
 
 #### Scenario: Replayed invocation denies after restart
 
@@ -150,7 +151,7 @@ r[kiln.implementation.authority.state.scenario.replay]
 #### Scenario: Stale revocation view denies
 
 r[kiln.implementation.authority.state.scenario.stale]
-- GIVEN a revocation feed observed longer ago than its configured maximum age, however recently a process imported it
+- GIVEN a revocation feed observed longer ago than its configured maximum age, however recently a process imported it or another feed sharing its durable state was imported
 - WHEN a protected operation is requested with a grant that is otherwise valid
 - THEN it MUST deny and commit nothing
 

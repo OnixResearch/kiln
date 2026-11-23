@@ -124,7 +124,7 @@ database denies after a bounded wait. Its tables are:
 | --- | --- |
 | `authority_replay` | `(audience, generation, token_ref, nonce, resource_digest, expires_ms)`, keyed on the first four. Insert-or-deny in its own `IMMEDIATE` transaction as the final consuming step before the effect. A duplicate denies. `expires_ms` is the later of the token expiry and admission time plus `replay.retention_ms`; rows are pruned only after it. |
 | `authority_revocation` | `(proof_ref, revoked_at_ms, revocation_generation)` for every revoked proof reference. |
-| `authority_revocation_view` | One row holding the imported revocation generation and its `observed_at_ms`. |
+| `authority_revocation_feed_view` | One row per configured feed, keyed by its configured path (not the resolved file): its imported revocation generation and `observed_at_ms`. |
 | `authority_decision` | `(seq, record)`, the redacted `kiln.implementation-authority-decision.v1` JSON. The newest 65,536 are kept; `Implementer::persisted_authority_decisions` reads at most 1,024 per call. |
 
 **Revocation feed.** `revocation.path` names a
@@ -134,11 +134,26 @@ references). `observed_at_ms` is when the feed's producer observed that
 revocation state, in Unix milliseconds. Selection validates the whole feed,
 then imports it in one transaction: a malformed reference anywhere imports
 nothing and leaves the recorded generation unchanged. A feed observed after the
-selecting process's clock is refused. The view only moves to a newer
-`(generation, observed_at_ms)` pair: a feed older than the recorded view, such
-as a stale copy another process imports or a second configured feed path,
-still adds every revocation it carries but leaves the view as it is.
-Revocations are only ever added. The view's age is measured from
+selecting process's clock is refused. Selection records the authority's feed
+and imports it; it does not check freshness, so a stale feed still selects and
+its decisions deny. Each configured feed keeps its own view, keyed by its
+configured path, which must be absolute UTF-8 with no `.` or `..` component
+(repeated `/` normalize away), never by the resolved file and never by
+anything the feed's content claims. The feed is read from exactly that path:
+intermediate symlinked directories are followed when reading, and a
+final-component symlink is refused. Two spellings of one file get separate
+views, each fresh only on its own imports; a producer that re-points a
+symlinked directory keeps the configured feed's view. Several configurations
+sharing one ledger, and so one `<ledger>.authority`, each check freshness at
+each protected decision against their own feed's view only: a stale feed never
+borrows another feed's freshness, and a long-lived process whose feed ages out
+denies however recently another feed was imported. A feed's view only moves to
+a newer `(generation, observed_at_ms)` pair, compared generation first: within
+the same generation it never moves to an earlier observation, so a stale copy
+another process imports still adds every revocation it carries but leaves the
+view as it is. A higher generation with an earlier time does move the time
+back, which fails closed. Revocations are one union across every feed and are
+only ever added. The view's age is measured from
 the feed's own `observed_at_ms`, never from the import, so importing an
 unchanged feed never makes it fresh. The view fails closed: if it is absent,
 or its feed was observed more than `revocation.max_age_ms` ago, every verified
@@ -149,11 +164,19 @@ Have the producer republish the feed with a new `observed_at_ms` before it
 goes stale; a shell imports it at its next selection.
 
 **Non-claim: the feed producer is trusted for freshness.** `observed_at_ms`
-is an unauthenticated claim of the configured feed producer. A backdated time
-fails closed. A postdated time, up to the selecting process's clock, cannot be
-detected by Kiln: a producer that dates a stale revocation state as current
-extends its freshness. Removing that trust needs an authenticated observation
-source, such as a signed, timestamped revocation feed.
+is an unauthenticated claim of the configured feed producer. A backdated
+observation cannot extend freshness: within a generation it is ignored when a
+fresher one exists, and a process whose own feed's newest observation is older
+than `max_age_ms` denies. A postdated time, up to the selecting process's
+clock, cannot be detected by Kiln: a producer that dates a stale revocation
+state as current extends its freshness. Removing that trust needs an
+authenticated observation source, such as a signed, timestamped revocation
+feed. The shared revocation union lets any configured feed deny more, never
+less.
+
+**Non-claim: one mount namespace.** A view row identifies a configured path,
+not a file across mount namespaces. Processes sharing a ledger must see the
+same feed files at the same configured paths.
 
 **Payload v2.** Every request carries `request_digest` = BLAKE3 over the domain
 `kiln.implementation-authority-payload.v2`, the operation, the worker
