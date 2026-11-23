@@ -1,32 +1,64 @@
 //! The projected-workspace route check of `kiln-lattice-dispatch` (C9).
 //!
-//! A dispatch plan that pins a projected workspace runs only with the
-//! `kiln.projected-workspace-route.v1` route derived for that pin, and only
-//! when the Lattice worker request names exactly the route's workspace root,
-//! read paths and write paths. A plan without a pin takes no route. The check
-//! runs before any durable step or transport start.
+//! A dispatch plan that pins a projected workspace runs only under an
+//! authority profile that enables projection, only with the
+//! `kiln.projected-workspace-route.v1` route derived again for that pin and
+//! the plan's own permitted paths, and only when the Lattice worker request
+//! names exactly the route's workspace root, read paths and write paths. A
+//! plan without a pin takes no route. The check runs before any durable step
+//! or transport start: no plan reservation, sealed request or transport
+//! intent.
 use std::path::Path;
 
 use kiln_core::implementation::ImplementationDispatchPlan;
+use kiln_core::implementation::authority::AuthorityDenialReason;
 use kiln_core::projection::materialization::ProjectedWorkspaceRoute;
 
 /// The `kiln-lattice-dispatch` flag naming the route file.
 pub const ROUTE_FLAG: &str = "--projected-workspace-route";
-/// Largest route file read.
-const MAX_ROUTE_BYTES: u64 = 256 * 1024;
+/// Largest route file read. A route carries its resolved manifest, whose
+/// bound is `MAX_MANIFEST_ENTRIES` entries.
+const MAX_ROUTE_BYTES: u64 = 64 * 1024 * 1024;
+
+/// The authority profile selected for one dispatch, as far as a projected
+/// workspace is concerned (C1).
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ProjectionAuthority {
+    /// No profile is selected; every protected operation denies.
+    Absent,
+    /// The explicit local-operator compatibility profile. It never
+    /// authorizes a projected workspace, whatever else it admits.
+    LocalOperator,
+    /// A verified profile whose configuration enables projection
+    /// (`verified_ucan.projection_enabled`). Only the verified authority
+    /// composition selects it.
+    ProjectionEnabled,
+}
 
 // r[impl kiln.source.projection.route.scenario.dispatch]
-/// Refuse a worker request that differs from the route of the plan's pinned
-/// workspace, a pinned plan without its route, or a route for an unpinned
-/// plan.
+/// Refuse a projected dispatch under a profile that does not enable
+/// projection, a worker request that differs from the route of the plan's
+/// pinned workspace, a route not derived for exactly the plan's permitted
+/// paths, a pinned plan without its route, or a route for an unpinned plan.
 pub fn check_route(
     route_file: Option<&Path>,
     plan: &ImplementationDispatchPlan,
     request: &serde_json::Value,
+    authority: ProjectionAuthority,
 ) -> Result<(), String> {
+    if plan.workspace.projection.is_none() && route_file.is_none() {
+        return Ok(());
+    }
+    // Keyed on this dispatch: a pinned plan or a supplied route is a
+    // projected dispatch, whatever the selected profile was built with.
+    if authority != ProjectionAuthority::ProjectionEnabled {
+        return Err(format!(
+            "{}: a projected workspace runs only under an authority profile that enables projection, never the local-operator or an absent profile; nothing was dispatched",
+            AuthorityDenialReason::ProjectionRequiresOperator.as_str()
+        ));
+    }
     let (pin, path) = match (&plan.workspace.projection, route_file) {
-        (None, None) => return Ok(()),
-        (None, Some(_)) => {
+        (None, _) => {
             return Err(
                 "a projected workspace route was supplied for a plan without a workspace pin; nothing was dispatched"
                     .into(),
@@ -41,18 +73,22 @@ pub fn check_route(
         (Some(pin), Some(path)) => (pin, path),
     };
     let route = read_route(path)?;
-    route.verify().map_err(|diagnostics| {
-        let codes: Vec<String> = diagnostics.into_iter().map(|d| d.code).collect();
-        format!(
-            "the projected workspace route is invalid ({}); nothing was dispatched",
-            codes.join(", ")
-        )
-    })?;
     if route.pin != *pin {
         return Err(
             "the projected workspace route belongs to another pin; nothing was dispatched".into(),
         );
     }
+    // The route must be the one derived for the pinned manifest and the
+    // plan's own permitted paths, not merely a well-formed route of the pin.
+    route
+        .verify_permitted(&plan.permitted_paths)
+        .map_err(|diagnostics| {
+            let codes: Vec<String> = diagnostics.into_iter().map(|d| d.code).collect();
+            format!(
+                "the projected workspace route is invalid or not derived for the plan's permitted paths ({}); nothing was dispatched",
+                codes.join(", ")
+            )
+        })?;
     let strings = |field: &str| -> Option<Vec<String>> {
         request
             .get(field)?

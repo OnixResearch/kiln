@@ -861,6 +861,9 @@ fn bind_execution(flags: &BTreeMap<String, String>) -> Result<Value, String> {
                 plan.permitted_paths != work.permitted_paths
                     || plan.workspace.projection.as_ref() != Some(&route.pin)
                     || plan.workspace.identity != route.pin.overlay
+                    // The route is the one derived for the plan's own
+                    // permitted paths.
+                    || route.verify_permitted(&plan.permitted_paths).is_err()
             }
             None => plan.permitted_paths != vec!["src/scripted_model_result.txt".to_string()],
         }

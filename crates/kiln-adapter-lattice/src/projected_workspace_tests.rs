@@ -36,9 +36,14 @@ struct Fixture {
     _root: tempfile::TempDir,
     plan: ImplementationDispatchPlan,
     route: ProjectedWorkspaceRoute,
+    /// The route of the same pin derived for `alpha`, wider than the plan's
+    /// permitted `alpha/src`.
+    wider: ProjectedWorkspaceRoute,
     route_file: std::path::PathBuf,
     request: serde_json::Value,
 }
+
+const ENABLED: ProjectionAuthority = ProjectionAuthority::ProjectionEnabled;
 
 fn fixture() -> Fixture {
     let root = ok(tempfile::tempdir());
@@ -113,17 +118,21 @@ fn fixture() -> Fixture {
     let attempt = digest("attempt");
     let pin = ok(materialization.pin(&attempt, 1));
     let writable = vec!["alpha/src".to_string()];
-    let derived = ok(route(
-        &definition,
-        &complete,
-        &materialization,
-        &pin,
-        RouteRequest {
-            store: ok(store.to_str().ok_or("utf-8")),
-            writable: &writable,
-            build_plan: None,
-        },
-    ));
+    let derive = |writable: &[String]| {
+        ok(route(
+            &definition,
+            &complete,
+            &materialization,
+            &pin,
+            RouteRequest {
+                store: ok(store.to_str().ok_or("utf-8")),
+                writable,
+                build_plan: None,
+            },
+        ))
+    };
+    let derived = derive(&writable);
+    let wider = derive(&["alpha".to_string()]);
     ok(std::fs::create_dir_all(&derived.overlay_root));
     let route_file = root.path().join("route.json");
     ok(std::fs::write(
@@ -169,9 +178,26 @@ fn fixture() -> Fixture {
         _root: root,
         plan,
         route: derived,
+        wider,
         route_file,
         request,
     }
+}
+
+fn write_route(fixture: &Fixture, route: &ProjectedWorkspaceRoute) {
+    ok(std::fs::write(
+        &fixture.route_file,
+        ok(serde_json::to_vec(route)),
+    ));
+}
+
+fn request_of(route: &ProjectedWorkspaceRoute) -> serde_json::Value {
+    serde_json::json!({
+        "workspace_root": route.overlay_root,
+        "read_paths": route.read_paths,
+        "write_paths": route.write_paths,
+        "network": false,
+    })
 }
 
 // r[verify kiln.source.projection.route.scenario.dispatch]
@@ -185,11 +211,126 @@ fn a_request_equal_to_the_route_of_the_pinned_plan_is_admitted() {
         Some(&fixture.route_file),
         &fixture.plan,
         &fixture.request,
+        ENABLED,
     ));
-    // A plan without a pin keeps the earlier route and takes no route file.
+    // A plan without a pin keeps the earlier route and takes no route file,
+    // under any profile.
     let mut unpinned = fixture.plan.clone();
     unpinned.workspace.projection = None;
-    ok(check_route(None, &unpinned, &fixture.request));
+    for authority in [
+        ENABLED,
+        ProjectionAuthority::LocalOperator,
+        ProjectionAuthority::Absent,
+    ] {
+        ok(check_route(None, &unpinned, &fixture.request, authority));
+    }
+}
+
+// r[verify kiln.source.projection.route.scenario.dispatch]
+#[test]
+fn the_local_operator_profile_never_dispatches_a_projected_workspace() {
+    let fixture = fixture();
+    let mut unpinned = fixture.plan.clone();
+    unpinned.workspace.projection = None;
+    for authority in [
+        ProjectionAuthority::LocalOperator,
+        ProjectionAuthority::Absent,
+    ] {
+        // The exact route and request that the enabled profile admits, the
+        // pinned plan without its route, and a route for an unpinned plan all
+        // take the projection denial.
+        for (route_file, plan) in [
+            (Some(fixture.route_file.as_path()), &fixture.plan),
+            (None, &fixture.plan),
+            (Some(fixture.route_file.as_path()), &unpinned),
+        ] {
+            let refused = check_route(route_file, plan, &fixture.request, authority);
+            assert!(
+                refused.as_ref().is_err_and(|error| {
+                    error.starts_with("projection-requires-operator:")
+                        && error.ends_with("nothing was dispatched")
+                }),
+                "{authority:?}: {refused:?}"
+            );
+        }
+    }
+}
+
+// r[verify kiln.source.projection.route.scenario.dispatch]
+#[test]
+fn a_same_pin_route_wider_than_the_plan_permits_is_refused() {
+    let fixture = fixture();
+    // Derived for `alpha` on the same pin, it is well formed and its request
+    // matches it exactly, but the plan permits only `alpha/src`.
+    assert_eq!(fixture.wider.pin, fixture.route.pin);
+    assert_eq!(fixture.wider.write_paths, ["alpha/Cargo.toml", "alpha/src"]);
+    ok(fixture.wider.verify());
+    write_route(&fixture, &fixture.wider);
+    let refused = check_route(
+        Some(&fixture.route_file),
+        &fixture.plan,
+        &request_of(&fixture.wider),
+        ENABLED,
+    );
+    assert!(
+        refused
+            .as_ref()
+            .is_err_and(|error| error.contains("route_permission_mismatch")),
+        "{refused:?}"
+    );
+    // The same route runs for a plan that permits exactly `alpha`.
+    let mut wide_plan = fixture.plan.clone();
+    wide_plan.permitted_paths = vec!["alpha".into()];
+    ok(check_route(
+        Some(&fixture.route_file),
+        &wide_plan,
+        &request_of(&fixture.wider),
+        ENABLED,
+    ));
+    // The plan's own route is refused for the wider plan too: equality, not
+    // a subset.
+    write_route(&fixture, &fixture.route);
+    assert!(
+        check_route(
+            Some(&fixture.route_file),
+            &wide_plan,
+            &fixture.request,
+            ENABLED
+        )
+        .is_err_and(|error| error.contains("route_permission_mismatch"))
+    );
+}
+
+// r[verify kiln.source.projection.route.scenario.refused]
+#[test]
+fn vcs_metadata_and_runtime_mounted_stores_are_refused_before_dispatch() {
+    let fixture = fixture();
+    let refused_with = |route: &ProjectedWorkspaceRoute, code: &str| {
+        write_route(&fixture, route);
+        let refused = check_route(
+            Some(&fixture.route_file),
+            &fixture.plan,
+            &request_of(route),
+            ENABLED,
+        );
+        assert!(
+            refused.as_ref().is_err_and(|error| error.contains(code)),
+            "{code}: {refused:?}"
+        );
+    };
+    let mut git = fixture.route.clone();
+    git.read_paths = vec![".git".into(), "alpha".into()];
+    refused_with(&git, "route_vcs_metadata");
+    let mut exposed = fixture.route.clone();
+    exposed.overlay_root = format!(
+        "/usr/local/kiln/store/overlays/{}",
+        exposed.pin.overlay.as_str()
+    );
+    exposed.input_root = format!(
+        "/usr/local/kiln/store/inputs/{}",
+        exposed.pin.input.as_str()
+    );
+    refused_with(&exposed, "route_roots");
 }
 
 // r[verify kiln.source.projection.route.scenario.dispatch]
@@ -197,7 +338,7 @@ fn a_request_equal_to_the_route_of_the_pinned_plan_is_admitted() {
 fn requests_differing_from_the_route_are_refused_before_dispatch() {
     let fixture = fixture();
     let refused = |request: &serde_json::Value| {
-        check_route(Some(&fixture.route_file), &fixture.plan, request)
+        check_route(Some(&fixture.route_file), &fixture.plan, request, ENABLED)
             .is_err_and(|error| error.ends_with("nothing was dispatched"))
     };
     let mutate = |change: &dyn Fn(&mut serde_json::Value)| {
@@ -224,16 +365,24 @@ fn requests_differing_from_the_route_are_refused_before_dispatch() {
         assert!(refused(&request), "{request}");
     }
     // A pinned plan needs its route; an unpinned plan takes none.
-    assert!(check_route(None, &fixture.plan, &fixture.request).is_err());
+    assert!(check_route(None, &fixture.plan, &fixture.request, ENABLED).is_err());
     let mut unpinned = fixture.plan.clone();
     unpinned.workspace.projection = None;
-    assert!(check_route(Some(&fixture.route_file), &unpinned, &fixture.request).is_err());
+    assert!(
+        check_route(
+            Some(&fixture.route_file),
+            &unpinned,
+            &fixture.request,
+            ENABLED
+        )
+        .is_err()
+    );
     // A route for another pin, a forged route and a linked overlay.
     let mut other = fixture.plan.clone();
     if let Some(pin) = other.workspace.projection.as_mut() {
         pin.fence = 2;
     }
-    assert!(check_route(Some(&fixture.route_file), &other, &fixture.request).is_err());
+    assert!(check_route(Some(&fixture.route_file), &other, &fixture.request, ENABLED).is_err());
     let mut forged = fixture.route.clone();
     forged.write_paths = vec!["alpha".into()];
     ok(std::fs::write(

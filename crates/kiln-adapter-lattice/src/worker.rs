@@ -565,13 +565,21 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
                 .into(),
         );
     }
-    // A pinned projected workspace runs only with its exact route.
+    // A pinned projected workspace runs only under a profile that enables
+    // projection and only with its exact route. This shell selects at most
+    // the local-operator profile, which never enables projection.
+    let projection_authority = if flags.contains_key("--local-operator") {
+        crate::projected_workspace::ProjectionAuthority::LocalOperator
+    } else {
+        crate::projected_workspace::ProjectionAuthority::Absent
+    };
     crate::projected_workspace::check_route(
         flags
             .get(crate::projected_workspace::ROUTE_FLAG)
             .map(Path::new),
         &plan,
         &request,
+        projection_authority,
     )?;
     let ledger = implementer.work()?;
     let work = ledger
