@@ -106,7 +106,8 @@ impl Service {
         let store = Store::load(
             &config.implementer.database,
             &config.implementer.enrollment,
-            config.authority_operator.clone(),
+            config.authority_operator.as_deref(),
+            config.authority_config.as_deref(),
         )?;
         let swarm = match config.active_swarm() {
             Some(swarm) => Some(Arc::new(SwarmLink::new(swarm)?)),
@@ -186,8 +187,13 @@ impl Service {
         outcome.unwrap_or_else(|response| response)
     }
 
-    fn open(&self) -> Result<kiln_implementer::Implementer, Response> {
-        self.store.open().map_err(|error| store_error(&error))
+    /// Open the store for `route`, the handler's `METHOD /v1/...` row in
+    /// `ENTRY_POINTS`: only the holder seeds of the operations that row
+    /// checks are loaded, so an observation route loads none.
+    fn open(&self, route: &str) -> Result<kiln_implementer::Implementer, Response> {
+        self.store
+            .open_route(route)
+            .map_err(|error| store_error(&error))
     }
 
     fn foreign(&self, now_ms: u64) -> Result<Vec<ForeignClaim>, Response> {
@@ -221,7 +227,7 @@ impl Service {
 
     fn state_version(&self, machine: &str, now_ms: u64) -> Handled {
         let version = self
-            .open()?
+            .open("GET /v1/version")?
             .fleet_observation_version()
             .map_err(|error| store_error(&error))?;
         Ok(Response::new(
@@ -237,7 +243,7 @@ impl Service {
 
     fn list_claims(&self, now_ms: u64) -> Handled {
         let state = self
-            .open()?
+            .open("GET /v1/claims")?
             .fleet_state()
             .map_err(|error| store_error(&error))?;
         let claims: Vec<_> = state.claims.live(now_ms).cloned().collect();
@@ -263,7 +269,7 @@ impl Service {
         let lease_ms = self.lease_ms(body.lease_minutes)?;
         let foreign = self.foreign(now_ms)?;
         let (outcome, _) = self
-            .open()?
+            .open("POST /v1/claims")?
             .fleet_claim(
                 ClaimCommand::Acquire {
                     scope,
@@ -319,7 +325,7 @@ impl Service {
         let identity = path_identity(id)?;
         let body: RenewBody = parse_body(body)?;
         let lease_ms = self.lease_ms(body.lease_minutes)?;
-        let mut implementer = self.open()?;
+        let mut implementer = self.open("POST /v1/claims/{id}/renew")?;
         self.holder_check(&mut implementer, machine, &identity)?;
         let (outcome, _) = implementer
             .fleet_claim(
@@ -339,7 +345,7 @@ impl Service {
     fn release(&self, machine: &str, id: &str, body: &[u8], now_ms: u64) -> Handled {
         let identity = path_identity(id)?;
         let body: ReleaseBody = parse_body(body)?;
-        let mut implementer = self.open()?;
+        let mut implementer = self.open("POST /v1/claims/{id}/release")?;
         self.holder_check(&mut implementer, machine, &identity)?;
         let (outcome, _) = implementer
             .fleet_claim(
@@ -357,7 +363,7 @@ impl Service {
     }
 
     fn work(&self, now_ms: u64) -> Handled {
-        let mut implementer = self.open()?;
+        let mut implementer = self.open("GET /v1/work")?;
         let ledger = implementer.work().map_err(|error| store_error(&error))?;
         let ready_unclaimed = implementer
             .fleet_ready_work(now_ms)
@@ -406,7 +412,7 @@ impl Service {
     }
 
     fn attempts(&self, now_ms: u64) -> Handled {
-        let mut implementer = self.open()?;
+        let mut implementer = self.open("GET /v1/attempts")?;
         let views = implementer
             .fleet_attempt_views(now_ms)
             .map_err(|error| store_error(&error))?;
@@ -469,7 +475,7 @@ impl Service {
                 "commit must be a full 40-character lowercase hexadecimal id",
             ));
         }
-        let mut implementer = self.open()?;
+        let mut implementer = self.open("POST /v1/attempts/{id}/handoff")?;
         let state = implementer
             .fleet_state()
             .map_err(|error| store_error(&error))?;
@@ -519,7 +525,7 @@ impl Service {
         self.operator(machine)?;
         let attempt = path_identity(id)?;
         let body: CancelBody = parse_body(body)?;
-        let mut implementer = self.open()?;
+        let mut implementer = self.open("POST /v1/attempts/{id}/cancel")?;
         let current = implementer
             .attempt(&attempt)
             .map_err(|error| store_error(&error))?
@@ -563,7 +569,7 @@ impl Service {
     }
 
     fn metrics(&self, now_ms: u64) -> Handled {
-        let mut implementer = self.open()?;
+        let mut implementer = self.open("GET /v1/metrics")?;
         let state = implementer
             .fleet_state()
             .map_err(|error| store_error(&error))?;
@@ -638,7 +644,7 @@ impl Service {
 
     fn decisions(&self) -> Handled {
         let state = self
-            .open()?
+            .open("GET /v1/decisions")?
             .fleet_state()
             .map_err(|error| store_error(&error))?;
         let mut decisions: Vec<_> = state.decisions.decisions.values().collect();
@@ -653,7 +659,7 @@ impl Service {
         let decision = path_identity(id)?;
         let body: AnswerBody = parse_body(body)?;
         let prompt = self
-            .open()?
+            .open("POST /v1/decisions/{id}/answer")?
             .fleet_answer_decision(&decision, body.text, machine, true, now_ms)
             .map_err(|error| store_error(&error))?;
         log::info(

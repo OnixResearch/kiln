@@ -130,6 +130,8 @@ in
     verifier_authority | Absolute,
     # Explicit local-operator profile for protected campaign effects.
     local_operator | String | optional,
+    # Exported kiln.implementation-authority-config.v1; exclusive with local_operator.
+    authority_config | Absolute | optional,
     decision_contexts | { _ : Absolute } | default = {},
     bound_input_directory | Absolute,
     worker

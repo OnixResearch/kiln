@@ -7,10 +7,14 @@
 //! serializes them exactly as a shared mutex would, and no connection is held
 //! across a child process.
 
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use kiln_core::implementation::Enrollment;
+use kiln_core::implementation::authority::{ENTRY_POINTS, FLEET_API, entry_point_roles};
+use kiln_core::implementation::grant::GrantRole;
 use kiln_implementer::Implementer;
+use kiln_implementer::authority_config::ImplementationAuthorityConfig;
 
 use crate::config::read_bounded;
 
@@ -22,19 +26,22 @@ pub const MAX_ENROLLMENT_BYTES: u64 = 256 * 1_024;
 pub struct Store {
     pub database: PathBuf,
     pub enrollment: Enrollment,
-    /// Explicit local-operator profile selected for protected effects.
-    pub authority_operator: Option<String>,
+    /// Authority profile selected for protected effects.
+    pub authority: ImplementationAuthorityConfig,
 }
 
 impl Store {
-    /// Load the enrollment file and remember the database path.
+    /// Load the enrollment file, resolve the authority selection and remember
+    /// the database path.
     ///
     /// # Errors
-    /// Returns a diagnostic for an unreadable or malformed enrollment.
+    /// Returns a diagnostic for an unreadable or malformed enrollment, or an
+    /// invalid authority selection.
     pub fn load(
         database: &Path,
         enrollment: &Path,
-        authority_operator: Option<String>,
+        authority_operator: Option<&str>,
+        authority_config: Option<&Path>,
     ) -> Result<Self, String> {
         let bytes = read_bounded(enrollment, MAX_ENROLLMENT_BYTES)?;
         let enrollment: Enrollment = serde_json::from_slice(&bytes)
@@ -42,20 +49,46 @@ impl Store {
         Ok(Self {
             database: database.to_path_buf(),
             enrollment,
-            authority_operator,
+            authority: ImplementationAuthorityConfig::resolve(
+                authority_operator,
+                authority_config,
+            )?,
         })
     }
 
-    /// Open one connection.
+    /// Open one connection that loads the holder seeds of `roles` and no
+    /// other.
+    ///
+    /// Roles are chosen where the operation is known: each API route passes
+    /// the roles of its reviewed `ENTRY_POINTS` row ([`Self::open_route`]),
+    /// so an observation route loads no seed and works without one; the
+    /// dispatch thread, which claims, reserves, places and cancels, loads the
+    /// coordinator seed ([`Self::open_coordinator`]).
     ///
     /// # Errors
     /// Returns the store diagnostic.
-    pub fn open(&self) -> Result<Implementer, String> {
+    pub fn open(&self, roles: &BTreeSet<GrantRole>) -> Result<Implementer, String> {
         let mut implementer = Implementer::open(&self.database, self.enrollment.clone())?;
-        if let Some(operator) = &self.authority_operator {
-            implementer.select_local_operator(operator.clone())?;
-        }
+        implementer.select_authority(&self.authority, roles)?;
         Ok(implementer)
+    }
+
+    /// Open one connection for the fleet API route `route` (`METHOD /v1/...`),
+    /// loading the holder seeds of the operations its reviewed row checks.
+    ///
+    /// # Errors
+    /// Returns the store diagnostic.
+    pub fn open_route(&self, route: &str) -> Result<Implementer, String> {
+        self.open(&entry_point_roles(ENTRY_POINTS, FLEET_API, route))
+    }
+
+    /// Open the dispatch thread's connection: the fleet tick claims,
+    /// reserves, places and cancels, so it loads the coordinator seed only.
+    ///
+    /// # Errors
+    /// Returns the store diagnostic.
+    pub fn open_coordinator(&self) -> Result<Implementer, String> {
+        self.open(&BTreeSet::from([GrantRole::Coding]))
     }
 }
 

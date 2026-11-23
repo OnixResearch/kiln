@@ -3,6 +3,9 @@
 // r[verify kiln.admission.host_owner.scenario.refused]
 // r[verify kiln.admission.host_owner.scenario.replay]
 //! Durable host-local owner admission through the real implementation store.
+#[path = "authority_common/mod.rs"]
+mod authority_common;
+
 use kiln_core::fair_admission::{
     AdmissionPhase, EligibilityInput, HostOwnerProfile, ReservationState,
 };
@@ -1004,4 +1007,190 @@ fn start_and_reconcile_are_unchanged_without_host_owner_admission() {
     ok(i.start_execution(&started.identity, started.fence, NOW + 2, &workflow));
     let workflow = ok(ExternalRef::new("lattice", "workflow", "operator-b"));
     ok(i.reconcile_dispatch(&reconciled.identity, reconciled.fence, NOW + 2, &workflow));
+}
+
+/// A claim whose owner request committed tentatively and whose owner reply
+/// was lost, as a crash between request and reply leaves it.
+struct Interrupted {
+    _dir: tempfile::TempDir,
+    path: std::path::PathBuf,
+    profile: HostOwnerProfile,
+    attempt: ImplementationAttempt,
+    pending: kiln_core::fair_admission::OwnerReservation,
+}
+
+impl Interrupted {
+    fn new() -> Self {
+        let dir = ok(tempfile::tempdir());
+        let path = dir.path().join("work.sqlite");
+        let profile = profile();
+        let issue = work(&profile, SANDBOX, 1);
+        let mut i = open(&path);
+        intake(&mut i, &[&issue]);
+        ok(i.host_owner_admit(&profile, NOW));
+        ok(i.host_owner_observe(&profile, NOW));
+        let attempt = claim(&mut i, NOW + 1);
+        let claim_ref = kiln_core::fair_admission::ClaimRef {
+            attempt: attempt.identity.clone(),
+            fence: attempt.fence,
+        };
+        let snapshot = ok(i.admission_snapshot());
+        let kiln_core::fair_admission::HostReservationPlan::Request(pending) = ok(profile
+            .plan_reservation(
+                &snapshot,
+                &issue,
+                &claim_ref,
+                attempt.lease_until_ms,
+                NOW + 2,
+            ))
+        else {
+            unreachable!("fresh claim plans a request")
+        };
+        ok(i.admission_apply(
+            Cmd::Request {
+                reservation: pending.clone(),
+                inputs: Vec::new(),
+            },
+            NOW + 2,
+        ));
+        assert_eq!(
+            reservation_state(&mut i, &pending),
+            ReservationState::Tentative
+        );
+        Self {
+            _dir: dir,
+            path,
+            profile,
+            attempt,
+            pending,
+        }
+    }
+
+    /// Resume the pending request through `host_owner_reserve`, or through
+    /// the retained-request path of `admission_reserve_with_owner`.
+    fn resume(&self, i: &mut Implementer, retained: bool) -> Result<(), String> {
+        if retained {
+            let ledger = i.admission_snapshot()?;
+            let mut owner =
+                kiln_implementer::host_owner::HostLocalOwner::new(&self.profile, ledger, NOW + 3);
+            i.admission_reserve_with_owner(self.pending.clone(), Vec::new(), &mut owner, NOW + 3)
+                .map(drop)
+        } else {
+            i.host_owner_reserve(
+                &self.profile,
+                &self.attempt.identity,
+                self.attempt.fence,
+                NOW + 3,
+            )
+            .map(drop)
+        }
+    }
+}
+
+#[test]
+// r[verify kiln.implementation.authority.dispatch.scenario.denied]
+fn a_tentative_owner_request_is_never_committed_without_a_fresh_dispatch_decision() {
+    for retained in [false, true] {
+        let interrupted = Interrupted::new();
+        // The retry selects a profile that refuses Dispatch, as a revoked
+        // grant does: the owner is never asked and nothing commits.
+        let mut i = ok(Implementer::open(&interrupted.path, enrollment()));
+        let error = interrupted
+            .resume(&mut i, retained)
+            .err()
+            .unwrap_or_else(|| unreachable!("retained={retained}: must be refused"));
+        assert!(error.contains("authority:"), "retained={retained}: {error}");
+        assert_eq!(
+            reservation_state(&mut i, &interrupted.pending),
+            ReservationState::Tentative,
+            "retained={retained}"
+        );
+    }
+}
+
+#[test]
+// r[verify kiln.implementation.authority.dispatch.scenario.admitted]
+fn a_tentative_owner_request_commits_after_a_fresh_dispatch_decision() {
+    for retained in [false, true] {
+        let interrupted = Interrupted::new();
+        let mut i = open(&interrupted.path);
+        ok(interrupted.resume(&mut i, retained));
+        assert_eq!(
+            reservation_state(&mut i, &interrupted.pending),
+            ReservationState::Committed,
+            "retained={retained}"
+        );
+        assert!(
+            i.authority_decisions()
+                .iter()
+                .any(|decision| decision.allowed
+                    && decision.operation
+                        == kiln_core::implementation::authority::ProtectedOperation::Dispatch),
+            "retained={retained}: the resumed request presented a fresh invocation"
+        );
+    }
+}
+
+#[test]
+// r[verify kiln.implementation.authority.selection.scenario.scoped]
+fn host_owner_release_settles_under_the_verified_profile_without_the_coordinator_seed() {
+    use kiln_core::implementation::authority::{ENTRY_POINTS, IMPLEMENTER_CLI, entry_point_roles};
+    use kiln_core::implementation::grant::GrantRole;
+    use kiln_implementer::authority_config::ImplementationAuthorityConfig;
+
+    // The cleanup-only commands check no authority, so they load no seed.
+    for command in ["host-owner-release", "metrics", "reconcile-termination"] {
+        assert!(
+            entry_point_roles(ENTRY_POINTS, IMPLEMENTER_CLI, command).is_empty(),
+            "{command}"
+        );
+    }
+    let dir = ok(tempfile::tempdir());
+    let path = dir.path().join("work.sqlite");
+    let profile = profile();
+    let issue = work(&profile, SANDBOX, 1);
+    let mut i = open(&path);
+    let (attempt, reservation) = reserved_attempt(&mut i, &profile, &issue);
+    ok(i.cancel(
+        &attempt.identity,
+        attempt.fence,
+        NOW + 3,
+        "operator stopped the pilot",
+    ));
+    drop(i);
+
+    // The host switches to the verified profile and the coordinator's seed
+    // is gone: a coordinator entry point can no longer select it.
+    let config = authority_common::write_config(
+        dir.path(),
+        &kiln_adapter_basalt::test_support::Fixture::direct(),
+        &[],
+    );
+    ok(std::fs::remove_file(dir.path().join("coordinator.seed")));
+    let select = |roles: &BTreeSet<GrantRole>| -> Result<Implementer, String> {
+        let mut i = Implementer::open(&path, enrollment())?;
+        i.set_clock_ms(authority_common::T);
+        i.select_authority(&ImplementationAuthorityConfig::load(&config)?, roles)?;
+        Ok(i)
+    };
+    assert!(select(&BTreeSet::from([GrantRole::Coding])).is_err());
+
+    // `host-owner-release` selects exactly its table roles and settles.
+    let mut i = ok(select(&entry_point_roles(
+        ENTRY_POINTS,
+        IMPLEMENTER_CLI,
+        "host-owner-release",
+    )));
+    let settled = ok(i.host_owner_release(&profile, &attempt.identity, attempt.fence, NOW + 4));
+    assert_eq!(
+        ok(serde_json::to_value(&settled))
+            .get("outcome")
+            .and_then(serde_json::Value::as_str),
+        Some("settled")
+    );
+    assert_eq!(
+        reservation_state(&mut i, &reservation),
+        ReservationState::Settled
+    );
+    assert!(i.authority_decisions().is_empty(), "release checks nothing");
 }

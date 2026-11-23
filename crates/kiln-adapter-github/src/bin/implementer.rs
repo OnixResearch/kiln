@@ -39,6 +39,10 @@ struct DrainInputs {
     limit: usize,
 }
 
+/// The subcommand this process runs. Each subcommand is a reviewed entry
+/// point, and only its own holder roles are ever loaded.
+static SUBCOMMAND: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+
 // r[impl kiln.implementation.operator_cli]
 fn main() {
     kiln_adapter_github::status::run_internal_resolver_if_requested();
@@ -58,6 +62,9 @@ fn run() -> Result<(), ()> {
         Ok(flags) => flags,
         Err(error) => return fail(&error),
     };
+    if SUBCOMMAND.set(command.clone()).is_err() {
+        return fail("subcommand selected twice");
+    }
     match command.as_str() {
         "drain" => drain(&flags),
         "run" => run_loop(&flags),
@@ -1596,22 +1603,22 @@ fn open_implementer(flags: &BTreeMap<String, String>) -> Result<Implementer, Str
     let database = required_path(flags, "--database")?;
     let enrollment_file = required_path(flags, "--enrollment")?;
     let enrollment: Enrollment = read_json(&enrollment_file)?;
-    let mut implementer =
-        Implementer::open(&database, enrollment).map_err(|error| error.to_string())?;
-    if let Some(operator) = flags.get("--local-operator") {
-        let authority = kiln_core::implementation::authority::LocalOperatorAuthority::new(
-            operator.clone(),
-            false,
-        )
-        .map_err(|error| format!("{}: {}", error.code, error.message))?;
-        implementer.set_authority(
-            Box::new(authority),
-            kiln_core::implementation::authority::AuthorityProfile::LocalOperator {
-                operator: operator.clone(),
-            },
-        );
-    }
-    Ok(implementer)
+    // One composition helper: `--authority-config` (exported
+    // `kiln.implementation-authority-config.v1`) or the explicit
+    // `--local-operator` shorthand; neither selects the absent profile. The
+    // subcommand's reviewed rows fix the holder seeds it may load.
+    let roles = kiln_core::implementation::authority::entry_point_roles(
+        kiln_core::implementation::authority::ENTRY_POINTS,
+        kiln_core::implementation::authority::IMPLEMENTER_CLI,
+        SUBCOMMAND.get().map_or("", String::as_str),
+    );
+    Implementer::open_with_authority(
+        &database,
+        enrollment,
+        flags.get("--local-operator").map(String::as_str),
+        flags.get("--authority-config").map(std::path::Path::new),
+        &roles,
+    )
 }
 
 fn drain(flags: &BTreeMap<String, String>) -> Result<(), ()> {

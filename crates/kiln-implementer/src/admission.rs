@@ -3,7 +3,7 @@
 //! No second database, claim or physical resource ledger is created.
 use crate::{ATTEMPT_KIND, Implementer, WORK_KIND, diagnostic, load, save, text};
 use kiln_core::fair_admission::*;
-use kiln_core::implementation::authority::{AuthorityProfile, ProtectedAuthority};
+use kiln_core::implementation::authority::{AuthoritySelection, ProtectedAuthority};
 use kiln_core::implementation::{AttemptLedger, Eligibility, ImplementationAttempt, WorkLedger};
 use kiln_core::types::{ContentId, Diagnostic, ProviderProfileId};
 use rusqlite::TransactionBehavior;
@@ -510,6 +510,27 @@ impl Implementer {
                                 "retained operation differs from requested identity",
                             ));
                         }
+                        // A tentative request left by an interrupted reserve
+                        // is resolved by the owner after this returns; that
+                        // can commit it, so it presents a fresh invocation
+                        // for the original effect first.
+                        if retained.state == ReservationState::Tentative {
+                            if !attempts.is_current(
+                                &retained.claim.attempt,
+                                retained.claim.fence,
+                                now_ms,
+                            ) {
+                                return Err(refusal("reservation claim/fence expired"));
+                            }
+                            authorize_owner_request(
+                                &work,
+                                &attempts,
+                                authority_slot,
+                                authority_profile,
+                                retained,
+                                now_ms,
+                            )?;
+                        }
                         return Ok(AdmissionResult::Retained {
                             reservation: Box::new(retained.clone()),
                         });
@@ -562,41 +583,14 @@ impl Implementer {
                     {
                         return Err(refusal("request generation differs from ranked offer"));
                     }
-                    let reservation_attempt = attempts
-                        .get(&reservation.claim.attempt)
-                        .ok_or_else(|| refusal("reservation attempt missing"))?;
-                    let reservation_work = work
-                        .current()
-                        .find(|candidate| {
-                            candidate
-                                .identity()
-                                .is_ok_and(|identity| identity == reservation.work_version)
-                        })
-                        .ok_or_else(|| refusal("reservation work missing"))?;
-                    let request = super::authority_bridge::request_for(
-                        kiln_core::implementation::authority::ProtectedOperation::Dispatch,
-                        reservation_work,
-                        reservation_attempt,
-                        &[reservation.operation.as_str()],
-                        None,
-                    )
-                    .map_err(|message| refusal(&message))?;
-                    let session = super::authority_bridge::admit_with(
+                    authorize_owner_request(
+                        &work,
+                        &attempts,
                         authority_slot,
                         authority_profile,
-                        &request,
-                        kiln_core::implementation::authority::AttemptCurrentness::Current,
+                        &reservation,
                         now_ms,
-                    )
-                    .map_err(|message| refusal(&message))?;
-                    super::authority_bridge::revalidate_with(
-                        authority_slot,
-                        session,
-                        &request,
-                        kiln_core::implementation::authority::AttemptCurrentness::Current,
-                        now_ms,
-                    )
-                    .map_err(|message| refusal(&message))?;
+                    )?;
                     ledger.request(reservation, now_ms)?;
                     AdmissionResult::Updated
                 }
@@ -663,16 +657,22 @@ impl Implementer {
         fresh: &[EligibilityInput],
         now_ms: u64,
     ) -> Result<(), String> {
-        let (work_facts, attempt_facts) = self.authority_facts(attempt, fence)?;
-        let plan = attempt_facts
+        let facts = self.authority_facts(attempt, fence)?;
+        let plan = facts
+            .attempt
             .dispatch
             .as_ref()
             .map(|dispatch| dispatch.plan.as_str())
             .unwrap_or_default();
-        let request = super::authority_bridge::request_for(
+        let effect = facts
+            .attempt
+            .dispatch
+            .as_ref()
+            .map_or(attempt.as_str(), |dispatch| dispatch.effect_id.as_str());
+        let request = facts.request(
             kiln_core::implementation::authority::ProtectedOperation::Dispatch,
-            &work_facts,
-            &attempt_facts,
+            effect,
+            kiln_core::implementation::authority::NO_EXPECTED_TARGET,
             &[plan],
             None,
         )?;
@@ -685,6 +685,13 @@ impl Implementer {
             .map_err(text)?;
         let (work, _) = load::<WorkLedger>(&tx, WORK_KIND)?;
         let (attempts, _) = load::<AttemptLedger>(&tx, ATTEMPT_KIND)?;
+        // r[impl kiln.implementation.authority.interleaving]
+        // The fence is re-read inside this transaction: a change committed
+        // after the authority check above refuses transport with or without
+        // an admission policy.
+        if !attempts.is_current(attempt, fence, now_ms) {
+            return Err("admission: stale attempt/fence".to_string());
+        }
         let (mut ledger, version) = load::<AdmissionLedger>(&tx, ADMISSION_KIND)?;
         let Some(policy) = ledger.policy.as_ref() else {
             tx.commit().map_err(text)?;
@@ -1149,10 +1156,97 @@ fn eligible_inputs(
         })
         .collect()
 }
-fn authorize_claim(
+// r[impl kiln.implementation.authority.dispatch]
+/// Admit a fresh exact `Dispatch` invocation for one owner reservation before
+/// the owner may commit it: a new request, a retried one, or a tentative one
+/// resumed after an interrupted reserve. Its effect identity is the owner
+/// operation and it names no launch incarnation, so every invocation for the
+/// same reservation presents the same request with a fresh nonce, whatever
+/// dispatch reservation or launch the attempt records later.
+fn authorize_owner_request(
+    work: &WorkLedger,
+    attempts: &AttemptLedger,
+    authority: &mut Option<Box<dyn ProtectedAuthority>>,
+    profile: &AuthoritySelection,
+    reservation: &OwnerReservation,
+    now_ms: u64,
+) -> Result<(), Diagnostic> {
+    let reservation_attempt = attempts
+        .get(&reservation.claim.attempt)
+        .ok_or_else(|| refusal("reservation attempt missing"))?;
+    let reservation_work = work
+        .current()
+        .find(|candidate| {
+            candidate
+                .identity()
+                .is_ok_and(|identity| identity == reservation.work_version)
+        })
+        .ok_or_else(|| refusal("reservation work missing"))?;
+    let request = super::authority_bridge::request_for(
+        kiln_core::implementation::authority::ProtectedOperation::Dispatch,
+        reservation_work,
+        reservation_attempt,
+        super::authority_bridge::PayloadBinding {
+            incarnation: None,
+            effect: reservation.operation.as_str(),
+            expected_target: kiln_core::implementation::authority::NO_EXPECTED_TARGET,
+        },
+        &[reservation.operation.as_str()],
+        None,
+    )
+    .map_err(|message| refusal(&message))?;
+    let session = super::authority_bridge::admit_with(
+        authority,
+        profile,
+        &request,
+        kiln_core::implementation::authority::AttemptCurrentness::Current,
+        now_ms,
+    )
+    .map_err(|message| refusal(&message))?;
+    super::authority_bridge::revalidate_with(
+        authority,
+        session,
+        &request,
+        kiln_core::implementation::authority::AttemptCurrentness::Current,
+        now_ms,
+    )
+    .map_err(|message| refusal(&message))
+}
+
+impl Implementer {
+    /// Admit a fresh `Dispatch` invocation for a tentative owner reservation
+    /// before the owner port resolves it; nothing is saved.
+    ///
+    /// # Errors
+    /// Returns the ledger refusal or the redacted authority denial.
+    pub(crate) fn authorize_owner_reservation(
+        &mut self,
+        reservation: &OwnerReservation,
+        now_ms: u64,
+    ) -> Result<(), String> {
+        let tx = self.connection.transaction().map_err(text)?;
+        let (work, _) = load::<WorkLedger>(&tx, WORK_KIND)?;
+        let (attempts, _) = load::<AttemptLedger>(&tx, ATTEMPT_KIND)?;
+        drop(tx);
+        if !attempts.is_current(&reservation.claim.attempt, reservation.claim.fence, now_ms) {
+            return Err(diagnostic(refusal("reservation claim/fence expired")));
+        }
+        authorize_owner_request(
+            &work,
+            &attempts,
+            &mut self.authority,
+            &self.authority_profile,
+            reservation,
+            now_ms,
+        )
+        .map_err(diagnostic)
+    }
+}
+
+pub(crate) fn authorize_claim(
     work: &WorkLedger,
     authority: &mut Option<Box<dyn ProtectedAuthority>>,
-    profile: &AuthorityProfile,
+    profile: &AuthoritySelection,
     attempt: Option<&ImplementationAttempt>,
     payload: &[&str],
     now_ms: u64,
@@ -1164,6 +1258,11 @@ fn authorize_claim(
         work,
         attempt,
         kiln_core::implementation::authority::ProtectedOperation::ClaimAcquire,
+        super::authority_bridge::PayloadBinding {
+            incarnation: None,
+            effect: attempt.identity.as_str(),
+            expected_target: kiln_core::implementation::authority::NO_EXPECTED_TARGET,
+        },
         payload,
         None,
     )

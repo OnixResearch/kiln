@@ -11,29 +11,249 @@ cancellation, publication, integration and lifecycle completion deny until a
 profile is selected. The request, profile, revalidation and decision rules are in
 [implementation authority](implementation-work.md#implementation-authority).
 
-For an explicit local operator, pass the identity to the shell that owns the
-protected command:
+### Select one profile
+
+Every shell that owns a protected command takes at most one of two selectors:
+
+- `--authority-config FILE`: the JSON exported from the operator's
+  `config/implementation-authority.ncl`
+  (`kiln.implementation-authority-config.v1`);
+- `--local-operator OPERATOR`: the legacy shorthand for the `local_operator`
+  profile.
+
+Passing both is refused before the ledger opens. Passing neither selects the
+`absent` profile, which denies every protected operation. A profile is never
+inferred from a role, provider capability or environment variable.
 
 ```text
+nickel export --format json config/implementation-authority.ncl > authority.json
 kiln-implementer <command> --database DB --enrollment ENROLLMENT \
-  --local-operator OPERATOR ...
-kiln-lattice-dispatch --local-operator OPERATOR ...
-kiln-web-service verify-implementation --local-operator OPERATOR ...
+  --authority-config authority.json ...
+kiln-lattice-dispatch --authority-config authority.json ...
+kiln-lattice-dispatch --worker-request REQUEST ... --authority-config authority.json ...
+kiln-web-service verify-implementation --authority-config authority.json ...
 ```
 
-Native Git lifecycle/qualification requests and campaign profiles select the
-same explicit profile with a `"local_operator": "OPERATOR"` field. A campaign
-verifier role's argument list must also include `--local-operator OPERATOR`
-when the local profile is selected. A verified
-UCAN profile is constructed by the composing shell with the packaged policy,
-exact artifact reference, deployment generation/audience, trusted roots and
-caller-owned verification services; it is not inferred from a role, provider
-capability or environment variable.
+Campaign drive profiles and fleet configuration carry an optional
+`authority_config` path, exclusive with their `local_operator` (fleet:
+`authority_operator`) field. A campaign verifier role's argument list must carry
+the same selector as the profile. **Limitation:** native Git
+lifecycle/qualification requests and the campaign native delivery profile still
+accept only `local_operator`; they cannot select the verified profile yet.
+Every shell, these included, composes through one helper,
+`Implementer::select_authority`, which re-checks every bound of the Nickel
+contract (closed records, at most 16 trusted roots and 64 static keys, names of
+at most 256 bytes, absolute paths of at most 4,096 bytes without `..`).
+
+The three profiles are:
+
+- **`absent`**: denies every claim, renewal, dispatch, candidate submission,
+  verification admission, cancellation, publication, integration and
+  lifecycle completion.
+- **`local_operator`**: the explicit compatibility profile. The decision records
+  the operator provenance; it never admits a projection-enabled route and is
+  never a fallback for a missing verified credential.
+- **`verified_ucan`**: the composition described below.
+
+### Verified UCAN composition
+
+At selection Kiln reads, once and within fixed size bounds:
+
+- the Basalt policy: the packaged policy, or one reviewed policy file whose
+  BLAKE3 must equal the configured `blake3`;
+- the deployment `audience` and non-zero `generation`, and the admitted
+  `trusted_roots`;
+- a static Ed25519 key resolver built from `keys` (`did:key` to public key);
+- the proof store: at most 256 compact `*.ucan` tokens from `proofs_dir`;
+- the revocation feed (below), imported into the durable view;
+- the holder seed files of the calling entry point's own roles, and no other.
+
+Unknown caveats deny. Basalt's `durable-authority` feature stays off; Kiln owns
+the replay, revocation and decision stores.
+
+**Role-separated holders.** `holders.coordinator`, `holders.verifier` and
+`holders.publisher` each name a distinct owner-only (`0600`) file holding one raw
+32-byte Ed25519 seed. Selection refuses a shared path, a group- or
+world-readable file, a wrong length, or a loaded holder DID without exactly one
+current grant in the proof directory. The seed never enters argv, logs or a
+request.
+Roles follow `GrantRole::of`. The coordinator (coding role) signs
+`claim-acquire`, `claim-renew`, `dispatch`, `candidate-submit` and
+`attempt-cancel`. The verifier signs `verification-admit`. The publisher signs
+`publication-publish`, `integration-land` and `lifecycle-complete`. Each request is signed
+afresh with a new nonce over its exact canonical resource. A grant addressed to
+one holder DID cannot be used by another holder, so a compromised coordinator
+key cannot sign verification or publication requests.
+
+**Per-role seed ownership.** Each process opens only the seeds of the roles its
+own entry point signs, fixed by the entry point and never by a flag:
+
+| Entry point | Seed it opens |
+|---|---|
+| Lattice worker (`kiln-lattice-dispatch`), fleet dispatch thread | coordinator |
+| fleet API `POST /v1/attempts/{id}/handoff`, `POST /v1/attempts/{id}/cancel` | coordinator |
+| fleet API observation and claim routes (`GET /v1/version`, `/v1/work`, …) | none |
+| `kiln-implementer capture-candidate`, `claim`, `reserve`, `start`, … | coordinator |
+| `kiln-implementer publish`, `prepare-publication`, `close-source`, … | publisher |
+| `kiln-web-service verify-implementation` | verifier |
+| campaign drive | coordinator for its claim, publisher for native delivery |
+| observation and operator commands (`status`, `drain`, …) | none |
+
+Own each seed by its role's user, mode `0600`: the coordinator seed by the
+worker and fleet user, the verifier seed by the verifier user, the publisher
+seed by the publishing user. The campaign drive runs as root and reads the
+coordinator and publisher seeds at its own claim and delivery. Its launcher
+runs `capture-candidate` under the verifier's UID, so in a campaign deployment
+that UID holds both the coordinator and the verifier seeds. Separating capture
+into its own UID is a residual for S7's verifier separation, so #69 row 5 is
+met for the worker against the verifier, not in full. A process asked for an
+operation of a role it did not load refuses it as
+`authority: holder-not-loaded` before signing, recording or using a
+credential, so the worker cannot verify or publish even if it can reach the
+verifier's ledger.
+
+**Durable state.** The verified profile keeps its state in the SQLite file
+`<ledger>.authority` beside the implementer ledger's canonical path: a ledger
+opened through a symlink or another spelling of its path shares one replay,
+revocation and decision store. It is a separate file because
+protected admission runs inside the ledger's `IMMEDIATE` transaction; a second
+connection to the ledger file would wait on that writer lock. A busy authority
+database denies after a bounded wait. Its tables are:
+
+| Table | Contents and rule |
+| --- | --- |
+| `authority_replay` | `(audience, generation, token_ref, nonce, resource_digest, expires_ms)`, keyed on the first four. Insert-or-deny in its own `IMMEDIATE` transaction as the final consuming step before the effect. A duplicate denies. `expires_ms` is the later of the token expiry and admission time plus `replay.retention_ms`; rows are pruned only after it. |
+| `authority_revocation` | `(proof_ref, revoked_at_ms, revocation_generation)` for every revoked proof reference. |
+| `authority_revocation_view` | One row holding the imported revocation generation and its `observed_at_ms`. |
+| `authority_decision` | `(seq, record)`, the redacted `kiln.implementation-authority-decision.v1` JSON. The newest 65,536 are kept; `Implementer::persisted_authority_decisions` reads at most 1,024 per call. |
+
+**Revocation feed.** `revocation.path` names a
+`kiln.implementation-authority-revocations.v1` document
+(`{schema, generation, observed_at_ms, revoked: [Hex32]}`, at most 65,536
+references). `observed_at_ms` is when the feed's producer observed that
+revocation state, in Unix milliseconds. Selection validates the whole feed,
+then imports it in one transaction: a malformed reference anywhere imports
+nothing and leaves the recorded generation unchanged. A feed observed after the
+selecting process's clock is refused. The view only moves to a newer
+`(generation, observed_at_ms)` pair: a feed older than the recorded view, such
+as a stale copy another process imports or a second configured feed path,
+still adds every revocation it carries but leaves the view as it is.
+Revocations are only ever added. The view's age is measured from
+the feed's own `observed_at_ms`, never from the import, so importing an
+unchanged feed never makes it fresh. The view fails closed: if it is absent,
+or its feed was observed more than `revocation.max_age_ms` ago, every verified
+request denies. Decisions read time to the whole second, so the age is checked
+at the last millisecond of the decision's second: a feed that is too old at
+any instant of that second denies. `max_age_ms` must be at least 1,000.
+Have the producer republish the feed with a new `observed_at_ms` before it
+goes stale; a shell imports it at its next selection.
+
+**Non-claim: the feed producer is trusted for freshness.** `observed_at_ms`
+is an unauthenticated claim of the configured feed producer. A backdated time
+fails closed. A postdated time, up to the selecting process's clock, cannot be
+detected by Kiln: a producer that dates a stale revocation state as current
+extends its freshness. Removing that trust needs an authenticated observation
+source, such as a signed, timestamped revocation feed.
+
+**Payload v2.** Every request carries `request_digest` = BLAKE3 over the domain
+`kiln.implementation-authority-payload.v2`, the operation, the worker
+incarnation (the recorded `TransportLaunch` identity, or `pre-launch`), the
+stable effect identity, the expected remote target state and the exact payload
+parts. Every field is length-framed. The receiving owner recomputes the digest
+from its own facts, so a caller cannot substitute a payload.
+
+**Reconciliation.** `reconcile_dispatch` presents a fresh invocation, with a new
+nonce, for the original `DispatchReservation` effect identity. It settles that
+effect; it never authorizes a second dispatch. A recovered publication
+reservation grants only read-only reconciliation.
+
+**Fence at transport.** `admission_before_transport` authorizes and
+revalidates, then re-reads the attempt fence inside the transport transaction.
+A fence change committed after the authority check refuses transport, whether
+or not an admission policy is configured.
+
+**Every claim path.** `claim_next` and `claim_next_deferred` (the
+`kiln-implementer claim` command and the fleet tick) admit the selected attempt
+as an exact `claim-acquire` invocation inside the claim transaction, the same
+check admission claims use. A denial commits no attempt.
+
+**Entry-point coverage.** `ENTRY_POINTS`
+(`crates/kiln-core/src/implementation/authority/entry_points.rs`) classifies
+every `Implementer` public function, `kiln-implementer` subcommand, fleet API
+route and campaign control route as protected, reconciling, observation-only or
+operator configuration. `crates/kiln-implementer/tests/authority_coverage.rs`
+fails when an entry point has no row or a protected row never reaches its
+check.
+
+**Dispatch before reservation, launch and credentials.** `reserve_dispatch`,
+`reserve_dispatch_plan` (the `reserve` and `reserve-plan` commands, the fleet
+tick and the Lattice worker), `start_execution` (the `start` command and every
+recorded workflow start) and the fleet session bind admit the exact `dispatch`
+request for the attempt, fence and reservation effect inside the transaction
+that saves their record; a denial saves nothing. The fleet tick admits the
+bound session's request again before it creates the worktree and starts the
+agent, before it adopts an agent it finds already created after a restart, and
+before every first prompt, including one reconciled for an agent whose start
+was recorded but whose prompt was not; a denial starts and prompts nothing. The
+Lattice worker calls `authorize_dispatch_plan` before it reads its
+credential variable; that pre-check saves nothing, and the reservation
+revalidates its session instead of consuming a second grant. An owner
+reservation (`admission_reserve_with_owner`, `host-owner-reserve`) admits a
+fresh `dispatch` invocation for its original effect before the owner can
+commit it: a new request inside the transaction that records it, and a
+tentative request left by an interrupted reserve, or retained and retried,
+before the owner resolves it. That effect is always the owner operation, with
+no launch incarnation, so a retry presents the same request with a fresh nonce
+even after the attempt has reserved its dispatch. A denial leaves the request
+tentative and commits nothing.
+`admission_before_transport` still rechecks at transport. A command run with
+neither `--local-operator` nor `--authority-config` runs under the absent
+profile and is refused. The campaign drive passes its worker, capture and
+verifier roles exactly the source it selected itself; under the verified
+profile each role's user reads that configuration, the proofs, the revocation
+feed and `<ledger>.authority`, and only its own seed.
 
 The adapter records bounded redacted decisions and revalidates immediately
 before every protected commit or transport. Missing authority, cancelled or
 superseded attempts, lease expiry and unavailable currentness deny before the
 effect. Reconciliation and cleanup still require their own authorization.
+
+### Remote guarantees (GitHub)
+
+Kiln's authority decides whether Kiln may attempt one exact effect. It does not
+make GitHub's state change conditional. The table lists what GitHub itself
+guards for each remote effect Kiln performs or observes, and what Kiln does
+locally. A local precheck and read-back narrow a race window. They are never a
+substitute for a remote atomic guard.
+
+| Effect (Kiln route) | What GitHub makes conditional | What GitHub does not make conditional | Kiln's local behaviour |
+| --- | --- | --- | --- |
+| Candidate branch push: Git smart-HTTP `receive-pack` (`kiln-implementer publish`, branch effect) | Each ref-update command carries an old object ID, and receive-pack updates the ref only if it still equals that old ID[^pack]. That makes a push a per-ref compare-and-swap. Kiln sends the zero old ID (create-only) with a non-force refspec. | The push is not bound to Kiln's attempt or fence. GitHub runs its own Git server, and **[not verified]** that it applies the same per-ref check under concurrency. A lost response leaves the outcome unknown. | Before pushing, Kiln reads the remote ref. If it already equals the candidate, Kiln reuses it; any other head is a conflict and is never overwritten. A durable effect reservation is committed before transport. libgit2's push-negotiation callback refuses an advertised old/new pair that differs from the guarded one. After a rejected or unknown push Kiln reads the ref back; if it is still absent, the outcome stays unknown and needs reconciliation before retry. A recovered reservation never pushes again. |
+| Pull request creation: REST `POST /repos/{owner}/{repo}/pulls`[^create] | Nothing about prior state. GitHub validates that the head and base exist. | No idempotency key and no `If-Match`: GitHub does not support conditional requests for `POST`/`PUT`/`PATCH`/`DELETE` unless an endpoint says otherwise[^cond]. **[not verified]** GitHub's exact refusal of a duplicate open pull request. | Before creating, Kiln lists `pulls?state=all&head=owner:branch&base=…` and reuses the one exact match. More than one match or a paginated result is unknown. Kiln re-reads the branch (read-only) before the request. A `409`/`422` triggers one re-read, and an unreadable response is unknown. A recovered reservation only reads (`ReconcileOnly`). |
+| Pull request merge/landing: REST `PUT /repos/{owner}/{repo}/pulls/{n}/merge`[^merge] (**refused today**) | The optional `sha` must equal the pull request **head**, or the merge fails with `409`. | The **base** branch head is not guarded. The target can move between observation and merge, and no REST write accepts `If-Match`[^cond]. | `kiln-implementer land` and `GithubLandingClient::land` always refuse ("unattended landing is unsupported"); the pull request stays ready for review. `recover-integration` only reads a pull request that was merged externally. It requires the exact head and base ref, the merge commit's parents and tree mapping, check-run evidence, and a base head that descends from the merge commit (`compare`). |
+| Source issue close: REST `PATCH /repos/{owner}/{repo}/issues/{n}`[^issue] (**observation only**) | Nothing. | The PATCH is unconditional: no source-version guard and no `If-Match`[^cond]. | Kiln never issues the PATCH. `close-source` reads the issue and requires `updated_at` to equal the plan's expected revision. A closed issue yields a receipt. An open issue is refused and left for operator reconciliation. |
+| Commit status and check observation: `GET /repos/{owner}/{repo}/commits/{sha}/check-runs`[^checks] | Only cache validation: `ETag`/`If-None-Match` on `GET` returns `304` when nothing changed[^cond]. That is not a consistency guarantee. | A read is a point-in-time snapshot, and checks can be re-run or added afterwards. | Landing observation reads the check runs for the exact head as evidence, never as permission, and refuses a result that spans more than one page. The separate CI status adapter's `POST …/statuses/{sha}`[^status] is an unconditional, append-only write outside implementation authority. |
+| Lost-response reconciliation reads: ref advertisement, `GET` pull list, pull, commit, compare and issue | Nothing. These are snapshots. | A read cannot tell whether a lost write applied or a concurrent writer acted. | The durable reservation turns any retry into `ReconcileOnly`. Kiln adopts only a result that matches the exact candidate, branch, base and plan. A mismatch is a conflict, and absence stays unknown rather than triggering a blind second mutation. |
+
+These remote conditional and lost-response guarantees are **LIVE-only
+qualification** (#47/#48). Local bare-Git and loopback-HTTP fixtures exercise
+Kiln's prechecks, reservations and read-backs. They do not prove GitHub's
+server behaviour, and nothing here is proven locally against GitHub.
+
+[^pack]: Git pack protocol, reference update request:
+    <https://git-scm.com/docs/gitprotocol-pack> ("validate each reference that is
+    being updated that it hasn't changed while the request was being processed
+    (the obj-id is still the same as the old-id)").
+[^create]: <https://docs.github.com/en/rest/pulls/pulls#create-a-pull-request>
+[^merge]: <https://docs.github.com/en/rest/pulls/pulls#merge-a-pull-request>
+    (`sha`: "SHA that pull request head must match to allow merge"; `409` "if
+    sha was provided and pull request head did not match").
+[^issue]: <https://docs.github.com/en/rest/issues/issues#update-an-issue>
+[^cond]: <https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api#use-conditional-requests>
+    ("Conditional requests for unsafe methods, such as `POST`, `PUT`, `PATCH`,
+    and `DELETE` are not supported unless otherwise noted").
+[^checks]: <https://docs.github.com/en/rest/checks/runs#list-check-runs-for-a-git-reference>
+[^status]: <https://docs.github.com/en/rest/commits/statuses#create-a-commit-status>
 
 ## Intake, policy and immutable preparation
 

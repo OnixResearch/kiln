@@ -10,11 +10,13 @@ publish = false
 blake3.workspace = true
 bounded-exec.workspace = true
 git2.workspace = true
+kiln-adapter-basalt.workspace = true
 kiln-core.workspace = true
 kiln-provider-api.workspace = true
 rusqlite.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+ucan.workspace = true
 
 [lints]
 workspace = true
@@ -22,3 +24,8 @@ workspace = true
 [dev-dependencies]
 tempfile = "3.27.0"
 kiln-adapter-git = { path = "../kiln-adapter-git" }
+kiln-adapter-basalt = { workspace = true, features = ["test-support"] }
+# Syntax-aware discovery of the `Implementer` surface in tests/authority_coverage.rs;
+# span-locations gives each method body's byte range in its file.
+proc-macro2 = { version = "1.0.107", features = ["span-locations"] }
+syn = { version = "2.0.119", features = ["full", "visit"] }

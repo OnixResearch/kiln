@@ -197,6 +197,8 @@ in
     = [],
   # Explicit local-operator profile for protected implementation effects.
   authority_operator | String | MachineLabel | optional,
+  # Exported kiln.implementation-authority-config.v1; exclusive with authority_operator.
+  authority_config | String | AbsolutePath | optional,
   tailscale | String | AbsolutePath,
   implementer | { database | String | AbsolutePath, enrollment | String | AbsolutePath },
   # kiln.fleet-inventory.v1 JSON (config/fleet-inventory.ncl).

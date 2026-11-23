@@ -575,3 +575,96 @@ fn the_committed_positive_export_is_accepted() -> TestResult {
     }
     Ok(())
 }
+
+fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+/// A fleet under the verified profile whose holder seed files do not exist:
+/// a route that loads a holder seed cannot open the store.
+fn verified_without_seeds() -> TestResult<Fixture> {
+    use kiln_adapter_basalt::test_support;
+    let directory = tempfile::tempdir()?;
+    let root = directory.path();
+    write_enrollment(root)?;
+    let proofs = root.join("proofs");
+    std::fs::create_dir_all(&proofs)?;
+    let feed = root.join("revocations.json");
+    std::fs::write(
+        &feed,
+        json!({
+            "schema": "kiln.implementation-authority-revocations.v1",
+            "generation": 1,
+            "observed_at_ms": kiln_fleet::log::now_ms(),
+            "revoked": [],
+        })
+        .to_string(),
+    )?;
+    let issuer = test_support::did(test_support::ROOT_SEED);
+    let authority = json!({
+        "schema": "kiln.implementation-authority-config.v1",
+        "profile": { "verified_ucan": {
+            "audience": test_support::AUDIENCE,
+            "generation": test_support::GENERATION,
+            "policy": "packaged",
+            "trusted_roots": [issuer],
+            "keys": [{
+                "did": issuer,
+                "ed25519": hex(&test_support::public_key(test_support::ROOT_SEED)),
+            }],
+            "proofs_dir": proofs,
+            "revocation": { "path": feed, "max_age_ms": 600_000 },
+            "replay": { "retention_ms": 60_000 },
+            "holders": {
+                "coordinator": { "seed_path": root.join("absent-coordinator.seed") },
+                "verifier": { "seed_path": root.join("absent-verifier.seed") },
+                "publisher": { "seed_path": root.join("absent-publisher.seed") },
+            },
+            "projection_enabled": false,
+        } },
+    });
+    std::fs::write(root.join("authority.json"), authority.to_string())?;
+    let mut document = config(root, &FAKE_TAILSCALE);
+    let object = document
+        .as_object_mut()
+        .ok_or("configuration is not an object")?;
+    object.remove("authority_operator");
+    object.insert(
+        "authority_config".into(),
+        json!(root.join("authority.json")),
+    );
+    let config = FleetConfig::from_json(&serde_json::to_vec(&document)?)?;
+    let service = Arc::new(Service::new(config)?);
+    Ok(Fixture {
+        _directory: directory,
+        service,
+    })
+}
+
+#[test]
+// r[verify kiln.implementation.authority.selection.scenario.scoped]
+fn observation_routes_load_no_holder_seed() -> TestResult {
+    let fixture = verified_without_seeds()?;
+    for path in [
+        "/v1/version",
+        "/v1/claims",
+        "/v1/work",
+        "/v1/attempts",
+        "/v1/decisions",
+        "/v1/metrics",
+    ] {
+        let response = fixture.call(COORDINATOR, "GET", path, None);
+        assert_eq!(response.status, 200, "{path}: {}", response.body);
+    }
+    // Cancel checks `attempt-cancel`, so it loads the coordinator seed, which
+    // is absent: the store does not open and nothing is cancelled.
+    let attempt = "a".repeat(64);
+    let response = fixture.call(
+        COORDINATOR,
+        "POST",
+        &format!("/v1/attempts/{attempt}/cancel"),
+        Some(json!({ "reason": "operator stop" })),
+    );
+    assert_eq!(response.status, 500, "{}", response.body);
+    Ok(())
+}

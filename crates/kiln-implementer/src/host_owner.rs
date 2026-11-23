@@ -246,7 +246,9 @@ impl Implementer {
     /// A tentative request left by an interrupted reserve is first resolved from
     /// its own record (committed, or rejected/expired with refund) before the
     /// work must be current or the generation must match, so a crash between
-    /// request and reply never wedges the slot.
+    /// request and reply never wedges the slot. The owner commits a resumed or
+    /// new request only after a fresh `Dispatch` invocation for its original
+    /// effect is admitted; a denial commits nothing.
     pub fn host_owner_reserve(
         &mut self,
         profile: &HostOwnerProfile,
@@ -280,6 +282,9 @@ impl Implementer {
             .cloned();
         if let Some(pending) = interrupted {
             let answer = if work.is_some() && attempts.is_current(attempt, fence, now_ms) {
+                // The owner can commit the pending request: admit a fresh
+                // invocation for its original effect first.
+                self.authorize_owner_reservation(&pending, now_ms)?;
                 HostLocalOwner::new(profile, ledger, now_ms).reserve(&pending)
             } else {
                 Err(OwnerPortFailure::RejectedBeforeDispatch)

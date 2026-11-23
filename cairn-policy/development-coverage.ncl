@@ -10,6 +10,7 @@ let ActiveRoots = [
   ".cairn/changes/materialize-projected-workspaces/specs/source-projection/spec.md",
   ".cairn/changes/report-lattice-sent-request/specs/fair-admission/spec.md",
   ".cairn/changes/run-projected-workspaces/specs/source-projection/spec.md",
+  ".cairn/changes/compose-verified-implementation-authority/specs/implementation-authority/spec.md",
 ]
 in
 let Active =

@@ -146,17 +146,29 @@ impl Implementer {
         kind: PublicationEffectKind,
     ) -> Result<(PublicationEffectReservation, EffectDispatch), String> {
         let now_ms = self.now_ms();
-        let (work_facts, attempt_facts) = self.authority_facts(identity, fence)?;
+        let facts = self.authority_facts(identity, fence)?;
         let kind_label = format!("{kind:?}");
-        let candidate = attempt_facts
+        let publication = facts
+            .attempt
             .publication
             .as_ref()
-            .map(|publication| &publication.plan.candidate);
-        let request = super::authority_bridge::request_for(
+            .ok_or("publication effect requires a prepared publication")?;
+        let candidate = Some(&publication.plan.candidate);
+        let plan = &publication.plan;
+        let effect = format!("{}:{kind_label}", plan.handoff.as_str());
+        let expected = format!("refs/heads/{}", plan.branch);
+        let request = facts.request(
             kiln_core::implementation::authority::ProtectedOperation::PublicationPublish,
-            &work_facts,
-            &attempt_facts,
-            &[&kind_label],
+            &effect,
+            &expected,
+            &[
+                &kind_label,
+                plan.handoff.as_str(),
+                plan.verification.as_str(),
+                plan.base_branch.as_str(),
+                plan.branch.as_str(),
+                plan.tree.native_id.as_str(),
+            ],
             candidate,
         )?;
         let currentness = self.attempt_currentness(identity, fence, now_ms);
@@ -277,14 +289,17 @@ impl Implementer {
         observed: PublicationEffectResult,
     ) -> Result<PublicationEffectReservation, String> {
         let now_ms = self.now_ms();
-        let (work_facts, attempt_facts) =
-            self.authority_facts(&reservation.attempt, reservation.fence)?;
+        let facts = self.authority_facts(&reservation.attempt, reservation.fence)?;
         let kind_label = format!("{:?}", reservation.kind);
-        let request = super::authority_bridge::request_for(
+        let expected = reservation
+            .expected_remote_head
+            .as_ref()
+            .map_or("absent", |head| head.native_id.as_str());
+        let request = facts.request(
             kiln_core::implementation::authority::ProtectedOperation::PublicationPublish,
-            &work_facts,
-            &attempt_facts,
-            &[&kind_label],
+            reservation.operation.as_str(),
+            expected,
+            &[&kind_label, reservation.candidate.native_id.as_str()],
             Some(&reservation.candidate),
         )?;
         let currentness = self.attempt_currentness(&reservation.attempt, reservation.fence, now_ms);

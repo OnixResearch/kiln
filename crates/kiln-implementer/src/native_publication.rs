@@ -302,7 +302,7 @@ impl Implementer {
             kind,
         } = selection;
         let now_ms = self.now_ms();
-        let (work_facts, attempt_facts) = self.authority_facts(identity, fence)?;
+        let facts = self.authority_facts(identity, fence)?;
         let operation = match kind {
             NativeGitEffectKind::TargetIntegration => {
                 kiln_core::implementation::authority::ProtectedOperation::IntegrationLand
@@ -315,11 +315,12 @@ impl Implementer {
         let candidate = native_plan
             .as_ref()
             .map(|(plan, _)| &plan.candidate)
-            .or(attempt_facts.candidate.as_ref());
-        let request = super::authority_bridge::request_for(
+            .or(facts.attempt.candidate.as_ref());
+        // The native plan identity binds the target ref and its expected old head.
+        let request = facts.request(
             operation,
-            &work_facts,
-            &attempt_facts,
+            plan_identity.as_str(),
+            plan_identity.as_str(),
             &[plan_identity.as_str()],
             candidate,
         )?;
@@ -559,11 +560,11 @@ impl Implementer {
         review: &NativeGitReviewAuthority,
     ) -> Result<NativeCairnLifecycleReceipt, String> {
         let now_ms = self.now_ms();
-        let (work_facts, attempt_facts) = self.authority_facts(identity, fence)?;
-        let request = super::authority_bridge::request_for(
+        let facts = self.authority_facts(identity, fence)?;
+        let request = facts.request(
             kiln_core::implementation::authority::ProtectedOperation::LifecycleComplete,
-            &work_facts,
-            &attempt_facts,
+            observation.binding.handoff.as_str(),
+            observation.observed_tree.native_id.as_str(),
             &[
                 observation.binding.authoritative_completion.as_str(),
                 observation.binding.handoff.as_str(),

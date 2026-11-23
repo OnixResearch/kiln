@@ -1,0 +1,166 @@
+compose-verified-implementation-authority: gate evidence
+
+Toolchain: the dev shell's environment (`nix develop path:$PWD`, Rust 1.97.1),
+cargo --locked, CARGO_BUILD_JOBS=4 under nice -n 10, one target directory on
+the datapool; nix with --option builders '' --option min-free 0.
+Cairn: /nix/store/x37qabfj71nzk5661f3x735nni4m96qk-cairn-0.1.0/bin/cairn.
+
+== Verification-review fixes (two P2s introduced by the review fixes) ==
+ A [P2] The revocation view's observation time moved back within a generation
+   9b9753c3 Keep the revocation view's observation time monotonic within a generation
+   authority_verified: an_older_feed_never_moves_the_view_back_and_only_adds_revocations
+     (fresh-then-older imports on one sidecar keep the fresh time and the union of
+     revocations; an equal pair is idempotent; an older generation observed later
+     does not move the view back); a_feed_with_a_malformed_reference_imports_nothing
+     now expects an older generation to select without moving the view
+ B [P2] A resumed owner request named the later dispatch effect
+   5de66923 Bind an owner reservation's Dispatch request to its owner operation
+   authority_interleaving: a_resumed_owner_request_keeps_its_effect_after_a_dispatch_reservation
+     (pending request, reserve_dispatch, resume: same payload digest over the owner
+     operation and the same request identity, fresh nonce)
+ C Non-claim: the feed producer is trusted for freshness
+   1f5ab467 Document that the revocation feed producer is trusted for freshness
+   (runbook revocation feed section, design C3)
+
+Gates on 1f5ab467:
+$ cargo fmt --all --check                                                   -> exit 0
+$ cargo clippy --locked --workspace --all-targets -- -D warnings            -> exit 0
+$ cargo clippy --locked --workspace --all-targets --all-features -- -D warnings -> exit 0
+$ cargo test --locked -p kiln-implementer -p kiln-adapter-basalt --no-fail-fast -> exit 0 (178 passed, 7 ignored)
+$ cargo test --locked -p kiln-implementer --test authority_coverage        -> exit 0 (9 passed)
+$ nix flake check path:$PWD --no-write-lock-file -L                         -> exit 0
+$ cairn validate; cairn gate proposal|design|tasks; dev traceability       -> exit 0 (0 dangling, 0 missing)
+
+== Review fix round (findings of the S1 review) ==
+Each finding is one commit on top of 23ccc9da; its tests are listed with it.
+Findings 10-12 concern the S4 worker route check and the sent-request readers,
+which are not in this slice, and are not part of this round.
+
+ 1 [P1] Revocation freshness from import time
+   3939dc68 Measure revocation freshness from the feed's own observation time
+   authority_verified: importing_an_unchanged_feed_never_makes_it_fresh,
+     a_feed_observed_in_the_future_is_refused_at_selection
+ 2 [P1] Dispatch against the newer work under FinishActive
+   7e8595b7 Admit Dispatch against the attempt's frozen work under FinishActive
+   authority_dispatch: a_finish_active_attempt_dispatches_under_a_grant_for_its_frozen_work,
+     a_grant_for_the_newer_work_cannot_dispatch_a_finish_active_attempt (failed before the fix)
+ 3 [P1] Recovered fleet agent prompted without a recheck
+   3c2428c7 Recheck fleet launch authority before a recovered agent is prompted
+   kiln-fleet dispatch: a_recovered_agent_is_never_prompted_once_its_dispatch_is_refused
+     (failed before the fix), a_recovered_agent_is_prompted_while_its_dispatch_is_admitted
+ 4 [P1] Tentative owner reservation resumed without Dispatch
+   c1e7089a Admit Dispatch before an owner resolves a tentative reservation
+   admission_host_owner: a_tentative_owner_request_is_never_committed_without_a_fresh_dispatch_decision,
+     a_tentative_owner_request_commits_after_a_fresh_dispatch_decision
+ 5 [P2] Authority store keyed to the caller's path spelling
+   0e46de17 Key the authority store to the ledger's canonical path
+   authority_verified: one_ledger_opened_through_a_symlink_shares_replay_and_revocation
+ 6 [P2] Fleet read routes load the coordinator seed
+   91b47635 Select fleet holder roles per route, not per store connection
+   kiln-fleet service: observation_routes_load_no_holder_seed;
+   authority_coverage: every_fleet_route_loads_the_holder_role_of_every_check_it_reaches
+ 7 [P2] Cleanup-only CLI commands load the coordinator seed
+   5c472e9d Load no holder seed for CLI cleanup commands that check no authority
+   eb47fe10 Settle a host-owner release under the verified profile without the coordinator seed
+   authority_coverage: every_cli_subcommand_loads_the_holder_role_of_every_check_it_reaches;
+   admission_host_owner: host_owner_release_settles_under_the_verified_profile_without_the_coordinator_seed
+ 8 [P2] Millisecond revocation age at the second boundary
+   c4bb8d2c Enforce the revocation age bound at every instant of the decision second
+   authority_verified: a_one_second_revocation_age_holds_at_every_instant_of_the_decision_second,
+     a_feed_observed_earlier_in_the_decision_second_admits, a_sub_second_revocation_age_is_refused;
+   Nickel: config/fixtures/implementation-authority-reject-subsecond-revocation-age.ncl
+ 9 [P2] Revocation feed partly committed before validation
+   e1742a12 Validate a revocation feed whole and import it in one transaction
+   authority_verified: a_feed_with_a_malformed_reference_imports_nothing
+13 [P2] Coverage scanner misses `pub async fn` and trait methods
+   0ddb0206 Discover the Implementer public surface from its syntax tree
+   authority_coverage: an_unclassified_public_async_method_fails_coverage,
+     an_unclassified_trait_method_fails_coverage (both fixtures fail the row
+     check); every_implementer_public_function_has_a_reviewed_row_that_matches_its_code
+     passes on the current table
+
+== Gates of the review fix round (on d5302f13) ==
+$ cargo fmt --all --check                                                   -> exit 0
+$ cargo clippy --locked --workspace --all-targets -- -D warnings            -> exit 0
+$ cargo clippy --locked --workspace --all-targets --all-features -- -D warnings -> exit 0
+$ cargo build  --locked -p onix-kiln-core -p kiln-observe-core -p kiln-radicle-source-contract --target wasm32-unknown-unknown -> exit 0
+$ cargo clippy --locked -p onix-kiln-core -p kiln-observe-core -p kiln-radicle-source-contract --target wasm32-unknown-unknown -- -D warnings -> exit 0
+$ scripts/check-nickel-fixtures.sh                                          -> exit 0 (107 positive, 666 negative)
+$ nix build path:$PWD#checks.x86_64-linux.octet --no-link -L                -> exit 0 (consumer checks clean, 0 findings)
+$ cargo test --locked -p kiln-implementer -p onix-kiln-core -p kiln-adapter-basalt --no-fail-fast -> exit 0 (750 passed, 7 ignored)
+$ cargo test --locked -p kiln-implementer --test authority_coverage        -> exit 0 (9 passed)
+$ cargo test --locked -p kiln-fleet --lib --bins --test cli --test service  -> exit 0 (26 passed)
+$ kiln-fleet --test dispatch, minimal PATH, TMPDIR=/tmp (Kiln #114)         -> exit 0 (4 passed, 1 ignored)
+$ cargo test --locked --workspace --no-fail-fast                            -> exit 101: 2567 passed, 5 failed, 16 ignored
+    kiln-fleet --test dispatch (4): Kiln #114, ambient PATH and TMPDIR; they pass
+      under the minimal PATH and TMPDIR=/tmp above.
+    kiln-web-service --test engine (1): preflight fixture bind failed with
+      AddrInUse under the workspace load; the crate is untouched by this round.
+$ cargo test --locked -p kiln-web-service --test engine (alone)             -> exit 0 (95 passed)
+$ cairn validate                                                            -> exit 0 (valid, 0 issues)
+$ cairn gate proposal|design|tasks compose-verified-implementation-authority -> exit 0
+$ cairn traceability coverage --policy <nickel export cairn-policy/development-coverage.ncl>
+    --profile kiln-active-development                                       -> exit 0 (2280 requirements, 0 dangling, 0 missing)
+$ cairn traceability coverage (accepted only)                               -> exit 1: 24 dangling, exactly this
+                                                                               change's ids; expected until it is archived
+$ cairn release-readiness --root .                                          -> exit 0
+$ nix flake check path:$PWD --no-write-lock-file -L                         -> exit 0 (all checks, including the
+                                                                               VM deployment test)
+
+== Gates of the previous round (dispatch path, campaign role authority, scoped holder seeds) ==
+$ cargo fmt --all --check                                                   -> exit 0
+$ cargo clippy --locked --workspace --all-targets -- -D warnings            -> exit 0
+$ cargo clippy --locked --workspace --all-targets --all-features -- -D warnings -> exit 0
+$ cargo build  --locked -p onix-kiln-core -p kiln-observe-core -p kiln-radicle-source-contract --target wasm32-unknown-unknown -> exit 0
+$ cargo clippy --locked -p onix-kiln-core -p kiln-observe-core -p kiln-radicle-source-contract --target wasm32-unknown-unknown -- -D warnings -> exit 0
+$ scripts/check-nickel-fixtures.sh                                          -> exit 0 (107 positive, 665 negative)
+$ nix build path:$PWD#checks.x86_64-linux.octet --no-link -L                -> exit 0 (consumer checks clean, 0 findings)
+$ cairn validate                                                            -> exit 0 (valid, 0 issues)
+$ cairn gate proposal|design|tasks compose-verified-implementation-authority -> exit 0, PASS
+$ cairn traceability coverage --profile kiln-active-development             -> exit 0 (pass, 2280 requirements, 0 dangling, 0 missing)
+$ cairn traceability coverage (accepted only)                               -> exit 1: 24 dangling, exactly this
+                                                                               change's ids; expected until it is archived
+$ cairn release-readiness --root .                                          -> exit 0
+$ cargo test --locked --workspace --no-fail-fast                            -> exit 101: 2551 passed, 3 failed, 16 ignored
+    kiln-fleet --test dispatch (2): environmental, see below.
+    kiln-implementer --test authority_dispatch (1): the new wall-clock drive/worker
+      test, which found a real defect (whole-second revocation view, fixed below).
+$ cargo test --locked -p kiln-implementer --no-fail-fast (after the fix)    -> exit 0 (150 passed, 7 ignored)
+$ kiln-fleet --test dispatch, minimal PATH, TMPDIR=/tmp                     -> exit 0 (2 passed, 1 ignored)
+$ cargo test --locked -p kiln-adapter-gitea --lib status:: (alone)          -> exit 0 (11 passed)
+$ nix flake check path:$PWD --no-write-lock-file -L                         -> exit 0 (all checks, including the
+                                                                               VM deployment test; 47 derivations built)
+
+kiln-fleet --test dispatch is environmental twice over:
+  - The test copies the ambient PATH into the herdr inventory, which caps it at
+    4 KiB (Kiln #114). Run with PATH limited to the directories of the programs it
+    executes (git, gnutar, bash, coreutils; 241 bytes).
+  - Its capture step expects materialization to refuse the fixture's verifier
+    authority, which happens only when an ancestor of the temporary repository is
+    group- or world-writable (/tmp). With TMPDIR on an owner-only datapool path,
+    materialization succeeds and the assertion fails. Run with TMPDIR=/tmp.
+kiln-adapter-gitea --lib status tests: passed in this run both under the full
+workspace load and alone. The three earlier failures did not reproduce, which is
+consistent with load, not with a defect; this crate is untouched by the change.
+
+Defect found and fixed: the revocation view was recorded with millisecond time
+while decisions read it at whole seconds, so the verified profile denied every
+decision in the second the profile was selected. The fixed-clock regression test
+a_view_imported_within_the_current_second_admits_decisions_in_that_second fails
+without the fix and passes with it.
+
+Coverage mutation check: classifying the CLI `start` row as OperatorConfig fails
+every_cli_subcommand_loads_the_holder_role_of_every_check_it_reaches with
+"`start` reaches Dispatch".
+
+== Earlier gates on 4ab16a12 ==
+fmt, clippy (both), wasm build and clippy, Nickel fixtures, Octet, cairn validate
+and gates: exit 0. Workspace tests: 2536 passed, 5 failed (the 2 fleet dispatch
+tests above and 3 gitea status tests under load), 16 ignored.
+
+== Secret scan ==
+$ gitleaks detect --log-opts 90a9fb64..HEAD (on 4ab16a12)                   -> exit 1, 38 generic-api-key hits.
+  Every hit is a public did:key identifier (an Ed25519 public key, not a secret) in
+  config/fixtures/implementation-authority-*.ncl. The same rule already fires on
+  config/default.ncl and config/fixtures/ucan-observation-positive.ncl. No gitleaks
+  configuration is added; the hits are recorded here.

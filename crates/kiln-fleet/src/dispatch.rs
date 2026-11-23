@@ -129,7 +129,7 @@ impl Dispatcher {
             (None, None)
         };
         Ok(Self {
-            store: service.store.open()?,
+            store: service.store.open_coordinator()?,
             service,
             herdr,
             capturer,
@@ -687,6 +687,14 @@ impl Dispatcher {
         );
         let path = worktree_path(&machine, &attempt.identity)?;
 
+        // Every branch below can start or prompt a credentialed agent, the
+        // recovered one too: an agent created before a crash is found here
+        // and prompted without a new start. The exact Dispatch request is
+        // admitted again first, so a grant revoked or a fence replaced since
+        // the bind starts and prompts nothing; a denial leaves the session
+        // placing for the next tick.
+        self.store
+            .fleet_authorize_launch(&session.identity, now_ms)?;
         let agents = herdr
             .list_agents(&machine.label)
             .map_err(|failure| failure.to_string())?;
@@ -800,8 +808,13 @@ impl Dispatcher {
         Ok(())
     }
 
+    /// Deliver a started agent's first prompt. Its exact Dispatch request is
+    /// admitted again immediately before, whether the start was just recorded
+    /// or is being reconciled after a restart, so a revoked grant never starts
+    /// the agent's work.
     fn send_first_prompt(&mut self, herdr: &HerdrClient, session_id: &ContentId, now_ms: u64) {
         let outcome = (|| -> Result<(), String> {
+            self.store.fleet_authorize_launch(session_id, now_ms)?;
             let state = self.store.fleet_state()?;
             let session = state
                 .sessions

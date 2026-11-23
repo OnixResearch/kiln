@@ -28,7 +28,7 @@ key and are ordered by an adapter-supplied monotonic `revision`.
 ## Implementation authority
 
 Every protected implementation path requires current authority for one exact
-request. The closed coverage map in
+request. The closed coverage map `kiln.implementation-authority-coverage.v2` in
 `kiln_core::implementation::authority` binds each operation to one Basalt
 operation, enforcement boundary, effect class and candidate rule:
 
@@ -48,35 +48,92 @@ An operation or protected path without an entry denies. No operation implies
 another: a claim, renewal or dispatch grant cannot admit submission, acceptance,
 publication, integration or lifecycle completion.
 
+The coverage map also classifies every reviewed entry point (each `Implementer`
+public function, CLI subcommand, fleet API route and web control route) as
+exactly one of:
+
+- `Protected(op)`: admits a fresh exact invocation before the effect;
+- `Reconcile(op)`: records or re-observes the outcome of an effect already
+  admitted under `op`, bound to that effect's original identity, and never
+  starts a new effect;
+- `ObservationOnly`: reads state, and confers and consumes no authority;
+- `OperatorConfig`: operator-owned configuration, intake or ledger maintenance
+  that the deployment authenticates outside implementation authority.
+
+The table must be bounded and free of duplicate entries, and every protected
+operation needs a `Protected` entry at its reviewed owner path.
+
 `AuthorityRequest` binds the project, work identity and version, attempt and
 fence, the canonical payload digest, the target and the exact candidate
 (charter `kiln.implementation.authority.binding`). The adapter adds the trusted
 holder subject, deployment audience and authority generation from its operator
 configuration, so a caller cannot substitute current deployment state.
 
+The payload digest (`kiln.implementation-authority-payload.v2`) is BLAKE3 over
+the operation, the worker incarnation (the attempt's recorded transport launch,
+or `pre-launch`), the stable effect identity, the expected remote target state
+and the exact payload parts. Every field is length-framed, and the receiving
+owner recomputes the digest from its own facts. A fresh invocation of the same
+effect reuses the effect identity; only its holder nonce differs. Dispatch
+reconciliation therefore presents a new invocation for the original
+`DispatchReservation` effect identity rather than authorizing a second dispatch.
+
 ### Profiles
 
-The adapter is explicit. No protected operation admits without a selected
-profile.
+The adapter is explicit. Every shell selects a profile through one helper,
+`Implementer::select_authority`, from an exported
+`kiln.implementation-authority-config.v1` file (`--authority-config FILE` on
+`kiln-implementer`, Lattice dispatch and worker, and
+`kiln-web-service verify-implementation`, or an `authority_config` path in a
+campaign drive profile or fleet configuration) or the legacy
+`--local-operator <identity>` shorthand (`local_operator`, or fleet
+`authority_operator`, field). Native Git lifecycle/qualification requests and
+the campaign native delivery profile accept only `local_operator` so far. Giving both is
+refused. Giving neither selects `absent`. The operator authors the file from
+`config/implementation-authority.ncl`; Kiln re-checks every Nickel bound when it
+reads the export.
 
-- **Verified UCAN.** The composing shell constructs
-  `kiln_adapter_basalt::BasaltAuthority::verified` with the parsed packaged
-  policy, its BLAKE3 artifact reference, the deployment generation and audience,
-  operator-admitted trusted roots, and caller-owned key resolver, proof store,
-  revocation checker, caveat policies, replay admission and limits. Basalt
-  verifies the signed holder invocation and policy binding; Kiln owns current
-  work, attempt and fence state.
-- **Local operator.** The compatibility profile is selected explicitly with
-  `--local-operator <identity>` (GitHub implementer, Lattice dispatch/worker and
-  verification CLI), a `local_operator` profile field (native Git request,
-  campaign drive profile or native delivery profile), or
+- **Absent.** Every protected operation denies.
+- **Local operator.** The explicit compatibility profile, also reachable through
   `Implementer::open_with_local_operator`/`select_local_operator`. The decision
   records the operator provenance. It refuses projection-enabled routes and is
   never a fallback for a missing verified credential.
+- **Verified UCAN.** Selection builds
+  `kiln_adapter_basalt::BasaltAuthority::verified` from the packaged Basalt
+  policy or one reviewed policy file pinned by BLAKE3, the deployment
+  generation and audience, operator-admitted trusted roots, a static Ed25519 key
+  resolver, a bounded proof directory of compact tokens, deny-all caveat
+  policies and Kiln's durable replay and revocation stores. Three
+  role-separated holder keys, each loaded from its own owner-only seed file,
+  sign requests. The coordinator signs claim, renewal, dispatch, candidate
+  submission and cancellation; the verifier signs verification admission; the
+  publisher signs publication, integration and lifecycle completion. Each
+  request is signed afresh with a new nonce over its exact canonical resource,
+  and a grant addressed to one holder DID cannot be used by another. Basalt
+  verifies the signed holder invocation and policy binding; Kiln owns current
+  work, attempt and fence state. Basalt's `durable-authority` feature stays off.
 
-`Implementer::set_authority` installs a port implementation and profile on any
-other shell. A missing or mismatched profile denies before the mutation,
+`Implementer::set_authority` remains the seam for adapters and tests that wrap a
+composed port. A missing or mismatched profile denies before the mutation,
 provider call or credential resolution.
+
+The verified profile's durable state is the SQLite file `<ledger>.authority`
+beside the implementer ledger, kept separate because protected admission runs
+inside the ledger's `IMMEDIATE` transaction:
+
+- `authority_replay` is keyed on audience, generation, token reference and
+  nonce. It is insert-or-deny in its own `IMMEDIATE` transaction as the final
+  consuming step, and its rows are never pruned before token expiry.
+- `authority_revocation` and the singleton `authority_revocation_view` hold the
+  revocation feed (`kiln.implementation-authority-revocations.v1`), which is
+  imported at selection. The view's age runs from the feed's own
+  `observed_at_ms`, so importing never refreshes it. An absent view, or one
+  observed more than the configured `max_age_ms` ago, denies every verified
+  request.
+- `authority_decision` keeps the newest 65,536 redacted decision records.
+
+The [runbook](implementation-runbook.md#select-implementation-authority-first)
+gives the operator procedure and the GitHub remote-guarantee table.
 
 ### Revalidation and decisions
 
@@ -85,15 +142,20 @@ Every protected effect revalidates signatures, proofs, time, revocations, policy
 and deployment generation immediately before its durable commit or transport
 without consuming replay again. Cancellation, supersession, lease expiry and
 fence replacement block later effects even when another valid proof is
-presented; unavailable currentness fails closed for new effects.
+presented; unavailable currentness fails closed for new effects. Before Lattice
+transport, `admission_before_transport` re-reads the attempt fence inside the
+transport transaction, whether or not an admission policy is configured, so a
+fence change committed after the authority check refuses transport.
 
-The adapter retains at most 256 redacted decisions. `Implementer::authority_decisions()`
-returns the bounded log; a decision contains the principal, project/work/attempt
-and fence, operation, boundary, effect, provenance, generation, policy and
-upstream receipt references, request identity and denial reason. It contains no
-capability material, keys, token bytes or holder signature. A request, decision,
-receipt or retained session is not transferable authority and cannot authorize a
-different effect.
+The adapter retains at most 256 redacted decisions in memory.
+`Implementer::authority_decisions()` returns that bounded log, and the verified
+profile also persists each decision (`kiln.implementation-authority-decision.v1`)
+for `Implementer::persisted_authority_decisions`. A decision contains the
+principal, project/work/attempt and fence, operation, boundary, effect,
+provenance, generation, policy and upstream receipt references, request identity
+and denial reason. It contains no capability material, keys, token bytes or
+holder signature. A request, decision, receipt or retained session is not
+transferable authority and cannot authorize a different effect.
 
 ### Non-claims
 

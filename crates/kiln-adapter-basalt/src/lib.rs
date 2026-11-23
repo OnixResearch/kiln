@@ -20,10 +20,34 @@ use kiln_core::implementation::authority::{
     ProtectedAuthority, coverage,
 };
 use ucan::{
-    CaveatPolicySet, HolderInvocationLimits, HolderInvocationNonce,
-    HolderInvocationReplayAdmission, KeyResolver, ProofStore, RevocationChecker, SignerSignature,
-    VerificationLimits, VerificationTime,
+    CaveatPolicySet, HolderInvocationLimits, HolderInvocationNonce, KeyResolver, ProofStore,
+    SignerSignature, VerificationLimits, VerificationTime,
 };
+
+pub mod compose;
+pub mod signer;
+pub mod state;
+#[cfg(feature = "test-support")]
+pub mod test_support;
+
+pub use signer::{HolderKey, RoleSigner};
+pub use state::{REPLAY_DIGEST_BYTES, ReplayLedger, ReplayRecord, RevocationView};
+
+use state::{BoundReplay, BoundRevocations, NoReplay};
+
+/// Milliseconds per second of UCAN verification time.
+const MILLIS_PER_SECOND: u64 = 1_000;
+
+/// The instant a revocation view is checked at for a decision at
+/// `now_unix_s`: the last millisecond that second can stand for. Decisions
+/// know the shell clock only to the second, so a view that is older than its
+/// maximum age at any instant of that second denies, and a view observed
+/// earlier in the same second is not dated after the decision.
+const fn revocation_instant_ms(now_unix_s: u64) -> u64 {
+    now_unix_s
+        .saturating_mul(MILLIS_PER_SECOND)
+        .saturating_add(MILLIS_PER_SECOND - 1)
+}
 
 /// Maximum live sessions retained by one adapter.
 pub const MAX_AUTHORITY_SESSIONS: usize = 64;
@@ -36,12 +60,15 @@ pub struct AuthorityServices {
     pub key_resolver: Box<dyn KeyResolver>,
     /// Proof store.
     pub proof_store: Box<dyn ProofStore>,
-    /// Current revocation checker.
-    pub revocations: Box<dyn RevocationChecker>,
+    /// Current revocation view; stale views deny.
+    pub revocations: Box<dyn RevocationView>,
     /// Non-consuming caveat observations.
     pub caveat_policies: Box<dyn CaveatPolicySet>,
-    /// Final state-consuming replay admission.
-    pub replay: Box<dyn HolderInvocationReplayAdmission>,
+    /// Final state-consuming durable replay ledger.
+    pub replay: Box<dyn ReplayLedger>,
+    /// Minimum replay-record retention after admission, in milliseconds. A
+    /// record is never pruned before its token expires.
+    pub replay_retention_ms: u64,
     /// Compact-token and proof limits.
     pub verification_limits: VerificationLimits,
     /// Holder canonical request limits.
@@ -95,16 +122,40 @@ impl VerifiedAuthorityConfig {
         audience: impl Into<String>,
         trusted_roots: Vec<String>,
     ) -> Result<Self, String> {
-        let policy = basalt::parse_policy_json(basalt::DEFAULT_POLICY_JSON)
-            .map_err(|error| format!("packaged Basalt policy: {error}"))?;
-        let artifact_ref = format!(
-            "blake3:{}",
-            blake3::hash(basalt::DEFAULT_POLICY_JSON.as_bytes()).to_hex()
-        );
+        let artifact = blake3::hash(basalt::DEFAULT_POLICY_JSON.as_bytes())
+            .to_hex()
+            .to_string();
+        Self::from_policy_json(
+            basalt::DEFAULT_POLICY_JSON,
+            &artifact,
+            generation,
+            audience,
+            trusted_roots,
+        )
+    }
+
+    /// Build the configuration over one operator-reviewed policy artifact.
+    ///
+    /// # Errors
+    /// Returns a message when the bytes differ from the reviewed BLAKE3
+    /// identity, the policy does not parse, or a binding is invalid.
+    pub fn from_policy_json(
+        policy_json: &str,
+        expected_blake3: &str,
+        generation: u64,
+        audience: impl Into<String>,
+        trusted_roots: Vec<String>,
+    ) -> Result<Self, String> {
+        let actual = blake3::hash(policy_json.as_bytes()).to_hex().to_string();
+        if actual != expected_blake3 {
+            return Err("policy bytes differ from the reviewed BLAKE3 identity".into());
+        }
+        let policy = basalt::parse_policy_json(policy_json)
+            .map_err(|error| format!("Basalt policy: {error}"))?;
         Self::new(
             policy,
             BasaltPolicyRef::new(
-                artifact_ref,
+                format!("blake3:{actual}"),
                 basalt::SUPPORTED_SCHEMA_VERSION,
                 "kiln-authority",
             ),
@@ -337,13 +388,43 @@ impl BasaltAuthority {
             nonce: HolderInvocationNonce::from_bytes(*credential.nonce()),
             holder_signature: &signature,
         };
+        let now_ms = now_unix_s.saturating_mul(MILLIS_PER_SECOND);
+        let verification_time = VerificationTime::from_unix_seconds(now_unix_s);
+        let revocations = BoundRevocations {
+            view: mode.services.revocations.as_ref(),
+            now_ms: revocation_instant_ms(now_unix_s),
+        };
+        // Read the effective deadline before the consuming step, so the
+        // replay record outlives the token. A token that does not verify
+        // never reaches replay.
+        let token_expires_ms = ucan::verify_compact_token_str_with_resolvers_and_revocations(
+            credential.compact_token(),
+            verification_time,
+            mode.services.key_resolver.as_ref(),
+            mode.services.proof_store.as_ref(),
+            &revocations,
+            mode.services.verification_limits,
+        )
+        .map_err(|_| AuthorityDenialReason::CredentialDenied)?
+        .effective_delegation()
+        .time_bounds()
+        .expires_at_seconds()
+        .saturating_mul(MILLIS_PER_SECOND);
+        let replay = BoundReplay {
+            ledger: mode.services.replay.as_ref(),
+            generation: mode.generation,
+            token_ref: *blake3::hash(credential.compact_token().as_bytes()).as_bytes(),
+            expires_ms: token_expires_ms
+                .max(now_ms.saturating_add(mode.services.replay_retention_ms)),
+            now_ms,
+        };
         let boundaries = UcanEnforcementBoundaries {
-            verification_time: VerificationTime::from_unix_seconds(now_unix_s),
+            verification_time,
             key_resolver: mode.services.key_resolver.as_ref(),
             proof_store: mode.services.proof_store.as_ref(),
-            revocations: mode.services.revocations.as_ref(),
+            revocations: &revocations,
             caveat_policies: mode.services.caveat_policies.as_ref(),
-            replay: mode.services.replay.as_ref(),
+            replay: &replay,
             verification_limits: mode.services.verification_limits,
             holder_limits: mode.services.holder_limits,
         };
@@ -438,13 +519,17 @@ impl BasaltAuthority {
             .session
             .as_ref()
             .ok_or(AuthorityDenialReason::SessionNotFound)?;
+        let revocations = BoundRevocations {
+            view: mode.services.revocations.as_ref(),
+            now_ms: revocation_instant_ms(now_unix_s),
+        };
         let boundaries = UcanEnforcementBoundaries {
             verification_time: VerificationTime::from_unix_seconds(now_unix_s),
             key_resolver: mode.services.key_resolver.as_ref(),
             proof_store: mode.services.proof_store.as_ref(),
-            revocations: mode.services.revocations.as_ref(),
+            revocations: &revocations,
             caveat_policies: mode.services.caveat_policies.as_ref(),
-            replay: mode.services.replay.as_ref(),
+            replay: &NoReplay,
             verification_limits: mode.services.verification_limits,
             holder_limits: mode.services.holder_limits,
         };
@@ -665,8 +750,8 @@ mod tests {
     use std::sync::atomic::{AtomicUsize, Ordering};
     use ucan::token::DenyUnknownCaveats;
     use ucan::{
-        Ed25519PublicKey, HolderInvocationReplayCandidate, HolderInvocationReplayError, IssuerDid,
-        KeyResolverError, NoRevocations, ProofCollection,
+        Ed25519PublicKey, HolderInvocationReplayError, IssuerDid, KeyResolverError,
+        ProofCollection, ProofReference, RevocationError,
     };
 
     struct MissingKeys;
@@ -682,13 +767,26 @@ mod tests {
     #[derive(Clone, Default)]
     struct CountingReplay(Arc<AtomicUsize>);
 
-    impl HolderInvocationReplayAdmission for CountingReplay {
-        fn admit_holder_invocation(
+    impl ReplayLedger for CountingReplay {
+        fn consume(
             &self,
-            _candidate: &HolderInvocationReplayCandidate<'_>,
+            _record: &ReplayRecord<'_>,
+            _now_ms: u64,
         ) -> Result<(), HolderInvocationReplayError> {
             self.0.fetch_add(1, Ordering::SeqCst);
             Ok(())
+        }
+    }
+
+    struct NoRevocations;
+
+    impl RevocationView for NoRevocations {
+        fn is_revoked(
+            &self,
+            _reference: &ProofReference,
+            _now_ms: u64,
+        ) -> Result<bool, RevocationError> {
+            Ok(false)
         }
     }
 
@@ -699,6 +797,7 @@ mod tests {
             revocations: Box::new(NoRevocations),
             caveat_policies: Box::new(DenyUnknownCaveats),
             replay: Box::new(replay),
+            replay_retention_ms: 1,
             verification_limits: VerificationLimits::default(),
             holder_limits: HolderInvocationLimits::default(),
         }
