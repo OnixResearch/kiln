@@ -200,13 +200,19 @@ impl Client {
 
 /// Map one console route to the fleet coordinator's coordinator API.
 ///
-/// The mapping is an explicit allowlist: no caller-controlled suffix, query or
-/// fragment reaches the fleet service.
+/// The mapping is an explicit allowlist: no caller-controlled suffix, fragment
+/// or unvalidated query reaches the fleet service. Swarm routes are strictly
+/// read-only (`GET`).
+// r[impl kiln.fleet.swarm.console]
 pub fn upstream_path(method: &str, target: &str) -> Option<String> {
-    let path = target.strip_prefix("/api/fleet/")?;
-    if path.contains(['?', '#']) {
+    let rest = target.strip_prefix("/api/fleet/")?;
+    if rest.contains('#') {
         return None;
     }
+    let (path, query) = match rest.split_once('?') {
+        Some((p, q)) => (p, Some(q)),
+        None => (rest, None),
+    };
     let segments: Vec<&str> = path.split('/').collect();
     let identity = |value: &str| {
         value.len() == 64
@@ -215,23 +221,97 @@ pub fn upstream_path(method: &str, target: &str) -> Option<String> {
                 .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
     };
     match (method, segments.as_slice()) {
-        ("GET", ["health"]) => Some("/v1/health".into()),
-        ("GET", ["claims"]) => Some("/v1/claims".into()),
-        ("GET", ["work"]) => Some("/v1/work".into()),
-        ("GET", ["attempts"]) => Some("/v1/attempts".into()),
-        ("GET", ["decisions"]) => Some("/v1/decisions".into()),
-        ("POST", ["claims"]) => Some("/v1/claims".into()),
-        ("POST", ["claims", id, action @ ("renew" | "release")]) if identity(id) => {
+        ("GET", ["health"]) if query.is_none() => Some("/v1/health".into()),
+        ("GET", ["claims"]) if query.is_none() => Some("/v1/claims".into()),
+        ("GET", ["work"]) if query.is_none() => Some("/v1/work".into()),
+        ("GET", ["attempts"]) if query.is_none() => Some("/v1/attempts".into()),
+        ("GET", ["decisions"]) if query.is_none() => Some("/v1/decisions".into()),
+        ("GET", ["swarms"]) if query.is_none() => Some("/v1/swarms".into()),
+        ("GET", ["swarms", id]) if query.is_none() && identity(id) => {
+            Some(format!("/v1/swarms/{id}"))
+        }
+        ("GET", ["swarms", id, "board"]) if identity(id) => {
+            let suffix = match query {
+                None => String::new(),
+                Some(raw) => format!("?{}", validated_board_query(raw)?),
+            };
+            Some(format!("/v1/swarms/{id}/board{suffix}"))
+        }
+        ("GET", ["swarms", id, "graph"]) if identity(id) => {
+            let suffix = match query {
+                None => String::new(),
+                Some(raw) => format!("?{}", validated_graph_query(raw)?),
+            };
+            Some(format!("/v1/swarms/{id}/graph{suffix}"))
+        }
+        ("POST", ["claims"]) if query.is_none() => Some("/v1/claims".into()),
+        ("POST", ["claims", id, action @ ("renew" | "release")])
+            if query.is_none() && identity(id) =>
+        {
             Some(format!("/v1/claims/{id}/{action}"))
         }
-        ("POST", ["attempts", id, "cancel"]) if identity(id) => {
+        ("POST", ["attempts", id, "cancel"]) if query.is_none() && identity(id) => {
             Some(format!("/v1/attempts/{id}/cancel"))
         }
-        ("POST", ["decisions", id, "answer"]) if identity(id) => {
+        ("POST", ["decisions", id, "answer"]) if query.is_none() && identity(id) => {
             Some(format!("/v1/decisions/{id}/answer"))
         }
         _ => None,
     }
+}
+
+fn validated_graph_query(raw: &str) -> Option<String> {
+    let (key, value) = raw.split_once('=')?;
+    if key != "up_to_seq" || value.is_empty() || !value.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    let parsed = value.parse::<u64>().ok()?;
+    Some(format!("up_to_seq={parsed}"))
+}
+
+fn validated_board_query(raw: &str) -> Option<String> {
+    if raw.is_empty() {
+        return None;
+    }
+    let mut parts = Vec::new();
+    for pair in raw.split('&') {
+        let (key, value) = pair.split_once('=')?;
+        match key {
+            "since" | "limit" => {
+                if value.is_empty() || !value.bytes().all(|b| b.is_ascii_digit()) {
+                    return None;
+                }
+                let parsed = value.parse::<u64>().ok()?;
+                parts.push(format!("{key}={parsed}"));
+            }
+            "seqs" => {
+                if value.is_empty() {
+                    return None;
+                }
+                let mut seqs = Vec::new();
+                for token in value.split(',') {
+                    if token.is_empty() || !token.bytes().all(|b| b.is_ascii_digit()) {
+                        return None;
+                    }
+                    seqs.push(token.parse::<u64>().ok()?.to_string());
+                }
+                parts.push(format!("seqs={}", seqs.join(",")));
+            }
+            "member" => {
+                let valid = !value.is_empty()
+                    && value.len() <= 64
+                    && value
+                        .bytes()
+                        .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-');
+                if !valid {
+                    return None;
+                }
+                parts.push(format!("member={value}"));
+            }
+            _ => return None,
+        }
+    }
+    Some(parts.join("&"))
 }
 
 #[cfg(test)]
@@ -280,6 +360,43 @@ mod tests {
         }
         assert_eq!(upstream_path("DELETE", "/api/fleet/claims"), None);
         assert_eq!(upstream_path("POST", "/api/fleet/health"), None);
+        // Read-only swarm proxy allowlist.
+        assert_eq!(
+            upstream_path("GET", "/api/fleet/swarms").as_deref(),
+            Some("/v1/swarms")
+        );
+        assert_eq!(
+            upstream_path("GET", &format!("/api/fleet/swarms/{ID}")).as_deref(),
+            Some(format!("/v1/swarms/{ID}").as_str())
+        );
+        assert_eq!(
+            upstream_path(
+                "GET",
+                &format!("/api/fleet/swarms/{ID}/board?since=2&limit=20")
+            )
+            .as_deref(),
+            Some(format!("/v1/swarms/{ID}/board?since=2&limit=20").as_str())
+        );
+        assert_eq!(
+            upstream_path("GET", &format!("/api/fleet/swarms/{ID}/graph?up_to_seq=5")).as_deref(),
+            Some(format!("/v1/swarms/{ID}/graph?up_to_seq=5").as_str())
+        );
+        for refused in [
+            ("POST", "/api/fleet/swarms".to_string()),
+            ("POST", format!("/api/fleet/swarms/{ID}/members")),
+            ("POST", format!("/api/fleet/swarms/{ID}/board")),
+            ("POST", format!("/api/fleet/swarms/{ID}/verdicts")),
+            ("POST", format!("/api/fleet/swarms/{ID}/failover")),
+            ("GET", format!("/api/fleet/swarms/{ID}/graph?up_to_seq=abc")),
+            (
+                "GET",
+                format!("/api/fleet/swarms/{ID}/graph?up_to_seq=1&extra=2"),
+            ),
+            ("GET", format!("/api/fleet/swarms/{ID}/board?bogus=1")),
+            ("GET", format!("/api/fleet/swarms/{ID}?x=1")),
+        ] {
+            assert_eq!(upstream_path(refused.0, &refused.1), None, "{refused:?}");
+        }
     }
 
     #[test]

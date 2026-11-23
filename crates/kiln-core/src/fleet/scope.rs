@@ -182,14 +182,21 @@ pub fn scope_subject(verb: ClaimVerb, scope: &FleetScope) -> String {
 /// and absolute machine paths never contain each other.
 #[must_use]
 pub fn overlaps(a: &FleetScope, b: &FleetScope) -> bool {
-    if a.target != b.target {
+    contains_scope(a, b) || contains_scope(b, a)
+}
+
+/// Directional containment: `outer` covers `inner` when they name the same
+/// target and either `outer` is whole, the paths are equal, or `outer` is a
+/// `/`-boundary prefix of `inner`.
+#[must_use]
+pub fn contains_scope(outer: &FleetScope, inner: &FleetScope) -> bool {
+    if outer.target != inner.target {
         return false;
     }
-    match (&a.path, &b.path) {
-        (ScopePath::Whole, _) | (_, ScopePath::Whole) => true,
-        (ScopePath::Path(left), ScopePath::Path(right)) => {
-            contains(left, right) || contains(right, left)
-        }
+    match (&outer.path, &inner.path) {
+        (ScopePath::Whole, _) => true,
+        (ScopePath::Path(_), ScopePath::Whole) => false,
+        (ScopePath::Path(left), ScopePath::Path(right)) => contains(left, right),
     }
 }
 
@@ -341,6 +348,25 @@ mod tests {
             assert!(!overlaps(&claimed, &scope(other)), "{other}");
             assert!(!overlaps(&scope(other), &claimed), "{other}");
         }
+        // Directional containment: inner paths are contained, parent/whole scopes are not.
+        assert!(contains_scope(
+            &claimed,
+            &scope("OnixResearch/kiln crates/kiln-core")
+        ));
+        assert!(contains_scope(
+            &claimed,
+            &scope("OnixResearch/kiln crates/kiln-core/src/fleet")
+        ));
+        assert!(contains_scope(&scope("OnixResearch/kiln ."), &claimed));
+        assert!(!contains_scope(&claimed, &scope("OnixResearch/kiln .")));
+        assert!(!contains_scope(
+            &claimed,
+            &scope("OnixResearch/kiln crates")
+        ));
+        assert!(!contains_scope(
+            &claimed,
+            &scope("OnixResearch/kiln crates/kiln-corex")
+        ));
     }
 
     #[test]

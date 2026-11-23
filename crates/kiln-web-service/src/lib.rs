@@ -23,6 +23,7 @@ pub mod reviews;
 pub mod schedule;
 pub mod snapshot;
 pub mod sources;
+pub mod swarm_view;
 pub mod telemetry;
 pub mod work;
 pub mod worker;

@@ -232,6 +232,145 @@
     state.decisions.replaceChildren(table(["ID", "Question", "Raised", "Action"], rows, "No decisions", "The coordinator reports no decisions."));
   }
 
+  function formatMention(mention) {
+    if (!record(mention)) return "";
+    if (mention.kind === "all") return "@all";
+    if (mention.kind === "role") return `@role:${text(mention.target)}`;
+    if (mention.kind === "member") return `@${text(mention.target)}`;
+    return "";
+  }
+
+  function renderSwarmGraph(container, graph) {
+    const wrap = element("div", undefined, "fleet-swarm-graph");
+    if (!record(graph) || !Array.isArray(graph.edges) || !graph.edges.length) {
+      wrap.append(empty("No mention edges", "No directed mentions recorded at or before this replay cursor."));
+      container.replaceChildren(wrap);
+      return;
+    }
+    const rows = graph.edges.map((edge) => [
+      text(edge.from),
+      text(edge.to),
+      String(edge.weight ?? 0),
+      `#${edge.last_seq ?? 0}`,
+      Array.isArray(edge.kinds) ? edge.kinds.join(", ") : "",
+    ]);
+    wrap.append(table(["From", "To", "Weight", "Last Seq", "Kinds"], rows, "No mention edges", "No directed mentions recorded."));
+    container.replaceChildren(wrap);
+  }
+
+  function renderSwarmDetail(state, run, graph) {
+    const detail = element("div", undefined, "fleet-swarm-detail");
+    const head = element("div", undefined, "fleet-section-head");
+    const title = element("h3", `${text(run?.config?.title) || "Swarm run"} · ${stateText(run?.phase)}`);
+    const link = element("a", "Open standalone read-only view");
+    link.href = `/fleet/swarms/${text(run.identity)}`;
+    link.className = "small";
+    head.append(title, link);
+
+    const members = record(run.members) ? Object.values(run.members) : [];
+    const rosterRows = members.map((member) => [
+      text(member.name),
+      text(member.role),
+      stateText(member.state),
+      `${text(member.host)} · ${text(member.harness)} · ${text(member.model)}`,
+      member.scope ? scopeText(member.scope) : "read-only",
+      member.claim_fence != null ? String(member.claim_fence) : "–",
+      String(member.budget_draw ?? 0),
+      member.last_post_seq != null ? `#${member.last_post_seq}` : "–",
+    ]);
+
+    const headSeq = Number(graph?.head_seq ?? run?.board?.posts?.length ?? 0);
+    const cutoff = Number(graph?.up_to_seq ?? headSeq);
+    const replay = element("div", undefined, "fleet-swarm-replay");
+    const sliderLabel = element("label", `Replay mention graph up to seq ${cutoff} / ${headSeq}`);
+    const slider = element("input");
+    Object.assign(slider, { type: "range", min: "0", max: String(headSeq), value: String(cutoff) });
+    const graphBox = element("div");
+    renderSwarmGraph(graphBox, graph);
+    const boardBox = element("div");
+    const renderBoardAt = (seqLimit) => {
+      const posts = Array.isArray(run?.board?.posts) ? run.board.posts.filter((p) => Number(p.seq) <= seqLimit) : [];
+      const postRows = posts.map((post) => [
+        `#${post.seq}`,
+        text(post.sender),
+        text(post.sender_role),
+        text(post.kind),
+        Array.isArray(post.mentions) && post.mentions.length ? post.mentions.map(formatMention).join(", ") : "–",
+        text(post.body),
+      ]);
+      boardBox.replaceChildren(table(["Seq", "Sender", "Role", "Kind", "Mentions", "Body"], postRows, "No board posts", "No posts at or before this cursor."));
+    };
+    renderBoardAt(cutoff);
+    slider.addEventListener("change", async () => {
+      const targetSeq = Number(slider.value);
+      sliderLabel.textContent = `Replay mention graph up to seq ${targetSeq} / ${headSeq}`;
+      renderBoardAt(targetSeq);
+      try {
+        const res = await state.context.api(`/api/fleet/swarms/${run.identity}/graph?up_to_seq=${targetSeq}`, { quiet: true });
+        if (record(res) && record(res.graph)) renderSwarmGraph(graphBox, res.graph);
+      } catch (_) {}
+    });
+    replay.append(sliderLabel, slider);
+
+    detail.append(
+      head,
+      element("h4", "Roster"),
+      table(["Member", "Role", "State", "Host · Harness · Model", "Scope", "Fence", "Budget", "Last Post"], rosterRows, "No members", "No members spawned in this swarm."),
+      element("h4", "Replayable Mention Graph"),
+      replay,
+      graphBox,
+      element("h4", "Board Feed"),
+      boardBox,
+    );
+    state.swarmDetail.replaceChildren(detail);
+  }
+
+  async function inspectSwarm(state, id) {
+    if (!IDENTITY.test(id)) return;
+    state.selectedSwarm = id;
+    try {
+      const [runRes, graphRes] = await Promise.all([
+        state.context.api(`/api/fleet/swarms/${id}`, { quiet: true }),
+        state.context.api(`/api/fleet/swarms/${id}/graph`, { quiet: true }),
+      ]);
+      if (record(runRes) && record(runRes.swarm)) {
+        renderSwarmDetail(state, runRes.swarm, record(graphRes) ? graphRes.graph : null);
+      }
+    } catch (_) {}
+  }
+
+  async function refreshSwarms(state) {
+    try {
+      const payload = await state.context.api("/api/fleet/swarms", { quiet: true });
+      const swarms = record(payload) && Array.isArray(payload.swarms) ? payload.swarms : [];
+      const rows = swarms.map((run) => {
+        const id = text(run.identity);
+        const actions = element("div", undefined, "fleet-actions");
+        const inspect = element("button", "Inspect", "quiet");
+        inspect.type = "button";
+        inspect.addEventListener("click", () => { void inspectSwarm(state, id); });
+        const link = element("a", "HTML", "small");
+        link.href = `/fleet/swarms/${id}`;
+        actions.append(inspect, link);
+        const members = record(run.members) ? Object.keys(run.members).length : 0;
+        const headSeq = Array.isArray(run?.board?.posts) && run.board.posts.length ? run.board.posts[run.board.posts.length - 1].seq : 0;
+        return [
+          identityCell(id),
+          text(run?.config?.title),
+          stateText(run.phase),
+          String(members),
+          `#${headSeq}`,
+          `${run?.budget?.drawn_units ?? 0} / ${run?.budget?.ceiling_units ?? 0}`,
+          actions,
+        ];
+      });
+      state.swarms.replaceChildren(table(["ID", "Title", "Phase", "Members", "Board", "Budget", "View"], rows, "No swarm runs", "The coordinator reports no swarm runs."));
+      if (state.selectedSwarm && swarms.some((r) => text(r.identity) === state.selectedSwarm)) {
+        void inspectSwarm(state, state.selectedSwarm);
+      }
+    } catch (_) {}
+  }
+
   function renderAcquire(state) {
     const form = element("form", undefined, "fleet-acquire");
     const scope = element("input");
@@ -309,6 +448,7 @@
       renderAttempts(state, snapshot.attempts.attempts);
       renderDecisions(state, snapshot.decisions.decisions);
     }
+    void refreshSwarms(state);
     state.machine.textContent = `${snapshot.health.machine} · fleet ${snapshot.health.version}`;
     state.updated.textContent = `Updated ${new Date().toLocaleTimeString()}`;
     if (!state.commandError) {
@@ -462,7 +602,12 @@
     decisionsPanel.append(element("h2", "Decisions"), element("p", "Questions raised by fleet work. An answer is an operator command and is recorded by the fleet service.", "small"));
     const decisions = element("div");
     decisionsPanel.append(decisions);
-    page.append(head, claimsPanel, work, attemptsPanel, decisionsPanel);
+    const swarmsPanel = element("section", undefined, "panel fleet-section");
+    swarmsPanel.append(element("h2", "Swarm runs"), element("p", "Read-only inspection of Kiln-governed swarm runs: roster, replayable mention graph, and untrusted board feed.", "small"));
+    const swarms = element("div");
+    const swarmDetail = element("div");
+    swarmsPanel.append(swarms, swarmDetail);
+    page.append(head, claimsPanel, work, attemptsPanel, decisionsPanel, swarmsPanel);
     root.replaceChildren(page);
     state.machine = machine;
     state.updated = updated;
@@ -474,6 +619,9 @@
     state.blocked = blocked;
     state.attempts = attempts;
     state.decisions = decisions;
+    state.swarms = swarms;
+    state.swarmDetail = swarmDetail;
+    state.selectedSwarm = "";
     renderAcquire(state);
     active = state;
     document.addEventListener("visibilitychange", onVisible);

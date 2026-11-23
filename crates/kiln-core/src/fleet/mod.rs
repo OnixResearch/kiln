@@ -11,12 +11,14 @@ pub mod decision;
 pub mod prompt;
 pub mod scope;
 pub mod session;
+pub mod swarm;
 
 pub use claims::*;
 pub use decision::*;
 pub use prompt::*;
 pub use scope::*;
 pub use session::*;
+pub use swarm::*;
 
 use alloc::string::ToString;
 use alloc::vec::Vec;

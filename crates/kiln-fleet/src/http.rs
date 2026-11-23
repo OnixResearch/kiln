@@ -23,6 +23,8 @@ pub struct Request {
     pub method: String,
     /// The target path without any query.
     pub path: String,
+    /// Optional raw query string (after `?`), when present.
+    pub query: Option<String>,
     pub body: Vec<u8>,
 }
 
@@ -168,7 +170,10 @@ pub fn read_request(reader: &mut impl Read) -> Result<Request, HttpError> {
             "request target must be an origin path",
         ));
     }
-    let path = target.split('?').next().unwrap_or(target).to_owned();
+    let (path, query) = match target.split_once('?') {
+        Some((p, q)) => (p.to_owned(), Some(q.to_owned())),
+        None => (target.to_owned(), None),
+    };
     let mut content_length: Option<usize> = None;
     let mut count = 0_usize;
     for line in lines {
@@ -226,6 +231,7 @@ pub fn read_request(reader: &mut impl Read) -> Result<Request, HttpError> {
     Ok(Request {
         method: method.to_owned(),
         path,
+        query,
         body,
     })
 }

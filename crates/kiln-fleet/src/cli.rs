@@ -32,6 +32,7 @@ pub const USAGE: &str = "usage:
   kiln-fleet handoff --attempt ID --fence N --commit SHA
   kiln-fleet answer --decision ID --text TEXT
   kiln-fleet cancel --attempt ID --reason TEXT
+  kiln-fleet swarm list | status | create | spawn | member-state | post | read | verdict | watchdog | failover | graph ...
 client commands take --server URL (default $KILN_FLEET_SERVER)";
 
 struct Usage(String);
@@ -102,6 +103,7 @@ pub fn main_with(arguments: &[String]) -> i32 {
             let path = format!("/v1/attempts/{}/cancel", identity(&flags, "--attempt")?);
             call(&flags, "POST", path, Some(body))
         }),
+        "swarm" => swarm_command(rest),
         other => Err(Usage(format!("unknown command {other}"))),
     };
     outcome.unwrap_or_else(|Usage(message)| usage(&message))
@@ -111,6 +113,299 @@ fn usage(message: &str) -> i32 {
     let mut stderr = std::io::stderr().lock();
     let _ = writeln!(stderr, "{}", json!({ "error": message, "usage": USAGE }));
     EXIT_USAGE
+}
+
+// r[impl kiln.fleet.swarm.surface]
+fn swarm_command(arguments: &[String]) -> Result<i32, Usage> {
+    let Some((sub, rest)) = arguments.split_first() else {
+        return Err(Usage("swarm requires a subcommand".into()));
+    };
+    match sub.as_str() {
+        "list" => {
+            let flags = flags(rest, &[], &["--server"])?;
+            call(&flags, "GET", "/v1/swarms".to_owned(), None)
+        }
+        "status" => {
+            let flags = flags(rest, &["--swarm"], &["--server"])?;
+            let path = format!("/v1/swarms/{}", identity(&flags, "--swarm")?);
+            call(&flags, "GET", path, None)
+        }
+        "create" => {
+            let flags = flags(
+                rest,
+                &["--title", "--scope"],
+                &[
+                    "--max-concurrency",
+                    "--max-repair-rounds",
+                    "--budget",
+                    "--stale-after-ms",
+                    "--server",
+                ],
+            )?;
+            let scopes: Vec<String> = required(&flags, "--scope")?
+                .split(',')
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .map(str::to_owned)
+                .collect();
+            let mut body = json!({
+                "title": required(&flags, "--title")?,
+                "allowed_scopes": scopes,
+            });
+            insert_number(&mut body, &flags, "--max-concurrency", "max_concurrency")?;
+            insert_number(
+                &mut body,
+                &flags,
+                "--max-repair-rounds",
+                "max_repair_rounds",
+            )?;
+            insert_number(&mut body, &flags, "--budget", "budget_ceiling_units")?;
+            insert_number(&mut body, &flags, "--stale-after-ms", "stale_after_ms")?;
+            call(&flags, "POST", "/v1/swarms".to_owned(), Some(body))
+        }
+        "spawn" => {
+            let flags = flags(
+                rest,
+                &[
+                    "--swarm",
+                    "--name",
+                    "--role",
+                    "--harness",
+                    "--model",
+                    "--brief",
+                ],
+                &[
+                    "--host",
+                    "--scope",
+                    "--requester",
+                    "--attempt",
+                    "--claim",
+                    "--fence",
+                    "--server",
+                ],
+            )?;
+            let mut body = json!({
+                "name": required(&flags, "--name")?,
+                "role": required(&flags, "--role")?,
+                "harness": required(&flags, "--harness")?,
+                "model": required(&flags, "--model")?,
+                "brief": required(&flags, "--brief")?,
+            });
+            if let Some(object) = body.as_object_mut() {
+                if let Some(host) = flags.get("--host") {
+                    object.insert("host".into(), json!(host));
+                }
+                if let Some(scope) = flags.get("--scope") {
+                    object.insert("scope".into(), json!(scope));
+                }
+                if let Some(requester) = flags.get("--requester") {
+                    object.insert("requester".into(), json!(requester));
+                }
+                if flags.contains_key("--attempt") {
+                    object.insert("attempt".into(), json!(identity(&flags, "--attempt")?));
+                }
+                if flags.contains_key("--claim") {
+                    object.insert("claim_identity".into(), json!(identity(&flags, "--claim")?));
+                }
+            }
+            insert_number(&mut body, &flags, "--fence", "claim_fence")?;
+            let path = format!("/v1/swarms/{}/members", identity(&flags, "--swarm")?);
+            call(&flags, "POST", path, Some(body))
+        }
+        "member-state" => {
+            let flags = flags(
+                rest,
+                &["--swarm", "--member", "--state"],
+                &[
+                    "--since-seq",
+                    "--checkpoint",
+                    "--board-cursor",
+                    "--reason",
+                    "--paused-ms",
+                    "--budget-draw",
+                    "--server",
+                ],
+            )?;
+            let state_name = required(&flags, "--state")?;
+            let state_json = match state_name.as_str() {
+                "working" | "retired" | "terminal" => json!({ "state": state_name }),
+                "waiting" => json!({
+                    "state": "waiting",
+                    "since_seq": number(&flags, "--since-seq")?,
+                }),
+                "paused_quota" => json!({
+                    "state": "paused_quota",
+                    "checkpoint_commit": flags.get("--checkpoint"),
+                    "board_cursor": number(&flags, "--board-cursor")?,
+                    "reason": required(&flags, "--reason")?,
+                    "paused_ms": flags
+                        .get("--paused-ms")
+                        .map_or(Ok(crate::log::now_ms()), |v| v.parse::<u64>())
+                        .map_err(|_| Usage("--paused-ms must be a non-negative integer".into()))?,
+                }),
+                other => {
+                    return Err(Usage(format!(
+                        "unknown member state {other}; expected working, waiting, paused_quota, retired, or terminal"
+                    )));
+                }
+            };
+            let mut body = json!({
+                "action": "update_state",
+                "member": required(&flags, "--member")?,
+                "state": state_json,
+            });
+            insert_number(&mut body, &flags, "--budget-draw", "budget_draw_delta")?;
+            let path = format!("/v1/swarms/{}/members", identity(&flags, "--swarm")?);
+            call(&flags, "POST", path, Some(body))
+        }
+        "post" => {
+            let flags = flags(
+                rest,
+                &["--swarm", "--sender", "--kind", "--body"],
+                &["--mentions", "--reply-to", "--commit", "--server"],
+            )?;
+            let mentions: Vec<Value> = flags
+                .get("--mentions")
+                .map(|raw| {
+                    raw.split(',')
+                        .map(str::trim)
+                        .filter(|token| !token.is_empty())
+                        .map(parse_mention_cli)
+                        .collect()
+                })
+                .unwrap_or_default();
+            let mut body = json!({
+                "sender": required(&flags, "--sender")?,
+                "kind": required(&flags, "--kind")?,
+                "mentions": mentions,
+                "body": required(&flags, "--body")?,
+            });
+            insert_number(&mut body, &flags, "--reply-to", "in_reply_to")?;
+            if let (Some(commit), Some(object)) = (flags.get("--commit"), body.as_object_mut()) {
+                object.insert("candidate_commit".into(), json!(commit));
+            }
+            let path = format!("/v1/swarms/{}/board", identity(&flags, "--swarm")?);
+            call(&flags, "POST", path, Some(body))
+        }
+        "read" => {
+            let flags = flags(
+                rest,
+                &["--swarm"],
+                &["--since", "--limit", "--seqs", "--member", "--server"],
+            )?;
+            let mut query = Vec::new();
+            if flags.contains_key("--since") {
+                query.push(format!("since={}", number(&flags, "--since")?));
+            }
+            if flags.contains_key("--limit") {
+                query.push(format!("limit={}", number(&flags, "--limit")?));
+            }
+            if let Some(seqs) = flags.get("--seqs") {
+                query.push(format!("seqs={seqs}"));
+            }
+            if let Some(member) = flags.get("--member") {
+                query.push(format!("member={member}"));
+            }
+            let base = format!("/v1/swarms/{}/board", identity(&flags, "--swarm")?);
+            let path = if query.is_empty() {
+                base
+            } else {
+                format!("{base}?{}", query.join("&"))
+            };
+            call(&flags, "GET", path, None)
+        }
+        "verdict" => {
+            let flags = flags(
+                rest,
+                &[
+                    "--swarm",
+                    "--verifier",
+                    "--author",
+                    "--commit",
+                    "--decision",
+                ],
+                &["--findings", "--reason", "--server"],
+            )?;
+            let mut body = json!({
+                "verifier": required(&flags, "--verifier")?,
+                "author": required(&flags, "--author")?,
+                "commit": required(&flags, "--commit")?,
+                "verdict": required(&flags, "--decision")?,
+            });
+            if let Some(object) = body.as_object_mut() {
+                if let Some(findings) = flags.get("--findings") {
+                    let list: Vec<String> = findings
+                        .split(';')
+                        .map(str::trim)
+                        .filter(|s| !s.is_empty())
+                        .map(str::to_owned)
+                        .collect();
+                    object.insert("findings".into(), json!(list));
+                }
+                if let Some(reason) = flags.get("--reason") {
+                    object.insert("reason".into(), json!(reason));
+                }
+            }
+            let path = format!("/v1/swarms/{}/verdicts", identity(&flags, "--swarm")?);
+            call(&flags, "POST", path, Some(body))
+        }
+        "watchdog" => {
+            let flags = flags(rest, &["--swarm"], &["--apply", "--server"])?;
+            let apply = match flags.get("--apply").map(String::as_str) {
+                None | Some("true") => true,
+                Some("false") => false,
+                Some(_) => return Err(Usage("--apply must be true or false".into())),
+            };
+            let path = format!("/v1/swarms/{}/watchdog", identity(&flags, "--swarm")?);
+            call(&flags, "POST", path, Some(json!({ "apply": apply })))
+        }
+        "failover" => {
+            let flags = flags(
+                rest,
+                &["--swarm", "--member", "--model"],
+                &["--harness", "--host", "--reason", "--server"],
+            )?;
+            let mut body = json!({
+                "member": required(&flags, "--member")?,
+                "replacement_model": required(&flags, "--model")?,
+            });
+            if let Some(object) = body.as_object_mut() {
+                if let Some(harness) = flags.get("--harness") {
+                    object.insert("replacement_harness".into(), json!(harness));
+                }
+                if let Some(host) = flags.get("--host") {
+                    object.insert("replacement_host".into(), json!(host));
+                }
+                if let Some(reason) = flags.get("--reason") {
+                    object.insert("reason".into(), json!(reason));
+                }
+            }
+            let path = format!("/v1/swarms/{}/failover", identity(&flags, "--swarm")?);
+            call(&flags, "POST", path, Some(body))
+        }
+        "graph" => {
+            let flags = flags(rest, &["--swarm"], &["--up-to-seq", "--server"])?;
+            let base = format!("/v1/swarms/{}/graph", identity(&flags, "--swarm")?);
+            let path = if flags.contains_key("--up-to-seq") {
+                format!("{base}?up_to_seq={}", number(&flags, "--up-to-seq")?)
+            } else {
+                base
+            };
+            call(&flags, "GET", path, None)
+        }
+        other => Err(Usage(format!("unknown swarm subcommand {other}"))),
+    }
+}
+
+fn parse_mention_cli(token: &str) -> Value {
+    let trimmed = token.strip_prefix('@').unwrap_or(token);
+    if trimmed == "all" {
+        json!({ "kind": "all" })
+    } else if let Some(role) = trimmed.strip_prefix("role:") {
+        json!({ "kind": "role", "target": role })
+    } else {
+        json!({ "kind": "member", "target": trimmed })
+    }
 }
 
 fn refused(value: &Value) -> i32 {

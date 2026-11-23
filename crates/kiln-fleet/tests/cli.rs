@@ -212,3 +212,110 @@ fn client_commands_report_http_outcomes() -> TestResult {
     assert_eq!(from_environment.status.code(), Some(0));
     Ok(())
 }
+
+#[test]
+// r[verify kiln.fleet.swarm.surface]
+fn swarm_cli_subcommands_round_trip() -> TestResult {
+    let directory = tempfile::tempdir()?;
+    write_enrollment(directory.path())?;
+    let document = config(directory.path(), Path::new("/nonexistent/tailscale"));
+    let service = Arc::new(Service::new(FleetConfig::from_json(&serde_json::to_vec(
+        &document,
+    )?)?)?);
+    let listeners = kiln_fleet::server::bind(&["127.0.0.1:0".parse()?])?;
+    let address = listeners.first().ok_or("no listener")?.local_addr()?;
+    kiln_fleet::server::spawn(listeners, &service)?;
+    let server = format!("http://{address}");
+
+    let created = kiln_fleet(&[
+        "swarm",
+        "create",
+        "--title",
+        "CLI Swarm",
+        "--scope",
+        "OnixResearch/kiln crates/kiln-fleet",
+        "--max-concurrency",
+        "3",
+        "--server",
+        &server,
+    ])?;
+    assert_eq!(
+        created.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&created.stderr)
+    );
+    let created_json = json(&created.stdout)?;
+    let swarm_id = created_json
+        .pointer("/swarm/identity")
+        .and_then(Value::as_str)
+        .ok_or("swarm id")?;
+
+    let spawned = kiln_fleet(&[
+        "swarm",
+        "spawn",
+        "--swarm",
+        swarm_id,
+        "--name",
+        "author-cli",
+        "--role",
+        "author",
+        "--harness",
+        "codex",
+        "--model",
+        "gpt-5",
+        "--scope",
+        "OnixResearch/kiln crates/kiln-fleet/src",
+        "--brief",
+        "Implement CLI",
+        "--server",
+        &server,
+    ])?;
+    assert_eq!(spawned.status.code(), Some(0));
+
+    let posted = kiln_fleet(&[
+        "swarm",
+        "post",
+        "--swarm",
+        swarm_id,
+        "--sender",
+        "author-cli",
+        "--kind",
+        "status",
+        "--mentions",
+        "@all",
+        "--body",
+        "Working cleanly",
+        "--server",
+        &server,
+    ])?;
+    assert_eq!(posted.status.code(), Some(0));
+
+    let read = kiln_fleet(&[
+        "swarm", "read", "--swarm", swarm_id, "--since", "0", "--server", &server,
+    ])?;
+    assert_eq!(read.status.code(), Some(0));
+    assert!(String::from_utf8_lossy(&read.stdout).contains("Working cleanly"));
+
+    let graph = kiln_fleet(&[
+        "swarm",
+        "graph",
+        "--swarm",
+        swarm_id,
+        "--up-to-seq",
+        "2",
+        "--server",
+        &server,
+    ])?;
+    assert_eq!(graph.status.code(), Some(0));
+    assert_eq!(
+        json(&graph.stdout)?.pointer("/graph/up_to_seq"),
+        Some(&serde_json::json!(2))
+    );
+
+    let status = kiln_fleet(&["swarm", "status", "--swarm", swarm_id, "--server", &server])?;
+    assert_eq!(status.status.code(), Some(0));
+    let list = kiln_fleet(&["swarm", "list", "--server", &server])?;
+    assert_eq!(list.status.code(), Some(0));
+    Ok(())
+}

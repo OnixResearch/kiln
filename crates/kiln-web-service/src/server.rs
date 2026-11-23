@@ -824,6 +824,11 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
             Err(_) => error_response(503, "service_unavailable"),
         };
     }
+    if request.method == "GET"
+        && (request.target == "/fleet/swarms" || request.target.starts_with("/fleet/swarms/"))
+    {
+        return swarm_html_response(&request, context, principal.as_ref());
+    }
     if request.target.starts_with("/api/") {
         if let Err((status, code)) =
             api_admission(&request, &context.profile.origin, principal.as_ref())
@@ -1042,6 +1047,10 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
             "/cairn.css" => ("text/css; charset=utf-8", include_bytes!("cairn.css")),
             "/fleet.js" => ("text/javascript; charset=utf-8", include_bytes!("fleet.js")),
             "/fleet.css" => ("text/css; charset=utf-8", include_bytes!("fleet.css")),
+            "/swarm-view.css" => (
+                "text/css; charset=utf-8",
+                crate::swarm_view::SWARM_VIEW_CSS.as_bytes(),
+            ),
             "/inventory.js" => (
                 "text/javascript; charset=utf-8",
                 include_bytes!("inventory.js"),
@@ -1175,6 +1184,112 @@ fn fleet_response(request: &Request, context: &Context<'_>, principal: &Principa
             headers: vec![("Cache-Control", "no-store".to_owned())],
         },
         Err(()) => error_response(503, "fleet_unavailable"),
+    }
+}
+
+// r[impl kiln.fleet.swarm.console]
+fn swarm_html_response(
+    request: &Request,
+    context: &Context<'_>,
+    principal: Option<&Principal>,
+) -> ApiResponse {
+    let Some(principal) = principal else {
+        return error_response(401, "unauthorized");
+    };
+    if principal.role == crate::engine::Role::Worker {
+        return denied(request, context, Some(principal), 403, "fleet_read_only");
+    }
+    let Some(client) = context.fleet else {
+        return error_response(503, "fleet_unavailable");
+    };
+    let (path, query) = match request.target.split_once('?') {
+        Some((p, q)) => (p, Some(q)),
+        None => (request.target.as_str(), None),
+    };
+    let html_headers = vec![("Cache-Control", "no-store".to_owned())];
+    if path == "/fleet/swarms" {
+        if query.is_some() {
+            return error_response(400, "swarm_query_invalid");
+        }
+        let Ok(reply) = client.call("GET", "/v1/swarms", None) else {
+            return error_response(503, "fleet_unavailable");
+        };
+        if !(200..300).contains(&reply.status) {
+            return error_response(reply.status, "fleet_swarm_unavailable");
+        }
+        let Ok(payload) = serde_json::from_slice::<serde_json::Value>(&reply.body) else {
+            return error_response(502, "fleet_swarm_malformed");
+        };
+        let Ok(runs) = serde_json::from_value::<Vec<kiln_core::fleet::SwarmRun>>(
+            payload
+                .get("swarms")
+                .cloned()
+                .unwrap_or_else(|| serde_json::json!([])),
+        ) else {
+            return error_response(502, "fleet_swarm_malformed");
+        };
+        let document = crate::swarm_view::render_swarm_list_html(&runs);
+        return ApiResponse {
+            status: 200,
+            content_type: "text/html; charset=utf-8",
+            body: document.into_bytes(),
+            download_name: None,
+            headers: html_headers,
+        };
+    }
+    let Some(id) = path.strip_prefix("/fleet/swarms/") else {
+        return error_response(404, "not_found");
+    };
+    if id.len() != 64
+        || !id
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return error_response(404, "not_found");
+    }
+    let up_to_seq = match query {
+        None | Some("") => None,
+        Some(raw) => {
+            let Some((key, value)) = raw.split_once('=') else {
+                return error_response(400, "swarm_query_invalid");
+            };
+            if key != "up_to_seq" || value.is_empty() || !value.bytes().all(|b| b.is_ascii_digit())
+            {
+                return error_response(400, "swarm_query_invalid");
+            }
+            let Ok(parsed) = value.parse::<u64>() else {
+                return error_response(400, "swarm_query_invalid");
+            };
+            Some(parsed)
+        }
+    };
+    let Ok(reply) = client.call("GET", &format!("/v1/swarms/{id}"), None) else {
+        return error_response(503, "fleet_unavailable");
+    };
+    if reply.status == 404 {
+        return error_response(404, "fleet_swarm_unknown");
+    }
+    if !(200..300).contains(&reply.status) {
+        return error_response(reply.status, "fleet_swarm_unavailable");
+    }
+    let Ok(payload) = serde_json::from_slice::<serde_json::Value>(&reply.body) else {
+        return error_response(502, "fleet_swarm_malformed");
+    };
+    let Ok(run) = serde_json::from_value::<kiln_core::fleet::SwarmRun>(
+        payload
+            .get("swarm")
+            .cloned()
+            .unwrap_or(serde_json::Value::Null),
+    ) else {
+        return error_response(502, "fleet_swarm_malformed");
+    };
+    let document = crate::swarm_view::render_swarm_detail_html(&run, up_to_seq);
+    ApiResponse {
+        status: 200,
+        content_type: "text/html; charset=utf-8",
+        body: document.into_bytes(),
+        download_name: None,
+        headers: html_headers,
     }
 }
 

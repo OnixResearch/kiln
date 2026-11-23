@@ -34,6 +34,10 @@
 .fleet-identity { display: inline-flex; align-items: baseline; gap: .2rem; min-width: 0; }
 .fleet-identity code { user-select: all; }
 .fleet-tag { justify-self: start; }
+.fleet-swarm-detail { display: grid; gap: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border); }
+.fleet-swarm-detail h3, .fleet-swarm-detail h4 { margin: 0; }
+.fleet-swarm-replay { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.fleet-swarm-replay input[type="range"] { min-width: 12rem; flex: 1 1 12rem; }
 @media (max-width: 60rem) {
   .fleet-columns { grid-template-columns: minmax(0, 1fr); }
 }

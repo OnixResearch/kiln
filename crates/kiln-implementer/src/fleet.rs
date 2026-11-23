@@ -9,10 +9,12 @@
 //! deferred transaction and save nothing.
 
 use kiln_core::fleet::{
-    self, AttemptScope, AttemptView, AttemptViewState, ClaimCommand, ClaimContext, ClaimEffect,
-    ClaimOutcome, Decision, DecisionLedger, FleetClaimRegistry, FleetEffect, FleetPolicy,
-    FleetSession, ForeignClaim, Observation, Placement, SessionLedger, TickInput,
-    WHOLE_REPOSITORY_PATH,
+    self, AttemptScope, AttemptView, AttemptViewState, BoardPost, BoardPostKind, BoardReadResult,
+    ClaimCommand, ClaimContext, ClaimEffect, ClaimOutcome, Decision, DecisionLedger,
+    FleetClaimRegistry, FleetEffect, FleetPolicy, FleetSession, ForeignClaim, MentionGraph,
+    MentionTarget, Observation, Placement, QuotaFailoverRequest, SessionLedger, SpawnMemberRequest,
+    SwarmLedger, SwarmMember, SwarmMemberState, SwarmRun, SwarmRunConfig, TickInput,
+    VerdictDecision, VerdictOutcome, VerifierVerdict, WHOLE_REPOSITORY_PATH, WatchdogAction,
 };
 use kiln_core::implementation::{
     AttemptLedger, DEFAULT_LEASE_MS, INTERACTIVE_PROVIDER_PROFILE, ImplementationAttempt,
@@ -34,7 +36,7 @@ pub const FLEET_STATE_SCHEMA: &str = "kiln.fleet-state.v1";
 /// probe runs on a scratch copy of the attempt ledger; nothing is claimed.
 const READINESS_PROBE_LEASE_MS: u64 = DEFAULT_LEASE_MS;
 
-/// Fleet claims, sessions and decisions, persisted as one versioned blob.
+/// Fleet claims, sessions, decisions and swarm runs, persisted as one versioned blob.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct FleetState {
@@ -42,6 +44,8 @@ pub struct FleetState {
     pub claims: FleetClaimRegistry,
     pub sessions: SessionLedger,
     pub decisions: DecisionLedger,
+    #[serde(default)]
+    pub swarms: SwarmLedger,
 }
 
 impl Default for FleetState {
@@ -51,6 +55,7 @@ impl Default for FleetState {
             claims: FleetClaimRegistry::default(),
             sessions: SessionLedger::default(),
             decisions: DecisionLedger::default(),
+            swarms: SwarmLedger::default(),
         }
     }
 }
@@ -466,6 +471,232 @@ impl Implementer {
         })
     }
 
+    // r[impl kiln.fleet.swarm.surface]
+    /// List all persisted swarm runs in deterministic identity order.
+    ///
+    /// # Errors
+    /// Returns the store diagnostic.
+    pub fn fleet_swarms(&mut self) -> Result<Vec<SwarmRun>, String> {
+        self.with_fleet(Access::Read, |fleet| {
+            Ok(fleet.swarms.runs.values().cloned().collect())
+        })
+    }
+
+    // r[impl kiln.fleet.swarm.surface]
+    /// Read one swarm run by identity.
+    ///
+    /// # Errors
+    /// Returns the store diagnostic.
+    pub fn fleet_swarm(&mut self, identity: &ContentId) -> Result<Option<SwarmRun>, String> {
+        self.with_fleet(Access::Read, |fleet| {
+            Ok(fleet.swarms.runs.get(identity).cloned())
+        })
+    }
+
+    // r[impl kiln.fleet.swarm.surface]
+    /// Create and persist a new swarm run.
+    ///
+    /// # Errors
+    /// Returns the swarm configuration/limit diagnostic or store diagnostic.
+    pub fn fleet_swarm_create(
+        &mut self,
+        config: SwarmRunConfig,
+        now_ms: u64,
+    ) -> Result<SwarmRun, String> {
+        self.with_fleet(Access::Write, |fleet| {
+            let (swarms, run) =
+                fleet::create_swarm_run(&fleet.swarms, config, now_ms).map_err(diagnostic)?;
+            fleet.swarms = swarms;
+            Ok(run)
+        })
+    }
+
+    // r[impl kiln.fleet.swarm.surface] r[impl kiln.fleet.swarm.delegation]
+    /// Admit and persist one bounded member spawn inside a swarm run, checked
+    /// atomically against the live `FleetClaimRegistry`.
+    ///
+    /// # Errors
+    /// Returns the delegation/conflict diagnostic or store diagnostic.
+    pub fn fleet_swarm_spawn(
+        &mut self,
+        identity: &ContentId,
+        requester: Option<&str>,
+        request: SpawnMemberRequest,
+        now_ms: u64,
+    ) -> Result<(SwarmMember, BoardPost), String> {
+        self.with_fleet(Access::Write, |fleet| {
+            let current = fleet.swarms.runs.get(identity).ok_or_else(unknown_swarm)?;
+            let (updated, member, post) =
+                fleet::admit_spawn(current, requester, request, &fleet.claims, now_ms)
+                    .map_err(diagnostic)?;
+            fleet.swarms.runs.insert(identity.clone(), updated);
+            Ok((member, post))
+        })
+    }
+
+    // r[impl kiln.fleet.swarm.surface]
+    /// Update one swarm member's state and measured budget draw.
+    ///
+    /// # Errors
+    /// Returns the member/state diagnostic or store diagnostic.
+    pub fn fleet_swarm_update_member(
+        &mut self,
+        identity: &ContentId,
+        member: &str,
+        state: SwarmMemberState,
+        budget_draw_delta: u64,
+        now_ms: u64,
+    ) -> Result<SwarmMember, String> {
+        self.with_fleet(Access::Write, |fleet| {
+            let current = fleet.swarms.runs.get(identity).ok_or_else(unknown_swarm)?;
+            let (updated, member) =
+                fleet::update_member_state(current, member, state, budget_draw_delta, now_ms)
+                    .map_err(diagnostic)?;
+            fleet.swarms.runs.insert(identity.clone(), updated);
+            Ok(member)
+        })
+    }
+
+    // r[impl kiln.fleet.swarm.surface] r[impl kiln.fleet.swarm.model]
+    /// Append one untrusted board post to a swarm run.
+    ///
+    /// # Errors
+    /// Returns the board diagnostic or store diagnostic.
+    #[allow(clippy::too_many_arguments)]
+    pub fn fleet_swarm_post(
+        &mut self,
+        identity: &ContentId,
+        sender: &str,
+        kind: BoardPostKind,
+        mentions: Vec<MentionTarget>,
+        body: String,
+        in_reply_to: Option<u64>,
+        candidate_commit: Option<String>,
+        now_ms: u64,
+    ) -> Result<BoardPost, String> {
+        self.with_fleet(Access::Write, |fleet| {
+            let current = fleet.swarms.runs.get(identity).ok_or_else(unknown_swarm)?;
+            let (updated, post) = fleet::post_to_board(
+                current,
+                sender,
+                kind,
+                mentions,
+                body,
+                in_reply_to,
+                candidate_commit,
+                now_ms,
+            )
+            .map_err(diagnostic)?;
+            fleet.swarms.runs.insert(identity.clone(), updated);
+            Ok(post)
+        })
+    }
+
+    // r[impl kiln.fleet.swarm.surface]
+    /// Read posts and unread mentions from a swarm run board without mutating state.
+    ///
+    /// # Errors
+    /// Returns `fleet_swarm_unknown`, `fleet_swarm_member_unknown`, or the store diagnostic.
+    pub fn fleet_swarm_read_board(
+        &mut self,
+        identity: &ContentId,
+        member: Option<&str>,
+        since: Option<u64>,
+        seqs: Option<&[u64]>,
+        limit: Option<usize>,
+    ) -> Result<BoardReadResult, String> {
+        self.with_fleet(Access::Read, |fleet| {
+            let current = fleet.swarms.runs.get(identity).ok_or_else(unknown_swarm)?;
+            fleet::read_board(current, member, since, seqs, limit).map_err(diagnostic)
+        })
+    }
+
+    // r[impl kiln.fleet.swarm.surface] r[impl kiln.fleet.swarm.verdict]
+    /// Submit and persist a separated `@verifier` verdict bound to an exact commit.
+    ///
+    /// # Errors
+    /// Returns the verdict diagnostic or store diagnostic.
+    pub fn fleet_swarm_verdict(
+        &mut self,
+        identity: &ContentId,
+        verifier: &str,
+        author: &str,
+        commit: String,
+        decision: VerdictDecision,
+        now_ms: u64,
+    ) -> Result<(VerifierVerdict, VerdictOutcome, BoardPost), String> {
+        self.with_fleet(Access::Write, |fleet| {
+            let current = fleet.swarms.runs.get(identity).ok_or_else(unknown_swarm)?;
+            let (updated, verdict, outcome, post) =
+                fleet::submit_verdict(current, verifier, author, commit, decision, now_ms)
+                    .map_err(diagnostic)?;
+            fleet.swarms.runs.insert(identity.clone(), updated);
+            Ok((verdict, outcome, post))
+        })
+    }
+
+    // r[impl kiln.fleet.swarm.surface] r[impl kiln.fleet.swarm.watchdog]
+    /// Run deterministic watchdog evaluation (and optionally wake waiting members
+    /// and record one auditable `Watchdog` board entry).
+    ///
+    /// # Errors
+    /// Returns `fleet_swarm_unknown`, a board bound diagnostic, or the store diagnostic.
+    pub fn fleet_swarm_watchdog(
+        &mut self,
+        identity: &ContentId,
+        apply: bool,
+        now_ms: u64,
+    ) -> Result<(Vec<WatchdogAction>, Option<BoardPost>), String> {
+        let access = if apply { Access::Write } else { Access::Read };
+        self.with_fleet(access, |fleet| {
+            let current = fleet.swarms.runs.get(identity).ok_or_else(unknown_swarm)?;
+            let (updated, actions, post) =
+                fleet::record_watchdog_pass(current, &fleet.claims, apply, now_ms)
+                    .map_err(diagnostic)?;
+            if apply && post.is_some() {
+                fleet.swarms.runs.insert(identity.clone(), updated);
+            }
+            Ok((actions, post))
+        })
+    }
+
+    // r[impl kiln.fleet.swarm.surface] r[impl kiln.fleet.swarm.watchdog]
+    /// Apply quota failover to a `PausedQuota` member, preserving its board
+    /// cursor, checkpoint commit, and attempt lineage.
+    ///
+    /// # Errors
+    /// Returns the failover diagnostic or store diagnostic.
+    pub fn fleet_swarm_failover(
+        &mut self,
+        identity: &ContentId,
+        request: QuotaFailoverRequest,
+        now_ms: u64,
+    ) -> Result<(SwarmMember, BoardPost), String> {
+        self.with_fleet(Access::Write, |fleet| {
+            let current = fleet.swarms.runs.get(identity).ok_or_else(unknown_swarm)?;
+            let (updated, member, post) =
+                fleet::apply_quota_failover(current, request, now_ms).map_err(diagnostic)?;
+            fleet.swarms.runs.insert(identity.clone(), updated);
+            Ok((member, post))
+        })
+    }
+
+    // r[impl kiln.fleet.swarm.surface]
+    /// Compute the deterministic replayable mention graph up to `up_to_seq`.
+    ///
+    /// # Errors
+    /// Returns `fleet_swarm_unknown` or the store diagnostic.
+    pub fn fleet_swarm_graph(
+        &mut self,
+        identity: &ContentId,
+        up_to_seq: Option<u64>,
+    ) -> Result<MentionGraph, String> {
+        self.with_fleet(Access::Read, |fleet| {
+            let current = fleet.swarms.runs.get(identity).ok_or_else(unknown_swarm)?;
+            Ok(current.mention_graph(up_to_seq))
+        })
+    }
+
     fn with_fleet<T>(
         &mut self,
         access: Access,
@@ -557,6 +788,14 @@ fn unknown_session(field: &str) -> String {
         "fleet_session_unknown",
         field,
         "no such fleet session",
+    ))
+}
+
+fn unknown_swarm() -> String {
+    diagnostic(Diagnostic::new(
+        "fleet_swarm_unknown",
+        "swarm",
+        "no such swarm run",
     ))
 }
 

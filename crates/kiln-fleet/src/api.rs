@@ -10,7 +10,9 @@ use std::net::IpAddr;
 use std::sync::Arc;
 
 use kiln_core::fleet::{
-    ClaimCommand, ClaimOutcome, FleetAgent, ForeignClaim, Observation, parse_scope_text,
+    BoardPostKind, ClaimCommand, ClaimOutcome, DEFAULT_STALE_AFTER_MS, FleetAgent, ForeignClaim,
+    MentionTarget, Observation, QuotaFailoverRequest, SpawnMemberRequest, SwarmEnvelope,
+    SwarmMemberState, SwarmRole, SwarmRunConfig, VerdictDecision, parse_scope_text,
 };
 use kiln_core::implementation::Eligibility;
 use kiln_core::types::ContentId;
@@ -95,6 +97,115 @@ struct AnswerBody {
     text: String,
 }
 
+const fn default_swarm_concurrency() -> u32 {
+    4
+}
+
+const fn default_swarm_repair_rounds() -> u32 {
+    3
+}
+
+const fn default_swarm_budget() -> u64 {
+    10_000
+}
+
+const fn default_swarm_stale_after_ms() -> u64 {
+    DEFAULT_STALE_AFTER_MS
+}
+
+const fn default_true() -> bool {
+    true
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SwarmCreateBody {
+    title: String,
+    allowed_scopes: Vec<String>,
+    #[serde(default = "default_swarm_concurrency")]
+    max_concurrency: u32,
+    #[serde(default = "default_swarm_repair_rounds")]
+    max_repair_rounds: u32,
+    #[serde(default = "default_swarm_budget")]
+    budget_ceiling_units: u64,
+    #[serde(default = "default_swarm_stale_after_ms")]
+    stale_after_ms: u64,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SwarmSpawnBody {
+    name: String,
+    role: SwarmRole,
+    #[serde(default)]
+    host: Option<String>,
+    harness: String,
+    model: String,
+    #[serde(default)]
+    scope: Option<String>,
+    brief: String,
+    #[serde(default)]
+    requester: Option<String>,
+    #[serde(default)]
+    attempt: Option<ContentId>,
+    #[serde(default)]
+    claim_identity: Option<ContentId>,
+    #[serde(default)]
+    claim_fence: Option<u64>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SwarmMemberStateUpdateBody {
+    #[serde(default)]
+    action: Option<String>,
+    member: String,
+    state: SwarmMemberState,
+    #[serde(default)]
+    budget_draw_delta: u64,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum SwarmMemberBody {
+    UpdateState(SwarmMemberStateUpdateBody),
+    Spawn(SwarmSpawnBody),
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SwarmPostBody {
+    sender: String,
+    kind: BoardPostKind,
+    #[serde(default)]
+    mentions: Vec<MentionTarget>,
+    body: String,
+    #[serde(default)]
+    in_reply_to: Option<u64>,
+    #[serde(default)]
+    candidate_commit: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SwarmVerdictBody {
+    verifier: String,
+    author: String,
+    commit: String,
+    verdict: String,
+    #[serde(default)]
+    findings: Vec<String>,
+    #[serde(default)]
+    reason: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SwarmWatchdogBody {
+    #[serde(default = "default_true")]
+    apply: bool,
+}
+
 type Handled = Result<Response, Response>;
 
 impl Service {
@@ -171,9 +282,30 @@ impl Service {
             ("POST", ["decisions", id, "answer"]) => {
                 self.answer(machine, id, &request.body, now_ms)
             }
+            ("GET", ["swarms"]) => self.list_swarms(),
+            ("POST", ["swarms"]) => self.create_swarm(&request.body, now_ms),
+            ("GET", ["swarms", id]) => self.get_swarm(id),
+            ("POST", ["swarms", id, "members"]) => {
+                self.swarm_member(machine, id, &request.body, now_ms)
+            }
+            ("GET", ["swarms", id, "board"]) => self.read_swarm_board(id, request.query.as_deref()),
+            ("POST", ["swarms", id, "board"]) => self.post_swarm_board(id, &request.body, now_ms),
+            ("POST", ["swarms", id, "verdicts"]) => self.swarm_verdict(id, &request.body, now_ms),
+            ("POST", ["swarms", id, "watchdog"]) => self.swarm_watchdog(id, &request.body, now_ms),
+            ("POST", ["swarms", id, "failover"]) => self.swarm_failover(id, &request.body, now_ms),
+            ("GET", ["swarms", id, "graph"]) => self.swarm_graph(id, request.query.as_deref()),
             (
                 _,
-                ["health" | "version" | "claims" | "work" | "attempts" | "decisions" | "metrics"]
+                [
+                    "health" | "version" | "claims" | "work" | "attempts" | "decisions" | "metrics"
+                    | "swarms",
+                ]
+                | ["swarms", _]
+                | [
+                    "swarms",
+                    _,
+                    "members" | "board" | "verdicts" | "watchdog" | "failover" | "graph",
+                ]
                 | ["claims", _, "renew" | "release"]
                 | ["attempts", _, "handoff" | "cancel"]
                 | ["decisions", _, "answer"],
@@ -711,6 +843,299 @@ impl Service {
                 "only an operator machine may use this route",
             ))
         }
+    }
+
+    // r[impl kiln.fleet.swarm.surface]
+    fn list_swarms(&self) -> Handled {
+        let swarms = self
+            .open("GET /v1/swarms")?
+            .fleet_swarms()
+            .map_err(|error| store_error(&error))?;
+        Ok(Response::new(200, json!({ "swarms": swarms })))
+    }
+
+    // r[impl kiln.fleet.swarm.surface]
+    fn create_swarm(&self, body: &[u8], now_ms: u64) -> Handled {
+        let body: SwarmCreateBody = parse_body(body)?;
+        let mut allowed_scopes = Vec::with_capacity(body.allowed_scopes.len());
+        for raw in &body.allowed_scopes {
+            let scope = parse_scope_text(raw)
+                .map_err(|error| Response::error(400, &error.code, error.message))?;
+            allowed_scopes.push(scope);
+        }
+        let config = SwarmRunConfig {
+            title: body.title,
+            envelope: SwarmEnvelope { allowed_scopes },
+            max_concurrency: body.max_concurrency,
+            max_repair_rounds: body.max_repair_rounds,
+            budget_ceiling_units: body.budget_ceiling_units,
+            stale_after_ms: body.stale_after_ms,
+        };
+        let swarm = self
+            .open("POST /v1/swarms")?
+            .fleet_swarm_create(config, now_ms)
+            .map_err(|error| store_error(&error))?;
+        Ok(Response::new(201, json!({ "swarm": swarm })))
+    }
+
+    // r[impl kiln.fleet.swarm.surface]
+    fn get_swarm(&self, id: &str) -> Handled {
+        let identity = path_identity(id)?;
+        let swarm = self
+            .open("GET /v1/swarms/{id}")?
+            .fleet_swarm(&identity)
+            .map_err(|error| store_error(&error))?
+            .ok_or_else(|| Response::error(404, "fleet_swarm_unknown", "no such swarm run"))?;
+        Ok(Response::new(200, json!({ "swarm": swarm })))
+    }
+
+    // r[impl kiln.fleet.swarm.surface] r[impl kiln.fleet.swarm.delegation]
+    fn swarm_member(&self, machine: &str, id: &str, body: &[u8], now_ms: u64) -> Handled {
+        let identity = path_identity(id)?;
+        let payload: SwarmMemberBody = parse_body(body)?;
+        let mut implementer = self.open("POST /v1/swarms/{id}/members")?;
+        match payload {
+            SwarmMemberBody::UpdateState(update) => {
+                if let Some(action) = update.action.as_deref()
+                    && action != "update_state"
+                {
+                    return Err(Response::error(
+                        400,
+                        "fleet_body",
+                        "unknown member action; expected update_state",
+                    ));
+                }
+                let member = implementer
+                    .fleet_swarm_update_member(
+                        &identity,
+                        &update.member,
+                        update.state,
+                        update.budget_draw_delta,
+                        now_ms,
+                    )
+                    .map_err(|error| store_error(&error))?;
+                Ok(Response::new(200, json!({ "member": member })))
+            }
+            SwarmMemberBody::Spawn(spawn) => {
+                let scope = match spawn.scope.as_deref() {
+                    Some(text) => Some(
+                        parse_scope_text(text)
+                            .map_err(|error| Response::error(400, &error.code, error.message))?,
+                    ),
+                    None => None,
+                };
+                let request = SpawnMemberRequest {
+                    name: spawn.name,
+                    role: spawn.role,
+                    host: spawn.host.unwrap_or_else(|| machine.to_owned()),
+                    harness: spawn.harness,
+                    model: spawn.model,
+                    scope,
+                    brief: spawn.brief,
+                    attempt: spawn.attempt,
+                    claim_identity: spawn.claim_identity,
+                    claim_fence: spawn.claim_fence,
+                };
+                let (member, post) = implementer
+                    .fleet_swarm_spawn(&identity, spawn.requester.as_deref(), request, now_ms)
+                    .map_err(|error| store_error(&error))?;
+                Ok(Response::new(
+                    201,
+                    json!({ "member": member, "post": post }),
+                ))
+            }
+        }
+    }
+
+    // r[impl kiln.fleet.swarm.surface] r[impl kiln.fleet.swarm.model]
+    fn read_swarm_board(&self, id: &str, query: Option<&str>) -> Handled {
+        let identity = path_identity(id)?;
+        let mut since: Option<u64> = None;
+        let mut limit: Option<usize> = None;
+        let mut seqs: Option<Vec<u64>> = None;
+        let mut member: Option<String> = None;
+        if let Some(raw) = query
+            && !raw.is_empty()
+        {
+            for pair in raw.split('&') {
+                let (key, value) = pair.split_once('=').ok_or_else(|| {
+                    Response::error(400, "fleet_query", "malformed query parameter")
+                })?;
+                match key {
+                    "since" => {
+                        since = Some(value.parse::<u64>().map_err(|_| {
+                            Response::error(
+                                400,
+                                "fleet_query",
+                                "since must be a non-negative integer",
+                            )
+                        })?);
+                    }
+                    "limit" => {
+                        limit = Some(value.parse::<usize>().map_err(|_| {
+                            Response::error(400, "fleet_query", "limit must be a positive integer")
+                        })?);
+                    }
+                    "seqs" => {
+                        let mut parsed = Vec::new();
+                        for token in value.split(',').filter(|s| !s.is_empty()) {
+                            parsed.push(token.parse::<u64>().map_err(|_| {
+                                Response::error(
+                                    400,
+                                    "fleet_query",
+                                    "seqs must be comma-separated integers",
+                                )
+                            })?);
+                        }
+                        seqs = Some(parsed);
+                    }
+                    "member" => {
+                        if value.is_empty() {
+                            return Err(Response::error(
+                                400,
+                                "fleet_query",
+                                "member must not be empty",
+                            ));
+                        }
+                        member = Some(value.to_owned());
+                    }
+                    _ => {
+                        return Err(Response::error(
+                            400,
+                            "fleet_query",
+                            "unknown query parameter on board route",
+                        ));
+                    }
+                }
+            }
+        }
+        let result = self
+            .open("GET /v1/swarms/{id}/board")?
+            .fleet_swarm_read_board(&identity, member.as_deref(), since, seqs.as_deref(), limit)
+            .map_err(|error| store_error(&error))?;
+        Ok(Response::new(200, json!(result)))
+    }
+
+    // r[impl kiln.fleet.swarm.surface] r[impl kiln.fleet.swarm.model]
+    fn post_swarm_board(&self, id: &str, body: &[u8], now_ms: u64) -> Handled {
+        let identity = path_identity(id)?;
+        let body: SwarmPostBody = parse_body(body)?;
+        let post = self
+            .open("POST /v1/swarms/{id}/board")?
+            .fleet_swarm_post(
+                &identity,
+                &body.sender,
+                body.kind,
+                body.mentions,
+                body.body,
+                body.in_reply_to,
+                body.candidate_commit,
+                now_ms,
+            )
+            .map_err(|error| store_error(&error))?;
+        Ok(Response::new(201, json!({ "post": post })))
+    }
+
+    // r[impl kiln.fleet.swarm.surface] r[impl kiln.fleet.swarm.verdict]
+    fn swarm_verdict(&self, id: &str, body: &[u8], now_ms: u64) -> Handled {
+        let identity = path_identity(id)?;
+        let body: SwarmVerdictBody = parse_body(body)?;
+        let decision = match body.verdict.as_str() {
+            "approve" => VerdictDecision::Approve,
+            "request_changes" => VerdictDecision::RequestChanges {
+                findings: body.findings,
+            },
+            "blocked" => VerdictDecision::Blocked {
+                reason: body.reason.unwrap_or_default(),
+            },
+            _ => {
+                return Err(Response::error(
+                    400,
+                    "fleet_swarm_verdict",
+                    "verdict must be approve, request_changes, or blocked",
+                ));
+            }
+        };
+        let (verdict, outcome, post) = self
+            .open("POST /v1/swarms/{id}/verdicts")?
+            .fleet_swarm_verdict(
+                &identity,
+                &body.verifier,
+                &body.author,
+                body.commit,
+                decision,
+                now_ms,
+            )
+            .map_err(|error| store_error(&error))?;
+        Ok(Response::new(
+            201,
+            json!({ "verdict": verdict, "outcome": outcome, "post": post }),
+        ))
+    }
+
+    // r[impl kiln.fleet.swarm.surface] r[impl kiln.fleet.swarm.watchdog]
+    fn swarm_watchdog(&self, id: &str, body: &[u8], now_ms: u64) -> Handled {
+        let identity = path_identity(id)?;
+        let apply = if body.is_empty() {
+            true
+        } else {
+            let parsed: SwarmWatchdogBody = parse_body(body)?;
+            parsed.apply
+        };
+        let (actions, post) = self
+            .open("POST /v1/swarms/{id}/watchdog")?
+            .fleet_swarm_watchdog(&identity, apply, now_ms)
+            .map_err(|error| store_error(&error))?;
+        Ok(Response::new(
+            200,
+            json!({ "actions": actions, "post": post }),
+        ))
+    }
+
+    // r[impl kiln.fleet.swarm.surface] r[impl kiln.fleet.swarm.watchdog]
+    fn swarm_failover(&self, id: &str, body: &[u8], now_ms: u64) -> Handled {
+        let identity = path_identity(id)?;
+        let request: QuotaFailoverRequest = parse_body(body)?;
+        let (member, post) = self
+            .open("POST /v1/swarms/{id}/failover")?
+            .fleet_swarm_failover(&identity, request, now_ms)
+            .map_err(|error| store_error(&error))?;
+        Ok(Response::new(
+            200,
+            json!({ "member": member, "post": post }),
+        ))
+    }
+
+    // r[impl kiln.fleet.swarm.surface]
+    fn swarm_graph(&self, id: &str, query: Option<&str>) -> Handled {
+        let identity = path_identity(id)?;
+        let mut up_to_seq: Option<u64> = None;
+        if let Some(raw) = query
+            && !raw.is_empty()
+        {
+            let (key, value) = raw
+                .split_once('=')
+                .ok_or_else(|| Response::error(400, "fleet_query", "malformed query parameter"))?;
+            if key != "up_to_seq" || value.contains('&') {
+                return Err(Response::error(
+                    400,
+                    "fleet_query",
+                    "only optional up_to_seq=<u64> is accepted on graph route",
+                ));
+            }
+            up_to_seq = Some(value.parse::<u64>().map_err(|_| {
+                Response::error(
+                    400,
+                    "fleet_query",
+                    "up_to_seq must be a non-negative integer",
+                )
+            })?);
+        }
+        let graph = self
+            .open("GET /v1/swarms/{id}/graph")?
+            .fleet_swarm_graph(&identity, up_to_seq)
+            .map_err(|error| store_error(&error))?;
+        Ok(Response::new(200, json!({ "graph": graph })))
     }
 }
 

@@ -352,6 +352,7 @@ impl Fleet {
         let request = Request {
             method: "POST".into(),
             path: format!("/v1/attempts/{attempt}/handoff"),
+            query: None,
             body: json!({ "fence": fence, "commit": commit })
                 .to_string()
                 .into_bytes(),
@@ -586,6 +587,7 @@ fn work_without_interactive_agent_is_left_for_lattice() -> TestResult {
     let request = Request {
         method: "GET".into(),
         path: "/v1/work".into(),
+        query: None,
         body: Vec::new(),
     };
     let listed = fleet.service.route(COORDINATOR, &request, now());
@@ -605,6 +607,7 @@ fn work_without_interactive_agent_is_left_for_lattice() -> TestResult {
         &Request {
             method: "GET".into(),
             path: "/v1/attempts".into(),
+            query: None,
             body: Vec::new(),
         },
         now(),

@@ -229,6 +229,162 @@ impl McpServer {
                 format!("/v1/attempts/{}/handoff", identity(&text("attempt")?)?),
                 Some(json!({ "fence": number("fence")?, "commit": text("commit")? })),
             ),
+            "kiln_swarm_create" => {
+                let allowed_scopes = arguments
+                    .get("allowed_scopes")
+                    .and_then(Value::as_array)
+                    .ok_or("kiln_swarm_create needs an array allowed_scopes")?;
+                let mut body = json!({
+                    "title": text("title")?,
+                    "allowed_scopes": allowed_scopes,
+                });
+                if let Some(object) = body.as_object_mut() {
+                    for key in [
+                        "max_concurrency",
+                        "max_repair_rounds",
+                        "budget_ceiling_units",
+                        "stale_after_ms",
+                    ] {
+                        if let Some(value) = optional_number(key) {
+                            object.insert(key.into(), json!(value));
+                        }
+                    }
+                }
+                ("POST", "/v1/swarms".to_owned(), Some(body))
+            }
+            "kiln_swarm_spawn" => {
+                let swarm = identity(&text("swarm")?)?;
+                let mut body = json!({
+                    "name": text("name")?,
+                    "role": text("role")?,
+                    "harness": arguments
+                        .get("harness")
+                        .and_then(Value::as_str)
+                        .map_or_else(|| self.tool(), str::to_owned),
+                    "model": text("model")?,
+                    "brief": text("brief")?,
+                });
+                if let Some(object) = body.as_object_mut() {
+                    for key in ["host", "scope", "requester"] {
+                        if let Some(value) = arguments.get(key).and_then(Value::as_str) {
+                            object.insert(key.into(), json!(value));
+                        }
+                    }
+                    if let Some(attempt) = arguments.get("attempt").and_then(Value::as_str) {
+                        object.insert("attempt".into(), json!(identity(attempt)?));
+                    }
+                    if let Some(claim) = arguments.get("claim_identity").and_then(Value::as_str) {
+                        object.insert("claim_identity".into(), json!(identity(claim)?));
+                    }
+                    if let Some(fence) = optional_number("claim_fence") {
+                        object.insert("claim_fence".into(), json!(fence));
+                    }
+                }
+                ("POST", format!("/v1/swarms/{swarm}/members"), Some(body))
+            }
+            "kiln_swarm_post" => {
+                let swarm = identity(&text("swarm")?)?;
+                let mut body = json!({
+                    "sender": text("sender")?,
+                    "kind": text("kind")?,
+                    "body": text("body")?,
+                    "mentions": arguments
+                        .get("mentions")
+                        .cloned()
+                        .unwrap_or_else(|| json!([])),
+                });
+                if let Some(object) = body.as_object_mut() {
+                    if let Some(reply) = optional_number("in_reply_to") {
+                        object.insert("in_reply_to".into(), json!(reply));
+                    }
+                    if let Some(commit) = arguments.get("candidate_commit").and_then(Value::as_str)
+                    {
+                        object.insert("candidate_commit".into(), json!(commit));
+                    }
+                }
+                ("POST", format!("/v1/swarms/{swarm}/board"), Some(body))
+            }
+            "kiln_swarm_read" => {
+                let swarm = identity(&text("swarm")?)?;
+                let mut query = Vec::new();
+                if let Some(since) = optional_number("since") {
+                    query.push(format!("since={since}"));
+                }
+                if let Some(limit) = optional_number("limit") {
+                    query.push(format!("limit={limit}"));
+                }
+                if let Some(seqs) = arguments.get("seqs").and_then(Value::as_array) {
+                    let mut list = Vec::with_capacity(seqs.len());
+                    for item in seqs {
+                        let seq = item
+                            .as_u64()
+                            .ok_or("kiln_swarm_read seqs must be integers")?;
+                        list.push(seq.to_string());
+                    }
+                    query.push(format!("seqs={}", list.join(",")));
+                }
+                if let Some(member) = arguments.get("member").and_then(Value::as_str) {
+                    query.push(format!("member={member}"));
+                }
+                let path = if query.is_empty() {
+                    format!("/v1/swarms/{swarm}/board")
+                } else {
+                    format!("/v1/swarms/{swarm}/board?{}", query.join("&"))
+                };
+                ("GET", path, None)
+            }
+            "kiln_swarm_verdict" => {
+                let swarm = identity(&text("swarm")?)?;
+                let mut body = json!({
+                    "verifier": text("verifier")?,
+                    "author": text("author")?,
+                    "commit": text("commit")?,
+                    "verdict": text("verdict")?,
+                });
+                if let Some(object) = body.as_object_mut() {
+                    if let Some(findings) = arguments.get("findings").and_then(Value::as_array) {
+                        object.insert("findings".into(), json!(findings));
+                    }
+                    if let Some(reason) = arguments.get("reason").and_then(Value::as_str) {
+                        object.insert("reason".into(), json!(reason));
+                    }
+                }
+                ("POST", format!("/v1/swarms/{swarm}/verdicts"), Some(body))
+            }
+            "kiln_swarm_watchdog" => {
+                let swarm = identity(&text("swarm")?)?;
+                let apply = arguments
+                    .get("apply")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(true);
+                (
+                    "POST",
+                    format!("/v1/swarms/{swarm}/watchdog"),
+                    Some(json!({ "apply": apply })),
+                )
+            }
+            "kiln_swarm_failover" => {
+                let swarm = identity(&text("swarm")?)?;
+                let mut body = json!({
+                    "member": text("member")?,
+                    "replacement_model": text("replacement_model")?,
+                });
+                if let Some(object) = body.as_object_mut() {
+                    for key in ["replacement_harness", "replacement_host", "reason"] {
+                        if let Some(value) = arguments.get(key).and_then(Value::as_str) {
+                            object.insert(key.into(), json!(value));
+                        }
+                    }
+                }
+                ("POST", format!("/v1/swarms/{swarm}/failover"), Some(body))
+            }
+            "kiln_swarm_status" => {
+                if let Some(swarm) = arguments.get("swarm").and_then(Value::as_str) {
+                    ("GET", format!("/v1/swarms/{}", identity(swarm)?), None)
+                } else {
+                    ("GET", "/v1/swarms".to_owned(), None)
+                }
+            }
             _ => return Err(format!("unknown tool {name}")),
         };
         let (is_error, text) = match self.client.request(method, &path, body.as_ref()) {
@@ -301,6 +457,7 @@ fn resource_entry(uri: &str) -> Option<&'static str> {
         "kiln-fleet://work" => Some("/v1/work"),
         "kiln-fleet://attempts" => Some("/v1/attempts"),
         "kiln-fleet://decisions" => Some("/v1/decisions"),
+        "kiln-fleet://swarms" => Some("/v1/swarms"),
         _ => None,
     }
 }
@@ -326,6 +483,11 @@ fn resources() -> Value {
             "kiln-fleet://decisions",
             "Fleet decisions",
             "Questions raised by fleet work and their recorded answers.",
+        ),
+        (
+            "kiln-fleet://swarms",
+            "Swarm runs",
+            "Kiln-governed swarm runs with rosters, boards, verdicts, and budgets.",
         ),
     ]
     .into_iter()
@@ -410,6 +572,139 @@ fn tools() -> Value {
             "name": "kiln_decisions",
             "description": format!("Open and answered operator decisions (GET /v1/decisions). {UNTRUSTED}"),
             "inputSchema": empty,
+        },
+        {
+            "name": "kiln_swarm_create",
+            "description": format!("Create a scoped Kiln swarm run (POST /v1/swarms). {UNTRUSTED}"),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "title": { "type": "string" },
+                    "allowed_scopes": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+                    "max_concurrency": { "type": "integer", "minimum": 1 },
+                    "max_repair_rounds": { "type": "integer", "minimum": 1 },
+                    "budget_ceiling_units": { "type": "integer", "minimum": 1 },
+                    "stale_after_ms": { "type": "integer", "minimum": 1000 },
+                },
+                "required": ["title", "allowed_scopes"],
+                "additionalProperties": false,
+            },
+        },
+        {
+            "name": "kiln_swarm_spawn",
+            "description": format!("Admit and spawn a bounded member in a swarm run (POST /v1/swarms/{{id}}/members). Verifiers are strictly read-only and authors must stay inside the parent envelope without overlap. {UNTRUSTED}"),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "swarm": identity,
+                    "name": { "type": "string" },
+                    "role": { "type": "string", "enum": ["coordinator", "author", "verifier"] },
+                    "host": { "type": "string" },
+                    "harness": { "type": "string" },
+                    "model": { "type": "string" },
+                    "scope": { "type": "string" },
+                    "brief": { "type": "string" },
+                    "requester": { "type": "string" },
+                    "attempt": identity,
+                    "claim_identity": identity,
+                    "claim_fence": { "type": "integer" },
+                },
+                "required": ["swarm", "name", "role", "model", "brief"],
+                "additionalProperties": false,
+            },
+        },
+        {
+            "name": "kiln_swarm_post",
+            "description": format!("Append an untrusted data post to a swarm run board (POST /v1/swarms/{{id}}/board). {UNTRUSTED}"),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "swarm": identity,
+                    "sender": { "type": "string" },
+                    "kind": { "type": "string", "enum": ["brief", "status", "handoff", "review", "decision"] },
+                    "mentions": { "type": "array", "items": { "type": "object" } },
+                    "body": { "type": "string" },
+                    "in_reply_to": { "type": "integer", "minimum": 1 },
+                    "candidate_commit": { "type": "string" },
+                },
+                "required": ["swarm", "sender", "kind", "body"],
+                "additionalProperties": false,
+            },
+        },
+        {
+            "name": "kiln_swarm_read",
+            "description": format!("Read swarm run board posts by sequence cursor or exact sequence numbers (GET /v1/swarms/{{id}}/board). {UNTRUSTED}"),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "swarm": identity,
+                    "since": { "type": "integer", "minimum": 0 },
+                    "limit": { "type": "integer", "minimum": 1 },
+                    "seqs": { "type": "array", "items": { "type": "integer", "minimum": 1 } },
+                    "member": { "type": "string" },
+                },
+                "required": ["swarm"],
+                "additionalProperties": false,
+            },
+        },
+        {
+            "name": "kiln_swarm_verdict",
+            "description": format!("Submit a separated @verifier verdict bound to an exact commit (POST /v1/swarms/{{id}}/verdicts). {UNTRUSTED}"),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "swarm": identity,
+                    "verifier": { "type": "string" },
+                    "author": { "type": "string" },
+                    "commit": { "type": "string" },
+                    "verdict": { "type": "string", "enum": ["approve", "request_changes", "blocked"] },
+                    "findings": { "type": "array", "items": { "type": "string" } },
+                    "reason": { "type": "string" },
+                },
+                "required": ["swarm", "verifier", "author", "commit", "verdict"],
+                "additionalProperties": false,
+            },
+        },
+        {
+            "name": "kiln_swarm_watchdog",
+            "description": format!("Evaluate the deterministic swarm watchdog for wakeups, deadlocks, stale observations, and quota failover candidates (POST /v1/swarms/{{id}}/watchdog). {UNTRUSTED}"),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "swarm": identity,
+                    "apply": { "type": "boolean" },
+                },
+                "required": ["swarm"],
+                "additionalProperties": false,
+            },
+        },
+        {
+            "name": "kiln_swarm_failover",
+            "description": format!("Fail over a paused_quota swarm member to a replacement model/harness while preserving cursor, checkpoint commit, and attempt lineage (POST /v1/swarms/{{id}}/failover). {UNTRUSTED}"),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "swarm": identity,
+                    "member": { "type": "string" },
+                    "replacement_model": { "type": "string" },
+                    "replacement_harness": { "type": "string" },
+                    "replacement_host": { "type": "string" },
+                    "reason": { "type": "string" },
+                },
+                "required": ["swarm", "member", "replacement_model"],
+                "additionalProperties": false,
+            },
+        },
+        {
+            "name": "kiln_swarm_status",
+            "description": format!("Inspect one swarm run (GET /v1/swarms/{{id}}) or list all swarm runs (GET /v1/swarms). {UNTRUSTED}"),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "swarm": identity,
+                },
+                "additionalProperties": false,
+            },
         },
     ])
 }

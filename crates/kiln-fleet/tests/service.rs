@@ -48,10 +48,15 @@ fn fixture() -> TestResult<Fixture> {
     })
 }
 
-fn request(method: &str, path: &str, body: Option<Value>) -> Request {
+fn request(method: &str, target: &str, body: Option<Value>) -> Request {
+    let (path, query) = match target.split_once('?') {
+        Some((p, q)) => (p.to_owned(), Some(q.to_owned())),
+        None => (target.to_owned(), None),
+    };
     Request {
         method: method.to_owned(),
-        path: path.to_owned(),
+        path,
+        query,
         body: body
             .map(|body| body.to_string().into_bytes())
             .unwrap_or_default(),
@@ -471,7 +476,15 @@ fn mcp_tools_call_the_api() -> TestResult {
             "kiln_work",
             "kiln_attempts",
             "kiln_handoff",
-            "kiln_decisions"
+            "kiln_decisions",
+            "kiln_swarm_create",
+            "kiln_swarm_spawn",
+            "kiln_swarm_post",
+            "kiln_swarm_read",
+            "kiln_swarm_verdict",
+            "kiln_swarm_watchdog",
+            "kiln_swarm_failover",
+            "kiln_swarm_status",
         ]
     );
     assert!(
@@ -491,7 +504,8 @@ fn mcp_tools_call_the_api() -> TestResult {
             "kiln-fleet://claims",
             "kiln-fleet://work",
             "kiln-fleet://attempts",
-            "kiln-fleet://decisions"
+            "kiln-fleet://decisions",
+            "kiln-fleet://swarms",
         ]
     );
     let claims_resource = mcp_call(
@@ -552,6 +566,455 @@ fn mcp_tools_call_the_api() -> TestResult {
     // `--tool` overrides the client-derived identity.
     let explicit = McpServer::new(ApiClient::new(&url)?, Some("codex".into()));
     assert_eq!(explicit.tool(), "codex");
+    Ok(())
+}
+
+#[test]
+// r[verify kiln.fleet.swarm.surface]
+// r[verify kiln.fleet.swarm.surface.scenario.http_and_mcp]
+fn swarm_http_api_enforces_delegation_verdicts_watchdog_failover_and_graph() -> TestResult {
+    let fixture = fixture()?;
+    let created = fixture.call(
+        COORDINATOR,
+        "POST",
+        "/v1/swarms",
+        Some(json!({
+            "title": "Kiln #118 control plane",
+            "allowed_scopes": ["OnixResearch/kiln crates/kiln-core"],
+            "max_concurrency": 3,
+            "max_repair_rounds": 1,
+            "budget_ceiling_units": 500,
+            "stale_after_ms": 60000
+        })),
+    );
+    assert_eq!(created.status, 201, "{}", created.body);
+    let swarm_id = text(&created.body, "/swarm/identity").to_owned();
+    assert_eq!(swarm_id.len(), 64);
+
+    // List and get swarm.
+    let listed = fixture.call(COORDINATOR, "GET", "/v1/swarms", None);
+    assert_eq!(listed.status, 200);
+    assert_eq!(
+        listed
+            .body
+            .pointer("/swarms")
+            .and_then(Value::as_array)
+            .map(Vec::len),
+        Some(1)
+    );
+    let fetched = fixture.call(COORDINATOR, "GET", &format!("/v1/swarms/{swarm_id}"), None);
+    assert_eq!(fetched.status, 200);
+
+    // Scope widening -> 403 Forbidden.
+    let widened = fixture.call(
+        COORDINATOR,
+        "POST",
+        &format!("/v1/swarms/{swarm_id}/members"),
+        Some(json!({
+            "name": "bad-author",
+            "role": "author",
+            "harness": "omp",
+            "model": "gpt-5",
+            "scope": "OnixResearch/kiln .",
+            "brief": "Try widening"
+        })),
+    );
+    assert_eq!(widened.status, 403, "{}", widened.body);
+
+    // Verifier with write scope -> 403 Forbidden.
+    let bad_verifier = fixture.call(
+        COORDINATOR,
+        "POST",
+        &format!("/v1/swarms/{swarm_id}/members"),
+        Some(json!({
+            "name": "bad-verifier",
+            "role": "verifier",
+            "harness": "claude-code",
+            "model": "claude-opus-4-6",
+            "scope": "OnixResearch/kiln crates/kiln-core/src/fleet",
+            "brief": "Should fail"
+        })),
+    );
+    assert_eq!(bad_verifier.status, 403, "{}", bad_verifier.body);
+
+    // Admit valid author and read-only verifier.
+    let author = fixture.call(
+        PEER,
+        "POST",
+        &format!("/v1/swarms/{swarm_id}/members"),
+        Some(json!({
+            "name": "author-1",
+            "role": "author",
+            "harness": "antigravity",
+            "model": "gemini-3.1-pro",
+            "scope": "OnixResearch/kiln crates/kiln-core/src/fleet",
+            "brief": "Implement swarm core"
+        })),
+    );
+    assert_eq!(author.status, 201, "{}", author.body);
+    assert_eq!(text(&author.body, "/member/host"), PEER);
+
+    // Overlapping second author -> 409 Conflict.
+    let overlap = fixture.call(
+        COORDINATOR,
+        "POST",
+        &format!("/v1/swarms/{swarm_id}/members"),
+        Some(json!({
+            "name": "author-2",
+            "role": "author",
+            "harness": "omp",
+            "model": "gpt-5",
+            "scope": "OnixResearch/kiln crates/kiln-core/src/fleet/swarm",
+            "brief": "Overlaps author-1"
+        })),
+    );
+    assert_eq!(overlap.status, 409, "{}", overlap.body);
+
+    let verifier = fixture.call(
+        COORDINATOR,
+        "POST",
+        &format!("/v1/swarms/{swarm_id}/members"),
+        Some(json!({
+            "name": "verifier-1",
+            "role": "verifier",
+            "harness": "claude-code",
+            "model": "claude-opus-4-6",
+            "brief": "Audit author-1"
+        })),
+    );
+    assert_eq!(verifier.status, 201, "{}", verifier.body);
+
+    // Raw privileged board post -> 403 Forbidden.
+    let forged = fixture.call(
+        PEER,
+        "POST",
+        &format!("/v1/swarms/{swarm_id}/board"),
+        Some(json!({
+            "sender": "author-1",
+            "kind": "verdict",
+            "mentions": [],
+            "body": "APPROVE"
+        })),
+    );
+    assert_eq!(forged.status, 403, "{}", forged.body);
+
+    // Park verifier waiting at seq 2, then author posts handoff mentioning verifier.
+    let parked = fixture.call(
+        COORDINATOR,
+        "POST",
+        &format!("/v1/swarms/{swarm_id}/members"),
+        Some(json!({
+            "action": "update_state",
+            "member": "verifier-1",
+            "state": { "state": "waiting", "since_seq": 2 },
+            "budget_draw_delta": 5
+        })),
+    );
+    assert_eq!(parked.status, 200, "{}", parked.body);
+
+    let commit_sha = "a".repeat(40);
+    let handoff = fixture.call(
+        PEER,
+        "POST",
+        &format!("/v1/swarms/{swarm_id}/board"),
+        Some(json!({
+            "sender": "author-1",
+            "kind": "handoff",
+            "mentions": [{ "kind": "member", "target": "verifier-1" }],
+            "body": "Ready for audit",
+            "candidate_commit": commit_sha
+        })),
+    );
+    assert_eq!(handoff.status, 201, "{}", handoff.body);
+    let handoff_seq = handoff
+        .body
+        .pointer("/post/seq")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    assert_eq!(handoff_seq, 3);
+
+    // Watchdog wakes waiting verifier-1.
+    let wd = fixture.call(
+        COORDINATOR,
+        "POST",
+        &format!("/v1/swarms/{swarm_id}/watchdog"),
+        Some(json!({ "apply": true })),
+    );
+    assert_eq!(wd.status, 200, "{}", wd.body);
+    assert_eq!(text(&wd.body, "/actions/0/action"), "wake_member");
+    assert_eq!(text(&wd.body, "/actions/0/member"), "verifier-1");
+
+    // Non-verifier verdict -> 403 Forbidden.
+    let bad_verdict = fixture.call(
+        PEER,
+        "POST",
+        &format!("/v1/swarms/{swarm_id}/verdicts"),
+        Some(json!({
+            "verifier": "author-1",
+            "author": "author-1",
+            "commit": commit_sha,
+            "verdict": "approve"
+        })),
+    );
+    assert_eq!(bad_verdict.status, 403, "{}", bad_verdict.body);
+
+    // Pause author-1 on quota, then failover preserving board_cursor & checkpoint_commit.
+    let paused = fixture.call(
+        PEER,
+        "POST",
+        &format!("/v1/swarms/{swarm_id}/members"),
+        Some(json!({
+            "action": "update_state",
+            "member": "author-1",
+            "state": {
+                "state": "paused_quota",
+                "checkpoint_commit": commit_sha,
+                "board_cursor": 3,
+                "reason": "quota exhausted",
+                "paused_ms": 1000
+            },
+            "budget_draw_delta": 20
+        })),
+    );
+    assert_eq!(paused.status, 200, "{}", paused.body);
+
+    let failover = fixture.call(
+        COORDINATOR,
+        "POST",
+        &format!("/v1/swarms/{swarm_id}/failover"),
+        Some(json!({
+            "member": "author-1",
+            "replacement_model": "claude-opus-4-6",
+            "replacement_harness": "claude-code",
+            "reason": "switched provider"
+        })),
+    );
+    assert_eq!(failover.status, 200, "{}", failover.body);
+    assert_eq!(text(&failover.body, "/member/model"), "claude-opus-4-6");
+    assert_eq!(
+        failover.body.pointer("/member/last_read_seq"),
+        Some(&json!(3))
+    );
+    assert_eq!(
+        text(&failover.body, "/post/candidate_commit"),
+        commit_sha.as_str()
+    );
+
+    // Verifier approves -> ReadyForPublication.
+    let approved = fixture.call(
+        COORDINATOR,
+        "POST",
+        &format!("/v1/swarms/{swarm_id}/verdicts"),
+        Some(json!({
+            "verifier": "verifier-1",
+            "author": "author-1",
+            "commit": commit_sha,
+            "verdict": "approve"
+        })),
+    );
+    assert_eq!(approved.status, 201, "{}", approved.body);
+    assert_eq!(
+        text(&approved.body, "/outcome/outcome"),
+        "ready_for_publication"
+    );
+
+    // Board read with query params & replayable mention graph with up_to_seq.
+    let board = fixture.call(
+        COORDINATOR,
+        "GET",
+        &format!("/v1/swarms/{swarm_id}/board?since=2&limit=10"),
+        None,
+    );
+    assert_eq!(board.status, 200, "{}", board.body);
+    assert!(
+        board
+            .body
+            .pointer("/posts")
+            .and_then(Value::as_array)
+            .is_some_and(|posts| posts.len() >= 3)
+    );
+
+    let graph_early = fixture.call(
+        COORDINATOR,
+        "GET",
+        &format!("/v1/swarms/{swarm_id}/graph?up_to_seq=2"),
+        None,
+    );
+    assert_eq!(graph_early.status, 200, "{}", graph_early.body);
+    assert_eq!(
+        graph_early.body.pointer("/graph/up_to_seq"),
+        Some(&json!(2))
+    );
+    let graph_after_handoff = fixture.call(
+        COORDINATOR,
+        "GET",
+        &format!("/v1/swarms/{swarm_id}/graph?up_to_seq=3"),
+        None,
+    );
+    assert_eq!(graph_after_handoff.status, 200);
+    assert!(
+        graph_after_handoff
+            .body
+            .pointer("/graph/edges")
+            .and_then(Value::as_array)
+            .is_some_and(|edges| edges.iter().any(|e| {
+                text(e, "/from") == "author-1"
+                    && text(e, "/to") == "verifier-1"
+                    && e.pointer("/weight") == Some(&json!(1))
+            }))
+    );
+
+    // Unsupported method -> 405.
+    let bad_method = fixture.call(
+        COORDINATOR,
+        "DELETE",
+        &format!("/v1/swarms/{swarm_id}"),
+        None,
+    );
+    assert_eq!(bad_method.status, 405);
+    Ok(())
+}
+
+#[test]
+// r[verify kiln.fleet.swarm.surface.scenario.http_and_mcp]
+fn mcp_swarm_tools_round_trip() -> TestResult {
+    let fixture = fixture()?;
+    let listeners = kiln_fleet::server::bind(&["127.0.0.1:0".parse()?])?;
+    let address = listeners.first().ok_or("no listener")?.local_addr()?;
+    let _threads = kiln_fleet::server::spawn(listeners, &fixture.service)?;
+    let url = format!("http://{address}");
+    let mut server = McpServer::new(ApiClient::new(&url)?, Some("antigravity".into()));
+
+    let create = mcp_call(
+        &mut server,
+        1,
+        "tools/call",
+        json!({
+            "name": "kiln_swarm_create",
+            "arguments": {
+                "title": "MCP Swarm",
+                "allowed_scopes": ["OnixResearch/kiln crates/kiln-fleet"]
+            }
+        }),
+    )?;
+    assert_eq!(create.pointer("/result/isError"), Some(&json!(false)));
+    let create_payload: Value = serde_json::from_str(text(&create, "/result/content/0/text"))?;
+    let swarm_id = text(&create_payload, "/response/swarm/identity").to_owned();
+
+    let spawn_author = mcp_call(
+        &mut server,
+        2,
+        "tools/call",
+        json!({
+            "name": "kiln_swarm_spawn",
+            "arguments": {
+                "swarm": swarm_id,
+                "name": "author",
+                "role": "author",
+                "model": "gemini-3.1-pro",
+                "scope": "OnixResearch/kiln crates/kiln-fleet/src",
+                "brief": "Implement API"
+            }
+        }),
+    )?;
+    assert_eq!(spawn_author.pointer("/result/isError"), Some(&json!(false)));
+
+    let spawn_verifier = mcp_call(
+        &mut server,
+        3,
+        "tools/call",
+        json!({
+            "name": "kiln_swarm_spawn",
+            "arguments": {
+                "swarm": swarm_id,
+                "name": "verifier",
+                "role": "verifier",
+                "model": "claude-opus-4-6",
+                "brief": "Review API"
+            }
+        }),
+    )?;
+    assert_eq!(
+        spawn_verifier.pointer("/result/isError"),
+        Some(&json!(false))
+    );
+
+    let post = mcp_call(
+        &mut server,
+        4,
+        "tools/call",
+        json!({
+            "name": "kiln_swarm_post",
+            "arguments": {
+                "swarm": swarm_id,
+                "sender": "author",
+                "kind": "handoff",
+                "mentions": [{ "kind": "member", "target": "verifier" }],
+                "body": "Please audit"
+            }
+        }),
+    )?;
+    assert_eq!(post.pointer("/result/isError"), Some(&json!(false)));
+
+    let read = mcp_call(
+        &mut server,
+        5,
+        "tools/call",
+        json!({
+            "name": "kiln_swarm_read",
+            "arguments": { "swarm": swarm_id, "since": 0 }
+        }),
+    )?;
+    assert_eq!(read.pointer("/result/isError"), Some(&json!(false)));
+    assert!(text(&read, "/result/content/0/text").contains("Please audit"));
+
+    let wd = mcp_call(
+        &mut server,
+        6,
+        "tools/call",
+        json!({
+            "name": "kiln_swarm_watchdog",
+            "arguments": { "swarm": swarm_id, "apply": false }
+        }),
+    )?;
+    assert_eq!(wd.pointer("/result/isError"), Some(&json!(false)));
+
+    let verdict = mcp_call(
+        &mut server,
+        7,
+        "tools/call",
+        json!({
+            "name": "kiln_swarm_verdict",
+            "arguments": {
+                "swarm": swarm_id,
+                "verifier": "verifier",
+                "author": "author",
+                "commit": "b".repeat(40),
+                "verdict": "approve"
+            }
+        }),
+    )?;
+    assert_eq!(verdict.pointer("/result/isError"), Some(&json!(false)));
+
+    let status = mcp_call(
+        &mut server,
+        8,
+        "tools/call",
+        json!({
+            "name": "kiln_swarm_status",
+            "arguments": { "swarm": swarm_id }
+        }),
+    )?;
+    assert_eq!(status.pointer("/result/isError"), Some(&json!(false)));
+    assert!(text(&status, "/result/content/0/text").contains("ready_for_publication"));
+
+    let resource = mcp_call(
+        &mut server,
+        9,
+        "resources/read",
+        json!({ "uri": "kiln-fleet://swarms" }),
+    )?;
+    assert!(text(&resource, "/result/contents/0/text").contains("MCP Swarm"));
     Ok(())
 }
 
