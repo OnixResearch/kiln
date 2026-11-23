@@ -1833,6 +1833,25 @@ fn a_read_only_ledger_reads_the_dispatch_record_and_never_writes()
     assert_eq!(std::fs::read(&path)?, file);
     let entries = std::fs::read_dir(directory.path())?.count();
     assert_eq!(entries, 1, "no journal or other file was left");
+
+    // A ledger in WAL mode is refused before SQLite opens it, since a
+    // read-only connection may create its -wal and -shm files.
+    {
+        let connection = rusqlite::Connection::open(&path)?;
+        let mode: String = connection.query_row("PRAGMA journal_mode=WAL", [], |row| row.get(0))?;
+        assert_eq!(mode, "wal");
+    }
+    let file = std::fs::read(&path)?;
+    let refused = Implementer::open_read_only(&path, enrollment());
+    assert!(
+        refused
+            .as_ref()
+            .is_err_and(|error| error.contains("WAL mode")),
+        "{refused:?}"
+    );
+    assert_eq!(std::fs::read(&path)?, file);
+    let entries = std::fs::read_dir(directory.path())?.count();
+    assert_eq!(entries, 1, "no -wal or -shm file was created");
     Ok(())
 }
 

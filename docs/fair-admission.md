@@ -409,11 +409,14 @@ identities. The two routes differ:
   fence named by the admitted request's envelope, admitted bytes equal to
   the request sealed at bind-dispatch, and a recorded transport intent. It
   also checks the file as recovery does: a bounded ordinary file hashing to
-  `request_blake3` that `verify_frozen` accepts. Any refusal exits non-zero
-  with nothing on stdout. The mode opens the ledger read-only
+  `request_blake3` that `verify_frozen` accepts. Any refusal exits 2 with
+  nothing on stdout. The mode opens the ledger read-only
   (`Implementer::open_read_only`, one `Implementer::dispatch_record`
   snapshot) and writes, grants, reads and starts nothing; `--local-operator`,
-  `--dispatch-plan` and `--admission-observations` are not consulted.
+  `--dispatch-plan` and `--admission-observations` are not consulted. A
+  ledger in WAL mode (SQLite header write or read version 2) is refused
+  before SQLite opens it, because a read-only open could create its `-wal`
+  and `-shm` files; Kiln's ledgers use a rollback journal.
 - `--dispatch-plan` (workflow exchange) sends a `lattice.workflow-request`,
   which has no lineage field and denies unknown fields. It runs the same
   derivation and refusals before the transport start, but its request bytes

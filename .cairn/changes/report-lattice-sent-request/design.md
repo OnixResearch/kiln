@@ -53,9 +53,11 @@ exactly what Lattice must be given, or nothing.
 
 ### Decision: the narrowest read-only ledger path
 
-**Choice:** `Implementer::open_read_only` opens the file with
-`SQLITE_OPEN_READ_ONLY` (never `CREATE`) and sets `query_only`. It skips the
-schema statement. `Implementer::dispatch_record` reads the attempt, its
+**Choice:** `Implementer::open_read_only` first reads the existing file's
+100-byte SQLite header and refuses a ledger whose file format write or read
+version (offsets 18 and 19) is 2, meaning WAL mode. It then opens the file
+with `SQLITE_OPEN_READ_ONLY` (never `CREATE`) and sets `query_only`. It skips
+the schema statement. `Implementer::dispatch_record` reads the attempt, its
 transport intent, its launch and its sent request in one deferred
 transaction that saves nothing. It answers as `dispatch_requires_recovery`,
 `dispatch_launch` and `dispatch_request` do.
@@ -66,11 +68,20 @@ a write impossible, not merely absent: every saving method fails inside SQLite
 before any change. One snapshot means the intent, launch and request
 cannot come from different ledger states. That matters because an intent
 cleared between separate reads would otherwise look like a legacy launch.
+A read-only connection to a WAL database in a writable directory may still
+create its `-wal` and `-shm` files
+(<https://www.sqlite.org/wal.html#read_only_databases>), and `query_only`
+does not prevent that. Kiln creates its ledgers in rollback-journal mode,
+so refusing WAL keeps "writes nothing" unconditional without refusing any
+ledger Kiln writes.
 
 ## Risks / Trade-offs
 
 - A ledger with a hot rollback journal cannot be read read-only. The report
   then refuses instead of recovering the journal, and the dispatcher's next
   read-write open recovers it.
+- A ledger an operator switched to WAL mode is refused with a reason naming
+  WAL. A switch to WAL between the header read and SQLite's open is not
+  excluded; Kiln itself never switches a ledger to WAL.
 - The report checks Kiln's record and the file. It does not check that
   Lattice's retained state still exists in the reported root.

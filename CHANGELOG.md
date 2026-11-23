@@ -110,9 +110,11 @@ entry describes the source tree prepared for the first tagged release.
   exactly as recorded. It prints only after checking the attempt and fence,
   the request sealed at bind-dispatch, the transport intent, and that the
   file is bounded, hashes to the reported BLAKE3 and passes
-  `verify_frozen`. Any refusal leaves stdout empty. The ledger is opened
-  read-only (`Implementer::open_read_only`) and read in one
-  `Implementer::dispatch_record` snapshot, so the mode writes nothing.
+  `verify_frozen`. Any refusal exits 2 with stdout empty. The ledger is
+  opened read-only (`Implementer::open_read_only`) and read in one
+  `Implementer::dispatch_record` snapshot, so the mode writes nothing; a
+  ledger in WAL mode is refused before SQLite opens it, since a read-only
+  open could create its `-wal` and `-shm` files.
   Campaign export now shares the resolver, `worker::sent_request_and_state`.
   (#49 live pilot run 6; durable-store, unit and process tests; no live
   Lattice recover or export)

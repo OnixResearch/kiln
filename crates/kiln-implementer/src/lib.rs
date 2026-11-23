@@ -52,6 +52,22 @@ const TRANSPORT_LAUNCH_KIND: &str = "transport_launches";
 /// document so binaries that read launches without knowing about it still can.
 const TRANSPORT_REQUEST_KIND: &str = "transport_requests";
 const BUSY_TIMEOUT_MS: u64 = 10_000;
+/// The SQLite database header, and in it the file format write and read
+/// versions, which are both `2` for a database in WAL mode
+/// (<https://www.sqlite.org/fileformat.html#the_database_header>).
+const SQLITE_HEADER_BYTES: u64 = 100;
+const SQLITE_WRITE_VERSION_OFFSET: usize = 18;
+const SQLITE_READ_VERSION_OFFSET: usize = 19;
+const SQLITE_WAL_VERSION: u8 = 2;
+
+/// Whether a database header names WAL mode in either version byte. A file
+/// too short to hold the header has no journal mode.
+fn sqlite_header_names_wal(header: &[u8]) -> bool {
+    [SQLITE_WRITE_VERSION_OFFSET, SQLITE_READ_VERSION_OFFSET]
+        .iter()
+        .any(|offset| header.get(*offset) == Some(&SQLITE_WAL_VERSION))
+}
+
 const SCHEMA: &str = "
 CREATE TABLE IF NOT EXISTS implementation_state (
     kind TEXT PRIMARY KEY,
@@ -143,11 +159,27 @@ impl Implementer {
     /// Open an existing ledger only to read it. [`Self::open`] creates a
     /// missing database file and its schema; this opens the file read-only
     /// with `query_only` set and never creates or initializes anything, so
-    /// every mutating method fails inside SQLite before any change.
+    /// every mutating method fails inside SQLite before any change. A ledger
+    /// in WAL mode is refused before SQLite opens it: a read-only connection
+    /// to it may still create its `-wal` and `-shm` files
+    /// (<https://www.sqlite.org/wal.html#read_only_databases>). Rollback-journal
+    /// ledgers, which this crate creates, are read in place.
     ///
     /// # Errors
-    /// Returns a message when the database is missing or unreadable.
+    /// Returns a message when the database is missing, unreadable or in WAL
+    /// mode.
     pub fn open_read_only(path: &Path, enrollment: Enrollment) -> Result<Self, String> {
+        use std::io::Read;
+        let mut header = Vec::new();
+        std::fs::File::open(path)
+            .and_then(|file| file.take(SQLITE_HEADER_BYTES).read_to_end(&mut header))
+            .map_err(text)?;
+        if sqlite_header_names_wal(&header) {
+            return Err(
+                "the ledger is in WAL mode, which a read-only open may change by creating its -wal and -shm files; it is refused"
+                    .into(),
+            );
+        }
         let connection = Connection::open_with_flags(
             path,
             rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,

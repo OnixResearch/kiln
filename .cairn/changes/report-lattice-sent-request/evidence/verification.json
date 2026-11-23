@@ -16,6 +16,20 @@
     { "command": "cairn traceability coverage --policy <nickel export cairn-policy/development-coverage.ncl> --profile kiln-active-development --json", "exit": 0, "result": "pass, 0 dangling, 0 missing" },
     { "command": "cairn traceability coverage --policy cairn-policy/generated/cairn-policy.json --json", "exit": 1, "result": "accepted-only: the one dangling ID is this change's kiln.admission.lattice_lineage.scenario.reported, which the accepted spec gains when the change is synced and archived; 0 missing" }
   ],
+  "review_fix": {
+    "finding": "P2 from the independent review: a SQLITE_OPEN_READ_ONLY open of a WAL-mode ledger in a writable directory can create -wal/-shm files (https://www.sqlite.org/wal.html#read_only_databases); query_only does not prevent it",
+    "fix": "Implementer::open_read_only reads the 100-byte SQLite header first and refuses a write or read version of 2 (WAL) with a reason naming WAL mode; rollback-journal ledgers are still read; refusal tests assert exit status exactly 2",
+    "build": "CARGO_TARGET_DIR and TMPDIR under /home/brittonr/.cargo-target/producer-work (datapool), CARGO_BUILD_JOBS=4, nice -n 10",
+    "commands": [
+      { "command": "cargo fmt --all -- --check", "exit": 0 },
+      { "command": "cargo test --locked -p kiln-adapter-lattice -p kiln-implementer --no-fail-fast", "exit": 0, "result": "221 passed, 0 failed: adapter lib 89, bin 2, tests/sent_request_cli 3 (new a_wal_mode_ledger_is_refused_without_creating_its_sidecars); implementer lib 53 (7 ignored), admission 18, admission_host_owner 22, admission_lineage 2, durable 24, fleet 6, observation 2" },
+      { "command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0 }
+    ],
+    "mutations": [
+      { "mutation": "WAL header check disabled", "failed": "a_wal_mode_ledger_is_refused_without_creating_its_sidecars (the directory tree changed under the report) and a_read_only_ledger_reads_the_dispatch_record_and_never_writes" },
+      { "mutation": "request-seal digest check removed, alone", "failed": "the_report_names_the_recorded_lineage_request_and_root_without_writing and the_process_prints_one_object_or_nothing_and_writes_nothing, on their refusal-reason assertions: the bytes are still refused later as frozen_request_crossed, so the seal check decides the reason, not whether the report is refused" }
+    ]
+  },
   "mutations": [
     { "mutation": "transport-intent check removed", "failed": "a_legacy_launch_reports_the_admitted_request_and_no_intent_is_refused, the_process_prints_one_object_or_nothing_and_writes_nothing" },
     { "mutation": "verify_frozen result ignored", "failed": "a_record_naming_other_bytes_is_crossed" },

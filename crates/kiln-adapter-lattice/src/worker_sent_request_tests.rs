@@ -337,7 +337,7 @@ fn the_report_names_the_recorded_lineage_request_and_root_without_writing() {
     let mut absent = flags.clone();
     let missing = root.join("absent.sqlite");
     absent.insert("--database".into(), missing.display().to_string());
-    refused(&read_only(root, &absent), "unable to open");
+    refused(&read_only(root, &absent), "No such file or directory");
     assert!(!missing.exists());
 }
 

@@ -106,7 +106,7 @@ fn report(root: &Path, args: &[(&str, String)]) -> Output {
 
 fn refused(output: &Output, reason: &str) {
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(!output.status.success(), "{stderr}");
+    assert_eq!(output.status.code(), Some(2), "{stderr}");
     assert!(output.stdout.is_empty(), "stdout on refusal: {output:?}");
     assert!(stderr.contains(reason), "expected {reason:?}: {stderr}");
 }
@@ -350,6 +350,58 @@ fn the_process_prints_one_object_or_nothing_and_writes_nothing() {
     if let Some(database) = absent.first_mut() {
         database.1 = root.join("absent.sqlite").display().to_string();
     }
-    refused(&report(root, &absent), "unable to open");
+    refused(&report(root, &absent), "No such file or directory");
     assert!(!root.join("absent.sqlite").exists());
+}
+
+// r[verify kiln.admission.lattice_lineage.scenario.reported]
+#[test]
+fn a_wal_mode_ledger_is_refused_without_creating_its_sidecars() {
+    let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let root = directory.path();
+    let Bound {
+        mut owner,
+        attempt,
+        reserved,
+        admitted,
+        args,
+    } = bound(root);
+    let digest = blake3::hash(&admitted).to_hex().to_string();
+    let path = root.join(format!("request-{digest}.json"));
+    write(&path, &admitted);
+    let sent = FrozenRequest {
+        path: path.display().to_string(),
+        blake3: ContentId::from_blake3_hex(digest).unwrap_or_else(|_| unreachable!()),
+    };
+    assert_eq!(
+        owner.begin_dispatch_transport_sending(
+            &attempt.identity,
+            attempt.fence,
+            1,
+            &reserved,
+            Some(&launch(root)),
+            Some(&sent)
+        ),
+        Ok(TransportStart::Fresh)
+    );
+    drop(owner);
+    // The rollback-journal ledger is reported.
+    assert_eq!(report(root, &args).status.code(), Some(0));
+
+    // The same ledger switched to WAL by a normal connection, then closed:
+    // SQLite removes its sidecars when the last connection closes.
+    let database = root.join("kiln.sqlite");
+    {
+        let connection = rusqlite::Connection::open(&database).unwrap_or_else(|_| unreachable!());
+        let mode: String = connection
+            .query_row("PRAGMA journal_mode=WAL", [], |row| row.get(0))
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(mode, "wal");
+    }
+    let sidecars = ["-wal", "-shm", "-journal"]
+        .map(|suffix| PathBuf::from(format!("{}{suffix}", database.display())));
+    assert!(sidecars.iter().all(|sidecar| !sidecar.exists()));
+    // `report` checks that the whole tree, sidecars included, is unchanged.
+    refused(&report(root, &args), "WAL mode");
+    assert!(sidecars.iter().all(|sidecar| !sidecar.exists()));
 }

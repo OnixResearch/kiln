@@ -280,10 +280,11 @@ fn sent_request_admitted(
 /// `--admission-observations` are not consulted.
 ///
 /// # Errors
-/// A flag other than `--sent-request true`, an unreadable input, an attempt
-/// or fence unknown to the ledger, admitted bytes that are not the request
-/// bound at bind-dispatch, no recorded transport intent, or a recorded file
-/// that is missing, not a bounded ordinary file or crossed.
+/// A flag other than `--sent-request true`, an unreadable input, a ledger in
+/// WAL mode (`Implementer::open_read_only`), an attempt or fence unknown to
+/// the ledger, admitted bytes that are not the request bound at
+/// bind-dispatch, no recorded transport intent, or a recorded file that is
+/// missing, not a bounded ordinary file or crossed.
 pub fn sent_request(flags: &BTreeMap<String, String>) -> Result<String, String> {
     if flags.get("--sent-request").map(String::as_str) != Some("true") {
         return Err("--sent-request accepts only true".into());
