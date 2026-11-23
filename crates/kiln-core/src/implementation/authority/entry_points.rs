@@ -232,7 +232,8 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     operator(FLEET, "fleet_claim"),
     // The fleet launch: the bind is the durable launch record and admits the
     // launch's exact Dispatch request before it is saved; the tick admits it
-    // again (revalidating that session) before the worktree and agent start.
+    // again before the worktree and agent start, before it adopts an agent
+    // found after a restart, and before every first prompt.
     protected(FLEET, "fleet_bind_session", Op::Dispatch),
     protected(FLEET, "fleet_authorize_launch", Op::Dispatch),
     operator(FLEET, "fleet_clear_placing"),

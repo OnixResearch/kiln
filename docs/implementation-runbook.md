@@ -169,7 +169,10 @@ recorded workflow start) and the fleet session bind admit the exact `dispatch`
 request for the attempt, fence and reservation effect inside the transaction
 that saves their record; a denial saves nothing. The fleet tick admits the
 bound session's request again before it creates the worktree and starts the
-agent. The Lattice worker calls `authorize_dispatch_plan` before it reads its
+agent, before it adopts an agent it finds already created after a restart, and
+before every first prompt, including one reconciled for an agent whose start
+was recorded but whose prompt was not; a denial starts and prompts nothing. The
+Lattice worker calls `authorize_dispatch_plan` before it reads its
 credential variable; that pre-check saves nothing, and the reservation
 revalidates its session instead of consuming a second grant.
 `admission_before_transport` still rechecks at transport. A command run with

@@ -220,11 +220,12 @@ impl Implementer {
     }
 
     // r[impl kiln.implementation.authority.dispatch]
-    /// Admit a bound `Placing` session's exact `Dispatch` request again,
-    /// immediately before its launch effects (worktree creation and agent
-    /// start). It saves nothing. In the process that bound the session this
+    /// Admit a bound session's exact `Dispatch` request again, immediately
+    /// before each launch effect: worktree creation and agent start, adopting
+    /// an agent found already created after a restart, and the first prompt.
+    /// It saves nothing. In the process that bound the session this
     /// revalidates the bind's session; a revoked grant, a stale revocation
-    /// view or a replaced fence therefore starts nothing.
+    /// view or a replaced fence therefore starts and prompts nothing.
     ///
     /// # Errors
     /// Returns `fleet_session_unknown`, `implementation_fence_stale` or the

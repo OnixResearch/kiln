@@ -59,8 +59,12 @@ case "$group-$op" in
     ok "{\"type\":\"worktree_created\",\"workspace\":{\"workspace_id\":\"w2\"},\"root_pane\":{\"pane_id\":\"w2:p1\"},\"worktree\":{\"path\":\"$path\",\"branch\":\"$branch\",\"open_workspace_id\":\"w2\"}}" ;;
   agent-start)
     printf '%s\n' "$1" > "$state/agent"
+    # A coordinator crash after the agent started: its reply never arrives.
+    if [ -f "$state/start-lost" ]; then echo '{"id":"cli","error":{"code":"timeout","message":"reply lost"}}' >&2; exit 1; fi
     ok "{\"type\":\"agent_started\",\"agent\":$(agent_json "$1")}" ;;
   agent-prompt)
+    # A coordinator crash before the first prompt was delivered.
+    if [ -f "$state/prompt-lost" ]; then echo '{"id":"cli","error":{"code":"timeout","message":"prompt lost"}}' >&2; exit 1; fi
     printf '%s' "$2" > "$state/prompt.txt"
     ok "{\"type\":\"agent_prompted\",\"agent\":$(agent_json "$1")}" ;;
   agent-get)
@@ -117,6 +121,7 @@ struct Fleet {
     root: PathBuf,
     state: PathBuf,
     authority: PathBuf,
+    document: Value,
     service: Arc<Service>,
     dispatcher: Dispatcher,
     work: ImplementationWork,
@@ -264,6 +269,7 @@ fn fleet(real: bool) -> TestResult<Fleet> {
         root,
         state,
         authority,
+        document,
         service,
         dispatcher,
         work,
@@ -284,6 +290,24 @@ impl Fleet {
             .next()
             .cloned()
             .ok_or("no session")?)
+    }
+
+    /// The coordinator restarted after a crash: a new service and dispatcher
+    /// over the same ledger and herdr state, under `authority_operator`, or
+    /// under the absent profile when there is none.
+    fn restart(&self, authority_operator: Option<&str>) -> TestResult<Dispatcher> {
+        let mut document = self.document.clone();
+        let object = document
+            .as_object_mut()
+            .ok_or("configuration is not an object")?;
+        match authority_operator {
+            Some(operator) => object.insert("authority_operator".into(), json!(operator)),
+            None => object.remove("authority_operator"),
+        };
+        let service = Arc::new(Service::new(FleetConfig::from_json(&serde_json::to_vec(
+            &document,
+        )?)?)?);
+        Ok(Dispatcher::new(service)?)
     }
 
     fn handoff(&self, machine: &str, attempt: &str, fence: u64, commit: &str) -> u16 {
@@ -544,5 +568,72 @@ fn work_without_interactive_agent_is_left_for_lattice() -> TestResult {
         attempts.body.pointer("/attempts/0/held_by_fleet"),
         Some(&Value::Bool(true))
     );
+    Ok(())
+}
+
+/// Where a coordinator crash loses the outcome of an agent's launch.
+#[derive(Clone, Copy, Debug)]
+enum Lost {
+    /// After `start_agent` created the agent, before its reply was recorded:
+    /// the session stays `Placing` with an agent already running.
+    StartReply,
+    /// After the start was recorded, before the first prompt was delivered:
+    /// the session stays `Starting`.
+    FirstPrompt,
+}
+
+impl Lost {
+    const ALL: [Self; 2] = [Self::StartReply, Self::FirstPrompt];
+}
+
+/// Claim and place the interactive work, losing the launch at `lost`.
+fn interrupted(lost: Lost) -> TestResult<Fleet> {
+    let mut fleet = fleet(false)?;
+    let (flag, state) = match lost {
+        Lost::StartReply => ("start-lost", SessionState::Placing),
+        Lost::FirstPrompt => ("prompt-lost", SessionState::Starting),
+    };
+    fs::write(fleet.state.join(flag), "")?;
+    fleet.dispatcher.tick(now())?;
+    fleet.dispatcher.tick(now())?;
+    fs::remove_file(fleet.state.join(flag))?;
+    let session = fleet.session()?;
+    assert_eq!(session.state, state, "{lost:?}: {session:?}");
+    assert!(fleet.state.join("agent").is_file(), "{lost:?}: agent started");
+    assert!(!fleet.state.join("prompt.txt").exists(), "{lost:?}");
+    Ok(fleet)
+}
+
+#[test]
+// r[verify kiln.implementation.authority.dispatch.scenario.denied]
+fn a_recovered_agent_is_never_prompted_once_its_dispatch_is_refused() -> TestResult {
+    for lost in Lost::ALL {
+        let fleet = interrupted(lost)?;
+        let before = fleet.session()?.state;
+        // The restarted coordinator selects a profile that refuses Dispatch,
+        // as a revoked grant does.
+        let mut recovered = fleet.restart(None)?;
+        drop(recovered.tick(now()));
+        assert!(
+            !fleet.state.join("prompt.txt").exists(),
+            "{lost:?}: a refused launch must not prompt the agent"
+        );
+        assert_eq!(fleet.session()?.state, before, "{lost:?}");
+    }
+    Ok(())
+}
+
+#[test]
+// r[verify kiln.implementation.authority.dispatch.scenario.admitted]
+fn a_recovered_agent_is_prompted_while_its_dispatch_is_admitted() -> TestResult {
+    for lost in Lost::ALL {
+        let fleet = interrupted(lost)?;
+        let mut recovered = fleet.restart(Some(COORDINATOR))?;
+        recovered.tick(now())?;
+        let session = fleet.session()?;
+        assert_eq!(session.state, SessionState::Prompted, "{lost:?}: {session:?}");
+        let prompt = fs::read_to_string(fleet.state.join("prompt.txt"))?;
+        assert!(prompt.contains(session.attempt.as_str()), "{lost:?}");
+    }
     Ok(())
 }
