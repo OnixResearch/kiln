@@ -123,6 +123,22 @@ revalidates, then re-reads the attempt fence inside the transport transaction.
 A fence change committed after the authority check refuses transport, whether
 or not an admission policy is configured.
 
+**Every claim path.** `claim_next` and `claim_next_deferred` (the
+`kiln-implementer claim` command and the fleet tick) admit the selected attempt
+as an exact `claim-acquire` invocation inside the claim transaction, the same
+check admission claims use. A denial commits no attempt.
+
+**Entry-point coverage.** `ENTRY_POINTS`
+(`crates/kiln-core/src/implementation/authority/entry_points.rs`) classifies
+every `Implementer` public function, `kiln-implementer` subcommand, fleet API
+route and campaign control route as protected, reconciling, observation-only or
+operator configuration. `crates/kiln-implementer/tests/authority_coverage.rs`
+fails when an entry point has no row or a protected row never reaches its
+check. **Known gap:** the fleet tick launches the worker session after
+`fleet_bind_session` without a `dispatch` admission; only its claim is admitted.
+The GitHub CLI `reserve`/`start` path is operator-driven and also records no
+`dispatch` admission.
+
 The adapter records bounded redacted decisions and revalidates immediately
 before every protected commit or transport. Missing authority, cancelled or
 superseded attempts, lease expiry and unavailable currentness deny before the

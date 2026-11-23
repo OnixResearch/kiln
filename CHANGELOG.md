@@ -710,7 +710,12 @@ entry describes the source tree prepared for the first tagged release.
   incarnation, stable effect identity and expected target. Dispatch
   reconciliation presents a fresh invocation for the original effect, and the
   fence is re-read inside the transport transaction.
-  `kiln.implementation-authority-coverage.v2` classifies every entry point. The
+  `kiln.implementation-authority-coverage.v2` classifies every `Implementer`
+  public function, CLI subcommand, fleet route and campaign control route, and a
+  source-scanning test fails on an unclassified entry point. `claim_next` and
+  `claim_next_deferred` now admit `claim-acquire`; they previously claimed
+  without authority. The fleet's worker launch still has no `dispatch`
+  admission (recorded gap). The
   runbook records which GitHub effects are remotely conditional; those
   guarantees remain live-only qualification. (#69; no live GitHub or Basalt
   deployment)
