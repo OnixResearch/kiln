@@ -10,7 +10,7 @@ The adapter pins:
 
 - Cairn source `ssh://git@github.com/OnixResearch/cairn.git`;
 - Cairn executable revision `15f00875562025e7ea7e0d1f4af24d1a2e2ac06f`;
-- linked `cairn-gate-contract` imported at `9082e1aece4f04bcbead5eeea087e496bc48a675`, whose wire contract and producer fixtures are byte-identical to the executable revision's;
+- linked `cairn-gate-contract` imported at `317d3ff648f01a5ea1572e6126f4dd71bc7afa99`, whose wire contract and producer fixtures are byte-identical to the executable revision's;
 - `cairn-gate-contract` under `MIT OR Apache-2.0`;
 - `cairn-cli` under `AGPL-3.0-or-later`;
 - request schema `cairn.gate-request.v1`;
@@ -30,7 +30,7 @@ The reviewed x86-64 Linux executable is:
 
 The version-one profile admits only this immutable Nix store path. The adapter hashes the complete bounded file before construction and before each evaluation. A different path or byte identity requires a new reviewed profile.
 
-The linked contract library and the executed `cairn-cli` are pinned separately. Kiln's Cairn imports moved to `9082e1aece4f04bcbead5eeea087e496bc48a675` so that `kiln-cairn-intake` and Lattice share the revision that provides `cairn implementation-ready`. Between the two revisions, `cairn-gate-contract` changed only its module layout and lint annotations. Its schemas, request and result identity framing, scalar validation and admission rules are unchanged, and `checks.<system>.cairn-gate-cohort` refuses the import if the producer fixtures or Nickel contract drift from the frozen `15f00875` copies. Moving the gate executable needs its own reviewed profile.
+The linked contract library and the executed `cairn-cli` are pinned separately. Kiln's Cairn imports moved to `317d3ff648f01a5ea1572e6126f4dd71bc7afa99` so that `kiln-cairn-intake` and Lattice share a revision that provides `cairn implementation-ready`. Between the two revisions, `cairn-gate-contract` changed only its module layout and lint annotations. Its schemas, request and result identity framing, scalar validation and admission rules are unchanged, and `checks.<system>.cairn-gate-cohort` refuses the import if the producer fixtures or Nickel contract drift from the frozen `15f00875` copies. Moving the gate executable needs its own reviewed profile.
 
 ## Process mechanism
 

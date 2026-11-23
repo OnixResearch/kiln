@@ -1,43 +1,57 @@
 {
   "change": "align-cairn-implementation-ready",
   "issue": 49,
-  "date": "2026-11-22",
-  "base": "90a9fb64",
+  "date": "2026-11-23",
+  "base": "09326e92",
   "producer": {
     "repository": "https://github.com/OnixResearch/cairn.git",
-    "commit": "9082e1aece4f04bcbead5eeea087e496bc48a675",
-    "vendor_cairn_archive_blake3": "34d5bc3d335c23161b0a832727866d5d4d3cd309f459e5f1db1cbbb3c777ef3c",
-    "vendor_cairn_verifier_archive_blake3": "cb6b7a2f7fe2f39ba3b814803cd0c609be436c1854a6205faf301f0302cd10ed",
-    "full_archive_blake3": "5ad172aded6f574deca11e1274c5a754b8a4e050ff49d17e319022d8c2e21779",
-    "policy_source_nar": "sha256-MupXo6ha88a5GtCWyurc6ogIw5N0i7nat2BQ3btglnA=",
-    "tree_equality": "diff -r of each import against git archive 9082e1ae of its recorded paths differs only in the importer's pruned root-manifest members and added rustfmt.toml"
+    "commit": "317d3ff648f01a5ea1572e6126f4dd71bc7afa99",
+    "vendor_cairn_archive_blake3": "f966f2a01a209a0d16954c4976eae0710076281d7bbb52ddfb8f63072fe51860",
+    "vendor_cairn_verifier_archive_blake3": "445f6e2919e65eef63db85d63e4c52e2a053ec2f86442856756c89ed08b6bf9a",
+    "full_archive_blake3": "b587d565cebea97067586b95ff71f5fd14ccfcb4cb3cea65337d6d5fcf462473",
+    "policy_source_nar": "sha256-8NcPYYKMZsOV86rxpQ5Wk61rKbCPBA9ZtbYE3pG1SqA=",
+    "tree_equality": "diff -r of each import against git archive 317d3ff6 of its recorded paths differs only in the importer's pruned root-manifest members and added rustfmt.toml"
   },
   "cairn_executable": {
-    "path": "/nix/store/pdj2rrxcxwwdnkjkhmxfn9vxc5rb3d74-cairn-0.2.1/bin/cairn",
-    "built_from": "git+file:<cairn clone>?rev=9082e1aece4f04bcbead5eeea087e496bc48a675#cairn",
+    "path": "/nix/store/nc498h43kyxsh3yfbrypqjprg9pzh2qs-cairn-0.2.1/bin/cairn",
+    "built_from": "git+file:<cairn clone>?rev=317d3ff648f01a5ea1572e6126f4dd71bc7afa99#cairn",
     "note": "used with --policy and CAIRN_POLICY set to cairn-policy/generated/cairn-policy.json"
+  },
+  "lattice_compiler": {
+    "revision": "661499d282c2e79ebefbd0f9b35beb5f8d7795cd",
+    "build": "cargo build --release --locked --bin lattice",
+    "compiler_identity": "b3:3bc2164adbcf774a6678a7d3f27bd149ff15831adf9cc894ab2357f37cec9542",
+    "plan_identity": "b3:1436c4d2110a5a55af2226886be66fc2a1e87daaea52738aaa337e66a127aaf7"
   },
   "commands": [
     {"command": "scripts/import-pinned-source.sh cairn|cairn-verifier <cairn clone>", "exit": 0},
     {"command": "scripts/import-pinned-source.sh cairn-kiln-core <kiln clone>", "exit": 0, "result": "verified existing at 5d99f4e9"},
     {"command": "scripts/import-cairn-policy.sh", "exit": 0},
-    {"command": "cairn policy export --source cairn-policy/default.ncl --output cairn-policy/generated/cairn-policy.json", "exit": 0, "changed_sections": ["generated_agent_workflow_policy"]},
-    {"command": "cairn validate (9082e1ae) with the previous export", "exit": 1, "result": "policy has invalid field generated_agent_workflow_policy (negative)"},
+    {"command": "cairn policy export --source cairn-policy/default.ncl --output cairn-policy/generated/cairn-policy.json", "exit": 0, "result": "relative to 9082e1ae: readiness gate -> readiness, drain-plan-readiness added under readiness"},
+    {"command": "cairn validate with the base 007ba519-shaped export", "exit": 1, "result": "policy has invalid field generated_agent_workflow_policy (negative)"},
+    {"command": "KILN_UPDATE_SELECTED_WORK_FIXTURES=1 cargo test -p kiln-adapter-cairn --lib retained_fixtures_match_the_pinned_producer", "exit": 0, "result": "13 fixture files; every changed line is a 64-hex identity"},
+    {"command": "KILN_UPDATE_LATTICE_INTENT_FIXTURES=1 cargo test -p kiln-adapter-lattice --lib admitted_snapshot_normalizes_to_a_complete_lattice_intent", "exit": 101, "result": "wrote verify.intent.json; failed only on the stale retained request, regenerated next"},
+    {"command": "lattice workflow-intent compile verify.request.json", "exit": 0, "result": "planning_only_requires_separate_execution_admission"},
+    {"command": "lattice workflow-intent compare verify.request.json <kiln.authoritative-completion dropped>", "exit": 0, "result": "owner_readmission_required"},
+    {"command": "lattice workflow-intent compile <coverage incomplete>", "exit": 1, "result": "IncompleteContext at coverage"},
     {"command": "cargo fmt --all --check", "exit": 0},
     {"command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0},
     {"command": "cargo clippy --locked --workspace --all-targets --all-features -- -D warnings", "exit": 0},
-    {"command": "cargo test --locked --workspace", "exit": 0, "passed": 2520, "failed": 0, "ignored": 16, "suites": 199, "note": "run on the imported sources before the policy re-export; no Rust source reads the re-exported policy or agent-completion fixtures"},
+    {"command": "cargo test --locked --workspace --no-fail-fast (short PATH)", "exit": 0, "passed": 2526, "failed": 0, "ignored": 16, "suites": 200, "note": "the long session PATH makes kiln-fleet --test dispatch refuse herdr's PATH bound, as in earlier evidence"},
     {"command": "scripts/check-nickel-fixtures.sh", "exit": 0, "result": "103 positive, 655 negative"},
-    {"command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "valid": true, "issues": 0},
-    {"command": "cairn traceability coverage --root . --policy cairn-policy/generated/cairn-policy.json --json", "exit": 0, "verdict": "pass", "referenced": 2256, "missing": 0, "dangling": 0},
-    {"command": "cairn release-readiness --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "verdict": "pass", "checks_passed": 14, "checks": 14},
+    {"command": "cairn gate proposal|design align-cairn-implementation-ready", "exit": 0, "verdict": "PASS"},
+    {"command": "cairn gate tasks align-cairn-implementation-ready", "exit": 0, "verdict": "FAIL", "note": "awaits the independent no-spec review receipt"},
+    {"command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "valid": false, "note": "only the missing no-spec review receipt"},
+    {"command": "cairn traceability coverage --root . --policy cairn-policy/generated/cairn-policy.json --json", "exit": 1, "referenced": 2256, "missing": 0, "dangling": 1, "note": "the dangling kiln.admission.lattice_lineage.scenario.reported comes from base 09326e92's unsynced report-lattice-sent-request change"},
+    {"command": "cairn release-readiness --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "verdict": "fail", "note": "fails only cairn_validate (receipt pending) and traceability_coverage (inherited dangling ID); no policy drift"},
     {"command": "nix build path:$PWD#checks.x86_64-linux.cairn-gate-cohort", "exit": 0},
     {"command": "nix build path:$PWD#packages.x86_64-linux.kiln-cairn-intake", "exit": 0},
-    {"command": "nix build path:$PWD#packages.x86_64-linux.implementation-fixtures", "exit": 0, "passed": 799, "failed": 0, "ignored": 2, "suites": 41},
+    {"command": "nix build path:$PWD#packages.x86_64-linux.implementation-fixtures", "exit": 0, "passed": 804, "failed": 0, "ignored": 2, "suites": 42},
     {"command": "cairn implementation-ready --root . | kiln-cairn-intake --sequence 1 then 2", "exit": 0, "result": "selected 6, admitted 6; replay superseded 6"}
   ],
+  "review": "Independent review: KilnCairnRevendorReview (P2 readiness classification, fixed upstream by 317d3ff6). The no-spec review receipt is pending that reviewer's verdict on the final artifacts.",
   "known_unrelated": [
-    "tests/cairn-workflow-policy.sh exits 4 at base and here: change prepare-public-release is archived",
+    "tests/cairn-workflow-policy.sh exits 4 at base: change prepare-public-release is archived",
     "scripts/import-pinned-source.sh lattice, valence and bounded-exec pins carry a stale digest copied from mantle"
   ]
 }

@@ -42,7 +42,7 @@ standalone runtimes and optional Octet gates have the acquisition boundary below
 | Import | Exact producer revision | Consumed scope | Source record |
 |---|---|---|---|
 | Lattice | `70496e67c7fd4a8b05914161a8e09de2759bebc8` | MIT workflow contract and Unix transport | [`vendor/lattice.source.json`](../vendor/lattice.source.json) |
-| Cairn | `9082e1aece4f04bcbead5eeea087e496bc48a675` for both the gate contract and fixtures and `cairn-core` | `MIT OR Apache-2.0` gate contract and pinned producer fixtures; `cairn-core` authoritative completion evaluator, `cairn.selected-work.v1` admission and workflow-obligation export with its generated policies. The gate provider's reviewed executable stays at `15f00875562025e7ea7e0d1f4af24d1a2e2ac06f`; see [Cairn gate](cairn-gate.md#pinned-cohort) | Gate/fixtures: [`vendor/cairn.source.json`](../vendor/cairn.source.json); `cairn-core`: [`vendor/cairn-verifier.source.json`](../vendor/cairn-verifier.source.json) |
+| Cairn | `317d3ff648f01a5ea1572e6126f4dd71bc7afa99` for both the gate contract and fixtures and `cairn-core` | `MIT OR Apache-2.0` gate contract and pinned producer fixtures; `cairn-core` authoritative completion evaluator, `cairn.selected-work.v1` admission and workflow-obligation export with its generated policies. The gate provider's reviewed executable stays at `15f00875562025e7ea7e0d1f4af24d1a2e2ac06f`; see [Cairn gate](cairn-gate.md#pinned-cohort) | Gate/fixtures: [`vendor/cairn.source.json`](../vendor/cairn.source.json); `cairn-core`: [`vendor/cairn-verifier.source.json`](../vendor/cairn-verifier.source.json) |
 | Cairn's Kiln core | `5d99f4e9bb954743443e340baece31256b4c53f1` | The historical `MIT OR Apache-2.0` `kiln-core` that `cairn-core` pins as a Git dependency; no Kiln crate imports it | [`vendor/cairn-kiln-core.source.json`](../vendor/cairn-kiln-core.source.json) |
 | Valence | `220307a371e7bc4e3309447b09447d0fe6c4db5f` | MPL-2.0 `valence-core` | [`vendor/valence.source.json`](../vendor/valence.source.json) |
 | Artifact | `e41340bec587b6d049b5cc518ec7db925dde84be` | Transitive `MIT OR Apache-2.0` `artifact-auth-core` and `artifact-auth-ed25519` | [`vendor/artifact.source.json`](../vendor/artifact.source.json) |
@@ -86,7 +86,7 @@ pristine imports, not reformatted or treated as complete upstream checkouts.
 The Cairn and Mantle Nix cohort checks use these same committed source imports,
 not separate private flake inputs. They still require the original exact revisions
 and compare producer fixture and contract bytes against Kiln's frozen cohort.
-The Cairn check compares the `9082e1ae` import against the fixtures frozen for
+The Cairn check compares the `317d3ff6` import against the fixtures frozen for
 the `15f00875` gate executable; they are byte-identical.
 The remaining flake inputs and their transitive inputs are public GitHub or
 NixOS HTTPS archives pinned by the generated `flake.lock`.

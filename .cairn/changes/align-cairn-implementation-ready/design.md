@@ -16,7 +16,7 @@ its BLAKE3 and a Kiln policy identity.
 
 ## Decision
 
-Import both Cairn source trees from `9082e1ae` with the existing importer.
+Import both Cairn source trees from `317d3ff6` with the existing importer.
 Record the producer, full-archive and selected-archive identities in both
 source records and importer pins. Remove each old snapshot before importing;
 the importer refuses drift and has no force mode.
@@ -37,19 +37,35 @@ Kiln uses only re-exported names, so no Kiln Rust source changes. Moving the
 gate executable would need a new reviewed path, executable digest, policy
 identity and gate-machine fixtures. This change needs none of them.
 
-`cairn-core` from `8f6cd0b3` to `9082e1ae` changes convergence, delta-merge
+`cairn-core` from `8f6cd0b3` to `317d3ff6` changes convergence, delta-merge
 and assurance targets, plus `assurance-targets.json` and `mcp-discovery.json`
-in its generated policy. Kiln reads `selected_work`, `readiness`,
-`generated_agent_workflow`, the receipt hashes and canonical JSON, none of
-which changed. The vendored `cairn-policy.json` and
-`workflow-obligations.json` that Kiln tests include are unchanged.
+in its generated policy. It also adds a test-only check of shipped workflow
+command routes, bounds policy identifiers copied into generated-workflow
+admission diagnostics to 64 bytes, and files `readiness` and
+`drain-plan-readiness` under the `readiness` class in its own generated
+`cairn-policy.json`. Kiln reads `selected_work`, `readiness`,
+`generated_agent_workflow` lookups, the receipt hashes and canonical JSON;
+their accepted inputs and decisions are unchanged. The vendored
+`workflow-obligations.json` that Kiln tests include is unchanged, but the
+vendored `cairn-policy.json` identity is not, so the retained selected-work
+producer, admitted and contract fixtures are regenerated with
+`KILN_UPDATE_SELECTED_WORK_FIXTURES=1`; every changed line is a 64-hex
+identity. The Lattice intent normalized from that snapshot changes with it, so
+`fixtures/lattice/workflow-intent/verify.intent.json` is regenerated with
+`KILN_UPDATE_LATTICE_INTENT_FIXTURES=1`. Its request, plan and compare files
+are regenerated with the Lattice CLI, as `docs/cairn-selected-work.md`
+requires: a release `lattice` rebuilt from Lattice `661499d2` compiles the new
+request (whose `compiler_artifact_identity` is that executable's measured
+identity), compares it with one obligation dropped (`owner_readmission_required`),
+and refuses it with `coverage = incomplete` (`IncompleteContext`). The
+synthetic runtime profile identity is unchanged.
 
 Cairn's root `Cargo.toml` still pins `kiln-core` at `5d99f4e9` and
 `onix-artifact` at `e41340be`, so the existing root patches still resolve
 them. Cairn's workspace version moved from 0.1.0 to 0.2.1, which Cargo
 records for the path package.
 
-The `9082e1ae` CLI parses `generated_agent_workflow_policy` with two new
+The current CLI parses `generated_agent_workflow_policy` with two new
 required fields, `command_catalog` and `entry`, and refuses Kiln's
 `007ba519`-shaped export. Re-import the policy snapshot with
 `scripts/import-cairn-policy.sh` (which verifies the source revision, NAR and
@@ -83,15 +99,29 @@ imported paths, and the generated-policy diff.
 
 ## Verification
 
-Byte equality of each import with `git archive 9082e1ae` for its recorded
+Byte equality of each import with `git archive 317d3ff6` for its recorded
 paths, apart from the importer's pruned members and `rustfmt.toml`. Then
 workspace fmt, clippy with and without all features, workspace tests, the
-Nickel fixtures, `cairn validate` and traceability with the `kiln-default`
-policy and a `9082e1ae` `cairn`, and the flake checks and packages that build
-the imports. Negative: the `9082e1ae` `cairn` refuses the old policy export.
+Nickel fixtures, `cairn validate`, traceability and release readiness with the
+`kiln-default` policy and a `317d3ff6` `cairn`, the flake checks and packages
+that build the imports, and a real `cairn implementation-ready` output admitted
+through `kiln-cairn-intake`. Negative: the `317d3ff6` `cairn` refuses the old
+policy export.
+
+## Review
+
+The independent review of this package was `KilnCairnRevendorReview`, over
+the earlier `9082e1ae` re-import. Its one finding (P2) was that the imported
+catalog filed `cairn readiness` under the `gate` command class while the
+`apply` workflow permits only `readiness`. Cairn fixed the classification
+upstream in a reviewed and published change, `317d3ff6`, and this re-import
+follows that fix: Kiln's generated policy now files `readiness` and
+`drain-plan-readiness` under `readiness`. The `no-spec-delta` review receipt
+is recorded only from an independent reviewer's verdict on the final
+artifacts; the author does not write it.
 
 ## Risks and non-claims
 
-Wire compatibility is not executable qualification. A `9082e1ae` gate
+Wire compatibility is not executable qualification. A newer gate
 executable is not admitted by this change. No onix-core pin, scripted VM run,
 publication or release eligibility is established.
