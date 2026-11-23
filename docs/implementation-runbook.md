@@ -721,3 +721,41 @@ single. Run one supervisor per campaign anyway.
 The baseline pilot needs one real reproducible bug and one feature, one writing worker per repository, immutable source/executable profiles, actual isolated workspace/kernel/network qualification, real model admission and operator-approved remote credentials. Cross-host two-worker/shared-model qualification additionally needs actual independent execution/inference leases, per-worker/service usage and cancellation/restart evidence; inventory snapshots and reservation-only accounting are not measurements or grants. Current authenticated-model credential delivery and unattended GitHub landing are explicitly unqualified.
 
 Run the coordinated focused tests and real-step campaign only after integration, under the operator's exact approvals. Retain source/spec/base/candidate/profile/toolchain, native raw events, actual commands/artifacts, canonical runs, PR/integration and lifecycle identities. Report fixture evidence separately from real worker/model/remote effects. Empty ready sets, exhausted budgets, process exit zero and accepted candidates are not whole-project completion.
+
+## Related work: intra-team write-path plan gates (`19h/ratio`)
+
+[Ratio](https://github.com/19h/ratio) (pinned at
+`cde88fb889cb8c530a08aa4354385f84d8abb4ed`) is a local multi-worker coding-agent
+harness whose coordination rule freezes a plan with an exclusive workspace-relative
+write-path ownership map into a plan digest (`WorkerPlan::digest`), requires
+unanimous worker acknowledgement of that exact digest (`ack_plan`) before
+mutation tools open, and treats any worker's `object_to_plan` against that digest
+as binding (invalidating the frozen plan and returning the team to coordination).
+
+Boundaries with existing Kiln mechanisms (none of which change here):
+
+- **Plan review (`#93`, `plan_review.rs`):** human review of plan text by named
+  policy reviewers; accepting a plan never claims, reserves, or dispatches an
+  attempt. Ratio's `ack_plan` / `object_to_plan` is an intra-team worker
+  acknowledgement over a frozen write-path map, not human plan-text review.
+- **Exclusive path claims (`#45`, `#94`, `#96`):** durable, fenced mutex claims
+  among independent agents (`CLAIM <repo> <scope>`). Ratio's ownership map
+  divides paths inside a single multi-worker attempt rather than coordinating
+  independent sessions.
+- **Independent candidate verification (`#46`, `admit_candidate_verification`):**
+  controller-owned CI verification outside the editing worker's authority.
+  Ratio's in-process model lead reviewer and `submit_verdict` are not
+  independent verification and never substitute for Kiln's verifier.
+- **Not a Kiln execution harness:** Ratio runs `shell` directly with the
+  operator's host permissions (which can bypass its native path ownership checks
+  in a direct run) and carries no microVM/seccomp/Landlock isolation. Ratio must
+  not be vendored or used for Firecracker, Cloud Hypervisor, QEMU, Unikraft,
+  Herdr worktrees, fleet sessions, untrusted pull-request, or verifier
+  execution.
+- **Precondition for any future gate:** Any future default-off intra-team
+  write-path acknowledgement gate must be a separate issue, opened only if Kiln
+  admits a multi-worker attempt profile (more than one worker per implementation
+  attempt). Until then, no admission, claim, review, verification, or
+  publication behaviour changes; SPDX/licensing status (`LICENSE` absent despite
+  MIT metadata in `Cargo.toml`/`README`) must also be re-checked before any
+  code citation beyond related-work documentation.
