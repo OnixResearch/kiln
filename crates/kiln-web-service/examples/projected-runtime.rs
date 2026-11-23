@@ -45,6 +45,7 @@ use std::os::unix::net::{SocketAddr, UnixListener};
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
 
+use base64::Engine as _;
 use git2::build::TreeUpdateBuilder;
 use git2::{FileMode, Oid, Repository, Signature, Time};
 use kiln_build_graph::{ManifestTree, cargo_graph, cargo_layout, nix_graph, wanted_files};
@@ -125,7 +126,7 @@ while IFS= read -r line; do
       cd "/workspace/$root" || exit 3
       env -i "PATH=$path" HOME=/tmp/omp-home CARGO_HOME=/tmp/cargo-home CARGO_TARGET_DIR=/tmp/cargo-target "${envs[@]}" "${cmd[@]}" >/tmp/command.log 2>&1
       status=$?
-      printf '{"probe":"command","exit":%s,"tail":"%s"}\n' "$status" "$(tail -n 5 /tmp/command.log | base64 -w0)"
+      printf '{"probe":"command","exit":%s,"tail":"%s"}\n' "$status" "$(tail -n 40 /tmp/command.log | base64 -w0)"
       cd /workspace || exit 3 ;;
     write=*) t="${line#write=}"; file="${t%%:*}"; body="${t#*:}"; if printf '%s' "$body" | base64 -d > "/workspace/$file"; then printf '{"probe":"granted_write","target":"%s","written":true}\n' "$file"; else printf '{"probe":"granted_write","target":"%s","written":false}\n' "$file"; fi ;;
   esac
@@ -195,6 +196,9 @@ struct CaseReceipt {
     dispatch: Value,
     observations: Vec<Value>,
     command_exit: Option<i64>,
+    /// The last lines of the planned command's output, as the probe recorded
+    /// them.
+    command_tail: Option<String>,
     /// Every probe sent reported exactly its expected outcome, once, and
     /// nothing else was reported.
     probes_complete: bool,
@@ -230,13 +234,27 @@ fn enables_projection(config: &Value) -> bool {
         && config.pointer("/profile/verified_ucan/projection_enabled") == Some(&Value::Bool(true))
 }
 
+/// What `beta-tests`' build must report: `include_str!` of alpha's
+/// undeclared `assets/banner.txt`, which the route does not hold.
+const BETA_MISSING_SOURCE: [&str; 3] = [
+    "couldn't read",
+    "alpha/assets/banner.txt",
+    "No such file or directory",
+];
+
 /// `beta-tests` reads a file of alpha's package that no manifest declares;
-/// the route does not hold it, so its build must fail, observed, inside the
-/// runtime rather than escape to the host checkout. Every other case's
-/// command must succeed.
-fn command_qualified(case: &str, exit: Option<i64>) -> bool {
+/// the route does not hold it, so its build must fail inside the runtime,
+/// observed and for that reason, rather than escape to the host checkout. A
+/// failure for any other reason, a compile or toolchain error, does not
+/// qualify. Every other case's command must succeed.
+fn command_qualified(case: &str, exit: Option<i64>, tail: Option<&str>) -> bool {
     if case == "beta-tests" {
         exit.is_some_and(|code| code != 0)
+            && tail.is_some_and(|tail| {
+                BETA_MISSING_SOURCE
+                    .iter()
+                    .all(|diagnostic| tail.contains(diagnostic))
+            })
     } else {
         exit == Some(0)
     }
@@ -335,7 +353,11 @@ fn run() -> Result<bool> {
                 endpoint_port,
             )?;
             passed &= receipt.probes_complete
-                && command_qualified(&case.id, receipt.command_exit)
+                && command_qualified(
+                    &case.id,
+                    receipt.command_exit,
+                    receipt.command_tail.as_deref(),
+                )
                 && receipt.refused_dispatches.iter().all(refusal_qualified)
                 && receipt
                     .dispatch
@@ -992,9 +1014,15 @@ fn qualify(
         .iter()
         .filter(|event| event["probe"] == "command")
         .collect();
-    let command_exit = match commands.as_slice() {
-        [only] => only["exit"].as_i64(),
-        _ => None,
+    let (command_exit, command_tail) = match commands.as_slice() {
+        [only] => (
+            only["exit"].as_i64(),
+            only["tail"]
+                .as_str()
+                .and_then(|tail| base64::engine::general_purpose::STANDARD.decode(tail).ok())
+                .map(|bytes| String::from_utf8_lossy(&bytes).into_owned()),
+        ),
+        _ => (None, None),
     };
     let probed: Vec<&Value> = observations
         .iter()
@@ -1058,6 +1086,7 @@ fn qualify(
         dispatch: dispatched,
         observations,
         command_exit,
+        command_tail,
         probes_complete,
         missing_probes,
         unexpected_probes,
@@ -1354,13 +1383,25 @@ mod tests {
 
     // r[verify kiln.source.projection.runtime.scenario.qualified]
     #[test]
-    fn the_beta_build_failure_must_be_observed() {
-        assert!(command_qualified("beta-tests", Some(101)));
-        assert!(!command_qualified("beta-tests", None));
-        assert!(!command_qualified("beta-tests", Some(0)));
-        assert!(command_qualified("alpha-tests", Some(0)));
-        assert!(!command_qualified("alpha-tests", None));
-        assert!(!command_qualified("alpha-tests", Some(1)));
+    fn the_beta_build_must_fail_for_its_missing_source() {
+        let missing = "error: couldn't read `/workspace/projects/beta/src/../../alpha/assets/banner.txt`: No such file or directory (os error 2)\n --> src/lib.rs:7:28\nerror: could not compile `beta` (lib) due to 1 previous error\n";
+        assert!(command_qualified("beta-tests", Some(101), Some(missing)));
+        // An unrelated failure: a compile error, a missing toolchain, or no
+        // recorded diagnostic.
+        let compile = "error[E0425]: cannot find value `VERSION` in crate `proto`\nerror: could not compile `beta` (lib) due to 1 previous error\n";
+        let toolchain = "error: toolchain '1.97.1-x86_64-unknown-linux-gnu' is not installed\n";
+        for tail in [Some(compile), Some(toolchain), None] {
+            assert!(
+                !command_qualified("beta-tests", Some(101), tail),
+                "{tail:?}"
+            );
+        }
+        // The missing source without an observed failure does not qualify.
+        assert!(!command_qualified("beta-tests", None, Some(missing)));
+        assert!(!command_qualified("beta-tests", Some(0), Some(missing)));
+        assert!(command_qualified("alpha-tests", Some(0), None));
+        assert!(!command_qualified("alpha-tests", None, None));
+        assert!(!command_qualified("alpha-tests", Some(1), None));
     }
 
     // r[verify kiln.source.projection.runtime.scenario.qualified]

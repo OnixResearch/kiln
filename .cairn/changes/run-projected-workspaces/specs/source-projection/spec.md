@@ -36,7 +36,7 @@ r[kiln.source.projection.runtime] A projected attempt MUST run under Lattice's b
 r[kiln.source.projection.runtime.scenario.qualified]
 - GIVEN the two-project Cargo corpus and a two-project Nix flake, each resolved, planned, materialized and routed for a claimed local attempt, and an authority configuration selecting a verified profile with projection enabled
 - WHEN each is dispatched through `kiln-lattice-dispatch` to the real Lattice binary and its planned command runs inside the restricted runtime
-- THEN each planned build MUST succeed inside the runtime except the beta Cargo build, whose failure on an undeclared read MUST be observed, the same request under the local-operator profile MUST be refused for projection, and the receipt MUST record the route and the runtime observations
+- THEN each planned build MUST succeed inside the runtime except the beta Cargo build, whose failure MUST be observed and its recorded output MUST name the missing undeclared alpha file (any other failure MUST NOT qualify), the same request under the local-operator profile MUST be refused for projection, and the receipt MUST record the route and the runtime observations
 
 #### Scenario: Confinement negatives
 

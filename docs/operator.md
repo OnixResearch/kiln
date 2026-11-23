@@ -2760,7 +2760,8 @@ the confinement probes (host checkout, `.git`, store backing paths, UNIX,
 abstract and loopback sockets, writes outside the write paths, a symlink
 escape) and the local-operator refusal, and captures the overlay into
 `kiln.projected-candidate-facts.v1` facts; a case qualifies only on the
-complete expected probe set and, for `beta-tests`, an observed build failure.
+complete expected probe set and, for `beta-tests`, an observed build failure
+whose recorded output names the missing `alpha/assets/banner.txt`.
 The restricted runtime is not qualified: the earlier local-operator receipt
 is superseded until the run is repeated on the verified profile. Relocation,
 generated-input providers and joining plan identities to the build cache are
