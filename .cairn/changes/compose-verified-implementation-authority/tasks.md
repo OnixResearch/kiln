@@ -48,6 +48,11 @@
 - [x] [serial] [depends:kiln.implementation.authority.state] Document in the runbook and design that the feed's `observed_at_ms` is an unauthenticated claim of its producer, trusted for freshness. r[kiln.implementation.authority.state]
 - [x] [serial] [depends:kiln.implementation.authority.state] Run fmt, clippy, the `kiln-implementer`, `kiln-adapter-basalt` and authority coverage tests and `nix flake check` over these fixes and record the evidence. r[kiln.implementation.authority.state]
 
+## Phase 7: Per-feed revocation freshness
+
+- [x] [serial] [depends:kiln.implementation.authority.state] Key each revocation view by its feed file's canonical path and check every authority's freshness against its own feed only, at selection and every decision, keeping one shared revocation union; test a stale feed beside a fresh one and a long-lived authority whose feed ages out. r[kiln.implementation.authority.state.scenario.stale]
+- [x] [serial] [depends:kiln.implementation.authority.state] Run fmt, clippy, the `kiln-implementer`, `kiln-adapter-basalt` and authority coverage tests and `nix flake check` over the per-feed fix and record the evidence. r[kiln.implementation.authority.state]
+
 ## Open decisions
 
 - Native-Git requests and delivery still carry only the local-operator profile.

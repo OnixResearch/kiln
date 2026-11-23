@@ -5,6 +5,38 @@ cargo --locked, CARGO_BUILD_JOBS=4 under nice -n 10, one target directory on
 the datapool; nix with --option builders '' --option min-free 0.
 Cairn: /nix/store/x37qabfj71nzk5661f3x735nni4m96qk-cairn-0.1.0/bin/cairn.
 
+== Re-verification P1: per-feed revocation freshness ==
+ [P1] A verified authority borrowed another feed's freshness: two configurations
+   sharing one ledger (one <ledger>.authority) with different feed files shared
+   one view row, so a stale feed admitted after a fresh one was imported, and a
+   long-lived authority kept admitting after its own feed aged out.
+   2977781a Scope revocation freshness to each authority's own feed
+   authority_verified: a_stale_feed_never_borrows_another_feeds_freshness,
+     a_long_lived_authority_denies_once_its_own_feed_ages_out;
+     an_older_feed_never_moves_the_view_back_and_only_adds_revocations (single-feed
+     monotonic checks unchanged, plus another feed leaves this row alone and joins
+     the revocation union)
+   Schema: S1 introduced <ledger>.authority (absent on Kiln main 09326e92), so the
+   view table is changed in place (authority_revocation_feed_view), no migration.
+
+Red step: the two new tests appended unchanged to a scratch worktree at 3eb3fc72.
+$ cargo test --locked -p kiln-implementer --test authority_verified (the two tests) -> exit 101
+    a_stale_feed_never_borrows_another_feeds_freshness: panicked at
+      authority_verified.rs:602:5: "a stale feed must deny although another feed on
+      the ledger is fresh"
+    a_long_lived_authority_denies_once_its_own_feed_ages_out: panicked at
+      authority_verified.rs:631:5: "an authority's own aged feed must deny however
+      recently another feed refreshed"
+
+Gates on 2977781a:
+$ cargo fmt --all --check                                                   -> exit 0
+$ cargo clippy --locked --workspace --all-targets -- -D warnings            -> exit 0
+$ cargo clippy --locked --workspace --all-targets --all-features -- -D warnings -> exit 0
+$ cargo test --locked -p kiln-implementer -p kiln-adapter-basalt --no-fail-fast -> exit 0 (180 passed, 7 ignored)
+$ cargo test --locked -p kiln-implementer --test authority_coverage        -> exit 0 (9 passed)
+$ nix flake check path:$PWD --no-write-lock-file -L                         -> exit 0
+$ cairn validate; cairn gate proposal|design|tasks; dev traceability       -> exit 0 (0 dangling, 0 missing)
+
 == Verification-review fixes (two P2s introduced by the review fixes) ==
  A [P2] The revocation view's observation time moved back within a generation
    9b9753c3 Keep the revocation view's observation time monotonic within a generation
