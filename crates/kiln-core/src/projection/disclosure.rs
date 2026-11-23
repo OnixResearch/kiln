@@ -293,6 +293,9 @@ pub enum UnavailableReason {
     Unknown,
     /// The view, cursor or handle no longer matches current authority.
     Stale,
+    /// The owner's audit enumeration disagrees with this view's repository,
+    /// snapshot, definition, or listed destinations.
+    AuditMismatch,
 }
 
 /// An internally attributable refusal whose public form is uniform.
@@ -531,6 +534,22 @@ impl ScopedSelection {
         Self::over(ceiling.paths.clone())
     }
 
+    /// The whole-repository selection, covering every native and generated
+    /// path regardless of any view ceiling.
+    #[must_use]
+    pub fn root() -> Self {
+        Self::over(BTreeSet::from([PathScope::root()]))
+    }
+
+    /// Whether every path covered by `other` is also covered by `self`.
+    #[must_use]
+    pub fn covers(&self, other: &Self) -> bool {
+        other
+            .paths
+            .iter()
+            .all(|needed| self.paths.iter().any(|held| held.contains(needed)))
+    }
+
     fn over(candidates: BTreeSet<PathScope>) -> Self {
         let paths = outermost(candidates);
         let mut hasher = blake3::Hasher::new();
@@ -615,7 +634,7 @@ impl ScopedSelection {
 /// holder whose current selection differs.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ScopedEnumeration {
-    selection: ContentId,
+    selection: ScopedSelection,
     view: AdmittedPartialView,
 }
 
@@ -642,7 +661,7 @@ impl ScopedEnumeration {
             return Err(DisclosureRefusal::OutsideSelection);
         }
         Ok(Self {
-            selection: selection.identity.clone(),
+            selection: selection.clone(),
             view,
         })
     }
@@ -650,6 +669,11 @@ impl ScopedEnumeration {
     /// Identity of the selection the enumeration was made over.
     #[must_use]
     pub fn selection(&self) -> &ContentId {
+        self.selection.identity()
+    }
+    /// The selection the enumeration was made over.
+    #[must_use]
+    pub fn scoped_selection(&self) -> &ScopedSelection {
         &self.selection
     }
     /// The holder-scoped trusted view, server-side only.
@@ -1073,10 +1097,10 @@ impl AudienceView {
     /// valid audit; nothing in the ceiling is hidden from it.
     ///
     /// There is also no attribution for a displayed destination. A scope
-    /// that is no longer current, an audit of another repository, revision
-    /// or definition, or one lacking a destination this view lists, is
-    /// `Stale`. The reason never reaches the holder, whose refusal keeps its
-    /// one public shape.
+    /// that is no longer current is `Stale`; an audit of another repository,
+    /// revision or definition, or one lacking a destination this view lists,
+    /// is `AuditMismatch`. The reason never reaches the holder, whose refusal
+    /// keeps its one public shape.
     #[must_use]
     pub fn attribute(
         &self,
@@ -1086,10 +1110,21 @@ impl AudienceView {
         destination: &str,
     ) -> Option<UnavailableReason> {
         let manifest = audit.view.manifest();
-        if &audit.selection != ScopedSelection::whole(&self.ceiling).identity()
-            || manifest.coverage != Coverage::Complete
+        let whole_ceiling = ScopedSelection::whole(&self.ceiling);
+        let holder_selection = ScopedSelection::for_holder(scope, &self.ceiling);
+        if !audit.selection.covers(&whole_ceiling) || manifest.coverage != Coverage::Complete {
+            return None;
+        }
+        // Backstop against a shell mislabelling the holder's own narrowed view
+        // as an audit: only a holder whose own selection equals the audit's
+        // whole-ceiling selection has nothing hidden from it.
+        if manifest.identity == self.binding.manifest
+            && (holder_selection != whole_ceiling || audit.selection != holder_selection)
         {
             return None;
+        }
+        if !self.binding.current_for(scope, now_unix_s) {
+            return Some(UnavailableReason::Stale);
         }
         let lacks_listed = self.trusted.iter().any(|slot| {
             !manifest
@@ -1097,13 +1132,12 @@ impl AudienceView {
                 .iter()
                 .any(|entry| entry.destination == slot.destination)
         });
-        if !self.binding.current_for(scope, now_unix_s)
-            || manifest.repository != self.binding.repository
+        if manifest.repository != self.binding.repository
             || manifest.exact_revision != self.binding.snapshot
             || manifest.definition != self.binding.definition
             || lacks_listed
         {
-            return Some(UnavailableReason::Stale);
+            return Some(UnavailableReason::AuditMismatch);
         }
         if self
             .entries
@@ -1127,7 +1161,7 @@ impl AudienceView {
         Some(if !self.enumeration_complete {
             UnavailableReason::Unknown
         } else if self.coverage == VisibleCoverage::Complete {
-            UnavailableReason::Stale
+            UnavailableReason::AuditMismatch
         } else {
             UnavailableReason::Truncated
         })
@@ -1408,7 +1442,7 @@ fn restrict_bounded(
     if !scope.names(Op::Discover) && !scope.names(Op::ReadContent) {
         return Err(DisclosureRefusal::NotAuthorized);
     }
-    if &enumeration.selection != ScopedSelection::for_holder(scope, ceiling).identity() {
+    if enumeration.selection() != ScopedSelection::for_holder(scope, ceiling).identity() {
         return Err(DisclosureRefusal::Stale);
     }
     let mut binding = ViewBinding::new(manifest, ceiling, scope);

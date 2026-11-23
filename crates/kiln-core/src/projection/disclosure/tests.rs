@@ -590,7 +590,7 @@ fn attribution_judges_authority_not_display() {
             expected
         );
     }
-    // An audit lacking a destination the view lists is inconsistent.
+    // An audit lacking a destination the view lists is an owner-side audit mismatch.
     let mut lacking = corpus.facts();
     lacking
         .entries
@@ -601,7 +601,7 @@ fn attribution_judges_authority_not_display() {
             &corpus.audit(&definition, &lacking),
             "crates/secret/src/key.rs"
         ),
-        Some(UnavailableReason::Stale)
+        Some(UnavailableReason::AuditMismatch)
     );
     // A full-source holder's own enumeration is the whole-ceiling one, so it
     // is a valid audit; nothing in the ceiling is hidden from it.
@@ -760,7 +760,7 @@ fn missing_and_forbidden_probes_share_one_public_shape() {
     );
     assert_eq!(
         reader.attribute(&moved, &reader_scope, now, "crates/secret/src/key.rs"),
-        Some(UnavailableReason::Stale)
+        Some(UnavailableReason::AuditMismatch)
     );
 
     // An alias of a hidden origin is as unavailable as a missing path.
@@ -1389,6 +1389,67 @@ fn view_edits_aliases_and_closure_stay_within_the_ceiling() {
     ));
     assert!(!shown(&frozen).contains(&"crates/app/guide.md"));
     assert!(!shown(&frozen).contains(&"docs/guide.md"));
+
+    // Owner-side audit over the expanded definition (or repository root)
+    // covers the frozen ceiling and attributes both docs/guide.md and its
+    // alias as Forbidden rather than Missing (#110).
+    let expanded_whole = ScopedSelection::whole(&edited_ceiling);
+    let expanded_audit = ok(ScopedEnumeration::new(
+        &expanded_whole,
+        corpus.resolved(&edited, &ok(expanded_whole.filter_facts(&facts))),
+    ));
+    let root_audit = ok(ScopedEnumeration::new(
+        &ScopedSelection::root(),
+        corpus.resolved(&edited, &facts),
+    ));
+    for audit in [&expanded_audit, &root_audit] {
+        assert_eq!(
+            frozen.attribute(audit, &maintainer, now, "docs/guide.md"),
+            Some(UnavailableReason::Forbidden)
+        );
+        assert_eq!(
+            frozen.attribute(audit, &maintainer, now, "crates/app/guide.md"),
+            Some(UnavailableReason::Forbidden)
+        );
+        assert_eq!(
+            frozen.attribute(audit, &maintainer, now, "docs/absent.md"),
+            Some(UnavailableReason::Missing)
+        );
+    }
+
+    // Backstop against mislabelling a holder's own narrowed view as a
+    // whole-ceiling audit: never attribute hidden files as Missing (#110).
+    let reader_definition = corpus.definition("project-reader");
+    let reader_ceiling = corpus.ceiling("project-reader");
+    let reader_scoped = corpus.trusted("project-reader");
+    let reader_view = view_of(&corpus, "project-reader");
+    let mislabelled = ok(ScopedEnumeration::new(
+        &ScopedSelection::whole(&reader_ceiling),
+        reader_scoped.view().clone(),
+    ));
+    assert_eq!(
+        reader_view.attribute(&mislabelled, &reader_scope, now, "crates/secret/src/key.rs"),
+        None
+    );
+    // Even for a full-source holder restricted under a narrower frozen ceiling,
+    // mislabelling its frozen-ceiling view with the expanded definition's
+    // selection is refused.
+    let frozen_enumerated = corpus.enumerate(&edited, &facts, &maintainer, &original);
+    let mislabelled_frozen = ok(ScopedEnumeration::new(
+        &expanded_whole,
+        frozen_enumerated.view().clone(),
+    ));
+    assert_eq!(
+        frozen.attribute(&mislabelled_frozen, &maintainer, now, "docs/guide.md"),
+        None
+    );
+    // An audit for a different definition is an owner-side audit mismatch,
+    // distinct from holder staleness.
+    let stale_definition_audit = corpus.audit(&reader_definition, &facts);
+    assert_eq!(
+        frozen.attribute(&stale_definition_audit, &maintainer, now, "docs/guide.md"),
+        Some(UnavailableReason::AuditMismatch)
+    );
 }
 
 // r[verify kiln.source.projection.disclosure.unavailable.scenario.dependencies]
