@@ -129,7 +129,7 @@ impl Dispatcher {
             (None, None)
         };
         Ok(Self {
-            store: service.store.open()?,
+            store: service.store.open_coordinator()?,
             service,
             herdr,
             capturer,

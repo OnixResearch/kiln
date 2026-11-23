@@ -90,7 +90,9 @@ own entry point signs, fixed by the entry point and never by a flag:
 
 | Entry point | Seed it opens |
 |---|---|
-| Lattice worker (`kiln-lattice-dispatch`), fleet service | coordinator |
+| Lattice worker (`kiln-lattice-dispatch`), fleet dispatch thread | coordinator |
+| fleet API `POST /v1/attempts/{id}/handoff`, `POST /v1/attempts/{id}/cancel` | coordinator |
+| fleet API observation and claim routes (`GET /v1/version`, `/v1/work`, …) | none |
 | `kiln-implementer capture-candidate`, `claim`, `reserve`, `start`, … | coordinator |
 | `kiln-implementer publish`, `prepare-publication`, `close-source`, … | publisher |
 | `kiln-web-service verify-implementation` | verifier |

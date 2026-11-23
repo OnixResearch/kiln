@@ -3522,6 +3522,7 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "bounded-exec",
+ "kiln-adapter-basalt",
  "kiln-adapter-herdr",
  "kiln-adapter-swarm",
  "kiln-implementer",

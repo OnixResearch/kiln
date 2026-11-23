@@ -43,7 +43,8 @@ const EFFECTS: &str = "crates/kiln-implementer/src/publication_effects.rs";
 /// Path of the `kiln-implementer` CLI, whose subcommands are entry points.
 pub const IMPLEMENTER_CLI: &str = "crates/kiln-adapter-github/src/bin/implementer.rs";
 const CLI: &str = IMPLEMENTER_CLI;
-const FLEET_API: &str = "crates/kiln-fleet/src/api.rs";
+/// Path of the fleet API, whose `METHOD /v1/...` routes are entry points.
+pub const FLEET_API: &str = "crates/kiln-fleet/src/api.rs";
 const CONTROLS: &str = "crates/kiln-web-service/src/campaign_controls.rs";
 
 const fn protected(path: &'static str, item: &'static str, operation: Op) -> EntryPoint {

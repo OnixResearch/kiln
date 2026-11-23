@@ -248,7 +248,7 @@ fn fleet(real: bool) -> TestResult<Fleet> {
         &document,
     )?)?)?);
     let work = common::work(&base, &profile_identity, &["src"])?;
-    let mut store = service.store.open()?;
+    let mut store = service.store.open_coordinator()?;
     store.admit(&work, None)?;
     // Lattice work without interactive_agent stays queued for Lattice.
     let mut lattice = common::work(&base, &profile_identity, &["docs"])?;
@@ -282,7 +282,7 @@ fn now() -> u64 {
 
 impl Fleet {
     fn session(&self) -> TestResult<kiln_core::fleet::FleetSession> {
-        let state = self.service.store.open()?.fleet_state()?;
+        let state = self.service.store.open_coordinator()?.fleet_state()?;
         Ok(state
             .sessions
             .sessions
@@ -329,7 +329,7 @@ impl Fleet {
             first.performed,
             vec![kiln_core::fleet::FleetEffect::ClaimNext]
         );
-        let mut store = self.service.store.open()?;
+        let mut store = self.service.store.open_coordinator()?;
         let views = store.fleet_attempt_views(now())?;
         let view = views.first().ok_or("no attempt")?.clone();
         assert!(view.held_by_fleet);
@@ -443,7 +443,7 @@ fn interactive_work_is_dispatched_handed_off_and_exported() -> TestResult {
     assert_eq!(mode("tree/check")?, 0o755);
     let receipt: HerdrCandidateReceipt =
         serde_json::from_slice(&fs::read(export.join("receipt.json"))?)?;
-    let mut store = fleet.service.store.open()?;
+    let mut store = fleet.service.store.open_coordinator()?;
     let plan = store.dispatch_plan(&identity(&attempt)?)?.ok_or("plan")?;
     assert_eq!(receipt.candidate_commit, commit);
     assert_eq!(receipt.attempt_id, attempt);
@@ -505,7 +505,7 @@ fn handed_off_commits_become_candidate_handoffs() -> TestResult {
     let (attempt, fence, commit) = fleet.drive_to_handoff()?;
     fleet.dispatcher.tick(now())?;
     assert_eq!(fleet.session()?.state, SessionState::Captured);
-    let mut store = fleet.service.store.open()?;
+    let mut store = fleet.service.store.open_coordinator()?;
     let attempt_id = identity(&attempt)?;
     let record = store.attempt(&attempt_id)?.ok_or("attempt")?;
     assert_eq!(record.phase, AttemptPhase::CandidateProduced);
@@ -528,7 +528,7 @@ fn handed_off_commits_become_candidate_handoffs() -> TestResult {
 fn work_without_interactive_agent_is_left_for_lattice() -> TestResult {
     let mut fleet = fleet(false)?;
     fleet.dispatcher.tick(now())?;
-    let mut store = fleet.service.store.open()?;
+    let mut store = fleet.service.store.open_coordinator()?;
     let attempts = store.attempts()?;
     let claimed: Vec<_> = attempts.attempts().collect();
     assert_eq!(claimed.len(), 1);

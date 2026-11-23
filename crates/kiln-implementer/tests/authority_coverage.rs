@@ -685,10 +685,8 @@ fn every_cli_subcommand_loads_the_holder_role_of_every_check_it_reaches() {
     );
 }
 
-#[test]
-// r[verify kiln.implementation.authority.coverage.entry_points]
-fn every_fleet_route_has_a_reviewed_row_that_matches_its_handler() {
-    let source = read(FLEET_API);
+/// Every fleet API route, `METHOD /v1/...`, and the `self` method its arm calls.
+fn fleet_routes(source: &str) -> BTreeMap<String, Option<String>> {
     let mut routes = BTreeMap::new();
     let lines: Vec<&str> = source.lines().collect();
     for (index, line) in lines.iter().enumerate() {
@@ -724,6 +722,14 @@ fn every_fleet_route_has_a_reviewed_row_that_matches_its_handler() {
         });
         routes.insert(format!("{method} /v1/{}", path.join("/")), handler);
     }
+    routes
+}
+
+#[test]
+// r[verify kiln.implementation.authority.coverage.entry_points]
+fn every_fleet_route_has_a_reviewed_row_that_matches_its_handler() {
+    let source = read(FLEET_API);
+    let routes = fleet_routes(&source);
     assert!(routes.len() >= 13, "scan found {}", routes.len());
     assert_shell_rows(
         FLEET_API,
@@ -731,6 +737,55 @@ fn every_fleet_route_has_a_reviewed_row_that_matches_its_handler() {
         &functions(&code_only(&source)),
         &implementer(),
     );
+}
+
+#[test]
+// r[verify kiln.implementation.authority.selection.scenario.scoped]
+fn every_fleet_route_loads_the_holder_role_of_every_check_it_reaches() {
+    assert_eq!(FLEET_API, kiln_core::implementation::authority::FLEET_API);
+    let source = read(FLEET_API);
+    let routes = fleet_routes(&source);
+    let shell = functions(&code_only(&source));
+    let implementer = implementer();
+    let mut missing = Vec::new();
+    for (route, handler) in &routes {
+        let Some(handler) = handler else {
+            continue;
+        };
+        let mut reached = BTreeSet::new();
+        shell_operations(
+            &shell,
+            &implementer,
+            handler,
+            0,
+            &mut BTreeSet::new(),
+            &mut reached,
+        );
+        let loaded = entry_point_roles(ENTRY_POINTS, FLEET_API, route);
+        missing.extend(
+            reached
+                .into_iter()
+                .filter(|operation| !loaded.contains(&GrantRole::of(*operation)))
+                .map(|operation| format!("`{route}` reaches {operation:?}")),
+        );
+    }
+    assert!(
+        missing.is_empty(),
+        "routes reach checks whose holder role they do not load: {missing:?}"
+    );
+    // Each handler opens the store with its own route's row; a name with no
+    // row would load no holder.
+    let opened: BTreeSet<&str> = source
+        .match_indices(".open(\"")
+        .filter_map(|(at, open)| source.get(at + open.len()..)?.split('"').next())
+        .collect();
+    assert!(opened.len() >= 12, "{opened:?}");
+    for route in opened {
+        assert!(
+            routes.contains_key(route),
+            "the store is opened for `{route}`, which is no fleet route"
+        );
+    }
 }
 
 #[test]

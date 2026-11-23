@@ -26,6 +26,7 @@ serde_json.workspace = true
 
 [dev-dependencies]
 tempfile = "3.27.0"
+kiln-adapter-basalt = { workspace = true, features = ["test-support"] }
 
 [lints]
 workspace = true

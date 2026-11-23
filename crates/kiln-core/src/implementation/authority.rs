@@ -356,7 +356,7 @@ const fn authority_effect(operation: ProtectedOperation) -> AuthorityEffect {
 }
 
 mod entry_points;
-pub use entry_points::{ENTRY_POINTS, IMPLEMENTER_CLI};
+pub use entry_points::{ENTRY_POINTS, FLEET_API, IMPLEMENTER_CLI};
 
 /// Maximum bytes in one entry-point item name.
 pub const MAX_ENTRY_ITEM_BYTES: usize = 128;

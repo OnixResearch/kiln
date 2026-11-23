@@ -7,9 +7,12 @@
 //! serializes them exactly as a shared mutex would, and no connection is held
 //! across a child process.
 
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use kiln_core::implementation::Enrollment;
+use kiln_core::implementation::authority::{ENTRY_POINTS, FLEET_API, entry_point_roles};
+use kiln_core::implementation::grant::GrantRole;
 use kiln_implementer::Implementer;
 use kiln_implementer::authority_config::ImplementationAuthorityConfig;
 
@@ -53,23 +56,39 @@ impl Store {
         })
     }
 
-    /// Open one connection.
+    /// Open one connection that loads the holder seeds of `roles` and no
+    /// other.
     ///
-    /// The fleet claims, reserves, places, cancels and accepts candidate
-    /// handoffs; verification and publication run as separate configured
-    /// programs. It loads the coordinator holder seed and no other.
+    /// Roles are chosen where the operation is known: each API route passes
+    /// the roles of its reviewed `ENTRY_POINTS` row ([`Self::open_route`]),
+    /// so an observation route loads no seed and works without one; the
+    /// dispatch thread, which claims, reserves, places and cancels, loads the
+    /// coordinator seed ([`Self::open_coordinator`]).
     ///
     /// # Errors
     /// Returns the store diagnostic.
-    pub fn open(&self) -> Result<Implementer, String> {
+    pub fn open(&self, roles: &BTreeSet<GrantRole>) -> Result<Implementer, String> {
         let mut implementer = Implementer::open(&self.database, self.enrollment.clone())?;
-        implementer.select_authority(
-            &self.authority,
-            &std::collections::BTreeSet::from([
-                kiln_core::implementation::grant::GrantRole::Coding,
-            ]),
-        )?;
+        implementer.select_authority(&self.authority, roles)?;
         Ok(implementer)
+    }
+
+    /// Open one connection for the fleet API route `route` (`METHOD /v1/...`),
+    /// loading the holder seeds of the operations its reviewed row checks.
+    ///
+    /// # Errors
+    /// Returns the store diagnostic.
+    pub fn open_route(&self, route: &str) -> Result<Implementer, String> {
+        self.open(&entry_point_roles(ENTRY_POINTS, FLEET_API, route))
+    }
+
+    /// Open the dispatch thread's connection: the fleet tick claims,
+    /// reserves, places and cancels, so it loads the coordinator seed only.
+    ///
+    /// # Errors
+    /// Returns the store diagnostic.
+    pub fn open_coordinator(&self) -> Result<Implementer, String> {
+        self.open(&BTreeSet::from([GrantRole::Coding]))
     }
 }
 
