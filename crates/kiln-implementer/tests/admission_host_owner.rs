@@ -3,6 +3,9 @@
 // r[verify kiln.admission.host_owner.scenario.refused]
 // r[verify kiln.admission.host_owner.scenario.replay]
 //! Durable host-local owner admission through the real implementation store.
+#[path = "authority_common/mod.rs"]
+mod authority_common;
+
 use kiln_core::fair_admission::{
     AdmissionPhase, EligibilityInput, HostOwnerProfile, ReservationState,
 };
@@ -1127,4 +1130,68 @@ fn a_tentative_owner_request_commits_after_a_fresh_dispatch_decision() {
             "retained={retained}: the resumed request presented a fresh invocation"
         );
     }
+}
+
+#[test]
+// r[verify kiln.implementation.authority.selection.scenario.scoped]
+fn host_owner_release_settles_under_the_verified_profile_without_the_coordinator_seed() {
+    use kiln_core::implementation::authority::{ENTRY_POINTS, IMPLEMENTER_CLI, entry_point_roles};
+    use kiln_core::implementation::grant::GrantRole;
+    use kiln_implementer::authority_config::ImplementationAuthorityConfig;
+
+    // The cleanup-only commands check no authority, so they load no seed.
+    for command in ["host-owner-release", "metrics", "reconcile-termination"] {
+        assert!(
+            entry_point_roles(ENTRY_POINTS, IMPLEMENTER_CLI, command).is_empty(),
+            "{command}"
+        );
+    }
+    let dir = ok(tempfile::tempdir());
+    let path = dir.path().join("work.sqlite");
+    let profile = profile();
+    let issue = work(&profile, SANDBOX, 1);
+    let mut i = open(&path);
+    let (attempt, reservation) = reserved_attempt(&mut i, &profile, &issue);
+    ok(i.cancel(
+        &attempt.identity,
+        attempt.fence,
+        NOW + 3,
+        "operator stopped the pilot",
+    ));
+    drop(i);
+
+    // The host switches to the verified profile and the coordinator's seed
+    // is gone: a coordinator entry point can no longer select it.
+    let config = authority_common::write_config(
+        dir.path(),
+        &kiln_adapter_basalt::test_support::Fixture::direct(),
+        &[],
+    );
+    ok(std::fs::remove_file(dir.path().join("coordinator.seed")));
+    let select = |roles: &BTreeSet<GrantRole>| -> Result<Implementer, String> {
+        let mut i = Implementer::open(&path, enrollment())?;
+        i.set_clock_ms(authority_common::T);
+        i.select_authority(&ImplementationAuthorityConfig::load(&config)?, roles)?;
+        Ok(i)
+    };
+    assert!(select(&BTreeSet::from([GrantRole::Coding])).is_err());
+
+    // `host-owner-release` selects exactly its table roles and settles.
+    let mut i = ok(select(&entry_point_roles(
+        ENTRY_POINTS,
+        IMPLEMENTER_CLI,
+        "host-owner-release",
+    )));
+    let settled = ok(i.host_owner_release(&profile, &attempt.identity, attempt.fence, NOW + 4));
+    assert_eq!(
+        ok(serde_json::to_value(&settled))
+            .get("outcome")
+            .and_then(serde_json::Value::as_str),
+        Some("settled")
+    );
+    assert_eq!(
+        reservation_state(&mut i, &reservation),
+        ReservationState::Settled
+    );
+    assert!(i.authority_decisions().is_empty(), "release checks nothing");
 }
