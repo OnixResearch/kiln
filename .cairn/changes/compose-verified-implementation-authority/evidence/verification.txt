@@ -5,7 +5,55 @@ cargo --locked, CARGO_BUILD_JOBS=4 under nice -n 10, one target directory on
 the datapool; nix with --option builders '' --option min-free 0.
 Cairn: /nix/store/x37qabfj71nzk5661f3x735nni4m96qk-cairn-0.1.0/bin/cairn.
 
-== Final gates (dispatch path, campaign role authority, scoped holder seeds) ==
+== Review fix round (findings of the S1 review) ==
+Each finding is one commit on top of 23ccc9da; its tests are listed with it.
+Findings 10-12 concern the S4 worker route check and the sent-request readers,
+which are not in this slice, and are not part of this round.
+
+ 1 [P1] Revocation freshness from import time
+   3939dc68 Measure revocation freshness from the feed's own observation time
+   authority_verified: importing_an_unchanged_feed_never_makes_it_fresh,
+     a_feed_observed_in_the_future_is_refused_at_selection
+ 2 [P1] Dispatch against the newer work under FinishActive
+   7e8595b7 Admit Dispatch against the attempt's frozen work under FinishActive
+   authority_dispatch: a_finish_active_attempt_dispatches_under_a_grant_for_its_frozen_work,
+     a_grant_for_the_newer_work_cannot_dispatch_a_finish_active_attempt (failed before the fix)
+ 3 [P1] Recovered fleet agent prompted without a recheck
+   3c2428c7 Recheck fleet launch authority before a recovered agent is prompted
+   kiln-fleet dispatch: a_recovered_agent_is_never_prompted_once_its_dispatch_is_refused
+     (failed before the fix), a_recovered_agent_is_prompted_while_its_dispatch_is_admitted
+ 4 [P1] Tentative owner reservation resumed without Dispatch
+   c1e7089a Admit Dispatch before an owner resolves a tentative reservation
+   admission_host_owner: a_tentative_owner_request_is_never_committed_without_a_fresh_dispatch_decision,
+     a_tentative_owner_request_commits_after_a_fresh_dispatch_decision
+ 5 [P2] Authority store keyed to the caller's path spelling
+   0e46de17 Key the authority store to the ledger's canonical path
+   authority_verified: one_ledger_opened_through_a_symlink_shares_replay_and_revocation
+ 6 [P2] Fleet read routes load the coordinator seed
+   91b47635 Select fleet holder roles per route, not per store connection
+   kiln-fleet service: observation_routes_load_no_holder_seed;
+   authority_coverage: every_fleet_route_loads_the_holder_role_of_every_check_it_reaches
+ 7 [P2] Cleanup-only CLI commands load the coordinator seed
+   5c472e9d Load no holder seed for CLI cleanup commands that check no authority
+   eb47fe10 Settle a host-owner release under the verified profile without the coordinator seed
+   authority_coverage: every_cli_subcommand_loads_the_holder_role_of_every_check_it_reaches;
+   admission_host_owner: host_owner_release_settles_under_the_verified_profile_without_the_coordinator_seed
+ 8 [P2] Millisecond revocation age at the second boundary
+   c4bb8d2c Enforce the revocation age bound at every instant of the decision second
+   authority_verified: a_one_second_revocation_age_holds_at_every_instant_of_the_decision_second,
+     a_feed_observed_earlier_in_the_decision_second_admits, a_sub_second_revocation_age_is_refused;
+   Nickel: config/fixtures/implementation-authority-reject-subsecond-revocation-age.ncl
+ 9 [P2] Revocation feed partly committed before validation
+   e1742a12 Validate a revocation feed whole and import it in one transaction
+   authority_verified: a_feed_with_a_malformed_reference_imports_nothing
+13 [P2] Coverage scanner misses `pub async fn` and trait methods
+   0ddb0206 Discover the Implementer public surface from its syntax tree
+   authority_coverage: an_unclassified_public_async_method_fails_coverage,
+     an_unclassified_trait_method_fails_coverage (both fixtures fail the row
+     check); every_implementer_public_function_has_a_reviewed_row_that_matches_its_code
+     passes on the current table
+
+== Gates of the previous round (dispatch path, campaign role authority, scoped holder seeds) ==
 $ cargo fmt --all --check                                                   -> exit 0
 $ cargo clippy --locked --workspace --all-targets -- -D warnings            -> exit 0
 $ cargo clippy --locked --workspace --all-targets --all-features -- -D warnings -> exit 0
