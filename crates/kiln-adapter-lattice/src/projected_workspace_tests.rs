@@ -333,6 +333,47 @@ fn vcs_metadata_and_runtime_mounted_stores_are_refused_before_dispatch() {
     refused_with(&exposed, "route_roots");
 }
 
+// r[verify kiln.source.projection.route.scenario.refused]
+#[test]
+fn a_store_behind_a_linked_mount_root_is_refused_before_dispatch() {
+    let dir = ok(tempfile::tempdir());
+    let base = ok(std::fs::canonicalize(dir.path())).join("host");
+    let target = base.join("srv");
+    let behind = target.join("kiln/store");
+    let unrelated = base.join("var/kiln/store");
+    ok(std::fs::create_dir_all(&behind));
+    ok(std::fs::create_dir_all(&unrelated));
+    // A mount root that is a link, as `/usr -> /srv` would be.
+    let linked = base.join("usr");
+    ok(std::os::unix::fs::symlink(&target, &linked));
+    let root = |path: &std::path::Path| path.to_str().map(str::to_owned).unwrap_or_default();
+    let linked_root = root(&linked);
+    let refused = check_store_placement(&behind, &[linked_root.as_str()]);
+    assert!(
+        refused
+            .as_ref()
+            .is_err_and(|error| error.contains("through a link")),
+        "{refused:?}"
+    );
+    ok(check_store_placement(&unrelated, &[linked_root.as_str()]));
+    // A root with no entry is not bound; a root that cannot be resolved
+    // refuses even an unrelated store.
+    let absent = root(&base.join("lib64"));
+    ok(check_store_placement(&unrelated, &[absent.as_str()]));
+    let dangling = base.join("lib");
+    ok(std::os::unix::fs::symlink(base.join("missing"), &dangling));
+    let dangling = root(&dangling);
+    let unresolved = check_store_placement(&unrelated, &[dangling.as_str()]);
+    assert!(
+        unresolved
+            .as_ref()
+            .is_err_and(|error| error.contains("cannot be resolved")),
+        "{unresolved:?}"
+    );
+    // A store named through the link is not canonical.
+    assert!(check_store_placement(&linked.join("kiln/store"), &[]).is_err());
+}
+
 // r[verify kiln.source.projection.route.scenario.dispatch]
 #[test]
 fn requests_differing_from_the_route_are_refused_before_dispatch() {

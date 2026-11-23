@@ -30,7 +30,7 @@ A projected attempt sees exactly its planned entries, writes only its writable o
 
 **Choice:** a route's store may not lie at or below `/nix/store`, `/usr`, `/bin`, `/lib`, `/lib64` or `/run/current-system/sw/bin`, the roots Lattice's bubblewrap provider read-only binds into every sandbox (`SYSTEM_BASES` and the `/usr/bin` bind in Lattice `src/candidate_worker/sandbox.rs:1,168-178`, identical at the cohort pin `661499d2` and at `7fb6dc47`). Every other host path the sandbox sees is a fresh `/proc`, `/dev`, `/tmp`, `/workspace` or a route path, so a private state root such as `/var/lib/kiln` is not visible.
 
-**Rationale:** a store under `/usr` would let the worker read every input and overlay backing path outside its route.
+**Rationale:** a store under `/usr` would let the worker read every input and overlay backing path outside its route. The bind follows a symbolic link, so a lexical check alone misses `/usr -> /srv` with a store under `/srv`. The pure core stays free of I/O: `store_outside_runtime_mounts` takes the canonical store and the roots' resolved sources, and `kiln-lattice-dispatch`, beside its canonical-overlay check, canonicalizes the store (refusing one named through a link) and resolves each root present on the host. A root with no directory entry is not bound (Lattice binds only existing roots, `sandbox.rs:170,174`); a present root that cannot be resolved, a dangling link included, refuses the dispatch.
 
 ### Decision: no VCS metadata in a route
 

@@ -16,7 +16,7 @@ r[kiln.source.projection.route.scenario.derived]
 #### Scenario: Unsafe or crossed routes are refused
 
 r[kiln.source.projection.route.scenario.refused]
-- GIVEN a build witness with writable paths, an unsafe writable path or store, a store at or below a runtime-mounted host root, a destination with a `.git` or `.jj` component, a bound violation, a pin the plan does not derive, another view's plan or a build plan of another manifest
+- GIVEN a build witness with writable paths, an unsafe writable path or store, a store at or below a runtime-mounted host root or, at dispatch, at or below the resolved target of such a root that is a link, a present root that cannot be resolved, a destination with a `.git` or `.jj` component, a bound violation, a pin the plan does not derive, another view's plan or a build plan of another manifest
 - WHEN a route is derived, or a recorded route with any changed field is verified
 - THEN it MUST be refused before any effect
 

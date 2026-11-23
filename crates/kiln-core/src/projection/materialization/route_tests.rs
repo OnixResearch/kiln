@@ -571,6 +571,23 @@ fn stores_the_restricted_runtime_mounts_are_refused() {
 
 // r[verify kiln.source.projection.route.scenario.refused]
 #[test]
+fn a_store_below_a_resolved_mount_source_is_refused() {
+    // `/usr` resolved to `/srv`: its bind exposes everything below `/srv`.
+    let resolved = strings(&["/nix/store", "/srv", "/bin"]);
+    for store in ["/srv", "/srv/kiln/store", "/usr/local/kiln/store"] {
+        assert!(!store_outside_runtime_mounts(store, &resolved), "{store}");
+    }
+    for store in [STORE, "/srvx/kiln/store", "/var/srv/kiln"] {
+        assert!(store_outside_runtime_mounts(store, &resolved), "{store}");
+    }
+    // A root that resolved to `/` exposes every store, and an unsafe store
+    // path is never outside.
+    assert!(!store_outside_runtime_mounts(STORE, &strings(&["/"])));
+    assert!(!store_outside_runtime_mounts("relative/store", &[]));
+}
+
+// r[verify kiln.source.projection.route.scenario.refused]
+#[test]
 fn vcs_metadata_destinations_are_refused_during_derivation() {
     // An admitted mount places a source below `.git`.
     let mut git = writable();

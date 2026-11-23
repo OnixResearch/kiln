@@ -12,7 +12,9 @@ use std::path::Path;
 
 use kiln_core::implementation::ImplementationDispatchPlan;
 use kiln_core::implementation::authority::AuthorityDenialReason;
-use kiln_core::projection::materialization::ProjectedWorkspaceRoute;
+use kiln_core::projection::materialization::{
+    ProjectedWorkspaceRoute, RUNTIME_MOUNTED_ROOTS, store_outside_runtime_mounts,
+};
 
 /// The `kiln-lattice-dispatch` flag naming the route file.
 pub const ROUTE_FLAG: &str = "--projected-workspace-route";
@@ -121,7 +123,60 @@ pub fn check_route(
                 .into(),
         );
     }
+    // Lattice binds each runtime root through any symbolic link, so the store
+    // must also lie outside every root's resolved source.
+    let store = route
+        .store()
+        .ok_or("the projected workspace route names no store; nothing was dispatched")?;
+    check_store_placement(Path::new(store), &RUNTIME_MOUNTED_ROOTS)
+}
+
+/// Refuse a store that is not a canonical directory path, or that lies at or
+/// below a runtime-mounted root by name or by its resolved source.
+fn check_store_placement(store: &Path, roots: &[&str]) -> Result<(), String> {
+    let canonical = std::fs::canonicalize(store)
+        .ok()
+        .filter(|canonical| canonical == store)
+        .and_then(|canonical| canonical.to_str().map(str::to_owned))
+        .ok_or(
+            "the materialization store is not a canonical directory path; nothing was dispatched",
+        )?;
+    let resolved = resolve_mount_roots(roots)?;
+    if !store_outside_runtime_mounts(&canonical, &resolved) {
+        return Err(
+            "the materialization store lies at or below a host root the restricted runtime mounts, by name or through a link; nothing was dispatched"
+                .into(),
+        );
+    }
     Ok(())
+}
+
+/// The canonical source of each runtime-mounted root present on this host.
+/// A root with no directory entry is not bound: Lattice binds a root only
+/// when it exists (`src/candidate_worker/sandbox.rs:170,174`). Any other root
+/// that cannot be resolved, a dangling link included, refuses the dispatch.
+fn resolve_mount_roots(roots: &[&str]) -> Result<Vec<String>, String> {
+    let unresolved = |root: &str| {
+        format!(
+            "the runtime-mounted root {root} cannot be resolved, so the store's exposure is unknown; nothing was dispatched"
+        )
+    };
+    let mut resolved = Vec::new();
+    for root in roots {
+        match std::fs::symlink_metadata(root) {
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(_) => return Err(unresolved(root)),
+            Ok(_) => {}
+        }
+        let canonical = std::fs::canonicalize(root).map_err(|_| unresolved(root))?;
+        resolved.push(
+            canonical
+                .to_str()
+                .ok_or_else(|| unresolved(root))?
+                .to_owned(),
+        );
+    }
+    Ok(resolved)
 }
 
 fn read_route(path: &Path) -> Result<ProjectedWorkspaceRoute, String> {

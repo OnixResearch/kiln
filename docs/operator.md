@@ -2635,7 +2635,11 @@ the input root is recorded but never mounted, and the checkout, Git database
 and store stay outside. Place the store under a private state root such as
 `/var/lib/kiln`: a store at or below `/nix/store`, `/usr`, `/bin`, `/lib`,
 `/lib64` or `/run/current-system/sw/bin`, which Lattice's bubblewrap
-provider binds into every sandbox, is refused. A destination with a `.git` or
+provider binds into every sandbox, is refused, and `kiln-lattice-dispatch`
+also refuses a store at or below the resolved target of any of these roots
+that is a link (with `/usr -> /srv`, a store under `/srv`) or a store whose
+path is not canonical; a root present but unresolvable refuses every
+dispatch. A destination with a `.git` or
 `.jj` component is refused, as Lattice would refuse it only after dispatch.
 The route carries the authored definition and resolved manifest it was
 derived from. `worker::materialize::prepare_route` creates missing creation

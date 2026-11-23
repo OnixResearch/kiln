@@ -753,6 +753,20 @@ fn store_path(path: &str) -> bool {
             .any(|root| path == *root || dir_contains(root, path))
 }
 
+/// Whether a canonical store path lies outside every runtime-mounted root,
+/// both by the roots' lexical names and by `resolved_roots`, the canonical
+/// paths the shell resolved the existing [`RUNTIME_MOUNTED_ROOTS`] to.
+/// Lattice's bind follows a symbolic link, so with `/usr -> /srv` a store
+/// below `/srv` is visible at `/usr`. This performs no I/O: the caller
+/// canonicalizes the store, resolves the roots and refuses when it cannot.
+#[must_use]
+pub fn store_outside_runtime_mounts(store: &str, resolved_roots: &[String]) -> bool {
+    store_path(store)
+        && !resolved_roots
+            .iter()
+            .any(|root| root == "/" || root == store || dir_contains(root, store))
+}
+
 /// Whether a relative path has a component Lattice refuses as VCS metadata.
 fn vcs_metadata(path: &str) -> bool {
     path.split('/').any(|part| VCS_METADATA.contains(&part))
