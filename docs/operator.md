@@ -2644,7 +2644,8 @@ dispatch. A destination with a `.git` or
 The route carries the authored definition and resolved manifest it was
 derived from. `worker::materialize::prepare_route` creates missing creation
 destinations. `kiln-lattice-dispatch --projected-workspace-route FILE`
-refuses, before any durable step, a projected dispatch under any authority
+refuses, after the dispatch authority pre-check and before the credential read
+or any durable step, a projected dispatch under any authority
 profile that does not enable projection (`projection-requires-operator`; the
 local-operator profile never does, so projected dispatch waits for the
 verified profile with `projection_enabled`), a pinned plan without its route,

@@ -700,6 +700,24 @@ fn run_with(
     // first, changing nothing, so an authority denial reads no credential.
     // The reservation revalidates this session in its own transaction.
     implementer.authorize_dispatch_plan(&attempt.identity, attempt.fence, clock()?, &plan)?;
+    // A pinned projected workspace runs only under a profile that enables
+    // projection and only with its exact route. The route is checked after
+    // the authority pre-check and before the credential read, so a refused
+    // route reads no credential. This shell selects at most the
+    // local-operator profile, which never enables projection.
+    let projection_authority = if flags.contains_key("--local-operator") {
+        crate::projected_workspace::ProjectionAuthority::LocalOperator
+    } else {
+        crate::projected_workspace::ProjectionAuthority::Absent
+    };
+    crate::projected_workspace::check_route(
+        flags
+            .get(crate::projected_workspace::ROUTE_FLAG)
+            .map(Path::new),
+        &plan,
+        &request,
+        projection_authority,
+    )?;
     // Before any durable step (plan reservation, request seal, admission or
     // transport intent), a fresh run needs its one credential variable.
     let recovery = implementer.dispatch_requires_recovery(&attempt.identity)?;
@@ -762,22 +780,6 @@ fn run_with(
                 .into(),
         );
     }
-    // A pinned projected workspace runs only under a profile that enables
-    // projection and only with its exact route. This shell selects at most
-    // the local-operator profile, which never enables projection.
-    let projection_authority = if flags.contains_key("--local-operator") {
-        crate::projected_workspace::ProjectionAuthority::LocalOperator
-    } else {
-        crate::projected_workspace::ProjectionAuthority::Absent
-    };
-    crate::projected_workspace::check_route(
-        flags
-            .get(crate::projected_workspace::ROUTE_FLAG)
-            .map(Path::new),
-        &plan,
-        &request,
-        projection_authority,
-    )?;
     let ledger = implementer.work()?;
     let work = ledger
         .current()
@@ -1289,6 +1291,9 @@ mod credential_ordering_tests {
         Enrollment, IMPLEMENTATION_WORK_SCHEMA, ImplementationDispatchPlan, ImplementationWork,
         SourceRef, TerminalPolicy, WorkBudget, WorkSourceKind, WorkspaceIsolation,
     };
+    use kiln_core::projection::materialization::{
+        WORKSPACE_PIN_SCHEMA, WorkspacePin, overlay_identity,
+    };
     use kiln_core::types::{ContentId, ExternalRef, ProviderProfileId};
     use kiln_implementer::Implementer;
     use std::cell::Cell;
@@ -1368,6 +1373,17 @@ mod credential_ordering_tests {
         authority: Option<(&str, &str)>,
         read_credential: &dyn Fn(&str) -> Option<OsString>,
     ) -> (Result<String, String>, bool) {
+        dispatch_with(credential, authority, false, read_credential)
+    }
+
+    /// [`dispatch`], with a plan that pins a projected workspace for the
+    /// claimed attempt when `pinned`. No route is supplied.
+    fn dispatch_with(
+        credential: serde_json::Value,
+        authority: Option<(&str, &str)>,
+        pinned: bool,
+        read_credential: &dyn Fn(&str) -> Option<OsString>,
+    ) -> (Result<String, String>, bool) {
         let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
         let root = directory.path();
         let database = root.join("kiln.sqlite");
@@ -1385,7 +1401,7 @@ mod credential_ordering_tests {
                 .unwrap_or_else(|error| unreachable!("{error}"))
                 .unwrap_or_else(|| unreachable!())
         };
-        let plan = ImplementationDispatchPlan {
+        let mut plan = ImplementationDispatchPlan {
             schema: DISPATCH_PLAN_SCHEMA.into(),
             work_identity: attempt.work_identity.clone(),
             work_revision: work.revision,
@@ -1415,6 +1431,24 @@ mod credential_ordering_tests {
             expected_output: content('f'),
             execution: None,
         };
+        if pinned {
+            let input = content('5');
+            let pin = WorkspacePin {
+                schema: WORKSPACE_PIN_SCHEMA.into(),
+                repository: content('1'),
+                source: work.base.clone().unwrap_or_else(|| unreachable!()),
+                definition: content('2'),
+                manifest: content('3'),
+                profile: content('4'),
+                overlay: overlay_identity(&input, &attempt.identity, attempt.fence)
+                    .unwrap_or_else(|_| unreachable!()),
+                input,
+                attempt: attempt.identity.clone(),
+                fence: attempt.fence,
+            };
+            plan.workspace.identity = pin.overlay.clone();
+            plan.workspace.projection = Some(pin);
+        }
         write(&root.join("plan.json"), &plan);
         write(&root.join("enrollment.json"), &enrollment());
         write(
@@ -1546,6 +1580,39 @@ mod credential_ordering_tests {
                 .as_ref()
                 .is_err_and(|error| error.contains("not an admitted immutable Nix program")),
             "{admitted:?}"
+        );
+        assert_eq!(reads.get(), 1);
+        assert!(!reserved);
+    }
+
+    // r[verify kiln.source.projection.route.scenario.dispatch]
+    #[test]
+    fn a_refused_projected_route_precedes_the_credential_read() {
+        // The pre-check admits the pinned plan under the local operator; the
+        // route check then refuses it (the profile never enables projection
+        // and no route is supplied) before the credential read and any
+        // reservation.
+        let reads = Cell::new(0);
+        let (refused, reserved) =
+            dispatch_with(declared(), OPERATOR, true, &counted(&reads, Some("token")));
+        assert!(
+            refused
+                .as_ref()
+                .is_err_and(|error| error.starts_with("projection-requires-operator:")),
+            "{refused:?}"
+        );
+        assert_eq!(reads.get(), 0, "a refused route never reads the credential");
+        assert!(!reserved);
+        // The same plan without its pin passes the route check and reads its
+        // credential once.
+        let reads = Cell::new(0);
+        let (unpinned, reserved) =
+            dispatch_with(declared(), OPERATOR, false, &counted(&reads, Some("token")));
+        assert!(
+            unpinned
+                .as_ref()
+                .is_err_and(|error| error.contains("not an admitted immutable Nix program")),
+            "{unpinned:?}"
         );
         assert_eq!(reads.get(), 1);
         assert!(!reserved);

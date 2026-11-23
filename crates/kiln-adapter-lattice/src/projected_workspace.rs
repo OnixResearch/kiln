@@ -5,9 +5,10 @@
 //! `kiln.projected-workspace-route.v1` route derived again for that pin and
 //! the plan's own permitted paths, and only when the Lattice worker request
 //! names exactly the route's workspace root, read paths and write paths. A
-//! plan without a pin takes no route. The check runs before any durable step
-//! or transport start: no plan reservation, sealed request or transport
-//! intent.
+//! plan without a pin takes no route. The check runs after the dispatch
+//! authority pre-check and before the worker's credential read, any durable
+//! step or transport start: no credential read, plan reservation, sealed
+//! request or transport intent.
 use std::path::Path;
 
 use kiln_core::implementation::ImplementationDispatchPlan;

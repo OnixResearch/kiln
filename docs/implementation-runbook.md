@@ -197,7 +197,9 @@ before every first prompt, including one reconciled for an agent whose start
 was recorded but whose prompt was not; a denial starts and prompts nothing. The
 Lattice worker calls `authorize_dispatch_plan` before it reads its
 credential variable; that pre-check saves nothing, and the reservation
-revalidates its session instead of consuming a second grant. An owner
+revalidates its session instead of consuming a second grant. The worker's
+order is authority pre-check, projected-workspace route check, credential
+read, reservation, transport, so a refused route reads no credential. An owner
 reservation (`admission_reserve_with_owner`, `host-owner-reserve`) admits a
 fresh `dispatch` invocation for its original effect before the owner can
 commit it: a new request inside the transaction that records it, and a
