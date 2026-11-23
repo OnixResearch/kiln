@@ -69,6 +69,14 @@ second configured feed path, still adds every revocation it carries, since
 revocations are only ever added, but never moves the view back to an earlier
 observation that would fail verified sessions sharing the store.
 
+**Non-claim: feed freshness is trusted to its producer.** `observed_at_ms` is
+an unauthenticated claim of the configured feed producer. A backdated time
+fails closed: the view is older and denies sooner. A postdated time, up to the
+importing process's clock, cannot be detected by Kiln, so a producer that
+dates a stale revocation state as current extends its freshness. Kiln trusts
+the producer for freshness; removing that trust needs an authenticated
+observation source, such as a signed, timestamped revocation feed.
+
 ### Holder signing
 
 `RoleSigner` holds one `HolderKey` per loaded `GrantRole` and signs only the

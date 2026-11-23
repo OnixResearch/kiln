@@ -148,6 +148,13 @@ any instant of that second denies. `max_age_ms` must be at least 1,000.
 Have the producer republish the feed with a new `observed_at_ms` before it
 goes stale; a shell imports it at its next selection.
 
+**Non-claim: the feed producer is trusted for freshness.** `observed_at_ms`
+is an unauthenticated claim of the configured feed producer. A backdated time
+fails closed. A postdated time, up to the selecting process's clock, cannot be
+detected by Kiln: a producer that dates a stale revocation state as current
+extends its freshness. Removing that trust needs an authenticated observation
+source, such as a signed, timestamped revocation feed.
+
 **Payload v2.** Every request carries `request_digest` = BLAKE3 over the domain
 `kiln.implementation-authority-payload.v2`, the operation, the worker
 incarnation (the recorded `TransportLaunch` identity, or `pre-launch`), the
