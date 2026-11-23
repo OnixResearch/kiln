@@ -187,6 +187,13 @@ fn fleet(real: bool) -> TestResult<Fleet> {
     }
     git(&checkout, &["init", "-q", "-b", "main"])?;
     fs::create_dir_all(checkout.join("src"))?;
+    fs::create_dir_all(checkout.join("docs"))?;
+    fs::write(
+        checkout.join(".gitattributes"),
+        "docs/ export-ignore\nversion.txt export-subst\n",
+    )?;
+    fs::write(checkout.join("docs/tracked.txt"), "kept\n")?;
+    fs::write(checkout.join("version.txt"), "commit=$Format:%H$\n")?;
     fs::write(checkout.join("src/value"), "broken\n")?;
     fs::write(checkout.join("requirements"), "frozen\n")?;
     fs::write(checkout.join("check"), "#!/bin/sh\n")?;
@@ -465,6 +472,14 @@ fn interactive_work_is_dispatched_handed_off_and_exported() -> TestResult {
     assert_eq!(
         fs::read_to_string(export.join("tree/requirements"))?,
         "frozen\n"
+    );
+    assert_eq!(
+        fs::read_to_string(export.join("tree/docs/tracked.txt"))?,
+        "kept\n"
+    );
+    assert_eq!(
+        fs::read_to_string(export.join("tree/version.txt"))?,
+        "commit=$Format:%H$\n"
     );
     assert!(!export.join("tree/.git").exists());
     let mode = |path: &str| -> TestResult<u32> {

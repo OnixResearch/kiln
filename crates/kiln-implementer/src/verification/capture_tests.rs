@@ -598,3 +598,208 @@ fn unchanged_host_source_reaches_independent_verification_only_under_both_polici
     }
     Ok(())
 }
+
+fn commit_files(
+    repository: &Repository,
+    parent: Option<&git2::Commit<'_>>,
+    entries: &[(&str, &[u8], i32)],
+) -> TestResult<Oid> {
+    let mut index = git2::Index::new()?;
+    for (path, bytes, mode) in entries {
+        let blob = repository.blob(bytes)?;
+        index.add(&IndexEntry {
+            ctime: IndexTime::new(0, 0),
+            mtime: IndexTime::new(0, 0),
+            dev: 0,
+            ino: 0,
+            mode: *mode as u32,
+            uid: 0,
+            gid: 0,
+            file_size: bytes.len() as u32,
+            id: blob,
+            flags: 0,
+            flags_extended: 0,
+            path: path.as_bytes().to_vec(),
+        })?;
+    }
+    let tree_id = index.write_tree_to(repository)?;
+    let tree = repository.find_tree(tree_id)?;
+    let sig = Signature::new("fixture", "fixture@kiln.invalid", &Time::new(1, 0))?;
+    let parents: Vec<&git2::Commit<'_>> = parent.into_iter().collect();
+    Ok(repository.commit(None, &sig, &sig, "fixture commit", &tree, &parents)?)
+}
+
+fn herdr_fixture(
+    root: &Path,
+    repository_root: &Path,
+    base_oid: Oid,
+) -> TestResult<(
+    ImplementationWork,
+    ImplementationDispatchPlan,
+    ImplementationAttempt,
+    VerificationProfile,
+    VerifierAuthority,
+)> {
+    let scratch = root.join("scratch");
+    fs::create_dir_all(&scratch)?;
+    let mut profile = VerificationProfile {
+        schema: "kiln.verification-profile.v1".into(),
+        repository: "onixresearch/kiln".into(),
+        toolchain: content('b')?,
+        environment_identity: content('c')?,
+        environment: BTreeMap::new(),
+        checks: Vec::new(),
+        reproducer: None,
+        protected_paths: vec!["requirements".into()],
+        allow_already_satisfied: true,
+        cairn: None,
+        proof: None,
+    };
+    profile.toolchain = profile.derived_toolchain_identity()?;
+    profile.environment_identity = profile.derived_environment_identity()?;
+    let mut work = interactive_work()?;
+    work.verification_profile = profile.identity()?;
+    work.base = Some(
+        ExternalRef::new("git", "commit", &base_oid.to_string()).map_err(|error| error.message)?,
+    );
+    work.permitted_paths = vec!["source.txt".into()];
+    work.terminal_policy = TerminalPolicy::VerifiedOrAlreadySatisfied;
+    profile.repository = work.repository.clone();
+    work.verification_profile = profile.identity()?;
+    let (dispatch, attempt) = dispatched_as(&work, WorkspaceIsolation::InteractiveWorktree)?;
+    let authority = VerifierAuthority {
+        repository: work.repository.clone(),
+        repository_root: fs::canonicalize(repository_root)?,
+        scratch_root: fs::canonicalize(&scratch)?,
+        git: super::super::FrozenProgram {
+            path: PathBuf::from("/usr/bin/git"),
+            blake3: "0".repeat(64),
+        },
+        worker_uid: u32::MAX,
+    };
+    Ok((work, dispatch, attempt, profile, authority))
+}
+
+#[test]
+fn export_commit_tree_ignores_export_attributes_and_materializes_exact_tree() -> TestResult {
+    let dir = tempfile::tempdir()?;
+    let repo_path = dir.path().join("authority.git");
+    let repository = Repository::init_bare(&repo_path)?;
+    let base_oid = commit_files(
+        &repository,
+        None,
+        &[
+            (
+                ".gitattributes",
+                b"docs/ export-ignore\nversion.txt export-subst\n",
+                0o100644,
+            ),
+            (
+                "sub/.gitattributes",
+                b"ignored.txt export-ignore\n",
+                0o100644,
+            ),
+            (
+                "docs/tracked.txt",
+                b"This file is part of the commit.\n",
+                0o100644,
+            ),
+            ("sub/ignored.txt", b"Nested export-ignore file.\n", 0o100644),
+            ("version.txt", b"commit=$Format:%H$\n", 0o100644),
+            ("source.txt", b"baseline\n", 0o100644),
+        ],
+    )?;
+    let base_commit = repository.find_commit(base_oid)?;
+    let candidate_oid = commit_files(
+        &repository,
+        Some(&base_commit),
+        &[
+            (
+                ".gitattributes",
+                b"docs/ export-ignore\nversion.txt export-subst\n",
+                0o100644,
+            ),
+            (
+                "sub/.gitattributes",
+                b"ignored.txt export-ignore\n",
+                0o100644,
+            ),
+            (
+                "docs/tracked.txt",
+                b"This file is part of the commit.\n",
+                0o100644,
+            ),
+            ("sub/ignored.txt", b"Nested export-ignore file.\n", 0o100644),
+            ("version.txt", b"commit=$Format:%H$\n", 0o100644),
+            ("source.txt", b"candidate\n", 0o100644),
+        ],
+    )?;
+    let (work, dispatch, attempt, profile, authority) =
+        herdr_fixture(dir.path(), &repo_path, base_oid)?;
+
+    let export_dir = dir.path().join("export");
+    fs::create_dir(&export_dir)?;
+    export_commit_tree(&repo_path, &candidate_oid.to_string(), &export_dir)?;
+    let export_root = fs::canonicalize(&export_dir)?;
+
+    assert_eq!(
+        fs::read_to_string(export_root.join("docs/tracked.txt"))?,
+        "This file is part of the commit.\n"
+    );
+    assert_eq!(
+        fs::read_to_string(export_root.join("sub/ignored.txt"))?,
+        "Nested export-ignore file.\n"
+    );
+    assert_eq!(
+        fs::read_to_string(export_root.join("version.txt"))?,
+        "commit=$Format:%H$\n"
+    );
+
+    let receipt = HerdrCandidateReceipt::for_attempt(
+        &work,
+        &attempt,
+        &dispatch,
+        HerdrCandidateDisposition::Produced,
+        &candidate_oid.to_string(),
+        &content('5')?,
+    )?;
+    let receipt_bytes = serde_json::to_vec(&receipt)?;
+    let handoff = materialize_admitted_candidate(
+        &work,
+        &attempt,
+        &dispatch,
+        &profile,
+        &authority,
+        &export_root,
+        &receipt_bytes,
+    )?;
+    let expected_tree = repository.find_commit(candidate_oid)?.tree_id().to_string();
+    assert_eq!(handoff.tree.native_id.as_str(), expected_tree);
+    assert_eq!(handoff.changed_paths, vec!["source.txt"]);
+
+    // Tampering with or dropping an exported file is still refused.
+    fs::remove_file(export_root.join("docs/tracked.txt"))?;
+    let err = materialize_admitted_candidate(
+        &work,
+        &attempt,
+        &dispatch,
+        &profile,
+        &authority,
+        &export_root,
+        &receipt_bytes,
+    )
+    .err()
+    .ok_or("expected tree mismatch after deleting exported file")?;
+    assert!(err.contains("exported candidate tree differs"), "{err}");
+
+    // Symlink entries in a Git tree remain refused.
+    let symlink_oid = commit_files(
+        &repository,
+        Some(&base_commit),
+        &[("link", b"target", 0o120000)],
+    )?;
+    let symlink_export = dir.path().join("symlink-export");
+    fs::create_dir(&symlink_export)?;
+    assert!(export_commit_tree(&repo_path, &symlink_oid.to_string(), &symlink_export).is_err());
+    Ok(())
+}

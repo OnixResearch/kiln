@@ -25,7 +25,7 @@ use serde_json::{Value, json};
 mod capture;
 pub use capture::{
     HERDR_CANDIDATE_RECEIPT_SCHEMA, HerdrCandidateDisposition, HerdrCandidateReceipt,
-    materialize_candidate,
+    export_commit_tree, materialize_candidate,
 };
 mod process;
 mod source;

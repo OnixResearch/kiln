@@ -178,6 +178,52 @@ struct FileFact {
 }
 type Snapshot = BTreeMap<String, FileFact>;
 
+/// Export an exact Git commit tree from `repository_root` directly from the
+/// object database into `destination`, without consulting `.gitattributes`
+/// (`export-ignore`, `export-subst`, or smudge filters) or `tar`.
+///
+/// Preserves exact blob bytes and supported regular-file modes (`0o644` and
+/// `0o755`) while enforcing the same path, entry-count, byte-count, and
+/// unsupported-entry (symlink/submodule/special) bounds as materialization.
+// r[impl kiln.fleet.capture]
+pub fn export_commit_tree(
+    repository_root: &Path,
+    commit_id: &str,
+    destination: &Path,
+) -> Result<(), String> {
+    use std::io::Write as _;
+    let repository = Repository::open_bare(repository_root)
+        .or_else(|_| Repository::open(repository_root))
+        .map_err(text)?;
+    let oid = Oid::from_str(commit_id).map_err(text)?;
+    let commit = repository.find_commit(oid).map_err(text)?;
+    let tree = commit.tree().map_err(text)?;
+    let mut files = Snapshot::new();
+    let mut total = 0_u64;
+    collect_baseline(&repository, &tree, "", &mut files, &mut total)?;
+    for (relative_path, fact) in &files {
+        let target = destination.join(relative_path);
+        if let Some(parent) = target.parent() {
+            fs::create_dir_all(parent).map_err(text)?;
+        }
+        let blob = repository.find_blob(fact.object).map_err(text)?;
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&target)
+            .map_err(text)?;
+        file.write_all(blob.content()).map_err(text)?;
+        drop(file);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt as _;
+            let mode = if fact.mode == 0o100755 { 0o755 } else { 0o644 };
+            fs::set_permissions(&target, fs::Permissions::from_mode(mode)).map_err(text)?;
+        }
+    }
+    Ok(())
+}
+
 /// Acquire bytes from a host-owned retained workspace after worker termination,
 /// verify the native host receipt, and materialize real source in the enrolled
 /// repository ODB without reading the worker's .git, index, refs or config.
@@ -209,6 +255,26 @@ pub fn materialize_candidate(
         return Err("capture differs from retained dispatch or admitted verifier profile".into());
     }
     source::admit_authority(authority, work)?;
+    materialize_admitted_candidate(
+        work,
+        attempt,
+        dispatch,
+        profile,
+        authority,
+        candidate_root,
+        host_receipt,
+    )
+}
+
+fn materialize_admitted_candidate(
+    work: &ImplementationWork,
+    attempt: &ImplementationAttempt,
+    dispatch: &ImplementationDispatchPlan,
+    profile: &VerificationProfile,
+    authority: &VerifierAuthority,
+    candidate_root: &Path,
+    host_receipt: &[u8],
+) -> Result<CandidateHandoff, String> {
     if !candidate_root.is_absolute()
         || fs::canonicalize(candidate_root).map_err(text)? != candidate_root
         || candidate_root.starts_with(&authority.repository_root)

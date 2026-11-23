@@ -15,7 +15,7 @@ use kiln_core::implementation::{
 use kiln_core::types::ContentId;
 use kiln_implementer::verification::{
     HerdrCandidateDisposition, HerdrCandidateReceipt, VerificationProfile, VerifierAuthority,
-    materialize_candidate,
+    export_commit_tree, materialize_candidate,
 };
 use serde_json::json;
 
@@ -213,49 +213,14 @@ impl Capturer {
             std::fs::remove_dir_all(&directory)
                 .map_err(|error| format!("cannot clear {}: {error}", directory.display()))?;
         }
-        std::fs::create_dir_all(directory.join(TREE_DIRECTORY))
-            .map_err(|error| format!("cannot create {}: {error}", directory.display()))?;
-        let archive = directory.join(ARCHIVE_FILE);
-        // Materialization admits only exact 0644 and 0755 files, so the
-        // archive carries those modes and extraction keeps them whatever the
-        // service's umask.
-        self.git(&root, ARCHIVE_TIMEOUT_MS)
-            .arg("-c")
-            .arg(ARCHIVE_UMASK)
-            .arg("archive")
-            .arg("--format=tar")
-            .arg(format!("--output={}", archive.display()))
-            .arg(&source.commit)
-            .run()?
-            .require_success()?;
-        let size = std::fs::metadata(&archive)
-            .map_err(|error| format!("archive is missing: {error}"))?
-            .len();
-        if size > MAX_ARCHIVE_BYTES {
-            return Err(format!(
-                "the exported commit exceeds {MAX_ARCHIVE_BYTES} bytes"
-            ));
-        }
         let tree = directory.join(TREE_DIRECTORY);
-        let mut tar = Child::new(
-            &self.capture.tar,
-            &directory,
-            ARCHIVE_TIMEOUT_MS,
-            MAX_GIT_OUTPUT_BYTES,
-        );
-        for (name, value) in &self.environment {
-            tar = tar.env(name.clone(), value.clone());
-        }
-        tar.arg("-x")
-            .arg("--no-same-owner")
-            .arg("-p")
-            .arg("-f")
-            .arg(&archive)
-            .arg("-C")
-            .arg(&tree)
-            .run()?
-            .require_success()?;
-        std::fs::remove_file(&archive).map_err(|error| error.to_string())?;
+        std::fs::create_dir_all(&tree)
+            .map_err(|error| format!("cannot create {}: {error}", tree.display()))?;
+        // Export directly from the Git object database so tracked
+        // `.gitattributes` entries (`export-ignore`, `export-subst`, filters)
+        // never transform the committed tree and exact 0644/0755 modes hold
+        // regardless of process umask (#102).
+        export_commit_tree(&root, &source.commit, &tree)?;
         let candidate_root =
             std::fs::canonicalize(&tree).map_err(|error| format!("export is missing: {error}"))?;
 
