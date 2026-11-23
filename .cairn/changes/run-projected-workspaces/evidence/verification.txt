@@ -87,3 +87,53 @@ $ cargo run -p kiln-web-service --all-features --example projected-runtime -- \
   Each case: widened write paths, an added `.git` read path, a moved
     workspace root and a missing route were refused by kiln-lattice-dispatch
     before any durable step (exit 2).
+
+INTEGRATION REQUALIFICATION (`evidence/projected-runtime-receipt.synthetic-verified-profile.json`,
+BLAKE3 32b7bb601736384a8bb9130bdcea56a471164c5d949f39f90e29311997604a52).
+Kiln authority integration branch at fe24fdf1 (S1 3eb3fc72 + S4 + Cairn 317d3ff6
+on main 09326e92; Lattice cohort pin 5a8e1d51). SYNTHETIC VERIFIED PROFILE, NOT
+A DEPLOYMENT PROFILE: the `kiln.implementation-authority-config.v1` was written by
+a throwaway generator outside the repository from kiln-adapter-basalt's
+`test-support` issuer (fixed public test seeds for the root, coordinator,
+verifier and publisher; audience kiln-test-audience, generation 7, packaged
+policy, a 4-hour grant window and an empty generation-1 revocation feed),
+selecting `verified_ucan` with `projection_enabled: true`
+(config BLAKE3 99b47078574337178b0c42f0efa5438c5fb497a03c6735db93999aa12890a53e).
+$ cargo build --locked -p kiln-adapter-lattice --bin kiln-lattice-dispatch \
+    -p kiln-web-service --features kiln-web-service/implementation-fixtures \
+    --bin kiln-implementation-fixture --example projected-runtime     -> exit 0
+$ target/debug/examples/projected-runtime \
+    --lattice /nix/store/fh04cadrj2f3xxjr8ga8rm966jpzy9bp-lattice-0.1.0/bin/lattice \
+    --dispatch target/debug/kiln-lattice-dispatch --fixture target/debug/kiln-implementation-fixture \
+    --authority-config <synthetic>/authority.json \
+    --bwrap /nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap \
+    --socat /nix/store/k562gy1wa1rwyhlp6ma2cp37zlc0mspl-socat-1.8.1.3/bin/socat \
+    --shell /nix/store/7ik8057hajl6vq9j40h3jracxjn0bb5x-bash-5.3p15/bin/bash \
+    --nix /nix/store/6rwk5j1qqk7na4la5m2ka34p734braxa-nix-2.36.0/bin/nix \
+    --scratch /tmp/kai-pr/run --out receipt.json                         -> exit 0 (qualified)
+  Lattice: the runtime/lattice-worker-cohort package (Lattice 5a8e1d51, its
+    Cairn pin 47ea1b86), BLAKE3 d422561e50b131a4a8cc6ab01925495517fc13a62e9f140efb0dbe5c9e1066c0.
+  Every case: probes_complete, no missing or unexpected probes, all host checks
+    hold; widened write paths, widened read paths, a moved workspace root and a
+    missing route are refused before any durable step (exit 2, nothing
+    dispatched); the same request under --local-operator is refused with
+    projection-requires-operator (exit 2).
+  alpha-tests: cargo test passes in the route (exit 0); 22 observations, every
+    negative denied, only the planned /workspace/.cargo/config.toml read
+    allowed; the shared edit and a new file written through the write paths;
+    facts select alpha and beta. Dispatch exit 2 (no complete observed OMP
+    result: the worker is a probe).
+  beta-tests: cargo test fails (101) naming the missing undeclared
+    alpha/assets/banner.txt; 21 observations, negatives denied; facts select beta.
+  nix-alpha: nix eval passes; 20 observations, negatives denied; facts select
+    alpha and beta. nix-beta: nix eval passes; 19 observations, negatives
+    denied; dispatch exit 0.
+  Proves: under an authority config selecting a verified UCAN profile with
+    projection_enabled, kiln-lattice-dispatch dispatches the projected route to
+    the pinned cohort Lattice, the bubblewrap runtime enforces the complete
+    confinement probe set on this host, and the local-operator profile is
+    refused for projection.
+  Does not prove: a deployment authority profile (real issuer keys, grants,
+    revocation feed); a model-driven OMP worker (no model contacted, the worker
+    is a probe); confinement on any other host or provider; authority for
+    retrieval, workspace effects or writeback (S7); publication.

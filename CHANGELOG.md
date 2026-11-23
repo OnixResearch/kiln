@@ -727,8 +727,10 @@ entry describes the source tree prepared for the first tagged release.
   plan and affected projects. Lattice v3 requests without `network` are read
   as no network. The `projected-runtime` example needs an authority
   configuration with the verified profile and `projection_enabled` and judges
-  the complete probe set; the runtime is not qualified until it runs on that
-  profile. (Authority at retrieval and workspace effects remains S7.)
+  the complete probe set. It qualified on the integration branch with the
+  cohort Lattice `5a8e1d51` under a synthetic verified profile (Basalt
+  test-support keys), not a deployment authority profile. (Authority at
+  retrieval and workspace effects remains S7.)
 - Verified implementation-authority composition. Every shell selects one
   closed `kiln.implementation-authority-config.v1` profile through
   `Implementer::select_authority`: `--authority-config FILE` (exported from

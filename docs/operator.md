@@ -2765,10 +2765,14 @@ escape) and the local-operator refusal, and captures the overlay into
 `kiln.projected-candidate-facts.v1` facts; a case qualifies only on the
 complete expected probe set and, for `beta-tests`, an observed build failure
 whose recorded output names the missing `alpha/assets/banner.txt`.
-The restricted runtime is not qualified: the earlier local-operator receipt
-is superseded until the run is repeated on the verified profile. Relocation,
-generated-input providers and joining plan identities to the build cache are
-later work.
+The run was repeated on the integration branch with the cohort Lattice
+`5a8e1d51` under a verified UCAN profile with `projection_enabled` whose keys
+and grants are Basalt's synthetic test-support fixtures: every case's probe set
+was complete and the local-operator request was refused. That qualifies the
+runtime on that host and synthetic profile only, not under a deployment
+authority profile; the earlier local-operator receipt stays superseded.
+Relocation, generated-input providers and joining plan identities to the build
+cache are later work.
 
 <!-- r[related kiln.source.projection.writeback] -->
 **Writeback.** A writable view's overlay is not a repository diff: it omits

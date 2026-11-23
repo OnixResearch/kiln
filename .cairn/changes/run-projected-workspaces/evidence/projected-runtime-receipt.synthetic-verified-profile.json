@@ -1,0 +1,1798 @@
+{
+  "authority_config": "/tmp/kai-pr/authority/authority.json",
+  "authority_config_blake3": "99b47078574337178b0c42f0efa5438c5fb497a03c6735db93999aa12890a53e",
+  "bwrap": "/nix/store/x4m5ja2330if46sw08lgwwa57bqw9adm-bubblewrap-0.11.2/bin/bwrap",
+  "cases": [
+    {
+      "attempt": "02c53b0cd3279ba4761d536adaa6d472905eb49a02bd3bffa7e384b11a4ea04c",
+      "capture": {
+        "facts": {
+          "affected_projects": [
+            "alpha",
+            "beta"
+          ],
+          "build_plan": "73771f3bdabda8bd45c192ee2733c7d2e69885fffdfb96e5a2bac76d4b76cdb2",
+          "definition": "306ace7ee638838593853534e288e7bea84ff7b32082889b6ab0d82bacec508e",
+          "identity": "b847c3c7732688f796e1c21d5295eba0803e8cebccb47c851c692a65f32455e3",
+          "manifest": "16cc2aa202d1cb0c2c4a6b342651a22d9da6a1662f831e156f94363e7e3f32b5",
+          "schema": "kiln.projected-candidate-facts.v1",
+          "sealed": "e62bbfd2896460dcf57c597b2e7b6eafaa9be6c75a435ca00d57665f6e02241c"
+        },
+        "sealed": {
+          "attempt": "02c53b0cd3279ba4761d536adaa6d472905eb49a02bd3bffa7e384b11a4ea04c",
+          "base_revision": {
+            "contract_version": 1,
+            "native_id": "3aab043edba441b9b2745b09b6e80ad5fa4f89ff",
+            "native_kind": "commit",
+            "provider_namespace": "git"
+          },
+          "base_tree": "b0d5ceb7caf68bc7631785543c5c6a58a0b06200b56348522bb9e3c73244b157",
+          "definition": "306ace7ee638838593853534e288e7bea84ff7b32082889b6ab0d82bacec508e",
+          "fence": 1,
+          "identity": "e62bbfd2896460dcf57c597b2e7b6eafaa9be6c75a435ca00d57665f6e02241c",
+          "manifest": "16cc2aa202d1cb0c2c4a6b342651a22d9da6a1662f831e156f94363e7e3f32b5",
+          "operations": [
+            {
+              "destination": "projects/alpha/src/probe_note.rs",
+              "kind": "file",
+              "object": {
+                "contract_version": 1,
+                "native_id": "8bd66e9b5cce57a0659bdccad8a68182a994d39e",
+                "native_kind": "blob",
+                "provider_namespace": "git"
+              },
+              "operation": "create",
+              "path": "projects/alpha/src/probe_note.rs"
+            },
+            {
+              "destination": "shared/proto/src/lib.rs",
+              "expected": {
+                "contract_version": 1,
+                "native_id": "fdbba429cd636bf8f47cf65d0f75b40f23cffb71",
+                "native_kind": "blob",
+                "provider_namespace": "git"
+              },
+              "kind": "file",
+              "object": {
+                "contract_version": 1,
+                "native_id": "667657f11610eaca245866a7fdd099dbb1f78126",
+                "native_kind": "blob",
+                "provider_namespace": "git"
+              },
+              "operation": "edit",
+              "path": "shared/proto/src/lib.rs"
+            }
+          ],
+          "overlay": "81d7ab1477a91b77bf5a5d2fd29673525c95a784435bf5aed557a3761930939c",
+          "repository": "fdce26d77b1f262c7f0955eb8caab8c7afd106d934c9632a75872d5186f2a50e",
+          "schema": "kiln.projection.writeback-candidate.v2",
+          "view_operations": []
+        }
+      },
+      "case": "alpha-tests",
+      "command_exit": 0,
+      "command_tail": "   Compiling alpha v0.1.0 (/workspace/projects/alpha)\n   Compiling proto v0.1.0 (/workspace/shared/proto)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.18s\n     Running unittests src/lib.rs (/tmp/cargo-target/debug/deps/alpha-06e0b055a5a74947)\n\nrunning 1 test\ntest tests::builds_from_its_declared_inputs ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n   Doc-tests alpha\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n",
+      "dispatch": {
+        "exit": 2,
+        "stderr": "kiln-lattice-dispatch: worker has no complete observed result; retain state and reconcile\n",
+        "stdout": ""
+      },
+      "fence": 1,
+      "host_checks": [
+        {
+          "check": "read-only planned input unchanged in the overlay",
+          "ok": true
+        },
+        {
+          "check": "no file written at the workspace root",
+          "ok": true
+        },
+        {
+          "check": "no file written outside the write paths",
+          "ok": true
+        },
+        {
+          "check": "the host checkout is unchanged",
+          "ok": true
+        }
+      ],
+      "missing_probes": [],
+      "observations": [
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/at/checkout/.cargo/config.toml"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/at/checkout/.git/HEAD"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/at/checkout"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/workspace/.git"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/at/store/inputs/8d7223ac3b1ae7af361db6d948bb76a9be22d0b3a7c91259d2f09e16da63a6de/.cargo/config.toml"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/at/store"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/at/store/overlays/81d7ab1477a91b77bf5a5d2fd29673525c95a784435bf5aed557a3761930939c/.cargo/config.toml"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/nix/var/nix/daemon-socket/socket"
+        },
+        {
+          "denied": false,
+          "probe": "read",
+          "target": "/workspace/.cargo/config.toml"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/workspace/.cargo/config.toml"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/workspace/probe-root-file"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/workspace/.git"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/nix/store/kiln-projected-runtime-probe-write"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/tmp/kai-pr/run/at/store/overlays/81d7ab1477a91b77bf5a5d2fd29673525c95a784435bf5aed557a3761930939c/escape"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/workspace/.cargo/probe-outside-write-paths"
+        },
+        {
+          "denied": true,
+          "probe": "unix",
+          "target": "/tmp/kai-pr/run/at/host.sock"
+        },
+        {
+          "denied": true,
+          "probe": "abstract",
+          "target": "kiln-projected-runtime-804790-alpha-tests"
+        },
+        {
+          "denied": true,
+          "probe": "tcp",
+          "target": "36219"
+        },
+        {
+          "denied": true,
+          "probe": "link",
+          "target": "/tmp/kai-pr/run/at/checkout/.git"
+        },
+        {
+          "exit": 0,
+          "probe": "command",
+          "tail": "ICAgQ29tcGlsaW5nIGFscGhhIHYwLjEuMCAoL3dvcmtzcGFjZS9wcm9qZWN0cy9hbHBoYSkKICAgQ29tcGlsaW5nIHByb3RvIHYwLjEuMCAoL3dvcmtzcGFjZS9zaGFyZWQvcHJvdG8pCiAgICBGaW5pc2hlZCBgdGVzdGAgcHJvZmlsZSBbdW5vcHRpbWl6ZWQgKyBkZWJ1Z2luZm9dIHRhcmdldChzKSBpbiAwLjE4cwogICAgIFJ1bm5pbmcgdW5pdHRlc3RzIHNyYy9saWIucnMgKC90bXAvY2FyZ28tdGFyZ2V0L2RlYnVnL2RlcHMvYWxwaGEtMDZlMGIwNTVhNWE3NDk0NykKCnJ1bm5pbmcgMSB0ZXN0CnRlc3QgdGVzdHM6OmJ1aWxkc19mcm9tX2l0c19kZWNsYXJlZF9pbnB1dHMgLi4uIG9rCgp0ZXN0IHJlc3VsdDogb2suIDEgcGFzc2VkOyAwIGZhaWxlZDsgMCBpZ25vcmVkOyAwIG1lYXN1cmVkOyAwIGZpbHRlcmVkIG91dDsgZmluaXNoZWQgaW4gMC4wMHMKCiAgIERvYy10ZXN0cyBhbHBoYQoKcnVubmluZyAwIHRlc3RzCgp0ZXN0IHJlc3VsdDogb2suIDAgcGFzc2VkOyAwIGZhaWxlZDsgMCBpZ25vcmVkOyAwIG1lYXN1cmVkOyAwIGZpbHRlcmVkIG91dDsgZmluaXNoZWQgaW4gMC4wMHMKCg=="
+        },
+        {
+          "probe": "granted_write",
+          "target": "shared/proto/src/lib.rs",
+          "written": true
+        },
+        {
+          "probe": "granted_write",
+          "target": "projects/alpha/src/probe_note.rs",
+          "written": true
+        }
+      ],
+      "probes_complete": true,
+      "refused_dispatches": [
+        {
+          "case": "write_paths_widened",
+          "outcome": {
+            "exit": 2,
+            "stderr": "kiln-lattice-dispatch: the worker request's workspace root, read paths, write paths or network differ from the projected workspace route; nothing was dispatched\n",
+            "stdout": ""
+          },
+          "reason": "nothing was dispatched"
+        },
+        {
+          "case": "read_paths_widened",
+          "outcome": {
+            "exit": 2,
+            "stderr": "kiln-lattice-dispatch: the worker request's workspace root, read paths, write paths or network differ from the projected workspace route; nothing was dispatched\n",
+            "stdout": ""
+          },
+          "reason": "nothing was dispatched"
+        },
+        {
+          "case": "workspace_root_moved",
+          "outcome": {
+            "exit": 2,
+            "stderr": "kiln-lattice-dispatch: the worker request's workspace root, read paths, write paths or network differ from the projected workspace route; nothing was dispatched\n",
+            "stdout": ""
+          },
+          "reason": "nothing was dispatched"
+        },
+        {
+          "case": "route_missing",
+          "outcome": {
+            "exit": 2,
+            "stderr": "kiln-lattice-dispatch: the plan pins a projected workspace and requires its route; nothing was dispatched\n",
+            "stdout": ""
+          },
+          "reason": "nothing was dispatched"
+        },
+        {
+          "case": "local_operator",
+          "outcome": {
+            "exit": 2,
+            "stderr": "kiln-lattice-dispatch: projection-requires-operator: a projected workspace runs only under an authority profile that enables projection, never the local-operator or an absent profile; nothing was dispatched\n",
+            "stdout": ""
+          },
+          "reason": "projection-requires-operator"
+        }
+      ],
+      "route": {
+        "build_plan": "73771f3bdabda8bd45c192ee2733c7d2e69885fffdfb96e5a2bac76d4b76cdb2",
+        "definition": {
+          "creation_destinations": [
+            "projects/alpha/src"
+          ],
+          "dependencies": [],
+          "generated_inputs": "refused",
+          "id": "alpha-tests",
+          "mounts": [
+            {
+              "destination_prefix": "",
+              "source_prefix": ""
+            }
+          ],
+          "profile": "writable",
+          "required_capabilities": [
+            "exact_tree",
+            "executable_bit"
+          ],
+          "schema": "kiln.source-projection.definition.v1",
+          "selection": {
+            "exclude": [],
+            "include": [
+              ".cargo/**",
+              "Cargo.lock",
+              "Cargo.toml",
+              "projects/alpha/**",
+              "rust-toolchain.toml",
+              "shared/**"
+            ],
+            "root": ""
+          },
+          "target": {
+            "case_sensitive": true,
+            "executable_bit": true,
+            "max_path_bytes": 4096,
+            "symlinks": true
+          }
+        },
+        "identity": "7ba64982936546298ef4090035cb67829d6ff5cb9b654d38bcbe00abd02a8389",
+        "input_root": "/tmp/kai-pr/run/at/store/inputs/8d7223ac3b1ae7af361db6d948bb76a9be22d0b3a7c91259d2f09e16da63a6de",
+        "manifest": {
+          "adapter": {
+            "name": "git-source",
+            "version": "1"
+          },
+          "canonical_tree": "b0d5ceb7caf68bc7631785543c5c6a58a0b06200b56348522bb9e3c73244b157",
+          "content_identity": "fecedd50b06ac4a4a7f6d112191c2e0451e4aae83011100d0bb8b1367b7125e0",
+          "coverage": "complete",
+          "definition": "306ace7ee638838593853534e288e7bea84ff7b32082889b6ab0d82bacec508e",
+          "dependencies": [],
+          "entries": [
+            {
+              "destination": ".cargo/config.toml",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "8465280fa490b6be9d6e066f55c17c88e7ec57f5",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "57f5bfeed40bd3ae57d95915024ba3d4badaeb1ee986fb3b48d11f5bd6dfb51d",
+                "path": ".cargo/config.toml",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "Cargo.lock",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "f5803966781f480676dfc02b4a30700828a4d98d",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "70807cb9293f24a3c8db2ee9e67c534c7eeee1b6d759354522e409965b806c78",
+                "path": "Cargo.lock",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "Cargo.toml",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "1d2d0d05ab3f55d66060f1433b206480dc6555d5",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "fa15786be2f1d934ea11ce67f7bdc1c2850ce085a2e1fad278c114f77ed6128b",
+                "path": "Cargo.toml",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "projects/alpha/Cargo.toml",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "be4b200c8846096a9807274d0f56a56285d0fcfd",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "42c2b56278babc94d437d862f4097149992704b3f1c88ef5598ce41ef9934d5e",
+                "path": "projects/alpha/Cargo.toml",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "projects/alpha/assets/banner.txt",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "b45d73598584239e55301e23d010cb1033a8825d",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "e97ddb1d5f2fffdf8a20b27c24e312a651a81bcccd55fdff80b521bf1d8f43ef",
+                "path": "projects/alpha/assets/banner.txt",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "projects/alpha/build.rs",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "c5ffc76a5344858a3e953c39fbb9c6182389cde4",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "6c0ae669005a93fa63e4c28388c0528de35c84e0df8d39246f67bc367fcc2ba7",
+                "path": "projects/alpha/build.rs",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "projects/alpha/src/lib.rs",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "0505f4ff585a26c786d3d537b4ac1fbabe252feb",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "90e2a29b8a977af89d9780b25568daa53e8a8448d1ebef421231a239ad17dccb",
+                "path": "projects/alpha/src/lib.rs",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "rust-toolchain.toml",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "725551148a2f17f16fd661a8b57e437e036442a5",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "35cb7bcf3d7e86c229ed01f0e9eff8e841c7c47ff0c7b0a0bad7677e60a030ec",
+                "path": "rust-toolchain.toml",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "shared/proto/Cargo.toml",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "d2a08ee2aec4e05f21f8aec67fc9685e55021a05",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "3870d597d3aea13a15a05e321262ed306dac1d9af6bc5e070b028612e607349c",
+                "path": "shared/proto/Cargo.toml",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "shared/proto/src/lib.rs",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "fdbba429cd636bf8f47cf65d0f75b40f23cffb71",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "bcbfb2000b02d1d8ccfc402d71b4a44993a2d49bf4f640f704bf91500522ff3e",
+                "path": "shared/proto/src/lib.rs",
+                "source": "native"
+              }
+            }
+          ],
+          "evaluator": {
+            "name": "kiln-projection",
+            "version": "1"
+          },
+          "exact_revision": {
+            "contract_version": 1,
+            "native_id": "3aab043edba441b9b2745b09b6e80ad5fa4f89ff",
+            "native_kind": "commit",
+            "provider_namespace": "git"
+          },
+          "identity": "16cc2aa202d1cb0c2c4a6b342651a22d9da6a1662f831e156f94363e7e3f32b5",
+          "profile": "writable",
+          "repository": "fdce26d77b1f262c7f0955eb8caab8c7afd106d934c9632a75872d5186f2a50e",
+          "schema": "kiln.source-projection.manifest.v1",
+          "source_capabilities": [
+            "exact_tree",
+            "executable_bit",
+            "symlinks"
+          ],
+          "target": {
+            "case_sensitive": true,
+            "executable_bit": true,
+            "max_path_bytes": 4096,
+            "symlinks": true
+          }
+        },
+        "overlay_root": "/tmp/kai-pr/run/at/store/overlays/81d7ab1477a91b77bf5a5d2fd29673525c95a784435bf5aed557a3761930939c",
+        "pin": {
+          "attempt": "02c53b0cd3279ba4761d536adaa6d472905eb49a02bd3bffa7e384b11a4ea04c",
+          "definition": "306ace7ee638838593853534e288e7bea84ff7b32082889b6ab0d82bacec508e",
+          "fence": 1,
+          "input": "8d7223ac3b1ae7af361db6d948bb76a9be22d0b3a7c91259d2f09e16da63a6de",
+          "manifest": "16cc2aa202d1cb0c2c4a6b342651a22d9da6a1662f831e156f94363e7e3f32b5",
+          "overlay": "81d7ab1477a91b77bf5a5d2fd29673525c95a784435bf5aed557a3761930939c",
+          "profile": "48a5453235180edf722bff40d8b746955b7bceb82698c064224ab5f85f4d476b",
+          "repository": "fdce26d77b1f262c7f0955eb8caab8c7afd106d934c9632a75872d5186f2a50e",
+          "schema": "kiln.materialization.workspace-pin.v1",
+          "source": {
+            "contract_version": 1,
+            "native_id": "3aab043edba441b9b2745b09b6e80ad5fa4f89ff",
+            "native_kind": "commit",
+            "provider_namespace": "git"
+          }
+        },
+        "read_paths": [
+          ".cargo",
+          "Cargo.lock",
+          "Cargo.toml",
+          "projects",
+          "rust-toolchain.toml",
+          "shared"
+        ],
+        "runtime": "lattice-bwrap",
+        "schema": "kiln.projected-workspace-route.v1",
+        "write_paths": [
+          "projects/alpha/src",
+          "shared/proto/src/lib.rs"
+        ]
+      },
+      "unexpected_probes": []
+    },
+    {
+      "attempt": "c88919549292c07d870d64371ea08ab66bf34d71d7f554e024e1731677294c92",
+      "capture": {
+        "facts": {
+          "affected_projects": [
+            "beta"
+          ],
+          "build_plan": "bc93aaae495bf4ddf42fbf61ffcdc599240eaf051b4e102852f257dfeffa127b",
+          "definition": "0efec963895df0ddb3d0dd996843a9314bbedaacebca551d359fb2bc4ae8b05e",
+          "identity": "13a041d88edfe39125427f776eb8f2d2aa71dec3a1adf7764ceda172ff69fcba",
+          "manifest": "a2920837a525104cb0cca83286c73092fa75bc2b13984e33bb13c262a8a10274",
+          "schema": "kiln.projected-candidate-facts.v1",
+          "sealed": "8387dd9bc66d43532a5240a5ab680c6b887ea10636e27984bb414af94897edc2"
+        },
+        "sealed": {
+          "attempt": "c88919549292c07d870d64371ea08ab66bf34d71d7f554e024e1731677294c92",
+          "base_revision": {
+            "contract_version": 1,
+            "native_id": "3aab043edba441b9b2745b09b6e80ad5fa4f89ff",
+            "native_kind": "commit",
+            "provider_namespace": "git"
+          },
+          "base_tree": "b0d5ceb7caf68bc7631785543c5c6a58a0b06200b56348522bb9e3c73244b157",
+          "definition": "0efec963895df0ddb3d0dd996843a9314bbedaacebca551d359fb2bc4ae8b05e",
+          "fence": 1,
+          "identity": "8387dd9bc66d43532a5240a5ab680c6b887ea10636e27984bb414af94897edc2",
+          "manifest": "a2920837a525104cb0cca83286c73092fa75bc2b13984e33bb13c262a8a10274",
+          "operations": [
+            {
+              "destination": "projects/beta/src/probe_note.rs",
+              "kind": "file",
+              "object": {
+                "contract_version": 1,
+                "native_id": "8bd66e9b5cce57a0659bdccad8a68182a994d39e",
+                "native_kind": "blob",
+                "provider_namespace": "git"
+              },
+              "operation": "create",
+              "path": "projects/beta/src/probe_note.rs"
+            }
+          ],
+          "overlay": "8cf1e1667707977f666e0a8403240ec8d7a11b900d48d3c80c72977735a0ff40",
+          "repository": "fdce26d77b1f262c7f0955eb8caab8c7afd106d934c9632a75872d5186f2a50e",
+          "schema": "kiln.projection.writeback-candidate.v2",
+          "view_operations": []
+        }
+      },
+      "case": "beta-tests",
+      "command_exit": 101,
+      "command_tail": "   Compiling proto v0.1.0 (/workspace/shared/proto)\n   Compiling beta v0.1.0 (/workspace/projects/beta)\nerror: couldn't read `projects/beta/src/../../alpha/assets/banner.txt`: No such file or directory (os error 2)\n --> projects/beta/src/lib.rs:7:28\n  |\n7 | pub const BORROWED: &str = include_str!(\"../../alpha/assets/banner.txt\");\n  |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nerror: could not compile `beta` (lib) due to 1 previous error\nwarning: build failed, waiting for other jobs to finish...\nerror: could not compile `beta` (lib test) due to 1 previous error\n",
+      "dispatch": {
+        "exit": 2,
+        "stderr": "kiln-lattice-dispatch: worker has no complete observed result; retain state and reconcile\n",
+        "stdout": ""
+      },
+      "fence": 1,
+      "host_checks": [
+        {
+          "check": "read-only planned input unchanged in the overlay",
+          "ok": true
+        },
+        {
+          "check": "no file written at the workspace root",
+          "ok": true
+        },
+        {
+          "check": "no file written outside the write paths",
+          "ok": true
+        },
+        {
+          "check": "the host checkout is unchanged",
+          "ok": true
+        }
+      ],
+      "missing_probes": [],
+      "observations": [
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/bt/checkout/.cargo/config.toml"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/bt/checkout/.git/HEAD"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/bt/checkout"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/workspace/.git"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/bt/store/inputs/12d8b5c12b3cb545e793c88738952b23f5b5f90a490e9891e008a270d04db390/.cargo/config.toml"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/bt/store"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/bt/store/overlays/8cf1e1667707977f666e0a8403240ec8d7a11b900d48d3c80c72977735a0ff40/.cargo/config.toml"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/nix/var/nix/daemon-socket/socket"
+        },
+        {
+          "denied": false,
+          "probe": "read",
+          "target": "/workspace/.cargo/config.toml"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/workspace/.cargo/config.toml"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/workspace/probe-root-file"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/workspace/.git"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/nix/store/kiln-projected-runtime-probe-write"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/tmp/kai-pr/run/bt/store/overlays/8cf1e1667707977f666e0a8403240ec8d7a11b900d48d3c80c72977735a0ff40/escape"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/workspace/.cargo/probe-outside-write-paths"
+        },
+        {
+          "denied": true,
+          "probe": "unix",
+          "target": "/tmp/kai-pr/run/bt/host.sock"
+        },
+        {
+          "denied": true,
+          "probe": "abstract",
+          "target": "kiln-projected-runtime-804790-beta-tests"
+        },
+        {
+          "denied": true,
+          "probe": "tcp",
+          "target": "46457"
+        },
+        {
+          "denied": true,
+          "probe": "link",
+          "target": "/tmp/kai-pr/run/bt/checkout/.git"
+        },
+        {
+          "exit": 101,
+          "probe": "command",
+          "tail": "ICAgQ29tcGlsaW5nIHByb3RvIHYwLjEuMCAoL3dvcmtzcGFjZS9zaGFyZWQvcHJvdG8pCiAgIENvbXBpbGluZyBiZXRhIHYwLjEuMCAoL3dvcmtzcGFjZS9wcm9qZWN0cy9iZXRhKQplcnJvcjogY291bGRuJ3QgcmVhZCBgcHJvamVjdHMvYmV0YS9zcmMvLi4vLi4vYWxwaGEvYXNzZXRzL2Jhbm5lci50eHRgOiBObyBzdWNoIGZpbGUgb3IgZGlyZWN0b3J5IChvcyBlcnJvciAyKQogLS0+IHByb2plY3RzL2JldGEvc3JjL2xpYi5yczo3OjI4CiAgfAo3IHwgcHViIGNvbnN0IEJPUlJPV0VEOiAmc3RyID0gaW5jbHVkZV9zdHIhKCIuLi8uLi9hbHBoYS9hc3NldHMvYmFubmVyLnR4dCIpOwogIHwgICAgICAgICAgICAgICAgICAgICAgICAgICAgXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eCgplcnJvcjogY291bGQgbm90IGNvbXBpbGUgYGJldGFgIChsaWIpIGR1ZSB0byAxIHByZXZpb3VzIGVycm9yCndhcm5pbmc6IGJ1aWxkIGZhaWxlZCwgd2FpdGluZyBmb3Igb3RoZXIgam9icyB0byBmaW5pc2guLi4KZXJyb3I6IGNvdWxkIG5vdCBjb21waWxlIGBiZXRhYCAobGliIHRlc3QpIGR1ZSB0byAxIHByZXZpb3VzIGVycm9yCg=="
+        },
+        {
+          "probe": "granted_write",
+          "target": "projects/beta/src/probe_note.rs",
+          "written": true
+        }
+      ],
+      "probes_complete": true,
+      "refused_dispatches": [
+        {
+          "case": "write_paths_widened",
+          "outcome": {
+            "exit": 2,
+            "stderr": "kiln-lattice-dispatch: the worker request's workspace root, read paths, write paths or network differ from the projected workspace route; nothing was dispatched\n",
+            "stdout": ""
+          },
+          "reason": "nothing was dispatched"
+        },
+        {
+          "case": "read_paths_widened",
+          "outcome": {
+            "exit": 2,
+            "stderr": "kiln-lattice-dispatch: the worker request's workspace root, read paths, write paths or network differ from the projected workspace route; nothing was dispatched\n",
+            "stdout": ""
+          },
+          "reason": "nothing was dispatched"
+        },
+        {
+          "case": "workspace_root_moved",
+          "outcome": {
+            "exit": 2,
+            "stderr": "kiln-lattice-dispatch: the worker request's workspace root, read paths, write paths or network differ from the projected workspace route; nothing was dispatched\n",
+            "stdout": ""
+          },
+          "reason": "nothing was dispatched"
+        },
+        {
+          "case": "route_missing",
+          "outcome": {
+            "exit": 2,
+            "stderr": "kiln-lattice-dispatch: the plan pins a projected workspace and requires its route; nothing was dispatched\n",
+            "stdout": ""
+          },
+          "reason": "nothing was dispatched"
+        },
+        {
+          "case": "local_operator",
+          "outcome": {
+            "exit": 2,
+            "stderr": "kiln-lattice-dispatch: projection-requires-operator: a projected workspace runs only under an authority profile that enables projection, never the local-operator or an absent profile; nothing was dispatched\n",
+            "stdout": ""
+          },
+          "reason": "projection-requires-operator"
+        }
+      ],
+      "route": {
+        "build_plan": "bc93aaae495bf4ddf42fbf61ffcdc599240eaf051b4e102852f257dfeffa127b",
+        "definition": {
+          "creation_destinations": [
+            "projects/beta/src"
+          ],
+          "dependencies": [],
+          "generated_inputs": "refused",
+          "id": "beta-tests",
+          "mounts": [
+            {
+              "destination_prefix": "",
+              "source_prefix": ""
+            }
+          ],
+          "profile": "writable",
+          "required_capabilities": [
+            "exact_tree",
+            "executable_bit"
+          ],
+          "schema": "kiln.source-projection.definition.v1",
+          "selection": {
+            "exclude": [],
+            "include": [
+              ".cargo/**",
+              "Cargo.lock",
+              "Cargo.toml",
+              "projects/beta/**",
+              "rust-toolchain.toml",
+              "shared/**"
+            ],
+            "root": ""
+          },
+          "target": {
+            "case_sensitive": true,
+            "executable_bit": true,
+            "max_path_bytes": 4096,
+            "symlinks": true
+          }
+        },
+        "identity": "27437ced389b4a5ddc37762af4ebe1881cd4fe9780332c79bfff4e7dcf5cf8a1",
+        "input_root": "/tmp/kai-pr/run/bt/store/inputs/12d8b5c12b3cb545e793c88738952b23f5b5f90a490e9891e008a270d04db390",
+        "manifest": {
+          "adapter": {
+            "name": "git-source",
+            "version": "1"
+          },
+          "canonical_tree": "b0d5ceb7caf68bc7631785543c5c6a58a0b06200b56348522bb9e3c73244b157",
+          "content_identity": "13a3f91f0ff2322a7a6891274bbd04a108a04f61e9535869ea65b375d3fd379a",
+          "coverage": "complete",
+          "definition": "0efec963895df0ddb3d0dd996843a9314bbedaacebca551d359fb2bc4ae8b05e",
+          "dependencies": [],
+          "entries": [
+            {
+              "destination": ".cargo/config.toml",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "8465280fa490b6be9d6e066f55c17c88e7ec57f5",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "57f5bfeed40bd3ae57d95915024ba3d4badaeb1ee986fb3b48d11f5bd6dfb51d",
+                "path": ".cargo/config.toml",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "Cargo.lock",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "f5803966781f480676dfc02b4a30700828a4d98d",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "70807cb9293f24a3c8db2ee9e67c534c7eeee1b6d759354522e409965b806c78",
+                "path": "Cargo.lock",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "Cargo.toml",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "1d2d0d05ab3f55d66060f1433b206480dc6555d5",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "fa15786be2f1d934ea11ce67f7bdc1c2850ce085a2e1fad278c114f77ed6128b",
+                "path": "Cargo.toml",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "projects/beta/Cargo.toml",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "9c3e154d25338b6ce49510cbbfc69af29b30d7d5",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "47537e68e1461b26879c1986c04834178c8903d2f1253d96dc9e38ab278fa2c2",
+                "path": "projects/beta/Cargo.toml",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "projects/beta/src/lib.rs",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "c8e78409419627a550d2dd5687409a3211a33034",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "0c59245b45112fefa40be9c56470df6f77da2c296c1be5940651e35f693fd26c",
+                "path": "projects/beta/src/lib.rs",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "rust-toolchain.toml",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "725551148a2f17f16fd661a8b57e437e036442a5",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "35cb7bcf3d7e86c229ed01f0e9eff8e841c7c47ff0c7b0a0bad7677e60a030ec",
+                "path": "rust-toolchain.toml",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "shared/proto/Cargo.toml",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "d2a08ee2aec4e05f21f8aec67fc9685e55021a05",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "3870d597d3aea13a15a05e321262ed306dac1d9af6bc5e070b028612e607349c",
+                "path": "shared/proto/Cargo.toml",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "shared/proto/src/lib.rs",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "fdbba429cd636bf8f47cf65d0f75b40f23cffb71",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "bcbfb2000b02d1d8ccfc402d71b4a44993a2d49bf4f640f704bf91500522ff3e",
+                "path": "shared/proto/src/lib.rs",
+                "source": "native"
+              }
+            }
+          ],
+          "evaluator": {
+            "name": "kiln-projection",
+            "version": "1"
+          },
+          "exact_revision": {
+            "contract_version": 1,
+            "native_id": "3aab043edba441b9b2745b09b6e80ad5fa4f89ff",
+            "native_kind": "commit",
+            "provider_namespace": "git"
+          },
+          "identity": "a2920837a525104cb0cca83286c73092fa75bc2b13984e33bb13c262a8a10274",
+          "profile": "writable",
+          "repository": "fdce26d77b1f262c7f0955eb8caab8c7afd106d934c9632a75872d5186f2a50e",
+          "schema": "kiln.source-projection.manifest.v1",
+          "source_capabilities": [
+            "exact_tree",
+            "executable_bit",
+            "symlinks"
+          ],
+          "target": {
+            "case_sensitive": true,
+            "executable_bit": true,
+            "max_path_bytes": 4096,
+            "symlinks": true
+          }
+        },
+        "overlay_root": "/tmp/kai-pr/run/bt/store/overlays/8cf1e1667707977f666e0a8403240ec8d7a11b900d48d3c80c72977735a0ff40",
+        "pin": {
+          "attempt": "c88919549292c07d870d64371ea08ab66bf34d71d7f554e024e1731677294c92",
+          "definition": "0efec963895df0ddb3d0dd996843a9314bbedaacebca551d359fb2bc4ae8b05e",
+          "fence": 1,
+          "input": "12d8b5c12b3cb545e793c88738952b23f5b5f90a490e9891e008a270d04db390",
+          "manifest": "a2920837a525104cb0cca83286c73092fa75bc2b13984e33bb13c262a8a10274",
+          "overlay": "8cf1e1667707977f666e0a8403240ec8d7a11b900d48d3c80c72977735a0ff40",
+          "profile": "48a5453235180edf722bff40d8b746955b7bceb82698c064224ab5f85f4d476b",
+          "repository": "fdce26d77b1f262c7f0955eb8caab8c7afd106d934c9632a75872d5186f2a50e",
+          "schema": "kiln.materialization.workspace-pin.v1",
+          "source": {
+            "contract_version": 1,
+            "native_id": "3aab043edba441b9b2745b09b6e80ad5fa4f89ff",
+            "native_kind": "commit",
+            "provider_namespace": "git"
+          }
+        },
+        "read_paths": [
+          ".cargo",
+          "Cargo.lock",
+          "Cargo.toml",
+          "projects",
+          "rust-toolchain.toml",
+          "shared"
+        ],
+        "runtime": "lattice-bwrap",
+        "schema": "kiln.projected-workspace-route.v1",
+        "write_paths": [
+          "projects/beta/src",
+          "shared/proto/src/lib.rs"
+        ]
+      },
+      "unexpected_probes": []
+    },
+    {
+      "attempt": "d5588376eb4f958e6fe318cc8f7620e9ad0a6482ee4e40fd947d761a45eb754e",
+      "capture": {
+        "facts": {
+          "affected_projects": [
+            "alpha",
+            "beta"
+          ],
+          "build_plan": "0ec425fb4ecb65be0bf847cf9c89bbda690a10ac4eae47a47ef02edf5a44801f",
+          "definition": "b591829a21fc057a300ddac69d8f77ab6bf9e23428c09f962ae253893bce7e5c",
+          "identity": "d1bb5dd6971d2babf145ec4e42c36b613cf8e43f4a61a490f979b316e779381c",
+          "manifest": "e03dcf2e74f53617ff841befc44b61d5808b94a668a8ad1c456647278f10265b",
+          "schema": "kiln.projected-candidate-facts.v1",
+          "sealed": "5cf04825fad3ff45ac4726d89098f64d5a5aed2c6eada4c4906fa6c332cbbad6"
+        },
+        "sealed": {
+          "attempt": "d5588376eb4f958e6fe318cc8f7620e9ad0a6482ee4e40fd947d761a45eb754e",
+          "base_revision": {
+            "contract_version": 1,
+            "native_id": "2de50cf99b973babec11afd4c7335aa0f568ddb3",
+            "native_kind": "commit",
+            "provider_namespace": "git"
+          },
+          "base_tree": "e7ee1041f6344fcc34dfe9f1f1d1e3d6235a58f050b19e11440ef7f9acc66dfd",
+          "definition": "b591829a21fc057a300ddac69d8f77ab6bf9e23428c09f962ae253893bce7e5c",
+          "fence": 1,
+          "identity": "5cf04825fad3ff45ac4726d89098f64d5a5aed2c6eada4c4906fa6c332cbbad6",
+          "manifest": "e03dcf2e74f53617ff841befc44b61d5808b94a668a8ad1c456647278f10265b",
+          "operations": [
+            {
+              "destination": "shared/proto/default.nix",
+              "expected": {
+                "contract_version": 1,
+                "native_id": "acebd54cec8d124a9665f807c5395973c24a0038",
+                "native_kind": "blob",
+                "provider_namespace": "git"
+              },
+              "kind": "file",
+              "object": {
+                "contract_version": 1,
+                "native_id": "254092b07feb0f8725fa0b41ad90b45a609e0d94",
+                "native_kind": "blob",
+                "provider_namespace": "git"
+              },
+              "operation": "edit",
+              "path": "shared/proto/default.nix"
+            }
+          ],
+          "overlay": "4ab2c2f83227cc3ab6263862469dfe08958be4ba188b3e4ad78431c02c4f04af",
+          "repository": "fdce26d77b1f262c7f0955eb8caab8c7afd106d934c9632a75872d5186f2a50e",
+          "schema": "kiln.projection.writeback-candidate.v2",
+          "view_operations": []
+        }
+      },
+      "case": "nix-alpha",
+      "command_exit": 0,
+      "command_tail": "alpha against protocol 1",
+      "dispatch": {
+        "exit": 2,
+        "stderr": "kiln-lattice-dispatch: worker has no complete observed result; retain state and reconcile\n",
+        "stdout": ""
+      },
+      "fence": 1,
+      "host_checks": [
+        {
+          "check": "read-only planned input unchanged in the overlay",
+          "ok": true
+        },
+        {
+          "check": "no file written at the workspace root",
+          "ok": true
+        },
+        {
+          "check": "no file written outside the write paths",
+          "ok": true
+        },
+        {
+          "check": "the host checkout is unchanged",
+          "ok": true
+        }
+      ],
+      "missing_probes": [],
+      "observations": [
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/na/checkout/flake.lock"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/na/checkout/.git/HEAD"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/na/checkout"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/workspace/.git"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/na/store/inputs/c68d2218e54749bb2c50c1a6019da5de415ca117cc620de696134d33f0f6e6f7/flake.lock"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/na/store"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/na/store/overlays/4ab2c2f83227cc3ab6263862469dfe08958be4ba188b3e4ad78431c02c4f04af/flake.lock"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/nix/var/nix/daemon-socket/socket"
+        },
+        {
+          "denied": false,
+          "probe": "read",
+          "target": "/workspace/flake.lock"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/workspace/flake.lock"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/workspace/probe-root-file"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/workspace/.git"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/nix/store/kiln-projected-runtime-probe-write"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/tmp/kai-pr/run/na/store/overlays/4ab2c2f83227cc3ab6263862469dfe08958be4ba188b3e4ad78431c02c4f04af/escape"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/workspace/flake.lock/probe-outside-write-paths"
+        },
+        {
+          "denied": true,
+          "probe": "unix",
+          "target": "/tmp/kai-pr/run/na/host.sock"
+        },
+        {
+          "denied": true,
+          "probe": "abstract",
+          "target": "kiln-projected-runtime-804790-nix-alpha"
+        },
+        {
+          "denied": true,
+          "probe": "tcp",
+          "target": "40937"
+        },
+        {
+          "exit": 0,
+          "probe": "command",
+          "tail": "YWxwaGEgYWdhaW5zdCBwcm90b2NvbCAx"
+        },
+        {
+          "probe": "granted_write",
+          "target": "shared/proto/default.nix",
+          "written": true
+        }
+      ],
+      "probes_complete": true,
+      "refused_dispatches": [
+        {
+          "case": "write_paths_widened",
+          "outcome": {
+            "exit": 2,
+            "stderr": "kiln-lattice-dispatch: the worker request's workspace root, read paths, write paths or network differ from the projected workspace route; nothing was dispatched\n",
+            "stdout": ""
+          },
+          "reason": "nothing was dispatched"
+        },
+        {
+          "case": "read_paths_widened",
+          "outcome": {
+            "exit": 2,
+            "stderr": "kiln-lattice-dispatch: the worker request's workspace root, read paths, write paths or network differ from the projected workspace route; nothing was dispatched\n",
+            "stdout": ""
+          },
+          "reason": "nothing was dispatched"
+        },
+        {
+          "case": "workspace_root_moved",
+          "outcome": {
+            "exit": 2,
+            "stderr": "kiln-lattice-dispatch: the worker request's workspace root, read paths, write paths or network differ from the projected workspace route; nothing was dispatched\n",
+            "stdout": ""
+          },
+          "reason": "nothing was dispatched"
+        },
+        {
+          "case": "route_missing",
+          "outcome": {
+            "exit": 2,
+            "stderr": "kiln-lattice-dispatch: the plan pins a projected workspace and requires its route; nothing was dispatched\n",
+            "stdout": ""
+          },
+          "reason": "nothing was dispatched"
+        },
+        {
+          "case": "local_operator",
+          "outcome": {
+            "exit": 2,
+            "stderr": "kiln-lattice-dispatch: projection-requires-operator: a projected workspace runs only under an authority profile that enables projection, never the local-operator or an absent profile; nothing was dispatched\n",
+            "stdout": ""
+          },
+          "reason": "projection-requires-operator"
+        }
+      ],
+      "route": {
+        "build_plan": "0ec425fb4ecb65be0bf847cf9c89bbda690a10ac4eae47a47ef02edf5a44801f",
+        "definition": {
+          "creation_destinations": [],
+          "dependencies": [],
+          "generated_inputs": "refused",
+          "id": "nix-alpha",
+          "mounts": [
+            {
+              "destination_prefix": "",
+              "source_prefix": ""
+            }
+          ],
+          "profile": "writable",
+          "required_capabilities": [
+            "exact_tree",
+            "executable_bit"
+          ],
+          "schema": "kiln.source-projection.definition.v1",
+          "selection": {
+            "exclude": [],
+            "include": [
+              "**"
+            ],
+            "root": ""
+          },
+          "target": {
+            "case_sensitive": true,
+            "executable_bit": true,
+            "max_path_bytes": 4096,
+            "symlinks": true
+          }
+        },
+        "identity": "422309b8524cfd3ec2884d5489a85bfb665658360e2c4c8b9cad85976b46a3b2",
+        "input_root": "/tmp/kai-pr/run/na/store/inputs/c68d2218e54749bb2c50c1a6019da5de415ca117cc620de696134d33f0f6e6f7",
+        "manifest": {
+          "adapter": {
+            "name": "git-source",
+            "version": "1"
+          },
+          "canonical_tree": "e7ee1041f6344fcc34dfe9f1f1d1e3d6235a58f050b19e11440ef7f9acc66dfd",
+          "content_identity": "42cc06fa7a17d446435785bdc79a9cd4d4059ee5fb52832b710b806b2de27a7b",
+          "coverage": "complete",
+          "definition": "b591829a21fc057a300ddac69d8f77ab6bf9e23428c09f962ae253893bce7e5c",
+          "dependencies": [],
+          "entries": [
+            {
+              "destination": "flake.lock",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "5999137c97311a98e22e587f64316b6f2d501ea7",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "167fafb088125c30d6667f40ace514b5a6b556760afdf714fc8155dfbdb26533",
+                "path": "flake.lock",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "flake.nix",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "f823496d338b73a5f0b62d5fc596d4cf8f6c973e",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "be4099eb50c2e5d9e2013bf572697242fedeb9cd7ff31d71c44326089d066ba8",
+                "path": "flake.nix",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "projects/alpha/default.nix",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "b923210fb219592974eb765a803d2c802e1d8653",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "27f9fb7e134b2618d5259f6fcdd7c3ebc0789b096a725890e4916a8bea86d9bd",
+                "path": "projects/alpha/default.nix",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "projects/beta/default.nix",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "41e0f7c2e6516cd9d83bc964ee7f40a3de136d14",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "ee273e179e5cfe1401ac23a42d4292a2005cd408458c5e35283a7568ccaedfd5",
+                "path": "projects/beta/default.nix",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "shared/proto/default.nix",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "acebd54cec8d124a9665f807c5395973c24a0038",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "ad9901e34f2a9e95cdd64f9de35c6e0143f6fcc1848bf0c0a123d952677d7fc7",
+                "path": "shared/proto/default.nix",
+                "source": "native"
+              }
+            }
+          ],
+          "evaluator": {
+            "name": "kiln-projection",
+            "version": "1"
+          },
+          "exact_revision": {
+            "contract_version": 1,
+            "native_id": "2de50cf99b973babec11afd4c7335aa0f568ddb3",
+            "native_kind": "commit",
+            "provider_namespace": "git"
+          },
+          "identity": "e03dcf2e74f53617ff841befc44b61d5808b94a668a8ad1c456647278f10265b",
+          "profile": "writable",
+          "repository": "fdce26d77b1f262c7f0955eb8caab8c7afd106d934c9632a75872d5186f2a50e",
+          "schema": "kiln.source-projection.manifest.v1",
+          "source_capabilities": [
+            "exact_tree",
+            "executable_bit",
+            "symlinks"
+          ],
+          "target": {
+            "case_sensitive": true,
+            "executable_bit": true,
+            "max_path_bytes": 4096,
+            "symlinks": true
+          }
+        },
+        "overlay_root": "/tmp/kai-pr/run/na/store/overlays/4ab2c2f83227cc3ab6263862469dfe08958be4ba188b3e4ad78431c02c4f04af",
+        "pin": {
+          "attempt": "d5588376eb4f958e6fe318cc8f7620e9ad0a6482ee4e40fd947d761a45eb754e",
+          "definition": "b591829a21fc057a300ddac69d8f77ab6bf9e23428c09f962ae253893bce7e5c",
+          "fence": 1,
+          "input": "c68d2218e54749bb2c50c1a6019da5de415ca117cc620de696134d33f0f6e6f7",
+          "manifest": "e03dcf2e74f53617ff841befc44b61d5808b94a668a8ad1c456647278f10265b",
+          "overlay": "4ab2c2f83227cc3ab6263862469dfe08958be4ba188b3e4ad78431c02c4f04af",
+          "profile": "48a5453235180edf722bff40d8b746955b7bceb82698c064224ab5f85f4d476b",
+          "repository": "fdce26d77b1f262c7f0955eb8caab8c7afd106d934c9632a75872d5186f2a50e",
+          "schema": "kiln.materialization.workspace-pin.v1",
+          "source": {
+            "contract_version": 1,
+            "native_id": "2de50cf99b973babec11afd4c7335aa0f568ddb3",
+            "native_kind": "commit",
+            "provider_namespace": "git"
+          }
+        },
+        "read_paths": [
+          "flake.lock",
+          "flake.nix",
+          "projects",
+          "shared"
+        ],
+        "runtime": "lattice-bwrap",
+        "schema": "kiln.projected-workspace-route.v1",
+        "write_paths": [
+          "shared/proto/default.nix"
+        ]
+      },
+      "unexpected_probes": []
+    },
+    {
+      "attempt": "3970071e95e4affcac4d4d11e96e01e1509d208ca61575928f335e09c35b4037",
+      "capture": {
+        "facts": {
+          "affected_projects": [],
+          "build_plan": "081e447ed0f0cc748e942c1f59d2f9b08ed878ed2e8ab2d731fef7d1d37943f3",
+          "definition": "100ea2568c2bd7fef589436b702850c0aba214a331534f734f69bd95618a886b",
+          "identity": "5cd8e0254017ca40a4354a2107b7b8950e3383dedf21a285ac4283e8a3e400f0",
+          "manifest": "4858091416b14ebee1a380010a8d729b2ebc6c96d9a39b890e8448f0174df804",
+          "schema": "kiln.projected-candidate-facts.v1",
+          "sealed": "df121101addd54b5512af46ebcbed65ebdb4ec1d9d7e976b3cfa3f691ced9a8b"
+        },
+        "sealed": {
+          "attempt": "3970071e95e4affcac4d4d11e96e01e1509d208ca61575928f335e09c35b4037",
+          "base_revision": {
+            "contract_version": 1,
+            "native_id": "2de50cf99b973babec11afd4c7335aa0f568ddb3",
+            "native_kind": "commit",
+            "provider_namespace": "git"
+          },
+          "base_tree": "e7ee1041f6344fcc34dfe9f1f1d1e3d6235a58f050b19e11440ef7f9acc66dfd",
+          "definition": "100ea2568c2bd7fef589436b702850c0aba214a331534f734f69bd95618a886b",
+          "fence": 1,
+          "identity": "df121101addd54b5512af46ebcbed65ebdb4ec1d9d7e976b3cfa3f691ced9a8b",
+          "manifest": "4858091416b14ebee1a380010a8d729b2ebc6c96d9a39b890e8448f0174df804",
+          "operations": [],
+          "overlay": "7731d8426f238d34097fc49d04a0e949510f8c05358c4822f9a454b9969a589e",
+          "repository": "fdce26d77b1f262c7f0955eb8caab8c7afd106d934c9632a75872d5186f2a50e",
+          "schema": "kiln.projection.writeback-candidate.v2",
+          "view_operations": []
+        }
+      },
+      "case": "nix-beta",
+      "command_exit": 0,
+      "command_tail": "beta against protocol 1",
+      "dispatch": {
+        "exit": 0,
+        "stderr": "kiln worker metrics unavailable: native OMP terminal observation is unavailable\n",
+        "stdout": "{\"accepted\":false,\"artifacts\":{\"omp_observation\":\"/tmp/kai-pr/run/nb/s/bc85648bc3f5e3ccff17599cef4b574814a178ce3854721a2b35f7458c1cda95/omp-observation.json\",\"raw_events\":\"/tmp/kai-pr/run/nb/s/bc85648bc3f5e3ccff17599cef4b574814a178ce3854721a2b35f7458c1cda95/raw-events.jsonl\",\"unchanged_receipt\":null},\"budget_lineage\":{\"binding\":\"704edda3503011151360274314d60a1183e3ef6a47832b336c6df7ce8995a08f\",\"unaccounted_dimensions\":[\"worker_requests\"],\"usage\":[{\"charged\":{\"model_requests\":2,\"tool_invocations\":0},\"iteration\":1,\"model_requests\":null,\"phase\":\"edit\",\"provenance\":\"unknown\",\"tool_invocations\":null}]},\"dispatch_plan\":\"7f6f53e14ef791284021f2b95be4367ef779ad191cc92f92cd661e6cfcceb728\",\"envelope\":{\"attempt_id\":\"3970071e95e4affcac4d4d11e96e01e1509d208ca61575928f335e09c35b4037\",\"base\":\"2de50cf99b973babec11afd4c7335aa0f568ddb3\",\"budget\":{\"max_cost_micros\":0,\"max_seconds\":90,\"max_turns\":4},\"fence\":1,\"policy_digest\":\"01ab73eb1a1865819e998b089150c23ff7ac5dc518955d52be0288c757a3c5e7\",\"readiness_snapshot\":\"fc4a153e8eb2e967e5df748ac3bbf3b4f64106fadf4f26a566262dc8b9fb3508\",\"repository\":\"qualification/disposable\",\"schema\":\"lattice.implementation-attempt-envelope.v1\",\"source_id\":\"projected-runtime/task:nix-beta\",\"source_kind\":\"cairn_task\",\"task_spec_digest\":\"191f792faaf80a14e4a9332aeb5539892a71e0bb50fc346f41646f24db13902f\",\"verification_profile\":\"4a987923cad8df2415b75ed16907e9426a7463e0397bc99b0e046c0d4c13841b\",\"work_id\":\"86ad6038b6f331b367c4277c20829b94fdb62e7d5285fa9723fb3fbc65b4fac9\",\"work_version\":1,\"worker_profile\":\"e940cdfa02cc88c2b35ead51ea3b781f24d3220445de8701d0ea9a61b66cb375\",\"workspace_id\":\"7731d8426f238d34097fc49d04a0e949510f8c05358c4822f9a454b9969a589e\"},\"execution_binding\":\"blake3:e39e572d52b098f0e137d9fb1cdf83e39447852362fc85e9fddf7221c1985353\",\"integrated\":false,\"model_requests\":\"unknown\",\"request_identity\":\"4cd63b5defab1dd4a159285c7c157088496e4adde3a4ac8c10ee634f4b05db84\",\"result\":{\"blocker\":\"unchanged source is a proposal requiring explicit independent no-change acceptance\",\"compatibility\":{\"environment_identity\":\"e3363b5160378bd36ffead141d72e7e8b288befc0fe3879a0bf68a5f7d5aa7cf\",\"result_schema\":\"lattice.candidate-attempt-result.v1\",\"schema\":\"lattice.candidate-worker-compatibility.v1\",\"worker_program_identity\":\"650051643d1b854b412fec96d439e1596917abadab6ef372bf47eedd08c6414c\",\"workspace_provider_identity\":\"511c82b92f7848c23d0dc696891d2d0ec4cb895e045569468e9ffe525ad276b5\"},\"disposition\":\"failed\",\"published_artifacts\":[],\"receipt\":null,\"schema\":\"lattice.candidate-attempt-result.v1\",\"stderr_blake3\":\"e29e800dc5a10d4428fcc775674375758c58239b57b7e5cf9fa28d3186967da2\",\"stdout_blake3\":\"225c7afef11c0be1855b9fe34a50acb842456e620d2ba8f98f780a541fec6a21\"},\"schema\":\"lattice.implementation-attempt-observation.v1\",\"unchanged\":null}\n"
+      },
+      "fence": 1,
+      "host_checks": [
+        {
+          "check": "read-only planned input unchanged in the overlay",
+          "ok": true
+        },
+        {
+          "check": "no file written at the workspace root",
+          "ok": true
+        },
+        {
+          "check": "no file written outside the write paths",
+          "ok": true
+        },
+        {
+          "check": "the host checkout is unchanged",
+          "ok": true
+        }
+      ],
+      "missing_probes": [],
+      "observations": [
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/nb/checkout/flake.lock"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/nb/checkout/.git/HEAD"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/nb/checkout"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/workspace/.git"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/nb/store/inputs/cb0d3ff6c0979ec8a2c577c77f4fe72ba52f215859e2fac21f0e5c92905f4296/flake.lock"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/nb/store"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/tmp/kai-pr/run/nb/store/overlays/7731d8426f238d34097fc49d04a0e949510f8c05358c4822f9a454b9969a589e/flake.lock"
+        },
+        {
+          "denied": true,
+          "probe": "read",
+          "target": "/nix/var/nix/daemon-socket/socket"
+        },
+        {
+          "denied": false,
+          "probe": "read",
+          "target": "/workspace/flake.lock"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/workspace/flake.lock"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/workspace/probe-root-file"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/workspace/.git"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/nix/store/kiln-projected-runtime-probe-write"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/tmp/kai-pr/run/nb/store/overlays/7731d8426f238d34097fc49d04a0e949510f8c05358c4822f9a454b9969a589e/escape"
+        },
+        {
+          "denied": true,
+          "probe": "write",
+          "target": "/workspace/flake.lock/probe-outside-write-paths"
+        },
+        {
+          "denied": true,
+          "probe": "unix",
+          "target": "/tmp/kai-pr/run/nb/host.sock"
+        },
+        {
+          "denied": true,
+          "probe": "abstract",
+          "target": "kiln-projected-runtime-804790-nix-beta"
+        },
+        {
+          "denied": true,
+          "probe": "tcp",
+          "target": "40889"
+        },
+        {
+          "exit": 0,
+          "probe": "command",
+          "tail": "YmV0YSBhZ2FpbnN0IHByb3RvY29sIDE="
+        }
+      ],
+      "probes_complete": true,
+      "refused_dispatches": [
+        {
+          "case": "write_paths_widened",
+          "outcome": {
+            "exit": 2,
+            "stderr": "kiln-lattice-dispatch: the worker request's workspace root, read paths, write paths or network differ from the projected workspace route; nothing was dispatched\n",
+            "stdout": ""
+          },
+          "reason": "nothing was dispatched"
+        },
+        {
+          "case": "read_paths_widened",
+          "outcome": {
+            "exit": 2,
+            "stderr": "kiln-lattice-dispatch: the worker request's workspace root, read paths, write paths or network differ from the projected workspace route; nothing was dispatched\n",
+            "stdout": ""
+          },
+          "reason": "nothing was dispatched"
+        },
+        {
+          "case": "workspace_root_moved",
+          "outcome": {
+            "exit": 2,
+            "stderr": "kiln-lattice-dispatch: the worker request's workspace root, read paths, write paths or network differ from the projected workspace route; nothing was dispatched\n",
+            "stdout": ""
+          },
+          "reason": "nothing was dispatched"
+        },
+        {
+          "case": "route_missing",
+          "outcome": {
+            "exit": 2,
+            "stderr": "kiln-lattice-dispatch: the plan pins a projected workspace and requires its route; nothing was dispatched\n",
+            "stdout": ""
+          },
+          "reason": "nothing was dispatched"
+        },
+        {
+          "case": "local_operator",
+          "outcome": {
+            "exit": 2,
+            "stderr": "kiln-lattice-dispatch: projection-requires-operator: a projected workspace runs only under an authority profile that enables projection, never the local-operator or an absent profile; nothing was dispatched\n",
+            "stdout": ""
+          },
+          "reason": "projection-requires-operator"
+        }
+      ],
+      "route": {
+        "build_plan": "081e447ed0f0cc748e942c1f59d2f9b08ed878ed2e8ab2d731fef7d1d37943f3",
+        "definition": {
+          "creation_destinations": [],
+          "dependencies": [],
+          "generated_inputs": "refused",
+          "id": "nix-beta",
+          "mounts": [
+            {
+              "destination_prefix": "",
+              "source_prefix": ""
+            }
+          ],
+          "profile": "writable",
+          "required_capabilities": [
+            "exact_tree",
+            "executable_bit"
+          ],
+          "schema": "kiln.source-projection.definition.v1",
+          "selection": {
+            "exclude": [],
+            "include": [
+              "**"
+            ],
+            "root": ""
+          },
+          "target": {
+            "case_sensitive": true,
+            "executable_bit": true,
+            "max_path_bytes": 4096,
+            "symlinks": true
+          }
+        },
+        "identity": "c2b997919163b68c635940c5077c4cbcb07b7a2bb63e7e6c5c9b17e510b1ff0c",
+        "input_root": "/tmp/kai-pr/run/nb/store/inputs/cb0d3ff6c0979ec8a2c577c77f4fe72ba52f215859e2fac21f0e5c92905f4296",
+        "manifest": {
+          "adapter": {
+            "name": "git-source",
+            "version": "1"
+          },
+          "canonical_tree": "e7ee1041f6344fcc34dfe9f1f1d1e3d6235a58f050b19e11440ef7f9acc66dfd",
+          "content_identity": "42cc06fa7a17d446435785bdc79a9cd4d4059ee5fb52832b710b806b2de27a7b",
+          "coverage": "complete",
+          "definition": "100ea2568c2bd7fef589436b702850c0aba214a331534f734f69bd95618a886b",
+          "dependencies": [],
+          "entries": [
+            {
+              "destination": "flake.lock",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "5999137c97311a98e22e587f64316b6f2d501ea7",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "167fafb088125c30d6667f40ace514b5a6b556760afdf714fc8155dfbdb26533",
+                "path": "flake.lock",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "flake.nix",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "f823496d338b73a5f0b62d5fc596d4cf8f6c973e",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "be4099eb50c2e5d9e2013bf572697242fedeb9cd7ff31d71c44326089d066ba8",
+                "path": "flake.nix",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "projects/alpha/default.nix",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "b923210fb219592974eb765a803d2c802e1d8653",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "27f9fb7e134b2618d5259f6fcdd7c3ebc0789b096a725890e4916a8bea86d9bd",
+                "path": "projects/alpha/default.nix",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "projects/beta/default.nix",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "41e0f7c2e6516cd9d83bc964ee7f40a3de136d14",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "ee273e179e5cfe1401ac23a42d4292a2005cd408458c5e35283a7568ccaedfd5",
+                "path": "projects/beta/default.nix",
+                "source": "native"
+              }
+            },
+            {
+              "destination": "shared/proto/default.nix",
+              "kind": "file",
+              "origin": {
+                "object": {
+                  "contract_version": 1,
+                  "native_id": "acebd54cec8d124a9665f807c5395973c24a0038",
+                  "native_kind": "blob",
+                  "provider_namespace": "git"
+                },
+                "origin_identity": "ad9901e34f2a9e95cdd64f9de35c6e0143f6fcc1848bf0c0a123d952677d7fc7",
+                "path": "shared/proto/default.nix",
+                "source": "native"
+              }
+            }
+          ],
+          "evaluator": {
+            "name": "kiln-projection",
+            "version": "1"
+          },
+          "exact_revision": {
+            "contract_version": 1,
+            "native_id": "2de50cf99b973babec11afd4c7335aa0f568ddb3",
+            "native_kind": "commit",
+            "provider_namespace": "git"
+          },
+          "identity": "4858091416b14ebee1a380010a8d729b2ebc6c96d9a39b890e8448f0174df804",
+          "profile": "writable",
+          "repository": "fdce26d77b1f262c7f0955eb8caab8c7afd106d934c9632a75872d5186f2a50e",
+          "schema": "kiln.source-projection.manifest.v1",
+          "source_capabilities": [
+            "exact_tree",
+            "executable_bit",
+            "symlinks"
+          ],
+          "target": {
+            "case_sensitive": true,
+            "executable_bit": true,
+            "max_path_bytes": 4096,
+            "symlinks": true
+          }
+        },
+        "overlay_root": "/tmp/kai-pr/run/nb/store/overlays/7731d8426f238d34097fc49d04a0e949510f8c05358c4822f9a454b9969a589e",
+        "pin": {
+          "attempt": "3970071e95e4affcac4d4d11e96e01e1509d208ca61575928f335e09c35b4037",
+          "definition": "100ea2568c2bd7fef589436b702850c0aba214a331534f734f69bd95618a886b",
+          "fence": 1,
+          "input": "cb0d3ff6c0979ec8a2c577c77f4fe72ba52f215859e2fac21f0e5c92905f4296",
+          "manifest": "4858091416b14ebee1a380010a8d729b2ebc6c96d9a39b890e8448f0174df804",
+          "overlay": "7731d8426f238d34097fc49d04a0e949510f8c05358c4822f9a454b9969a589e",
+          "profile": "48a5453235180edf722bff40d8b746955b7bceb82698c064224ab5f85f4d476b",
+          "repository": "fdce26d77b1f262c7f0955eb8caab8c7afd106d934c9632a75872d5186f2a50e",
+          "schema": "kiln.materialization.workspace-pin.v1",
+          "source": {
+            "contract_version": 1,
+            "native_id": "2de50cf99b973babec11afd4c7335aa0f568ddb3",
+            "native_kind": "commit",
+            "provider_namespace": "git"
+          }
+        },
+        "read_paths": [
+          "flake.lock",
+          "flake.nix",
+          "projects",
+          "shared"
+        ],
+        "runtime": "lattice-bwrap",
+        "schema": "kiln.projected-workspace-route.v1",
+        "write_paths": [
+          "shared/proto/default.nix"
+        ]
+      },
+      "unexpected_probes": []
+    }
+  ],
+  "lattice": "/nix/store/fh04cadrj2f3xxjr8ga8rm966jpzy9bp-lattice-0.1.0/bin/lattice",
+  "lattice_blake3": "d422561e50b131a4a8cc6ab01925495517fc13a62e9f140efb0dbe5c9e1066c0",
+  "non_claims": [
+    "no model was contacted; the worker is a probe in place of OMP",
+    "confinement is Lattice's bubblewrap provider on this host only",
+    "no authority was admitted for retrieval, workspace effects or writeback (S7)",
+    "no source reference was moved or published"
+  ],
+  "probe": "/nix/store/k6g1r58rclbcy2ymdyzjfykp7h2x7c4s-kiln-projected-runtime-probe/probe",
+  "schema": "kiln.projected-runtime.receipt.v2"
+}
