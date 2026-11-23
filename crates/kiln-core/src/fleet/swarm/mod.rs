@@ -540,5 +540,30 @@ pub(crate) fn valid_body_text(value: &str, max_bytes: usize) -> bool {
     !value.trim().is_empty() && value.len() <= max_bytes && !value.contains('\0')
 }
 
+/// Truncate `text` to at most `max_bytes` on a UTF-8 character boundary,
+/// appending `...` when truncated, so synthesized board summaries cannot
+/// self-DoS `SwarmBoard::append`.
+pub(crate) fn truncate_for_board(text: String, max_bytes: usize) -> String {
+    if text.len() <= max_bytes {
+        return text;
+    }
+    let suffix = "...";
+    let budget = max_bytes.saturating_sub(suffix.len());
+    let mut end = 0;
+    for (idx, ch) in text.char_indices() {
+        let next = idx.saturating_add(ch.len_utf8());
+        if next > budget {
+            break;
+        }
+        end = next;
+    }
+    let mut out = String::with_capacity(end.saturating_add(suffix.len()));
+    if let Some(prefix) = text.get(..end) {
+        out.push_str(prefix);
+    }
+    out.push_str(suffix);
+    out
+}
+
 #[cfg(test)]
 mod tests;

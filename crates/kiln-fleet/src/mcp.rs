@@ -324,7 +324,7 @@ impl McpServer {
                     query.push(format!("seqs={}", list.join(",")));
                 }
                 if let Some(member) = arguments.get("member").and_then(Value::as_str) {
-                    query.push(format!("member={member}"));
+                    query.push(format!("member={}", valid_member_name(member)?));
                 }
                 let path = if query.is_empty() {
                     format!("/v1/swarms/{swarm}/board")
@@ -408,6 +408,22 @@ fn identity(value: &str) -> Result<String, String> {
         Ok(value.to_owned())
     } else {
         Err("identity must be a 64-character lowercase hex id".to_owned())
+    }
+}
+
+/// Swarm member names match `[a-z0-9][a-z0-9-]*` within 64 bytes.
+fn valid_member_name(value: &str) -> Result<String, String> {
+    let mut bytes = value.bytes();
+    let ok = !value.is_empty()
+        && value.len() <= kiln_core::fleet::MAX_MEMBER_NAME_BYTES
+        && bytes
+            .next()
+            .is_some_and(|first| first.is_ascii_lowercase() || first.is_ascii_digit())
+        && bytes.all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-');
+    if ok {
+        Ok(value.to_owned())
+    } else {
+        Err("member must match [a-z0-9][a-z0-9-]* within 64 bytes".to_owned())
     }
 }
 

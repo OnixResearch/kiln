@@ -301,9 +301,38 @@ fn swarm_command(arguments: &[String]) -> Result<i32, Usage> {
                 query.push(format!("limit={}", number(&flags, "--limit")?));
             }
             if let Some(seqs) = flags.get("--seqs") {
-                query.push(format!("seqs={seqs}"));
+                let mut validated = Vec::new();
+                for token in seqs.split(',') {
+                    if token.is_empty() || !token.bytes().all(|b| b.is_ascii_digit()) {
+                        return Err(Usage(
+                            "--seqs must be a comma-separated list of positive integers".into(),
+                        ));
+                    }
+                    let parsed = token.parse::<u64>().map_err(|_| {
+                        Usage("--seqs must be a comma-separated list of positive integers".into())
+                    })?;
+                    validated.push(parsed.to_string());
+                }
+                if validated.is_empty() {
+                    return Err(Usage(
+                        "--seqs must be a comma-separated list of positive integers".into(),
+                    ));
+                }
+                query.push(format!("seqs={}", validated.join(",")));
             }
             if let Some(member) = flags.get("--member") {
+                let mut bytes = member.bytes();
+                let valid = !member.is_empty()
+                    && member.len() <= kiln_core::fleet::MAX_MEMBER_NAME_BYTES
+                    && bytes
+                        .next()
+                        .is_some_and(|first| first.is_ascii_lowercase() || first.is_ascii_digit())
+                    && bytes.all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-');
+                if !valid {
+                    return Err(Usage(
+                        "--member must match [a-z0-9][a-z0-9-]* within 64 bytes".into(),
+                    ));
+                }
                 query.push(format!("member={member}"));
             }
             let base = format!("/v1/swarms/{}/board", identity(&flags, "--swarm")?);

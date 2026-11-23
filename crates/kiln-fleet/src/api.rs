@@ -283,16 +283,24 @@ impl Service {
                 self.answer(machine, id, &request.body, now_ms)
             }
             ("GET", ["swarms"]) => self.list_swarms(),
-            ("POST", ["swarms"]) => self.create_swarm(&request.body, now_ms),
+            ("POST", ["swarms"]) => self.create_swarm(machine, &request.body, now_ms),
             ("GET", ["swarms", id]) => self.get_swarm(id),
             ("POST", ["swarms", id, "members"]) => {
                 self.swarm_member(machine, id, &request.body, now_ms)
             }
             ("GET", ["swarms", id, "board"]) => self.read_swarm_board(id, request.query.as_deref()),
-            ("POST", ["swarms", id, "board"]) => self.post_swarm_board(id, &request.body, now_ms),
-            ("POST", ["swarms", id, "verdicts"]) => self.swarm_verdict(id, &request.body, now_ms),
-            ("POST", ["swarms", id, "watchdog"]) => self.swarm_watchdog(id, &request.body, now_ms),
-            ("POST", ["swarms", id, "failover"]) => self.swarm_failover(id, &request.body, now_ms),
+            ("POST", ["swarms", id, "board"]) => {
+                self.post_swarm_board(machine, id, &request.body, now_ms)
+            }
+            ("POST", ["swarms", id, "verdicts"]) => {
+                self.swarm_verdict(machine, id, &request.body, now_ms)
+            }
+            ("POST", ["swarms", id, "watchdog"]) => {
+                self.swarm_watchdog(machine, id, &request.body, now_ms)
+            }
+            ("POST", ["swarms", id, "failover"]) => {
+                self.swarm_failover(machine, id, &request.body, now_ms)
+            }
             ("GET", ["swarms", id, "graph"]) => self.swarm_graph(id, request.query.as_deref()),
             (
                 _,
@@ -845,6 +853,37 @@ impl Service {
         }
     }
 
+    fn swarm_member_host_check(
+        &self,
+        implementer: &mut kiln_implementer::Implementer,
+        machine: &str,
+        swarm_id: &ContentId,
+        member_name: &str,
+    ) -> Result<(), Response> {
+        if self.config.is_operator(machine) {
+            return Ok(());
+        }
+        let swarm = implementer
+            .fleet_swarm(swarm_id)
+            .map_err(|error| store_error(&error))?
+            .ok_or_else(|| Response::error(404, "fleet_swarm_unknown", "no such swarm run"))?;
+        let member = swarm.members.get(member_name).ok_or_else(|| {
+            Response::error(
+                404,
+                "fleet_swarm_member_unknown",
+                "no such member in this swarm run",
+            )
+        })?;
+        if member.host != machine {
+            return Err(Response::error(
+                403,
+                "fleet_swarm_host_mismatch",
+                "only the member's authenticated host or an operator may act as this member",
+            ));
+        }
+        Ok(())
+    }
+
     // r[impl kiln.fleet.swarm.surface]
     fn list_swarms(&self) -> Handled {
         let swarms = self
@@ -855,7 +894,8 @@ impl Service {
     }
 
     // r[impl kiln.fleet.swarm.surface]
-    fn create_swarm(&self, body: &[u8], now_ms: u64) -> Handled {
+    fn create_swarm(&self, machine: &str, body: &[u8], now_ms: u64) -> Handled {
+        self.operator(machine)?;
         let body: SwarmCreateBody = parse_body(body)?;
         let mut allowed_scopes = Vec::with_capacity(body.allowed_scopes.len());
         for raw in &body.allowed_scopes {
@@ -905,6 +945,7 @@ impl Service {
                         "unknown member action; expected update_state",
                     ));
                 }
+                self.swarm_member_host_check(&mut implementer, machine, &identity, &update.member)?;
                 let member = implementer
                     .fleet_swarm_update_member(
                         &identity,
@@ -917,6 +958,20 @@ impl Service {
                 Ok(Response::new(200, json!({ "member": member })))
             }
             SwarmMemberBody::Spawn(spawn) => {
+                match spawn.requester.as_deref() {
+                    None => self.operator(machine)?,
+                    Some(requester) => {
+                        self.swarm_member_host_check(
+                            &mut implementer,
+                            machine,
+                            &identity,
+                            requester,
+                        )?;
+                    }
+                }
+                if spawn.host.as_deref().is_some_and(|host| host != machine) {
+                    self.operator(machine)?;
+                }
                 let scope = match spawn.scope.as_deref() {
                     Some(text) => Some(
                         parse_scope_text(text)
@@ -1017,11 +1072,12 @@ impl Service {
     }
 
     // r[impl kiln.fleet.swarm.surface] r[impl kiln.fleet.swarm.model]
-    fn post_swarm_board(&self, id: &str, body: &[u8], now_ms: u64) -> Handled {
+    fn post_swarm_board(&self, machine: &str, id: &str, body: &[u8], now_ms: u64) -> Handled {
         let identity = path_identity(id)?;
         let body: SwarmPostBody = parse_body(body)?;
-        let post = self
-            .open("POST /v1/swarms/{id}/board")?
+        let mut implementer = self.open("POST /v1/swarms/{id}/board")?;
+        self.swarm_member_host_check(&mut implementer, machine, &identity, &body.sender)?;
+        let post = implementer
             .fleet_swarm_post(
                 &identity,
                 &body.sender,
@@ -1037,7 +1093,7 @@ impl Service {
     }
 
     // r[impl kiln.fleet.swarm.surface] r[impl kiln.fleet.swarm.verdict]
-    fn swarm_verdict(&self, id: &str, body: &[u8], now_ms: u64) -> Handled {
+    fn swarm_verdict(&self, machine: &str, id: &str, body: &[u8], now_ms: u64) -> Handled {
         let identity = path_identity(id)?;
         let body: SwarmVerdictBody = parse_body(body)?;
         let decision = match body.verdict.as_str() {
@@ -1056,8 +1112,9 @@ impl Service {
                 ));
             }
         };
-        let (verdict, outcome, post) = self
-            .open("POST /v1/swarms/{id}/verdicts")?
+        let mut implementer = self.open("POST /v1/swarms/{id}/verdicts")?;
+        self.swarm_member_host_check(&mut implementer, machine, &identity, &body.verifier)?;
+        let (verdict, outcome, post) = implementer
             .fleet_swarm_verdict(
                 &identity,
                 &body.verifier,
@@ -1074,7 +1131,7 @@ impl Service {
     }
 
     // r[impl kiln.fleet.swarm.surface] r[impl kiln.fleet.swarm.watchdog]
-    fn swarm_watchdog(&self, id: &str, body: &[u8], now_ms: u64) -> Handled {
+    fn swarm_watchdog(&self, machine: &str, id: &str, body: &[u8], now_ms: u64) -> Handled {
         let identity = path_identity(id)?;
         let apply = if body.is_empty() {
             true
@@ -1082,6 +1139,9 @@ impl Service {
             let parsed: SwarmWatchdogBody = parse_body(body)?;
             parsed.apply
         };
+        if apply {
+            self.operator(machine)?;
+        }
         let (actions, post) = self
             .open("POST /v1/swarms/{id}/watchdog")?
             .fleet_swarm_watchdog(&identity, apply, now_ms)
@@ -1093,7 +1153,8 @@ impl Service {
     }
 
     // r[impl kiln.fleet.swarm.surface] r[impl kiln.fleet.swarm.watchdog]
-    fn swarm_failover(&self, id: &str, body: &[u8], now_ms: u64) -> Handled {
+    fn swarm_failover(&self, machine: &str, id: &str, body: &[u8], now_ms: u64) -> Handled {
+        self.operator(machine)?;
         let identity = path_identity(id)?;
         let request: QuotaFailoverRequest = parse_body(body)?;
         let (member, post) = self

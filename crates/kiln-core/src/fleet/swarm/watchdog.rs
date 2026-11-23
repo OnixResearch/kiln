@@ -13,8 +13,8 @@ use serde::{Deserialize, Serialize};
 
 use super::board::{BoardPost, BoardPostKind, MentionTarget};
 use super::{
-    MAX_PAUSE_REASON_BYTES, SwarmMember, SwarmMemberState, SwarmRole, SwarmRun, SwarmRunPhase,
-    valid_harness_field,
+    MAX_PAUSE_REASON_BYTES, MAX_POST_BODY_BYTES, SwarmMember, SwarmMemberState, SwarmRole,
+    SwarmRun, SwarmRunPhase, truncate_for_board, valid_harness_field,
 };
 use crate::fleet::claims::FleetClaimRegistry;
 use crate::fleet::{bounded_line, refusal};
@@ -103,16 +103,17 @@ pub fn evaluate_watchdog(
             }
             SwarmMemberState::Working => {
                 let stale_for_ms = now_ms.saturating_sub(member.observed_ms);
-                let claim_expired = member.claim_identity.as_ref().is_some_and(|claim_id| {
-                    fleet_claims
-                        .claims
-                        .get(claim_id)
-                        .is_some_and(|claim| !claim.is_live(now_ms))
+                let claim_invalid = member.claim_identity.as_ref().is_some_and(|claim_id| {
+                    fleet_claims.claims.get(claim_id).is_none_or(|claim| {
+                        !claim.is_live(now_ms)
+                            || member.claim_fence.is_some_and(|fence| claim.fence != fence)
+                            || claim.holder.host != member.host
+                    })
                 });
-                if stale_for_ms >= run.config.stale_after_ms || claim_expired {
-                    let reason = if claim_expired {
+                if stale_for_ms >= run.config.stale_after_ms || claim_invalid {
+                    let reason = if claim_invalid {
                         format!(
-                            "working member {} holds an expired fleet claim",
+                            "working member {} holds a missing, expired, or mismatched fleet claim",
                             member.name
                         )
                     } else {
@@ -226,12 +227,16 @@ pub fn record_watchdog_pass(
         }
     }
 
+    let summary = truncate_for_board(
+        format!("watchdog: {}", summaries.join("; ")),
+        MAX_POST_BODY_BYTES,
+    );
     let post = next.board.append(
         "kiln-watchdog".to_string(),
         SwarmRole::Coordinator,
         BoardPostKind::Watchdog,
         mentions,
-        format!("watchdog: {}", summaries.join("; ")),
+        summary,
         None,
         None,
         now_ms,
@@ -300,14 +305,21 @@ pub fn apply_quota_failover(
             "replacement_harness must be a bounded ASCII token",
         ));
     }
-    if let Some(host) = &request.replacement_host
-        && !valid_harness_field(host)
-    {
-        return Err(refusal(
-            "fleet_swarm_failover",
-            "replacement_host",
-            "replacement_host must be a bounded ASCII token",
-        ));
+    if let Some(host) = &request.replacement_host {
+        if !valid_harness_field(host) {
+            return Err(refusal(
+                "fleet_swarm_failover",
+                "replacement_host",
+                "replacement_host must be a bounded ASCII token",
+            ));
+        }
+        if host != &current.host && current.claim_identity.is_some() {
+            return Err(refusal(
+                "fleet_swarm_failover_claim_host",
+                "replacement_host",
+                "cannot move a member with a bound fleet claim to another host during failover",
+            ));
+        }
     }
     if let Some(reason) = &request.reason
         && !bounded_line(reason, MAX_PAUSE_REASON_BYTES)

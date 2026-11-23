@@ -297,6 +297,30 @@ fn swarm_cli_subcommands_round_trip() -> TestResult {
     assert_eq!(read.status.code(), Some(0));
     assert!(String::from_utf8_lossy(&read.stdout).contains("Working cleanly"));
 
+    // Query-smuggling attempts in --member or --seqs exit with usage error (2).
+    let bad_member = kiln_fleet(&[
+        "swarm",
+        "read",
+        "--swarm",
+        swarm_id,
+        "--member",
+        "author-cli&limit=1",
+        "--server",
+        &server,
+    ])?;
+    assert_eq!(bad_member.status.code(), Some(2));
+    let bad_seqs = kiln_fleet(&[
+        "swarm",
+        "read",
+        "--swarm",
+        swarm_id,
+        "--seqs",
+        "1,2&member=x",
+        "--server",
+        &server,
+    ])?;
+    assert_eq!(bad_seqs.status.code(), Some(2));
+
     let graph = kiln_fleet(&[
         "swarm",
         "graph",

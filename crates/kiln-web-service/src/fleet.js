@@ -262,10 +262,14 @@
     const detail = element("div", undefined, "fleet-swarm-detail");
     const head = element("div", undefined, "fleet-section-head");
     const title = element("h3", `${text(run?.config?.title) || "Swarm run"} · ${stateText(run?.phase)}`);
-    const link = element("a", "Open standalone read-only view");
-    link.href = `/fleet/swarms/${text(run.identity)}`;
-    link.className = "small";
-    head.append(title, link);
+    head.append(title);
+    const runId = text(run?.identity);
+    if (IDENTITY.test(runId)) {
+      const link = element("a", "Open standalone read-only view");
+      link.href = `/fleet/swarms/${runId}`;
+      link.className = "small";
+      head.append(link);
+    }
 
     const members = record(run.members) ? Object.values(run.members) : [];
     const rosterRows = members.map((member) => [
@@ -349,9 +353,12 @@
         const inspect = element("button", "Inspect", "quiet");
         inspect.type = "button";
         inspect.addEventListener("click", () => { void inspectSwarm(state, id); });
-        const link = element("a", "HTML", "small");
-        link.href = `/fleet/swarms/${id}`;
-        actions.append(inspect, link);
+        actions.append(inspect);
+        if (IDENTITY.test(id)) {
+          const link = element("a", "HTML", "small");
+          link.href = `/fleet/swarms/${id}`;
+          actions.append(link);
+        }
         const members = record(run.members) ? Object.keys(run.members).length : 0;
         const headSeq = Array.isArray(run?.board?.posts) && run.board.posts.length ? run.board.posts[run.board.posts.length - 1].seq : 0;
         return [

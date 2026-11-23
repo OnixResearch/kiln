@@ -637,14 +637,43 @@ fn swarm_http_api_enforces_delegation_verdicts_watchdog_failover_and_graph() -> 
     );
     assert_eq!(bad_verifier.status, 403, "{}", bad_verifier.body);
 
-    // Admit valid author and read-only verifier.
-    let author = fixture.call(
+    // Non-operator peer cannot create swarms -> 403.
+    let peer_create = fixture.call(
         PEER,
+        "POST",
+        "/v1/swarms",
+        Some(json!({
+            "title": "Unauthorized",
+            "allowed_scopes": ["OnixResearch/kiln crates/kiln-core"]
+        })),
+    );
+    assert_eq!(peer_create.status, 403, "{}", peer_create.body);
+
+    // Non-operator peer cannot spawn with requester=None (operator privilege) -> 403.
+    let peer_spawn = fixture.call(
+        PEER,
+        "POST",
+        &format!("/v1/swarms/{swarm_id}/members"),
+        Some(json!({
+            "name": "rogue",
+            "role": "author",
+            "harness": "omp",
+            "model": "gpt-5",
+            "scope": "OnixResearch/kiln crates/kiln-core/src/fleet",
+            "brief": "Unauthorized spawn"
+        })),
+    );
+    assert_eq!(peer_spawn.status, 403, "{}", peer_spawn.body);
+
+    // Operator dispatches valid author on PEER and read-only verifier on COORDINATOR.
+    let author = fixture.call(
+        COORDINATOR,
         "POST",
         &format!("/v1/swarms/{swarm_id}/members"),
         Some(json!({
             "name": "author-1",
             "role": "author",
+            "host": PEER,
             "harness": "antigravity",
             "model": "gemini-3.1-pro",
             "scope": "OnixResearch/kiln crates/kiln-core/src/fleet",
@@ -757,6 +786,82 @@ fn swarm_http_api_enforces_delegation_verdicts_watchdog_failover_and_graph() -> 
         })),
     );
     assert_eq!(bad_verdict.status, 403, "{}", bad_verdict.body);
+
+    // Cross-host spoofing checks: PEER cannot spoof COORDINATOR's verifier-1 on verdicts,
+    // board posts, or state updates, nor trigger watchdog(apply=true) or failover!
+    let spoof_verdict = fixture.call(
+        PEER,
+        "POST",
+        &format!("/v1/swarms/{swarm_id}/verdicts"),
+        Some(json!({
+            "verifier": "verifier-1",
+            "author": "author-1",
+            "commit": commit_sha,
+            "verdict": "approve"
+        })),
+    );
+    assert_eq!(spoof_verdict.status, 403, "{}", spoof_verdict.body);
+    assert_eq!(
+        text(&spoof_verdict.body, "/code"),
+        "fleet_swarm_host_mismatch"
+    );
+
+    let spoof_post = fixture.call(
+        PEER,
+        "POST",
+        &format!("/v1/swarms/{swarm_id}/board"),
+        Some(json!({
+            "sender": "verifier-1",
+            "kind": "status",
+            "mentions": [],
+            "body": "spoofed verifier status"
+        })),
+    );
+    assert_eq!(spoof_post.status, 403, "{}", spoof_post.body);
+    assert_eq!(text(&spoof_post.body, "/code"), "fleet_swarm_host_mismatch");
+
+    let spoof_state = fixture.call(
+        PEER,
+        "POST",
+        &format!("/v1/swarms/{swarm_id}/members"),
+        Some(json!({
+            "action": "update_state",
+            "member": "verifier-1",
+            "state": { "state": "retired" }
+        })),
+    );
+    assert_eq!(spoof_state.status, 403, "{}", spoof_state.body);
+    assert_eq!(
+        text(&spoof_state.body, "/code"),
+        "fleet_swarm_host_mismatch"
+    );
+
+    let peer_wd_apply = fixture.call(
+        PEER,
+        "POST",
+        &format!("/v1/swarms/{swarm_id}/watchdog"),
+        Some(json!({ "apply": true })),
+    );
+    assert_eq!(peer_wd_apply.status, 403, "{}", peer_wd_apply.body);
+    // Read-only watchdog evaluation (apply=false) is permitted for authenticated peers.
+    let peer_wd_read = fixture.call(
+        PEER,
+        "POST",
+        &format!("/v1/swarms/{swarm_id}/watchdog"),
+        Some(json!({ "apply": false })),
+    );
+    assert_eq!(peer_wd_read.status, 200, "{}", peer_wd_read.body);
+
+    let peer_failover = fixture.call(
+        PEER,
+        "POST",
+        &format!("/v1/swarms/{swarm_id}/failover"),
+        Some(json!({
+            "member": "author-1",
+            "replacement_model": "claude-opus-4-6"
+        })),
+    );
+    assert_eq!(peer_failover.status, 403, "{}", peer_failover.body);
 
     // Pause author-1 on quota, then failover preserving board_cursor & checkpoint_commit.
     let paused = fixture.call(
@@ -962,11 +1067,23 @@ fn mcp_swarm_tools_round_trip() -> TestResult {
         "tools/call",
         json!({
             "name": "kiln_swarm_read",
-            "arguments": { "swarm": swarm_id, "since": 0 }
+            "arguments": { "swarm": swarm_id, "since": 0, "member": "verifier" }
         }),
     )?;
     assert_eq!(read.pointer("/result/isError"), Some(&json!(false)));
     assert!(text(&read, "/result/content/0/text").contains("Please audit"));
+
+    // Malformed/injected member in MCP kiln_swarm_read is rejected before hitting HTTP.
+    let bad_member = mcp_call(
+        &mut server,
+        55,
+        "tools/call",
+        json!({
+            "name": "kiln_swarm_read",
+            "arguments": { "swarm": swarm_id, "member": "verifier&since=99\r\n" }
+        }),
+    )?;
+    assert!(bad_member.get("error").is_some());
 
     let wd = mcp_call(
         &mut server,

@@ -9,8 +9,9 @@ use serde::{Deserialize, Serialize};
 
 use super::board::{BoardPost, BoardPostKind, MentionTarget};
 use super::{
-    MAX_ESCALATION_REASON_BYTES, MAX_VERDICT_FINDING_BYTES, MAX_VERDICT_FINDINGS, SwarmMemberState,
-    SwarmRole, SwarmRun, SwarmRunPhase, valid_body_text, valid_commit_sha,
+    MAX_ESCALATION_REASON_BYTES, MAX_POST_BODY_BYTES, MAX_VERDICT_FINDING_BYTES,
+    MAX_VERDICT_FINDINGS, SwarmMemberState, SwarmRole, SwarmRun, SwarmRunPhase, truncate_for_board,
+    valid_body_text, valid_commit_sha,
 };
 use crate::fleet::refusal;
 use crate::types::CoreResult;
@@ -197,6 +198,7 @@ pub fn submit_verdict(
         }
     };
 
+    let body = truncate_for_board(body, MAX_POST_BODY_BYTES);
     let post = next.board.append(
         verifier.to_string(),
         SwarmRole::Verifier,

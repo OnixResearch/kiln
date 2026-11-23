@@ -546,6 +546,23 @@ fn watchdog_detects_wakeups_deadlocks_stale_observations_and_expired_claims() {
         action,
         WatchdogAction::StaleObservationEscalation { member, .. } if member == "author"
     )));
+
+    // 4. Fail-closed claim checks: missing claim or mismatched fence -> StaleObservationEscalation
+    // even when observed_ms is fresh.
+    let missing_claim_actions = evaluate_watchdog(&run, &FleetClaimRegistry::default(), 2_000);
+    assert!(missing_claim_actions.iter().any(|action| matches!(
+        action,
+        WatchdogAction::StaleObservationEscalation { member, .. } if member == "author"
+    )));
+    let mut wrong_fence_run = run.clone();
+    if let Some(author) = wrong_fence_run.members.get_mut("author") {
+        author.claim_fence = Some(granted_claim.fence + 1);
+    }
+    let wrong_fence_actions = evaluate_watchdog(&wrong_fence_run, &claims, 2_000);
+    assert!(wrong_fence_actions.iter().any(|action| matches!(
+        action,
+        WatchdogAction::StaleObservationEscalation { member, .. } if member == "author"
+    )));
 }
 
 #[test]
@@ -643,6 +660,134 @@ fn quota_failover_preserves_cursor_checkpoint_and_attempt_lineage() {
         Some(checkpoint.as_str())
     );
     assert_eq!(resumed.board.head_seq(), failover_post.seq);
+
+    // Cross-host failover MUST be refused when the member holds a bound fleet claim.
+    let ctx = ClaimContext {
+        now_ms: 1_000,
+        attempts: &[],
+        foreign: &[],
+        coordinator: "britton-desktop",
+    };
+    let (claims_with_grant, outcome, _) = decide_claim(
+        &FleetClaimRegistry::default(),
+        ClaimCommand::Acquire {
+            scope: scope("OnixResearch/kiln crates/kiln-core/src/fleet"),
+            holder: FleetAgent {
+                tool: "antigravity".to_string(),
+                host: "aspen3".to_string(),
+                session: "claimed-author".to_string(),
+            },
+            purpose: "bound claim".to_string(),
+            lease_ms: 600_000,
+            attempt: None,
+        },
+        &ctx,
+    )
+    .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let ClaimOutcome::Granted(bound_claim) = outcome else {
+        unreachable!("expected granted claim");
+    };
+    let mut claimed_req = spawn_request(
+        "claimed-author",
+        SwarmRole::Author,
+        Some("OnixResearch/kiln crates/kiln-core/src/fleet"),
+    );
+    claimed_req.claim_identity = Some(bound_claim.identity);
+    claimed_req.claim_fence = Some(bound_claim.fence);
+    let run2 = create_run(base_config());
+    let (run2, _, _) = admit_spawn(&run2, None, claimed_req, &claims_with_grant, 1_100)
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let (run2, _) = update_member_state(
+        &run2,
+        "claimed-author",
+        SwarmMemberState::PausedQuota {
+            checkpoint_commit: Some(checkpoint),
+            board_cursor: 1,
+            reason: "429 quota".to_string(),
+            paused_ms: 1_200,
+        },
+        10,
+        1_200,
+    )
+    .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let cross_host_err = apply_quota_failover(
+        &run2,
+        QuotaFailoverRequest {
+            member: "claimed-author".to_string(),
+            replacement_model: "claude-opus-4-6".to_string(),
+            replacement_harness: Some("claude-code".to_string()),
+            replacement_host: Some("aspen2".to_string()),
+            reason: None,
+        },
+        1_300,
+    )
+    .err()
+    .unwrap_or_else(|| unreachable!("expected cross-host claim failover refusal"));
+    assert_eq!(cross_host_err.code, "fleet_swarm_failover_claim_host");
+    // Same-host model/harness switch with bound claim succeeds.
+    let (_, same_host_member, _) = apply_quota_failover(
+        &run2,
+        QuotaFailoverRequest {
+            member: "claimed-author".to_string(),
+            replacement_model: "claude-opus-4-6".to_string(),
+            replacement_harness: Some("claude-code".to_string()),
+            replacement_host: Some("aspen3".to_string()),
+            reason: None,
+        },
+        1_300,
+    )
+    .unwrap_or_else(|e| unreachable!("{e:?}"));
+    assert_eq!(same_host_member.host, "aspen3");
+    assert_eq!(same_host_member.model, "claude-opus-4-6");
+}
+
+#[test]
+// r[verify kiln.fleet.swarm.verdict]
+fn max_sized_verdict_findings_truncate_board_summary_without_self_dos() {
+    let run = create_run(base_config());
+    let claims = FleetClaimRegistry::default();
+    let (run, _, _) = admit_spawn(
+        &run,
+        None,
+        spawn_request(
+            "author",
+            SwarmRole::Author,
+            Some("OnixResearch/kiln crates/kiln-core/src/fleet"),
+        ),
+        &claims,
+        1_100,
+    )
+    .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let (run, _, _) = admit_spawn(
+        &run,
+        None,
+        spawn_request("verifier", SwarmRole::Verifier, None),
+        &claims,
+        1_200,
+    )
+    .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let huge_findings: alloc::vec::Vec<String> = (0..MAX_VERDICT_FINDINGS)
+        .map(|i| format!("finding-{i}-{}", "x".repeat(900)))
+        .collect();
+    let (_, verdict, _, post) = submit_verdict(
+        &run,
+        "verifier",
+        "author",
+        commit('9'),
+        VerdictDecision::RequestChanges {
+            findings: huge_findings.clone(),
+        },
+        1_300,
+    )
+    .unwrap_or_else(|e| unreachable!("{e:?}"));
+    assert!(post.body.len() <= MAX_POST_BODY_BYTES);
+    assert!(post.body.ends_with("..."));
+    assert_eq!(
+        verdict.decision,
+        VerdictDecision::RequestChanges {
+            findings: huge_findings,
+        }
+    );
 }
 
 #[test]

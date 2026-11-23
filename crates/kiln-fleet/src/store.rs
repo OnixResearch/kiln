@@ -124,7 +124,7 @@ const NOT_FOUND: [&str; 7] = [
     "implementation_attempt_missing",
     "fleet_attempt_unknown",
 ];
-const CONFLICT: [&str; 23] = [
+const CONFLICT: [&str; 24] = [
     "fleet_claim_stale",
     "fleet_claim_limit",
     "fleet_decision_answered",
@@ -142,6 +142,7 @@ const CONFLICT: [&str; 23] = [
     "fleet_swarm_member_ended",
     "fleet_swarm_phase",
     "fleet_swarm_failover_state",
+    "fleet_swarm_failover_claim_host",
     "fleet_swarm_limit",
     "implementation_fence_stale",
     "implementation_attempt_phase",
@@ -149,13 +150,14 @@ const CONFLICT: [&str; 23] = [
     "implementation_candidate_handoff",
     "fleet_handoff_session",
 ];
-const FORBIDDEN: [&str; 6] = [
+const FORBIDDEN: [&str; 7] = [
     "fleet_decision_operator",
     "fleet_swarm_scope_widening",
     "fleet_swarm_verifier_scope",
     "fleet_swarm_verifier_only",
     "fleet_swarm_coordinator_only",
     "fleet_swarm_post_kind",
+    "fleet_swarm_host_mismatch",
 ];
 
 /// The diagnostic code of a `"code: message"` store error, if it has one.

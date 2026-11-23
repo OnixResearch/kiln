@@ -419,15 +419,13 @@ fn render_mention_svg(doc: &mut String, graph: &MentionGraph) {
     for ((name, x, y), node) in positions.iter().zip(graph.nodes.iter()) {
         let label = escape_html(name);
         let role = node.role.as_str();
+        let text_y = y + 3.0;
         let _ = write!(
             doc,
             "<g><circle cx=\"{x:.1}\" cy=\"{y:.1}\" r=\"18\" fill=\"var(--panel)\" stroke=\"currentColor\" stroke-width=\"1.5\"/>\
              <title>{label} ({role}, posts={}, in={}, out={})</title>\
-             <text x=\"{x:.1}\" y=\"{:.1}\" text-anchor=\"middle\" fill=\"currentColor\" font-size=\"10\">{label}</text></g>",
-            y + 3.0,
-            node.post_count,
-            node.mentions_in,
-            node.mentions_out,
+             <text x=\"{x:.1}\" y=\"{text_y:.1}\" text-anchor=\"middle\" fill=\"currentColor\" font-size=\"10\">{label}</text></g>",
+            node.post_count, node.mentions_in, node.mentions_out,
         );
     }
     doc.push_str("</svg>");
@@ -581,8 +579,13 @@ mod tests {
         assert!(full_html.contains("verifier"));
         assert!(!full_html.contains("http://"));
         assert!(!full_html.contains("https://"));
-        // At seq 3, author-1 -> verifier edge exists.
+        // At seq 3, author-1 -> verifier edge exists, and SVG node title + text y-coord are accurate.
         assert!(full_html.contains("author-1 -&gt; verifier (weight 1)"));
+        assert!(full_html.contains("<title>author-1 (author, posts=1, in=1, out=1)</title>"));
+        assert!(full_html.contains("<title>verifier (verifier, posts=0, in=2, out=0)</title>"));
+        // Two nodes sit on a circle of radius 88 around y=130 -> y=42.0 (text y=45.0) and y=218.0 (text y=221.0).
+        assert!(full_html.contains("y=\"45.0\""));
+        assert!(full_html.contains("y=\"221.0\""));
 
         // Replay at seq 2 excludes post #3 and its author-1 -> verifier edge!
         let replayed = render_swarm_detail_html(&run, Some(2));
