@@ -305,7 +305,7 @@ fn expired_revoked_stale_untrusted_replayed_and_unpolicied_requests_deny() {
         let text = serde_json::to_string(&document).unwrap_or_else(|error| unreachable!("{error}"));
         let config = VerifiedAuthorityConfig::from_policy_json(
             &text,
-            &blake3::hash(text.as_bytes()).to_hex().to_string(),
+            blake3::hash(text.as_bytes()).to_hex().as_ref(),
             GENERATION,
             test_support::AUDIENCE,
             fixture.roots.clone(),

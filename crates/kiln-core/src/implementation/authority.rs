@@ -1410,8 +1410,12 @@ mod tests {
                 "{operation:?}"
             );
         }
+        let first = ENTRY_POINTS
+            .first()
+            .copied()
+            .unwrap_or_else(|| unreachable!("reviewed table is non-empty"));
         let mut duplicate = ENTRY_POINTS.to_vec();
-        duplicate.push(ENTRY_POINTS[0]);
+        duplicate.push(first);
         assert_eq!(
             validate_entry_points(&duplicate)
                 .err()
@@ -1430,7 +1434,9 @@ mod tests {
             Some("authority_entry_point_unowned".into())
         );
         let mut unnamed = ENTRY_POINTS.to_vec();
-        unnamed[0].item = " open";
+        if let Some(entry) = unnamed.first_mut() {
+            entry.item = " open";
+        }
         assert_eq!(
             validate_entry_points(&unnamed)
                 .err()

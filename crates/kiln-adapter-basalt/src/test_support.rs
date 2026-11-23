@@ -186,10 +186,13 @@ pub fn token_ref(token: &str) -> [u8; REPLAY_DIGEST_BYTES] {
     *blake3::hash(token.as_bytes()).as_bytes()
 }
 
+/// Replay key: audience, generation, proof reference and nonce.
+type ReplayKey = (String, u64, [u8; 32], [u8; 32]);
+
 /// In-memory insert-or-deny replay ledger with an observable call count.
 #[derive(Clone, Debug, Default)]
 pub struct MemoryReplay {
-    seen: Rc<RefCell<BTreeSet<(String, u64, [u8; 32], [u8; 32])>>>,
+    seen: Rc<RefCell<BTreeSet<ReplayKey>>>,
     calls: Rc<Cell<u32>>,
 }
 
