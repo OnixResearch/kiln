@@ -25,3 +25,7 @@ workspace = true
 tempfile = "3.27.0"
 kiln-adapter-git = { path = "../kiln-adapter-git" }
 kiln-adapter-basalt = { workspace = true, features = ["test-support"] }
+# Syntax-aware discovery of the `Implementer` surface in tests/authority_coverage.rs;
+# span-locations gives each method body's byte range in its file.
+proc-macro2 = { version = "1.0.107", features = ["span-locations"] }
+syn = { version = "2.0.119", features = ["full", "visit"] }

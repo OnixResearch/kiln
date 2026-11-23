@@ -3600,9 +3600,11 @@ dependencies = [
  "kiln-adapter-git",
  "kiln-provider-api",
  "onix-kiln-core",
+ "proc-macro2",
  "rusqlite",
  "serde",
  "serde_json",
+ "syn 2.0.119",
  "tempfile",
  "ucan",
 ]

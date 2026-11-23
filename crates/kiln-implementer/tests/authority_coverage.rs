@@ -6,9 +6,17 @@
 //! that no longer exists, a `Protected(op)` row whose code never reaches the
 //! `op` authority check, and a non-authority row whose body checks authority
 //! all fail this test.
+//!
+//! The `Implementer` public surface is discovered from each file's syntax
+//! tree: every `pub` method (async or not) of every `impl Implementer` block,
+//! at any nesting depth, and every method `Implementer` exposes through a
+//! trait implementation other than a reviewed formatting trait.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
+
+use syn::visit::{self, Visit};
+use syn::{ImplItem, TraitItem, Visibility};
 
 use kiln_core::implementation::authority::{
     ENTRY_POINTS, EntryClass, EntryPoint, IMPLEMENTER_CLI, ProtectedOperation, entry_point_roles,
@@ -21,6 +29,9 @@ const CLI: &str = "crates/kiln-adapter-github/src/bin/implementer.rs";
 const FLEET_API: &str = "crates/kiln-fleet/src/api.rs";
 const CONTROLS: &str = "crates/kiln-web-service/src/campaign_controls.rs";
 const MAX_CALL_DEPTH: usize = 8;
+/// Traits whose `Implementer` methods only format the value and expose no
+/// operation; reviewed, so their methods need no `ENTRY_POINTS` row.
+const NON_OPERATION_TRAITS: &[&str] = &["Debug"];
 
 fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -272,6 +283,150 @@ struct Implementer {
     public: BTreeMap<String, (String, String)>,
 }
 
+/// Traits declared in the implementer crate by name: whether the trait is
+/// `pub`, and each method with its default body, if any.
+type Traits = BTreeMap<String, (bool, Vec<(String, Option<String>)>)>;
+
+/// The code-only text of `block`, braces included.
+fn block_source(code: &str, block: &syn::Block) -> String {
+    let range = block.brace_token.span.join().byte_range();
+    code.get(range)
+        .unwrap_or_else(|| unreachable!("block span outside its file"))
+        .to_owned()
+}
+
+fn is_implementer(ty: &syn::Type) -> bool {
+    matches!(ty, syn::Type::Path(path) if path.qself.is_none()
+        && path.path.segments.last().is_some_and(|segment| segment.ident == "Implementer"))
+}
+
+struct TraitDeclarations<'a> {
+    code: &'a str,
+    traits: &'a mut Traits,
+}
+
+impl<'ast> Visit<'ast> for TraitDeclarations<'_> {
+    fn visit_item_trait(&mut self, item: &'ast syn::ItemTrait) {
+        let methods = item
+            .items
+            .iter()
+            .filter_map(|member| match member {
+                TraitItem::Fn(method) => Some((
+                    method.sig.ident.to_string(),
+                    method
+                        .default
+                        .as_ref()
+                        .map(|body| block_source(self.code, body)),
+                )),
+                _ => None,
+            })
+            .collect();
+        let public = matches!(item.vis, Visibility::Public(_));
+        let previous = self
+            .traits
+            .insert(item.ident.to_string(), (public, methods));
+        assert!(previous.is_none(), "trait {} declared twice", item.ident);
+        visit::visit_item_trait(self, item);
+    }
+}
+
+struct PublicSurface<'a> {
+    path: &'a str,
+    code: &'a str,
+    traits: &'a Traits,
+    public: &'a mut BTreeMap<String, (String, String)>,
+}
+
+impl PublicSurface<'_> {
+    fn add(&mut self, name: String, body: String) {
+        let previous = self
+            .public
+            .insert(name.clone(), (self.path.to_owned(), body));
+        assert!(previous.is_none(), "Implementer::{name} defined twice");
+    }
+}
+
+impl<'ast> Visit<'ast> for PublicSurface<'_> {
+    fn visit_item_impl(&mut self, item: &'ast syn::ItemImpl) {
+        if is_implementer(&item.self_ty) {
+            let own = item.items.iter().filter_map(|member| match member {
+                ImplItem::Fn(method) => Some(method),
+                _ => None,
+            });
+            match &item.trait_ {
+                None => {
+                    for method in own.filter(|method| matches!(method.vis, Visibility::Public(_))) {
+                        self.add(
+                            method.sig.ident.to_string(),
+                            block_source(self.code, &method.block),
+                        );
+                    }
+                }
+                Some((_, path, _)) => {
+                    let name = path
+                        .segments
+                        .last()
+                        .map(|segment| segment.ident.to_string())
+                        .unwrap_or_default();
+                    let declared = self.traits.get(&name);
+                    // A trait declared here but not `pub` exposes nothing;
+                    // a trait from another crate is public.
+                    if !NON_OPERATION_TRAITS.contains(&name.as_str())
+                        && declared.is_none_or(|(public, _)| *public)
+                    {
+                        let mut methods: BTreeMap<String, String> = declared
+                            .into_iter()
+                            .flat_map(|(_, methods)| methods)
+                            .filter_map(|(method, body)| Some((method.clone(), body.clone()?)))
+                            .collect();
+                        for method in own {
+                            methods.insert(
+                                method.sig.ident.to_string(),
+                                block_source(self.code, &method.block),
+                            );
+                        }
+                        for (method, body) in methods {
+                            self.add(method, body);
+                        }
+                    }
+                }
+            }
+        }
+        visit::visit_item_impl(self, item);
+    }
+}
+
+/// The public `Implementer` surface of `files` (crate-relative path, source).
+fn discover(files: &[(String, String)]) -> BTreeMap<String, (String, String)> {
+    let parsed: Vec<(&str, String, syn::File)> = files
+        .iter()
+        .map(|(path, source)| {
+            let tree =
+                syn::parse_file(source).unwrap_or_else(|error| unreachable!("{path}: {error}"));
+            (path.as_str(), code_only(source), tree)
+        })
+        .collect();
+    let mut traits = Traits::new();
+    for (_, code, tree) in &parsed {
+        TraitDeclarations {
+            code,
+            traits: &mut traits,
+        }
+        .visit_file(tree);
+    }
+    let mut public = BTreeMap::new();
+    for (path, code, tree) in &parsed {
+        PublicSurface {
+            path,
+            code,
+            traits: &traits,
+            public: &mut public,
+        }
+        .visit_file(tree);
+    }
+    public
+}
+
 fn rust_files(directory: &Path, files: &mut Vec<PathBuf>) {
     let mut entries: Vec<_> = std::fs::read_dir(directory)
         .unwrap_or_else(|error| unreachable!("{error}"))
@@ -291,49 +446,22 @@ fn implementer() -> Implementer {
     let mut files = Vec::new();
     rust_files(&root().join(IMPLEMENTER_SRC), &mut files);
     let mut every: BTreeMap<String, Vec<String>> = BTreeMap::new();
-    let mut public = BTreeMap::new();
+    let mut sources = Vec::new();
     for file in files {
         let relative = file
             .strip_prefix(root())
             .unwrap_or_else(|error| unreachable!("{error}"))
             .to_string_lossy()
             .into_owned();
-        let code = code_only(
-            &std::fs::read_to_string(&file).unwrap_or_else(|error| unreachable!("{error}")),
-        );
-        for (name, bodies) in functions(&code) {
+        let source = std::fs::read_to_string(&file).unwrap_or_else(|error| unreachable!("{error}"));
+        for (name, bodies) in functions(&code_only(&source)) {
             every.entry(name).or_default().extend(bodies);
         }
-        let mut search = 0;
-        while let Some(offset) = code
-            .get(search..)
-            .and_then(|tail| tail.find("\nimpl Implementer {"))
-        {
-            let open = search + offset + "\nimpl Implementer ".len();
-            let close = matching_brace(&code, open);
-            let block = code.get(open..close).unwrap_or_default();
-            let methods = functions(block);
-            for line in block.lines() {
-                if let Some(signature) = line.strip_prefix("    pub fn ") {
-                    let name: String = signature
-                        .chars()
-                        .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
-                        .collect();
-                    let body = methods
-                        .get(&name)
-                        .and_then(|bodies| bodies.first())
-                        .cloned()
-                        .unwrap_or_else(|| unreachable!("Implementer::{name} body"));
-                    let previous = public.insert(name.clone(), (relative.clone(), body));
-                    assert!(previous.is_none(), "Implementer::{name} defined twice");
-                }
-            }
-            search = close;
-        }
+        sources.push((relative, source));
     }
     Implementer {
         functions: every,
-        public,
+        public: discover(&sources),
     }
 }
 
@@ -453,6 +581,18 @@ fn assert_shell_rows(
     }
 }
 
+/// Every discovered public `Implementer` method has a row for its file.
+fn assert_every_public_method_has_a_row(public: &BTreeMap<String, (String, String)>) {
+    for (name, (path, _)) in public {
+        assert!(
+            ENTRY_POINTS
+                .iter()
+                .any(|entry| entry.path == path && entry.item == name),
+            "Implementer::{name} ({path}) has no ENTRY_POINTS row"
+        );
+    }
+}
+
 #[test]
 // r[verify kiln.implementation.authority.coverage.entry_points]
 // r[verify kiln.implementation.authority.coverage.entry_points.scenario.unlisted]
@@ -464,14 +604,7 @@ fn every_implementer_public_function_has_a_reviewed_row_that_matches_its_code() 
         "scan found {}",
         implementer.public.len()
     );
-    for (name, (path, _)) in &implementer.public {
-        assert!(
-            ENTRY_POINTS
-                .iter()
-                .any(|entry| entry.path == path && entry.item == name),
-            "Implementer::{name} ({path}) has no ENTRY_POINTS row"
-        );
-    }
+    assert_every_public_method_has_a_row(&implementer.public);
     for entry in ENTRY_POINTS
         .iter()
         .filter(|entry| entry.path.starts_with(IMPLEMENTER_SRC))
@@ -882,4 +1015,40 @@ fn the_scanner_sees_code_not_comments_or_strings() {
             .map(|body| calls(body, "self.")),
         Some(BTreeSet::from(["a".to_owned()]))
     );
+}
+
+const FIXTURE: &str = "crates/kiln-implementer/src/fixture.rs";
+
+fn fixture_surface(source: &str) -> BTreeMap<String, (String, String)> {
+    discover(&[(FIXTURE.to_owned(), source.to_owned())])
+}
+
+fn names(public: &BTreeMap<String, (String, String)>) -> Vec<&str> {
+    public.keys().map(String::as_str).collect()
+}
+
+#[test]
+#[should_panic(
+    expected = "Implementer::unlisted_async (crates/kiln-implementer/src/fixture.rs) has no ENTRY_POINTS row"
+)]
+// r[verify kiln.implementation.authority.coverage.entry_points.scenario.unlisted]
+fn an_unclassified_public_async_method_fails_coverage() {
+    let public = fixture_surface(
+        "mod nested {\n    impl crate::Implementer {\n        pub async fn unlisted_async(&self) -> u8 { 0 }\n        async fn private_async(&self) {}\n        pub(crate) fn crate_only(&self) {}\n    }\n}\n",
+    );
+    assert_eq!(names(&public), ["unlisted_async"]);
+    assert_every_public_method_has_a_row(&public);
+}
+
+#[test]
+#[should_panic(
+    expected = "Implementer::unlisted_trait (crates/kiln-implementer/src/fixture.rs) has no ENTRY_POINTS row"
+)]
+// r[verify kiln.implementation.authority.coverage.entry_points.scenario.unlisted]
+fn an_unclassified_trait_method_fails_coverage() {
+    let public = fixture_surface(
+        "pub trait Operations {\n    fn unlisted_trait(&self);\n    fn unlisted_trait_default(&self) { self.unlisted_trait() }\n}\ntrait Private { fn hidden(&self); }\nimpl Operations for Implementer {\n    fn unlisted_trait(&self) {}\n}\nimpl Private for Implementer { fn hidden(&self) {} }\nimpl std::fmt::Debug for Implementer {\n    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { f.write_str(\"\") }\n}\n",
+    );
+    assert_eq!(names(&public), ["unlisted_trait", "unlisted_trait_default"]);
+    assert_every_public_method_has_a_row(&public);
 }
