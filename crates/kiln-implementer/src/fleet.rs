@@ -16,7 +16,7 @@ use kiln_core::fleet::{
 };
 use kiln_core::implementation::{
     AttemptLedger, DEFAULT_LEASE_MS, INTERACTIVE_PROVIDER_PROFILE, ImplementationAttempt,
-    ImplementationWork, TransportLaunches, WorkLedger,
+    TransportLaunches, WorkLedger,
 };
 use kiln_core::types::{ContentId, Diagnostic};
 use rusqlite::{Transaction, TransactionBehavior};
@@ -543,7 +543,7 @@ fn authorize_launch(
     attempt: &ImplementationAttempt,
     session: &FleetSession,
 ) -> Result<(), String> {
-    let work = attempt_work(&ledgers.work, attempt).ok_or_else(|| {
+    let work = authority_bridge::frozen_work(&ledgers.work, attempt).ok_or_else(|| {
         diagnostic(Diagnostic::new(
             "fleet_session_bind",
             "placement.work",
@@ -563,23 +563,6 @@ fn authorize_launch(
     )
 }
 
-/// The work version an attempt froze: the current version when it still
-/// matches, otherwise the retained superseded version.
-fn attempt_work<'a>(
-    work: &'a WorkLedger,
-    attempt: &ImplementationAttempt,
-) -> Option<&'a ImplementationWork> {
-    let frozen = |candidate: &&ImplementationWork| {
-        candidate.revision == attempt.work_revision
-            && candidate
-                .identity()
-                .is_ok_and(|identity| identity == attempt.work_identity)
-    };
-    work.get(&attempt.canonical_key)
-        .filter(frozen)
-        .or_else(|| work.superseded().iter().find(frozen))
-}
-
 /// Scopes of every current, unexpired, active attempt.
 ///
 /// Implementation paths are admitted under the implementation path rules,
@@ -595,7 +578,7 @@ fn attempt_scopes(work: &WorkLedger, attempts: &AttemptLedger, now_ms: u64) -> V
         .attempts()
         .filter(|attempt| attempts.is_current(&attempt.identity, attempt.fence, now_ms))
     {
-        let Some(frozen) = attempt_work(work, attempt) else {
+        let Some(frozen) = authority_bridge::frozen_work(work, attempt) else {
             continue;
         };
         let defaults = [WHOLE_REPOSITORY_PATH]

@@ -13,8 +13,11 @@ use std::path::{Path, PathBuf};
 use common::*;
 use kiln_adapter_basalt::test_support::{self, Fixture};
 use kiln_core::fleet::Placement;
+use kiln_core::implementation::SupersessionRule;
 use kiln_core::implementation::authority::{
-    AuthorityDecision, AuthorityProvenance, ProtectedOperation,
+    AttemptCurrentness, AuthorityDecision, AuthorityProfile, AuthorityProvenance, AuthorityRequest,
+    AuthoritySelection, AuthoritySessionId, LocalOperatorAuthority, ProtectedAuthority,
+    ProtectedOperation,
 };
 use kiln_core::implementation::grant::GrantRole;
 use kiln_core::implementation::{
@@ -579,4 +582,185 @@ fn a_worker_selected_from_the_drives_authority_config_reaches_the_transport_chec
     assert!(decisions(&db).iter().all(
         |decision| decision.allowed && decision.provenance == AuthorityProvenance::VerifiedUcan
     ));
+}
+
+/// A stand-in for a grant scoped to one exact work version: a request naming
+/// any other work reaches the local-operator port as superseded, so it denies.
+struct WorkScoped {
+    inner: LocalOperatorAuthority,
+    work: String,
+    version: u64,
+}
+
+impl WorkScoped {
+    fn install(i: &mut Implementer, work: &ImplementationWork) {
+        let scoped = Self {
+            inner: LocalOperatorAuthority::new("test-operator", false)
+                .unwrap_or_else(|error| unreachable!("{}", error.message)),
+            work: work
+                .identity()
+                .unwrap_or_else(|error| unreachable!("{}", error.message))
+                .as_str()
+                .into(),
+            version: work.revision,
+        };
+        i.set_authority(
+            Box::new(scoped),
+            AuthoritySelection::LocalOperator {
+                operator: "test-operator".into(),
+            },
+        );
+    }
+
+    fn scope(&self, request: &AuthorityRequest, currentness: AttemptCurrentness) -> AttemptCurrentness {
+        if request.work == self.work && request.work_version == self.version {
+            currentness
+        } else {
+            AttemptCurrentness::Superseded
+        }
+    }
+}
+
+impl ProtectedAuthority for WorkScoped {
+    fn admit(
+        &mut self,
+        request: &AuthorityRequest,
+        profile: &AuthorityProfile,
+        currentness: AttemptCurrentness,
+        now_unix_s: u64,
+    ) -> Result<AuthorityDecision, AuthorityDecision> {
+        let currentness = self.scope(request, currentness);
+        self.inner.admit(request, profile, currentness, now_unix_s)
+    }
+
+    fn revalidate(
+        &mut self,
+        session: AuthoritySessionId,
+        request: &AuthorityRequest,
+        currentness: AttemptCurrentness,
+        now_unix_s: u64,
+    ) -> Result<(), AuthorityDecision> {
+        let currentness = self.scope(request, currentness);
+        self.inner
+            .revalidate(session, request, currentness, now_unix_s)
+    }
+
+    fn close(&mut self, session: AuthoritySessionId) {
+        self.inner.close(session);
+    }
+
+    fn decisions(&self) -> &[AuthorityDecision] {
+        self.inner.decisions()
+    }
+}
+
+/// A claimed attempt superseded under `FinishActive` by a newer revision of
+/// its work: it stays current on the revision it froze.
+struct FinishActive {
+    _dir: tempfile::TempDir,
+    db: PathBuf,
+    frozen: ImplementationWork,
+    newer: ImplementationWork,
+    attempt: ImplementationAttempt,
+}
+
+impl FinishActive {
+    fn new(name: &str) -> Self {
+        let dir = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
+        let db = dir.path().join("ledger.db");
+        let frozen = based_work(name);
+        let mut i = ok(Implementer::open_with_local_operator(
+            &db,
+            enrollment(),
+            "test-operator",
+        ));
+        ok(i.admit(&frozen, None));
+        let attempt = ok(i.claim_next(T, LEASE_MS)).unwrap_or_else(|| unreachable!("claim"));
+        let mut newer = frozen.clone();
+        newer.revision += 1;
+        newer.title.push_str(" with changed requirements");
+        ok(i.admit_with_supersession(&newer, None, SupersessionRule::FinishActive, T));
+        let current = ok(i.attempt(&attempt.identity)).unwrap_or_else(|| unreachable!("attempt"));
+        assert_eq!(current.superseded_by, Some(newer.revision));
+        assert_eq!(current.phase, AttemptPhase::Claimed);
+        Self {
+            _dir: dir,
+            db,
+            frozen,
+            newer,
+            attempt,
+        }
+    }
+
+    fn reserve(&self, i: &mut Implementer) -> Result<(), String> {
+        let plan = plan(&self.frozen, &self.attempt);
+        let digest = admit_dispatch_plan(&self.frozen, &self.attempt, &plan)
+            .unwrap_or_else(|error| unreachable!("{}", error.message));
+        i.reserve_dispatch(
+            &self.attempt.identity,
+            self.attempt.fence,
+            T,
+            &digest,
+            &plan.provider_profile,
+        )
+        .map(drop)
+    }
+
+    fn start(&self, i: &mut Implementer) -> Result<(), String> {
+        i.start_execution(&self.attempt.identity, self.attempt.fence, T + 1, &workflow())
+    }
+}
+
+#[test]
+// r[verify kiln.implementation.authority.dispatch.scenario.admitted]
+fn a_finish_active_attempt_dispatches_under_a_grant_for_its_frozen_work() {
+    let ledger = FinishActive::new("frozen-work-dispatch");
+    let mut i = ok(Implementer::open(&ledger.db, enrollment()));
+    WorkScoped::install(&mut i, &ledger.frozen);
+    ok(ledger.reserve(&mut i));
+    ok(ledger.start(&mut i));
+    let dispatch: Vec<_> = i
+        .authority_decisions()
+        .iter()
+        .filter(|decision| decision.operation == ProtectedOperation::Dispatch)
+        .collect();
+    assert!(dispatch.len() >= 2, "{dispatch:?}");
+    assert!(dispatch.iter().all(|decision| decision.allowed), "{dispatch:?}");
+    drop(i);
+    let records = records(&ledger.db, &ledger.attempt.identity);
+    assert!(records.reservation);
+    assert_eq!(records.workflow, Some(workflow()));
+}
+
+#[test]
+// r[verify kiln.implementation.authority.dispatch.scenario.denied]
+fn a_grant_for_the_newer_work_cannot_dispatch_a_finish_active_attempt() {
+    let ledger = FinishActive::new("newer-work-dispatch");
+    let before = records(&ledger.db, &ledger.attempt.identity);
+    let mut i = ok(Implementer::open(&ledger.db, enrollment()));
+    WorkScoped::install(&mut i, &ledger.newer);
+    let error = ledger
+        .reserve(&mut i)
+        .err()
+        .unwrap_or_else(|| unreachable!("the newer work's grant must not reserve"));
+    assert!(error.starts_with("authority:"), "{error}");
+    drop(i);
+    assert_eq!(records(&ledger.db, &ledger.attempt.identity), before);
+
+    // Reserved under the frozen work's grant, the launch record is refused
+    // to the newer work's grant in the same way.
+    let mut i = ok(Implementer::open(&ledger.db, enrollment()));
+    WorkScoped::install(&mut i, &ledger.frozen);
+    ok(ledger.reserve(&mut i));
+    drop(i);
+    let reserved = records(&ledger.db, &ledger.attempt.identity);
+    let mut i = ok(Implementer::open(&ledger.db, enrollment()));
+    WorkScoped::install(&mut i, &ledger.newer);
+    let error = ledger
+        .start(&mut i)
+        .err()
+        .unwrap_or_else(|| unreachable!("the newer work's grant must not start"));
+    assert!(error.starts_with("authority:"), "{error}");
+    drop(i);
+    assert_eq!(records(&ledger.db, &ledger.attempt.identity), reserved);
 }

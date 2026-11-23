@@ -96,10 +96,31 @@ pub(crate) fn request_for(
     })
 }
 
-/// Build one exact request using the attempt's current work from a ledger.
+/// The work version an attempt froze: the current version when it still
+/// matches, otherwise the retained superseded version (a `FinishActive`
+/// supersession keeps the attempt current on it). Every protected request of
+/// an attempt names this work, never a newer revision of the same key.
+#[must_use]
+pub(crate) fn frozen_work<'a>(
+    work: &'a WorkLedger,
+    attempt: &ImplementationAttempt,
+) -> Option<&'a ImplementationWork> {
+    let frozen = |candidate: &&ImplementationWork| {
+        candidate.revision == attempt.work_revision
+            && candidate
+                .identity()
+                .is_ok_and(|identity| identity == attempt.work_identity)
+    };
+    work.get(&attempt.canonical_key)
+        .filter(frozen)
+        .or_else(|| work.superseded().iter().find(frozen))
+}
+
+/// Build one exact request over the attempt's frozen work from a ledger.
 ///
 /// # Errors
-/// Returns a message when the attempt's work is absent or its identity is invalid.
+/// Returns a message when the attempt's frozen work is not retained or its
+/// identity is invalid.
 pub(crate) fn request_from_ledger(
     ledger: &WorkLedger,
     attempt: &ImplementationAttempt,
@@ -108,8 +129,7 @@ pub(crate) fn request_from_ledger(
     payload: &[&str],
     candidate: Option<&ExternalRef>,
 ) -> Result<AuthorityRequest, String> {
-    let work = ledger
-        .get(&attempt.canonical_key)
+    let work = frozen_work(ledger, attempt)
         .ok_or_else(|| "authority: attempt work missing".to_string())?;
     request_for(operation, work, attempt, binding, payload, candidate)
 }
@@ -324,11 +344,11 @@ impl Implementer {
         }
     }
 
-    /// Read the exact current work, attempt and incarnation for one protected
+    /// Read the exact frozen work, attempt and incarnation for one protected
     /// request.
     ///
     /// # Errors
-    /// Returns a message when the attempt, fence or work is absent.
+    /// Returns a message when the attempt, fence or frozen work is absent.
     pub(crate) fn authority_facts(
         &mut self,
         identity: &ContentId,
@@ -345,8 +365,7 @@ impl Implementer {
         if attempt.fence != fence {
             return Err("authority: attempt fence was replaced".into());
         }
-        let work = work
-            .get(&attempt.canonical_key)
+        let work = frozen_work(&work, &attempt)
             .cloned()
             .ok_or_else(|| "authority: attempt work missing".to_string())?;
         transaction.commit().map_err(text)?;

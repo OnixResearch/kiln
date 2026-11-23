@@ -733,8 +733,7 @@ impl Implementer {
                 .reserve_dispatch(identity, fence, now_ms, plan, provider_profile)
                 .map_err(diagnostic)?;
             let attempt = attempts.get(identity).ok_or("authority: attempt missing")?;
-            let work = work
-                .get(&attempt.canonical_key)
+            let work = authority_bridge::frozen_work(work, attempt)
                 .ok_or("authority: attempt work missing")?;
             authorize_reservation(gate, work, attempt, &reservation)?;
             Ok(reservation)
@@ -854,8 +853,7 @@ impl Implementer {
                 .start_execution(identity, fence, now_ms, workflow)
                 .map_err(diagnostic)?;
             let attempt = attempts.get(identity).ok_or("authority: attempt missing")?;
-            let work = work
-                .get(&attempt.canonical_key)
+            let work = authority_bridge::frozen_work(work, attempt)
                 .ok_or("authority: attempt work missing")?;
             let plan = attempt
                 .dispatch
