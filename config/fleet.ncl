@@ -163,6 +163,7 @@ let Capture = {
   repositories | CaptureRepositories | { _ : { authority | String | AbsolutePath } },
   verify_argv | NullableArgv | default = null,
   publish_argv | NullableArgv | default = null,
+  preserve_git_ai_notes | Bool | default = false,
 }
 in
 let Policy = {

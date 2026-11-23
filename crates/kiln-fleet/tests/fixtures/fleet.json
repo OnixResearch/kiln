@@ -3,6 +3,7 @@
   "capture": {
     "export_root": "/var/lib/kiln-fleet/exports",
     "git": "/run/current-system/sw/bin/git",
+    "preserve_git_ai_notes": false,
     "publish_argv": null,
     "repositories": {
       "OnixResearch/kiln": {

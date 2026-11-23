@@ -8,6 +8,7 @@
 
 pub mod claims;
 pub mod decision;
+pub mod git_ai;
 pub mod prompt;
 pub mod scope;
 pub mod session;
@@ -15,6 +16,7 @@ pub mod swarm;
 
 pub use claims::*;
 pub use decision::*;
+pub use git_ai::*;
 pub use prompt::*;
 pub use scope::*;
 pub use session::*;

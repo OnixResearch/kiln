@@ -6,7 +6,11 @@ use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
-use git2::{IndexEntry, IndexTime, Oid, Repository, Signature, Time};
+use git2::{ErrorCode, IndexEntry, IndexTime, Oid, Repository, Signature, Time};
+use kiln_core::fleet::{
+    GIT_AI_NOTES_REF, GitAiAuthorshipLog, GitAiNoteOutcome, MAX_GIT_AI_NOTE_BYTES,
+    rewrite_git_ai_note,
+};
 use kiln_core::implementation::{
     CANDIDATE_HANDOFF_SCHEMA, CandidateEvidence, CandidateHandoff, EvidenceKind, EvidenceOutcome,
     INTERACTIVE_PROVIDER_PROFILE, ImplementationAttempt, ImplementationDispatchPlan,
@@ -222,6 +226,90 @@ pub fn export_commit_tree(
         }
     }
     Ok(())
+}
+
+/// Read a single Git note for `commit_id` from `notes_ref` in `repository_root`,
+/// bounded to `MAX_GIT_AI_NOTE_BYTES + 1` bytes so oversized notes are reported
+/// as incompatible without unbounded allocation. Returns `Ok(None)` when the
+/// notes ref or note for `commit_id` is absent.
+///
+/// # Errors
+/// Returns a diagnostic if the repository cannot be opened or `commit_id` is
+/// malformed.
+pub fn read_git_ai_note_bounded(
+    repository_root: &Path,
+    notes_ref: &str,
+    commit_id: &str,
+) -> Result<Option<Vec<u8>>, String> {
+    let repository = Repository::open_bare(repository_root)
+        .or_else(|_| Repository::open(repository_root))
+        .map_err(text)?;
+    let oid = Oid::from_str(commit_id).map_err(text)?;
+    match repository.find_note(Some(notes_ref), oid) {
+        Ok(note) => {
+            let bytes = note.message_bytes();
+            let capped_len = bytes.len().min(MAX_GIT_AI_NOTE_BYTES.saturating_add(1));
+            Ok(Some(bytes.get(..capped_len).unwrap_or_default().to_vec()))
+        }
+        Err(error) if error.code() == ErrorCode::NotFound => Ok(None),
+        Err(error) => Err(text(error)),
+    }
+}
+
+/// Rewrite and attach a validated Git AI authorship log to `candidate_commit`
+/// under `refs/notes/ai` when and only when `candidate_commit`'s tree equals
+/// `source_commit`'s tree.
+///
+/// Preservation is observation-only: if the trees differ, no note is attached
+/// and [`GitAiNoteOutcome::Incompatible`] is returned.
+///
+/// # Errors
+/// Returns a diagnostic only if the authority repository cannot be opened or
+/// the note ref cannot be written.
+pub fn attach_git_ai_note_if_tree_matches(
+    repository_root: &Path,
+    source_commit: &str,
+    candidate_commit: &str,
+    log: &GitAiAuthorshipLog,
+) -> Result<GitAiNoteOutcome, String> {
+    let repository = Repository::open_bare(repository_root)
+        .or_else(|_| Repository::open(repository_root))
+        .map_err(text)?;
+    let source_oid = Oid::from_str(source_commit).map_err(text)?;
+    let candidate_oid = Oid::from_str(candidate_commit).map_err(text)?;
+    let source = repository.find_commit(source_oid).map_err(text)?;
+    let candidate = repository.find_commit(candidate_oid).map_err(text)?;
+    if source.tree_id() != candidate.tree_id() {
+        return Ok(GitAiNoteOutcome::Incompatible {
+            reason: "rematerialized candidate tree differs from agent commit tree".to_owned(),
+        });
+    }
+    let rewritten = match rewrite_git_ai_note(log, candidate_commit) {
+        Ok(text) => text,
+        Err(error) => {
+            return Ok(GitAiNoteOutcome::Incompatible {
+                reason: error.reason,
+            });
+        }
+    };
+    let signature =
+        Signature::new("Kiln verifier", "verifier@kiln.invalid", &Time::new(0, 0)).map_err(text)?;
+    repository
+        .note(
+            &signature,
+            &signature,
+            Some(GIT_AI_NOTES_REF),
+            candidate_oid,
+            &rewritten,
+            true,
+        )
+        .map_err(text)?;
+    Ok(GitAiNoteOutcome::Preserved {
+        source_commit: source_commit.to_owned(),
+        candidate_commit: candidate_commit.to_owned(),
+        files: u32::try_from(log.attestations.len()).unwrap_or(u32::MAX),
+        entries: u32::try_from(log.entry_count()).unwrap_or(u32::MAX),
+    })
 }
 
 /// Acquire bytes from a host-owned retained workspace after worker termination,

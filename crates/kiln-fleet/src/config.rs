@@ -107,6 +107,10 @@ pub struct CaptureConfig {
     pub verify_argv: Option<Vec<String>>,
     #[serde(default)]
     pub publish_argv: Option<Vec<String>>,
+    /// Preserve valid Git AI (`refs/notes/ai`, `authorship/3.0.0`) notes across
+    /// handoff rematerialization. Off by default; observation-only.
+    #[serde(default)]
+    pub preserve_git_ai_notes: bool,
 }
 
 impl CaptureConfig {
