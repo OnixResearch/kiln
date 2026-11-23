@@ -2263,11 +2263,13 @@
                   (cairnPackageFor system)
                   pkgs.jq
                   pkgs.nickel
+                  pkgs.python3
                 ];
               }
               ''
                 ${copySource}
                 CAIRN_POLICY=/nonexistent/lattice-default.json sh tests/cairn-workflow-policy.sh
+                bash tests/import-pinned-source-pins.sh
                 touch "$out"
               '';
           mantle-build-cohort =
