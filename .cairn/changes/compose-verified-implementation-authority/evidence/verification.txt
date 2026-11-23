@@ -53,6 +53,34 @@ which are not in this slice, and are not part of this round.
      check); every_implementer_public_function_has_a_reviewed_row_that_matches_its_code
      passes on the current table
 
+== Gates of the review fix round (on d5302f13) ==
+$ cargo fmt --all --check                                                   -> exit 0
+$ cargo clippy --locked --workspace --all-targets -- -D warnings            -> exit 0
+$ cargo clippy --locked --workspace --all-targets --all-features -- -D warnings -> exit 0
+$ cargo build  --locked -p onix-kiln-core -p kiln-observe-core -p kiln-radicle-source-contract --target wasm32-unknown-unknown -> exit 0
+$ cargo clippy --locked -p onix-kiln-core -p kiln-observe-core -p kiln-radicle-source-contract --target wasm32-unknown-unknown -- -D warnings -> exit 0
+$ scripts/check-nickel-fixtures.sh                                          -> exit 0 (107 positive, 666 negative)
+$ nix build path:$PWD#checks.x86_64-linux.octet --no-link -L                -> exit 0 (consumer checks clean, 0 findings)
+$ cargo test --locked -p kiln-implementer -p onix-kiln-core -p kiln-adapter-basalt --no-fail-fast -> exit 0 (750 passed, 7 ignored)
+$ cargo test --locked -p kiln-implementer --test authority_coverage        -> exit 0 (9 passed)
+$ cargo test --locked -p kiln-fleet --lib --bins --test cli --test service  -> exit 0 (26 passed)
+$ kiln-fleet --test dispatch, minimal PATH, TMPDIR=/tmp (Kiln #114)         -> exit 0 (4 passed, 1 ignored)
+$ cargo test --locked --workspace --no-fail-fast                            -> exit 101: 2567 passed, 5 failed, 16 ignored
+    kiln-fleet --test dispatch (4): Kiln #114, ambient PATH and TMPDIR; they pass
+      under the minimal PATH and TMPDIR=/tmp above.
+    kiln-web-service --test engine (1): preflight fixture bind failed with
+      AddrInUse under the workspace load; the crate is untouched by this round.
+$ cargo test --locked -p kiln-web-service --test engine (alone)             -> exit 0 (95 passed)
+$ cairn validate                                                            -> exit 0 (valid, 0 issues)
+$ cairn gate proposal|design|tasks compose-verified-implementation-authority -> exit 0
+$ cairn traceability coverage --policy <nickel export cairn-policy/development-coverage.ncl>
+    --profile kiln-active-development                                       -> exit 0 (2280 requirements, 0 dangling, 0 missing)
+$ cairn traceability coverage (accepted only)                               -> exit 1: 24 dangling, exactly this
+                                                                               change's ids; expected until it is archived
+$ cairn release-readiness --root .                                          -> exit 0
+$ nix flake check path:$PWD --no-write-lock-file -L                         -> exit 0 (all checks, including the
+                                                                               VM deployment test)
+
 == Gates of the previous round (dispatch path, campaign role authority, scoped holder seeds) ==
 $ cargo fmt --all --check                                                   -> exit 0
 $ cargo clippy --locked --workspace --all-targets -- -D warnings            -> exit 0

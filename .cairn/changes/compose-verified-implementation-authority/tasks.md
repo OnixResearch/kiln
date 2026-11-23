@@ -39,6 +39,7 @@
 - [x] [serial] [depends:kiln.implementation.authority.config] Check the revocation view at the last millisecond of the decision second and refuse `max_age_ms` below 1,000 in Rust and Nickel (finding 8). r[kiln.implementation.authority.state.scenario.stale]
 - [x] [serial] [depends:kiln.implementation.authority.state] Validate a revocation feed whole and import its references, generation and observation time in one transaction (finding 9). r[kiln.implementation.authority.state.scenario.revoked]
 - [x] [serial] [depends:kiln.implementation.authority.coverage.entry_points] Discover the `Implementer` public surface from its syntax tree, including `pub async fn` and trait methods (finding 13). r[kiln.implementation.authority.coverage.entry_points.scenario.unlisted]
+- [x] [serial] [depends:kiln.implementation.authority.coverage.entry_points] Run the fmt, clippy, wasm, Nickel, Octet, crate, workspace, Cairn and flake gates over the review fixes and record the evidence. r[kiln.implementation.authority.coverage.entry_points]
 
 ## Open decisions
 
