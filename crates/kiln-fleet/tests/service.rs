@@ -668,3 +668,147 @@ fn observation_routes_load_no_holder_seed() -> TestResult {
     assert_eq!(response.status, 500, "{}", response.body);
     Ok(())
 }
+
+#[test]
+// r[verify kiln.fleet.api] r[verify kiln.fleet.dispatch]
+fn attempts_and_metrics_expose_session_observation_age() -> TestResult {
+    use kiln_core::fleet::{
+        AgentStatus, DEFAULT_STALE_OBSERVATION_AFTER_MS, Observation, Placement, SessionWorkspace,
+    };
+    use kiln_core::implementation::{
+        AcceptanceObligation, DEFAULT_LEASE_MS, IMPLEMENTATION_WORK_SCHEMA,
+        INTERACTIVE_AGENT_EFFECT, ImplementationWork, SourceRef, TerminalPolicy, WorkBudget,
+        WorkSourceKind,
+    };
+    use kiln_core::types::{ContentId, ExternalRef};
+    use std::collections::BTreeSet;
+
+    let fixture = fixture()?;
+    let now: u64 = 10_000_000_000;
+    let mut store = fixture.service.store.open_coordinator()?;
+    let work = ImplementationWork {
+        schema: IMPLEMENTATION_WORK_SCHEMA.to_owned(),
+        revision: 1,
+        actor: common::ACTOR.to_owned(),
+        repository: common::REPOSITORY.to_owned(),
+        project: "kiln".to_owned(),
+        base: Some(
+            ExternalRef::new("git", "commit", &"1".repeat(40))
+                .map_err(|error| format!("{error:?}"))?,
+        ),
+        title: "Stale observation test".to_owned(),
+        requested_outcome: "implement".to_owned(),
+        acceptance: vec![AcceptanceObligation {
+            id: "accepted".to_owned(),
+            statement: "verified".to_owned(),
+        }],
+        dependencies: Vec::new(),
+        permitted_paths: vec!["crates".to_owned()],
+        permitted_effects: BTreeSet::from([
+            "write_source".to_owned(),
+            INTERACTIVE_AGENT_EFFECT.to_owned(),
+        ]),
+        verification_profile: ContentId::from_blake3_hex("9".repeat(64))
+            .map_err(|error| format!("{error:?}"))?,
+        budget: WorkBudget {
+            attempts: 2,
+            minutes_per_attempt: 60,
+        },
+        terminal_policy: TerminalPolicy::VerifiedPullRequest,
+        priority: 1,
+        aliases: vec![SourceRef {
+            kind: WorkSourceKind::GitHubIssue,
+            source: ExternalRef::new("github", "issue", "OnixResearch/kiln#105")
+                .map_err(|error| format!("{error:?}"))?,
+            native_id: "OnixResearch/kiln#105".to_owned(),
+            version: ContentId::from_blake3_hex("2".repeat(64))
+                .map_err(|error| format!("{error:?}"))?,
+        }],
+    };
+    store.admit(&work, None)?;
+    let attempt = store
+        .claim_next(now, DEFAULT_LEASE_MS)?
+        .ok_or("work not claimed")?;
+    let session = store.fleet_bind_session(
+        Placement {
+            attempt: attempt.identity.clone(),
+            fence: attempt.fence,
+            work: attempt.work_identity.clone(),
+            work_revision: attempt.work_revision,
+            machine: PEER.to_owned(),
+            kind: "omp".to_owned(),
+        },
+        now,
+    )?;
+    store.fleet_observe(
+        &session.identity,
+        Observation::Started {
+            agent_name: "kiln-omp-1".to_owned(),
+            workspace: SessionWorkspace::new(
+                "kiln-1",
+                "pane-1",
+                "/srv/worktrees/attempt",
+                "kiln/attempt",
+                &"a".repeat(40),
+            )
+            .map_err(|error| format!("{error:?}"))?,
+        },
+        now,
+    )?;
+    store.fleet_observe(&session.identity, Observation::Prompted, now)?;
+    store.fleet_observe(
+        &session.identity,
+        Observation::Status {
+            status: AgentStatus::Working,
+        },
+        now,
+    )?;
+    drop(store);
+
+    let stale_now = now + DEFAULT_STALE_OBSERVATION_AFTER_MS + 60_000;
+    let attempts_response = fixture.service.route(
+        COORDINATOR,
+        &request("GET", "/v1/attempts", None),
+        stale_now,
+    );
+    assert_eq!(attempts_response.status, 200);
+    assert_eq!(
+        attempts_response
+            .body
+            .pointer("/attempts/0/observation_age_ms"),
+        Some(&json!(DEFAULT_STALE_OBSERVATION_AFTER_MS + 60_000))
+    );
+    assert_eq!(
+        attempts_response
+            .body
+            .pointer("/attempts/0/observation_stale"),
+        Some(&json!(true))
+    );
+
+    let metrics_response =
+        fixture
+            .service
+            .route(COORDINATOR, &request("GET", "/v1/metrics", None), stale_now);
+    assert_eq!(metrics_response.status, 200);
+    let metrics_text = metrics_response.text.as_deref().unwrap_or_default();
+    assert!(
+        metrics_text.contains(&format!(
+            "kiln_fleet_session_max_observation_age_ms {}",
+            DEFAULT_STALE_OBSERVATION_AFTER_MS + 60_000
+        )),
+        "{metrics_text}"
+    );
+    assert!(
+        metrics_text.contains("kiln_fleet_sessions_stale 1"),
+        "{metrics_text}"
+    );
+
+    let ui_response = fixture
+        .service
+        .route(COORDINATOR, &request("GET", "/ui", None), stale_now);
+    assert_eq!(ui_response.status, 200);
+    let ui_html = ui_response.html.as_deref().unwrap_or_default();
+    assert!(ui_html.contains("observation_age_ms"));
+    assert!(ui_html.contains("observation_stale"));
+    Ok(())
+}

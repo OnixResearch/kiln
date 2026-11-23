@@ -14,7 +14,10 @@ use core::mem::discriminant;
 
 use serde::{Deserialize, Serialize};
 
-use super::decision::{Decision, DecisionLedger, MAX_QUESTION_BYTES, answer_prompt};
+use super::decision::{
+    Decision, DecisionLedger, MAX_QUESTION_BYTES, StaleDecisionAction, answer_prompt,
+    is_stale_observation_decision, is_stale_observation_question, parse_stale_decision_action,
+};
 use super::prompt::{HandoffInstructions, render_nudge};
 use super::{bounded_line, bounded_token, content_identity, push_field, refusal, short};
 use crate::implementation::{AttemptPhase, DEFAULT_LEASE_MS, MAX_LEASE_MS};
@@ -40,6 +43,12 @@ pub const DEFAULT_BLOCKED_DECISION_AFTER_MS: u64 = 5 * MS_PER_MINUTE;
 pub const DEFAULT_NUDGE_AFTER_MS: u64 = 10 * MS_PER_MINUTE;
 pub const DEFAULT_MAX_NUDGES: u32 = 2;
 pub const DEFAULT_ATTEMPT_LEASE_MS: u64 = DEFAULT_LEASE_MS;
+/// Default maximum observation age before pausing lease renewal and raising an
+/// operator decision (`0` disables stale-observation checks).
+pub const DEFAULT_STALE_OBSERVATION_AFTER_MS: u64 = 15 * MS_PER_MINUTE;
+/// Bounded lease renewals granted by an operator's "keep waiting" answer.
+pub const DEFAULT_STALE_KEEP_WAITING_LEASES: u32 = 2;
+pub const MAX_STALE_KEEP_WAITING_LEASES: u32 = 16;
 pub const MIN_TICK_MS: u64 = 1_000;
 pub const MAX_NUDGES_BOUND: u32 = 10;
 
@@ -89,6 +98,21 @@ impl SessionState {
                 | Self::Blocked { .. }
                 | Self::Ready { .. }
                 | Self::HandoffReceived { .. }
+        )
+    }
+
+    /// States whose liveness depends on fresh herdr observations.
+    /// `HandoffReceived` and `Captured` await Kiln's local capture/verification
+    /// and are not polled via herdr.
+    #[must_use]
+    pub const fn requires_observation(&self) -> bool {
+        matches!(
+            self,
+            Self::Starting
+                | Self::Prompted
+                | Self::Working
+                | Self::Blocked { .. }
+                | Self::Ready { .. }
         )
     }
 
@@ -245,6 +269,23 @@ pub struct FleetSession {
     /// The agent's stop was issued.
     #[serde(default)]
     pub stop_requested: bool,
+    /// A stale-observation decision was requested for the current unobserved
+    /// streak; reset on a fresh observation or when a "keep waiting" extension
+    /// expires.
+    #[serde(default)]
+    pub stale_decision_raised: bool,
+    /// Bounded lease renewals remaining under an operator's "keep waiting"
+    /// answer; reset on a fresh observation.
+    #[serde(default)]
+    pub stale_renewals_remaining: u32,
+    /// Newest answered stale-observation decision already applied to this
+    /// session.
+    #[serde(default)]
+    pub stale_handled_decision: Option<ContentId>,
+    /// Waiting out the final lease granted by an operator's "keep waiting"
+    /// answer; once renewal becomes due again, raise the stale decision again.
+    #[serde(default)]
+    pub stale_wait_until_renewal: bool,
 }
 
 /// Placement chosen by the provider adapter for one attempt.
@@ -300,7 +341,26 @@ impl FleetSession {
             capture_pending: false,
             cancel_requested: false,
             stop_requested: false,
+            stale_decision_raised: false,
+            stale_renewals_remaining: 0,
+            stale_handled_decision: None,
+            stale_wait_until_renewal: false,
         })
+    }
+
+    /// Elapsed milliseconds since the last recorded observation at `now_ms`.
+    #[must_use]
+    pub const fn observation_age_ms(&self, now_ms: u64) -> u64 {
+        now_ms.saturating_sub(self.observed_ms)
+    }
+
+    /// Whether this session depends on herdr observations and its observation
+    /// age has reached `policy.stale_observation_after_ms` (when non-zero).
+    #[must_use]
+    pub const fn is_observation_stale(&self, now_ms: u64, policy: &FleetPolicy) -> bool {
+        policy.stale_observation_after_ms > 0
+            && self.state.requires_observation()
+            && self.observation_age_ms(now_ms) >= policy.stale_observation_after_ms
     }
 }
 
@@ -461,6 +521,22 @@ pub struct FleetPolicy {
     pub nudge_after_ms: u64,
     pub max_nudges: u32,
     pub attempt_lease_ms: u64,
+    /// Maximum observation age before pausing lease renewal and raising a
+    /// stale-observation decision. `0` disables stale-observation checks.
+    #[serde(default = "default_stale_observation_after_ms")]
+    pub stale_observation_after_ms: u64,
+    /// Bounded number of lease renewals granted by an operator's "keep waiting"
+    /// answer before raising the stale-observation decision again.
+    #[serde(default = "default_stale_keep_waiting_leases")]
+    pub stale_keep_waiting_leases: u32,
+}
+
+const fn default_stale_observation_after_ms() -> u64 {
+    DEFAULT_STALE_OBSERVATION_AFTER_MS
+}
+
+const fn default_stale_keep_waiting_leases() -> u32 {
+    DEFAULT_STALE_KEEP_WAITING_LEASES
 }
 
 impl Default for FleetPolicy {
@@ -472,15 +548,19 @@ impl Default for FleetPolicy {
             nudge_after_ms: DEFAULT_NUDGE_AFTER_MS,
             max_nudges: DEFAULT_MAX_NUDGES,
             attempt_lease_ms: DEFAULT_ATTEMPT_LEASE_MS,
+            stale_observation_after_ms: DEFAULT_STALE_OBSERVATION_AFTER_MS,
+            stale_keep_waiting_leases: DEFAULT_STALE_KEEP_WAITING_LEASES,
         }
     }
 }
 
 impl FleetPolicy {
     /// # Errors
-    /// Refuses a tick below [`MIN_TICK_MS`], zero windows, an attempt lease
-    /// outside the attempt bounds, a renewal window not inside the lease, and
-    /// more than [`MAX_NUDGES_BOUND`] nudges.
+    /// Refuses a tick below [`MIN_TICK_MS`], zero windows (except
+    /// `stale_observation_after_ms`, where `0` disables the check), an attempt
+    /// lease outside the attempt bounds, a renewal window not inside the lease,
+    /// more than [`MAX_NUDGES_BOUND`] nudges, or a keep-waiting extension
+    /// outside `1..=MAX_STALE_KEEP_WAITING_LEASES`.
     pub fn validate(&self) -> CoreResult<()> {
         let valid = self.tick_ms >= MIN_TICK_MS
             && self.blocked_decision_after_ms > 0
@@ -489,7 +569,9 @@ impl FleetPolicy {
             && self.attempt_lease_ms > 0
             && self.attempt_lease_ms <= MAX_LEASE_MS
             && self.renew_before_ms > 0
-            && self.renew_before_ms < self.attempt_lease_ms;
+            && self.renew_before_ms < self.attempt_lease_ms
+            && self.stale_keep_waiting_leases > 0
+            && self.stale_keep_waiting_leases <= MAX_STALE_KEEP_WAITING_LEASES;
         if !valid {
             return Err(refusal(
                 "fleet_policy",
@@ -608,6 +690,17 @@ pub fn observe(
         .ok_or_else(|| refusal("fleet_session_unknown", "session", "no such fleet session"))?;
     let mut next_session = current.clone();
     next_session.observed_ms = current.observed_ms.max(now_ms);
+    if matches!(
+        observation,
+        Observation::Started { .. }
+            | Observation::Prompted
+            | Observation::Status { .. }
+            | Observation::Handoff { .. }
+    ) {
+        next_session.stale_decision_raised = false;
+        next_session.stale_renewals_remaining = 0;
+        next_session.stale_wait_until_renewal = false;
+    }
     let state = &current.state;
     let next_state = match observation {
         Observation::Started {
@@ -821,6 +914,10 @@ fn plan_session(
             }
         }
         (state, Some(view)) => {
+            if session.is_observation_stale(now_ms, policy) {
+                plan_stale_session(session, view, input, policy, effects);
+                return;
+            }
             if state.renews() && renewal_due(session, view, now_ms, policy) {
                 effects.push(FleetEffect::Renew {
                     attempt: view.attempt.clone(),
@@ -829,6 +926,79 @@ fn plan_session(
             }
             plan_agent(session, input, policy, effects);
         }
+    }
+}
+
+/// Plan one live session whose observation age has exceeded
+/// `policy.stale_observation_after_ms`.
+///
+/// Unknown reachability is never treated as healthy (no blind renewal) and
+/// never treated as `Gone` (no automatic cancel or redispatch). Only an
+/// explicit operator answer to the raised stale decision may extend renewal
+/// for a bounded count (`keep waiting`), cancel the attempt (`cancel`), or
+/// let the lease lapse (`let the lease lapse`).
+fn plan_stale_session(
+    session: &FleetSession,
+    view: &AttemptView,
+    input: &TickInput<'_>,
+    policy: &FleetPolicy,
+    effects: &mut Vec<FleetEffect>,
+) {
+    let now_ms = input.now_ms;
+    let unhandled_stale = pending_stale_answer(session, input.decisions);
+    if let Some((_decision, action)) = unhandled_stale {
+        match action {
+            StaleDecisionAction::Cancel => {
+                if !session.cancel_requested {
+                    effects.push(FleetEffect::Cancel {
+                        attempt: view.attempt.clone(),
+                        fence: view.fence,
+                        cause: "operator cancelled unobserved session".to_string(),
+                    });
+                }
+                if !session.stop_requested {
+                    effects.push(FleetEffect::Stop {
+                        session: session.identity.clone(),
+                    });
+                }
+                return;
+            }
+            StaleDecisionAction::LetLeaseLapse => {
+                return;
+            }
+            StaleDecisionAction::KeepWaiting => {
+                if session.state.renews() && renewal_due(session, view, now_ms, policy) {
+                    effects.push(FleetEffect::Renew {
+                        attempt: view.attempt.clone(),
+                        fence: view.fence,
+                    });
+                }
+                return;
+            }
+        }
+    }
+    if session.stale_renewals_remaining > 0 {
+        if session.state.renews() && renewal_due(session, view, now_ms, policy) {
+            effects.push(FleetEffect::Renew {
+                attempt: view.attempt.clone(),
+                fence: view.fence,
+            });
+        }
+        return;
+    }
+    if session.stale_wait_until_renewal && !renewal_due(session, view, now_ms, policy) {
+        return;
+    }
+    if !session.stale_decision_raised
+        && input
+            .decisions
+            .open_for_session(&session.identity)
+            .is_none()
+    {
+        effects.push(FleetEffect::RaiseDecision {
+            session: session.identity.clone(),
+            question: stale_observation_question(session, session.observation_age_ms(now_ms)),
+        });
     }
 }
 
@@ -917,13 +1087,68 @@ fn plan_agent(
 
 /// Record effects a shell has performed, so a repeated tick over the same
 /// observations requests none of them again. Call it with the same input the
-/// effects were planned from.
+/// effects were planned from. Uses [`FleetPolicy::default`] for bounded
+/// stale-observation extensions; callers with a configured policy should use
+/// [`record_issued_with_policy`].
 ///
 /// # Errors
 /// Refuses effects naming an unknown session, or a renewal for an attempt the
 /// input does not hold.
 pub fn record_issued(input: &TickInput<'_>, effects: &[FleetEffect]) -> CoreResult<SessionLedger> {
+    record_issued_with_policy(input, effects, &FleetPolicy::default())
+}
+
+/// Record performed effects under `policy`, including applying answered
+/// stale-observation decisions (`keep waiting`, `cancel`, `let the lease lapse`)
+/// and decrementing bounded "keep waiting" renewal extensions.
+///
+/// # Errors
+/// Refuses effects naming an unknown session, or a renewal for an attempt the
+/// input does not hold.
+pub fn record_issued_with_policy(
+    input: &TickInput<'_>,
+    effects: &[FleetEffect],
+    policy: &FleetPolicy,
+) -> CoreResult<SessionLedger> {
     let mut ledger = input.ledger.clone();
+    for current in ledger.sessions.values_mut() {
+        if !current.is_observation_stale(input.now_ms, policy) {
+            continue;
+        }
+        let Some((decision, action)) = pending_stale_answer(current, input.decisions) else {
+            continue;
+        };
+        let decision_id = decision.identity.clone();
+        match action {
+            StaleDecisionAction::KeepWaiting => {
+                current.stale_handled_decision = Some(decision_id);
+                current.stale_renewals_remaining = policy.stale_keep_waiting_leases;
+                current.stale_decision_raised = false;
+                current.stale_wait_until_renewal = false;
+            }
+            StaleDecisionAction::LetLeaseLapse => {
+                current.stale_handled_decision = Some(decision_id);
+                current.stale_renewals_remaining = 0;
+                current.stale_decision_raised = true;
+                current.stale_wait_until_renewal = false;
+            }
+            StaleDecisionAction::Cancel => {
+                let cancelled = effects.iter().any(|effect| {
+                    matches!(
+                        effect,
+                        FleetEffect::Cancel { attempt, fence, .. }
+                            if *attempt == current.attempt && *fence == current.fence
+                    )
+                });
+                if cancelled || current.cancel_requested {
+                    current.stale_handled_decision = Some(decision_id);
+                    current.stale_renewals_remaining = 0;
+                    current.stale_decision_raised = true;
+                    current.stale_wait_until_renewal = false;
+                }
+            }
+        }
+    }
     for effect in effects {
         match effect {
             FleetEffect::ClaimNext => {}
@@ -962,13 +1187,26 @@ pub fn record_issued(input: &TickInput<'_>, effects: &[FleetEffect]) -> CoreResu
                     .filter(|current| &current.attempt == attempt && current.fence == *fence)
                 {
                     current.renew_requested_for = Some(lease);
+                    if current.stale_renewals_remaining > 0 {
+                        current.stale_renewals_remaining =
+                            current.stale_renewals_remaining.saturating_sub(1);
+                        if current.stale_renewals_remaining == 0 {
+                            current.stale_wait_until_renewal = true;
+                        }
+                    }
                 }
             }
             FleetEffect::Capture { session, .. } => {
                 session_mut(&mut ledger, session)?.capture_pending = true;
             }
-            FleetEffect::RaiseDecision { session, .. } => {
-                session_mut(&mut ledger, session)?.decision_raised = true;
+            FleetEffect::RaiseDecision { session, question } => {
+                let current = session_mut(&mut ledger, session)?;
+                if is_stale_observation_question(question) {
+                    current.stale_decision_raised = true;
+                    current.stale_wait_until_renewal = false;
+                } else {
+                    current.decision_raised = true;
+                }
             }
             FleetEffect::Cancel { attempt, fence, .. } => {
                 for current in ledger
@@ -1006,14 +1244,63 @@ fn session_mut<'a>(
     })
 }
 
-/// The newest answered decision for `session` that has not been issued.
+/// The newest answered non-stale decision for `session` that has not been
+/// issued as an agent prompt.
 fn pending_answer<'a>(
     session: &FleetSession,
     decisions: &'a DecisionLedger,
 ) -> Option<&'a Decision> {
     decisions
-        .latest_answered(&session.identity)
+        .decisions
+        .values()
+        .filter(|decision| {
+            decision.session == session.identity
+                && decision.answer.is_some()
+                && !is_stale_observation_decision(decision)
+        })
+        .max_by(|left, right| {
+            left.raised_ms
+                .cmp(&right.raised_ms)
+                .then_with(|| left.identity.cmp(&right.identity))
+        })
         .filter(|decision| session.delivered_decision.as_ref() != Some(&decision.identity))
+}
+
+/// The newest answered stale-observation decision for `session` that has not
+/// yet been applied, together with its parsed operator action.
+fn pending_stale_answer<'a>(
+    session: &FleetSession,
+    decisions: &'a DecisionLedger,
+) -> Option<(&'a Decision, StaleDecisionAction)> {
+    let decision = decisions
+        .decisions
+        .values()
+        .filter(|decision| {
+            decision.session == session.identity
+                && decision.answer.is_some()
+                && is_stale_observation_decision(decision)
+        })
+        .max_by(|left, right| {
+            left.raised_ms
+                .cmp(&right.raised_ms)
+                .then_with(|| left.identity.cmp(&right.identity))
+        })?;
+    if session.stale_handled_decision.as_ref() == Some(&decision.identity) {
+        return None;
+    }
+    let answer = decision.answer.as_ref()?;
+    parse_stale_decision_action(&answer.text).map(|action| (decision, action))
+}
+
+fn stale_observation_question(session: &FleetSession, age_ms: u64) -> String {
+    bounded_question(format!(
+        "{} on {} (attempt {}, fence {}) has been unobserved for {} minutes. Answer with: keep waiting, cancel, or let the lease lapse.",
+        session.kind,
+        session.machine,
+        short(&session.attempt, QUESTION_ATTEMPT_CHARS),
+        session.fence,
+        age_ms / MS_PER_MINUTE,
+    ))
 }
 
 fn blocked_question(session: &FleetSession, blocked_ms: u64) -> String {

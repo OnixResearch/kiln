@@ -58,6 +58,8 @@
     "max_nudges": 2,
     "nudge_after_ms": 600000,
     "renew_before_ms": 600000,
+    "stale_keep_waiting_leases": 2,
+    "stale_observation_after_ms": 900000,
     "tick_ms": 15000
   },
   "schema": "kiln.fleet.v1",

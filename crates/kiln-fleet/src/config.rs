@@ -13,7 +13,8 @@ use kiln_adapter_herdr::AgentKind;
 use kiln_adapter_swarm::SwarmConfig;
 use kiln_core::fleet::{
     DEFAULT_ATTEMPT_LEASE_MS, DEFAULT_BLOCKED_DECISION_AFTER_MS, DEFAULT_CLAIM_LEASE_MS,
-    DEFAULT_MAX_NUDGES, DEFAULT_NUDGE_AFTER_MS, DEFAULT_RENEW_BEFORE_MS, DEFAULT_TICK_MS,
+    DEFAULT_MAX_NUDGES, DEFAULT_NUDGE_AFTER_MS, DEFAULT_RENEW_BEFORE_MS,
+    DEFAULT_STALE_KEEP_WAITING_LEASES, DEFAULT_STALE_OBSERVATION_AFTER_MS, DEFAULT_TICK_MS,
     FleetPolicy, MAX_CLAIM_LEASE_MS, MIN_CLAIM_LEASE_MS,
 };
 use kiln_core::implementation::swarm::from_address;
@@ -146,6 +147,10 @@ pub struct PolicyConfig {
     pub claim_lease_ms: u64,
     #[serde(default = "default_max_claim_lease_ms")]
     pub max_claim_lease_ms: u64,
+    #[serde(default = "default_stale_observation_after_ms")]
+    pub stale_observation_after_ms: u64,
+    #[serde(default = "default_stale_keep_waiting_leases")]
+    pub stale_keep_waiting_leases: u32,
 }
 
 impl Default for PolicyConfig {
@@ -159,6 +164,8 @@ impl Default for PolicyConfig {
             max_nudges: DEFAULT_MAX_NUDGES,
             claim_lease_ms: DEFAULT_CLAIM_LEASE_MS,
             max_claim_lease_ms: MAX_CLAIM_LEASE_MS,
+            stale_observation_after_ms: DEFAULT_STALE_OBSERVATION_AFTER_MS,
+            stale_keep_waiting_leases: DEFAULT_STALE_KEEP_WAITING_LEASES,
         }
     }
 }
@@ -174,6 +181,8 @@ impl PolicyConfig {
             nudge_after_ms: self.nudge_after_ms,
             max_nudges: self.max_nudges,
             attempt_lease_ms: self.attempt_lease_ms,
+            stale_observation_after_ms: self.stale_observation_after_ms,
+            stale_keep_waiting_leases: self.stale_keep_waiting_leases,
         }
     }
 }
@@ -201,6 +210,12 @@ const fn default_claim_lease_ms() -> u64 {
 }
 const fn default_max_claim_lease_ms() -> u64 {
     MAX_CLAIM_LEASE_MS
+}
+const fn default_stale_observation_after_ms() -> u64 {
+    DEFAULT_STALE_OBSERVATION_AFTER_MS
+}
+const fn default_stale_keep_waiting_leases() -> u32 {
+    DEFAULT_STALE_KEEP_WAITING_LEASES
 }
 fn default_decision_group() -> String {
     DEFAULT_DECISION_GROUP.to_owned()
@@ -694,6 +709,11 @@ mod tests {
             }
         }));
         assert!(refused(|value| set(value, "/policy/max_nudges", json!(99))));
+        assert!(refused(|value| set(
+            value,
+            "/policy/stale_keep_waiting_leases",
+            json!(0)
+        )));
         assert!(refused(|value| set(
             value,
             "/policy/claim_lease_ms",

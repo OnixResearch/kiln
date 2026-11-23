@@ -713,9 +713,33 @@ fn planned_effects_recorded_as_issued_are_not_repeated() -> TestResult {
         attempt: attempt.identity.clone(),
         fence: attempt.fence,
     };
+    // Without a fresh observation for 54 minutes, the stale guard stops
+    // renewing and raises a decision instead.
+    let stale_effects = reopened.fleet_plan(renew_at, 1, &policy)?;
+    let stale_question = match stale_effects.as_slice() {
+        [FleetEffect::RaiseDecision { session, question }]
+            if *session == identity
+                && kiln_core::fleet::is_stale_observation_question(question) =>
+        {
+            question.clone()
+        }
+        other => return Err(format!("expected stale decision, got {other:?}")),
+    };
+    let stale_decision = reopened.fleet_raise_decision(&identity, stale_question, renew_at)?;
+    assert!(stale_decision.is_open());
+    // A fresh observation closes the open stale decision automatically and
+    // resumes lease renewal without operator action.
+    reopened.fleet_observe(&identity, status(AgentStatus::Working), renew_at)?;
+    assert!(
+        reopened
+            .fleet_state()?
+            .decisions
+            .open_for_session(&identity)
+            .is_none()
+    );
     let effects = reopened.fleet_plan(renew_at, 1, &policy)?;
     assert_eq!(effects, vec![renew.clone()]);
-    reopened.fleet_record_issued(renew_at, 1, &effects)?;
+    reopened.fleet_record_issued_with_policy(renew_at, 1, &effects, &policy)?;
     drop(reopened);
     assert!(
         !open(&path)?

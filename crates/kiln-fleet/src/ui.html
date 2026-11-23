@@ -37,6 +37,7 @@ input[type=text], input[type=number] { font:inherit; font-size:.82rem; padding:.
 .actions { display:flex; gap:.3rem; flex-wrap:wrap; }
 .tag { display:inline-block; border:1px solid var(--line); border-radius:999px; padding:0 .45rem; font-size:.72rem; color:var(--muted); }
 .tag.fleet { border-color:var(--accent); color:var(--accent); }
+.tag.stale { border-color:var(--bad); color:var(--bad); }
 </style>
 </head>
 <body>
@@ -157,16 +158,24 @@ function renderWork(payload) {
   document.getElementById("blocked").innerHTML = table(["id", "repository", "title", "reasons"], blockedRows, "Nothing blocked.");
 }
 
+function duration(ms) {
+  if (typeof ms !== "number" || !isFinite(ms) || ms < 0) return "";
+  if (ms < 60000) return Math.round(ms / 1000) + "s";
+  if (ms < 3600000) return Math.round(ms / 60000) + "m";
+  return Math.round(ms / 3600000) + "h";
+}
 function renderAttempts(payload) {
   const attempts = (payload && payload.attempts) || [];
   document.getElementById("kpi-attempts").textContent = String(attempts.length);
   const rows = attempts.map((attempt) => {
     const id = esc(attempt.attempt);
     const session = attempt.session || {};
+    const age = typeof attempt.observation_age_ms === "number" ? " · obs " + duration(attempt.observation_age_ms) : "";
+    const staleTag = attempt.observation_stale ? ' <span class="tag stale">stale</span>' : "";
     const actions = '<div class="actions"><button class="danger" data-action="cancel" data-id="' + id + '">Cancel</button></div>';
     return "<tr><td><code>" + id.slice(0, 12) + "</code></td><td>" + esc(stateText(attempt.state)) + "<br><span class=\"mono\">" + esc(stateText(attempt.phase)) + "</span></td>" +
       "<td>" + esc(attempt.repository) + "<br>" + esc(attempt.title) + "</td>" +
-      "<td>" + esc(session.machine) + " " + esc(session.agent_name) + "<br><span class=\"mono\">" + esc(stateText(session.state)) + "</span></td>" +
+      "<td>" + esc(session.machine) + " " + esc(session.agent_name) + "<br><span class=\"mono\">" + esc(stateText(session.state)) + esc(age) + "</span>" + staleTag + "</td>" +
       "<td>" + esc(ago(attempt.lease_expires_ms)) + (attempt.held_by_fleet ? ' <span class="tag fleet">fleet</span>' : "") + "</td><td>" + actions + "</td></tr>";
   });
   document.getElementById("attempts").innerHTML = table(["id", "state", "work", "session", "lease", ""], rows, "No attempts.");

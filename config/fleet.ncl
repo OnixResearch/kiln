@@ -174,6 +174,8 @@ let Policy = {
   max_nudges | Number | Count | default = 2,
   claim_lease_ms | Number | Positive | default = 14400000,
   max_claim_lease_ms | Number | Positive | default = 86400000,
+  stale_observation_after_ms | Number | Count | default = 900000,
+  stale_keep_waiting_leases | Number | Positive | default = 2,
 }
 in
 # `kiln-fleet` service configuration, schema kiln.fleet.v1. The service

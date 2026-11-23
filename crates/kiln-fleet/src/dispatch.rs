@@ -212,7 +212,7 @@ impl Dispatcher {
             }
         }
         self.store
-            .fleet_record_issued(now_ms, free_slots, &performed)?;
+            .fleet_record_issued_with_policy(now_ms, free_slots, &performed, &policy)?;
         Ok(TickReport {
             free_slots,
             planned,

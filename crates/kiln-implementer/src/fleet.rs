@@ -267,7 +267,9 @@ impl Implementer {
 
     // r[impl kiln.fleet.dispatch] r[impl kiln.fleet.decisions]
     /// Admit one observation of a session. When the session has ended, its
-    /// open decisions close without delivery in the same transaction.
+    /// open decisions close without delivery in the same transaction. When a
+    /// fresh observation arrives for a live session, any open
+    /// stale-observation decision closes automatically without operator action.
     ///
     /// # Errors
     /// Returns the `session::observe` refusal or the store diagnostic.
@@ -277,6 +279,13 @@ impl Implementer {
         observation: Observation,
         now_ms: u64,
     ) -> Result<FleetSession, String> {
+        let fresh_observation = matches!(
+            observation,
+            Observation::Started { .. }
+                | Observation::Prompted
+                | Observation::Status { .. }
+                | Observation::Handoff { .. }
+        );
         self.with_fleet(Access::Write, |fleet| {
             fleet.sessions = fleet::observe(&fleet.sessions, session, observation, now_ms)
                 .map_err(diagnostic)?;
@@ -289,6 +298,10 @@ impl Implementer {
             if observed.state.is_ended() {
                 let (decisions, _) =
                     fleet::close_for_ended_sessions(&fleet.decisions, &fleet.sessions, now_ms);
+                fleet.decisions = decisions;
+            } else if fresh_observation {
+                let (decisions, _) =
+                    fleet::close_stale_for_session(&fleet.decisions, session, now_ms);
                 fleet.decisions = decisions;
             }
             Ok(observed)
@@ -417,6 +430,25 @@ impl Implementer {
         free_slots: u32,
         effects: &[FleetEffect],
     ) -> Result<(), String> {
+        self.fleet_record_issued_with_policy(now_ms, free_slots, effects, &FleetPolicy::default())
+    }
+
+    // r[impl kiln.fleet.dispatch]
+    /// Record performed effects under `policy` so the next tick does not
+    /// repeat them and bounded stale-observation extensions follow the
+    /// configured policy.
+    ///
+    /// # Errors
+    /// Returns the policy or `session::record_issued_with_policy` refusal, or
+    /// the store diagnostic.
+    pub fn fleet_record_issued_with_policy(
+        &mut self,
+        now_ms: u64,
+        free_slots: u32,
+        effects: &[FleetEffect],
+        policy: &FleetPolicy,
+    ) -> Result<(), String> {
+        policy.validate().map_err(diagnostic)?;
         self.with_fleet_ledgers(Access::Write, |ledgers, fleet| {
             let views = attempt_views(&ledgers.attempts, &fleet.sessions, now_ms);
             let input = TickInput {
@@ -427,7 +459,8 @@ impl Implementer {
                 ready_work: ready_work(&ledgers.work, &ledgers.attempts, now_ms),
                 decisions: &fleet.decisions,
             };
-            let sessions = fleet::record_issued(&input, effects).map_err(diagnostic)?;
+            let sessions =
+                fleet::record_issued_with_policy(&input, effects, policy).map_err(diagnostic)?;
             fleet.sessions = sessions;
             Ok(())
         })

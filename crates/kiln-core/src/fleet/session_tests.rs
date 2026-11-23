@@ -128,7 +128,12 @@ fn lifecycle_effects_are_requested_once() {
         ready_work: 3,
         decisions: &decisions,
     };
-    let policy = FleetPolicy::default();
+    // With the stale bound disabled (0), plan_tick output is identical to the
+    // legacy baseline over old observation timestamps.
+    let policy = FleetPolicy {
+        stale_observation_after_ms: 0,
+        ..FleetPolicy::default()
+    };
     let effects = plan_tick(&input, &policy);
 
     let expected = [
@@ -197,7 +202,10 @@ fn lifecycle_effects_are_requested_once() {
 fn renewal_follows_the_lease_and_live_sessions_only() {
     let (ledger, session) = session_with(&SessionLedger::default(), '1', &working(NOW - HOUR));
     let decisions = DecisionLedger::default();
-    let policy = FleetPolicy::default();
+    let policy = FleetPolicy {
+        stale_observation_after_ms: 0,
+        ..FleetPolicy::default()
+    };
     let tick = |ledger: &SessionLedger, lease: u64| {
         let attempts = [view('1', AttemptViewState::Executing, lease)];
         let input = TickInput {
@@ -240,7 +248,10 @@ fn renewal_follows_the_lease_and_live_sessions_only() {
 #[test]
 // r[verify kiln.fleet.dispatch]
 fn nudges_are_capped_before_one_decision() {
-    let policy = FleetPolicy::default();
+    let policy = FleetPolicy {
+        stale_observation_after_ms: 0,
+        ..FleetPolicy::default()
+    };
     let decisions = DecisionLedger::default();
     let attempts = [view('1', AttemptViewState::Executing, NOW + 10 * HOUR)];
     let mut steps = working(NOW - 2 * HOUR);
@@ -311,7 +322,10 @@ fn nudges_are_capped_before_one_decision() {
 #[test]
 // r[verify kiln.fleet.dispatch] r[verify kiln.fleet.decisions]
 fn answered_decisions_are_prompted_once() {
-    let policy = FleetPolicy::default();
+    let policy = FleetPolicy {
+        stale_observation_after_ms: 0,
+        ..FleetPolicy::default()
+    };
     let attempts = [view('1', AttemptViewState::Executing, NOW + 10 * HOUR)];
     let mut steps = working(NOW - HOUR);
     steps.push((status(AgentStatus::Blocked), NOW - HOUR));
@@ -978,7 +992,17 @@ fn policy_defaults_and_bounds() {
     assert_eq!(policy.nudge_after_ms, 10 * MINUTE);
     assert_eq!(policy.max_nudges, 2);
     assert_eq!(policy.attempt_lease_ms, HOUR);
+    assert_eq!(policy.stale_observation_after_ms, 15 * MINUTE);
+    assert_eq!(policy.stale_keep_waiting_leases, 2);
     assert!(policy.validate().is_ok());
+    assert!(
+        FleetPolicy {
+            stale_observation_after_ms: 0,
+            ..policy
+        }
+        .validate()
+        .is_ok()
+    );
     for invalid in [
         FleetPolicy {
             tick_ms: MIN_TICK_MS - 1,
@@ -1000,9 +1024,441 @@ fn policy_defaults_and_bounds() {
             nudge_after_ms: 0,
             ..policy
         },
+        FleetPolicy {
+            stale_keep_waiting_leases: 0,
+            ..policy
+        },
+        FleetPolicy {
+            stale_keep_waiting_leases: MAX_STALE_KEEP_WAITING_LEASES + 1,
+            ..policy
+        },
     ] {
         assert!(invalid.validate().is_err(), "{invalid:?}");
     }
+}
+
+#[test]
+// r[verify kiln.fleet.dispatch] r[verify kiln.fleet.decisions]
+fn stale_working_session_stops_renewing_and_raises_one_decision() {
+    let policy = FleetPolicy::default();
+    let (ledger, session) = session_with(&SessionLedger::default(), '1', &working(NOW));
+    let decisions = DecisionLedger::default();
+
+    // Fresh observation before the stale bound renews normally.
+    let before_bound = NOW + policy.stale_observation_after_ms - 1;
+    let fresh_attempts = [view(
+        '1',
+        AttemptViewState::Executing,
+        before_bound + MINUTE,
+    )];
+    let fresh_input = TickInput {
+        now_ms: before_bound,
+        ledger: &ledger,
+        attempts: &fresh_attempts,
+        free_slots: 0,
+        ready_work: 0,
+        decisions: &decisions,
+    };
+    assert_eq!(
+        plan_tick(&fresh_input, &policy),
+        vec![FleetEffect::Renew {
+            attempt: content('1'),
+            fence: 1
+        }]
+    );
+
+    // Past the bound with no new observation: stop renewing, raise one decision,
+    // and never emit Cancel or Stop automatically.
+    let stale_now = NOW + policy.stale_observation_after_ms + MINUTE;
+    let stale_attempts = [view('1', AttemptViewState::Executing, stale_now + MINUTE)];
+    let stale_input = TickInput {
+        now_ms: stale_now,
+        ledger: &ledger,
+        attempts: &stale_attempts,
+        free_slots: 0,
+        ready_work: 0,
+        decisions: &decisions,
+    };
+    let effects = plan_tick(&stale_input, &policy);
+    assert!(
+        !effects
+            .iter()
+            .any(|effect| matches!(effect, FleetEffect::Renew { .. }))
+    );
+    assert!(!effects.iter().any(|effect| matches!(
+        effect,
+        FleetEffect::Cancel { .. } | FleetEffect::Stop { .. }
+    )));
+    let question = match effects.as_slice() {
+        [
+            FleetEffect::RaiseDecision {
+                session: target,
+                question,
+            },
+        ] if *target == session => {
+            assert!(question.contains("unobserved for 16 minutes"));
+            assert!(question.contains("aspen3"));
+            assert!(question.contains("keep waiting, cancel, or let the lease lapse"));
+            question.clone()
+        }
+        other => unreachable!("expected one stale RaiseDecision, got {other:?}"),
+    };
+    let recorded = record_issued_with_policy(&stale_input, &effects, &policy)
+        .unwrap_or_else(|_| unreachable!());
+    assert!(session_of(&recorded, &session).stale_decision_raised);
+    assert!(!session_of(&recorded, &session).decision_raised);
+    let (decisions_with_open, open_decision) =
+        raise(&decisions, &session, &content('1'), &question, stale_now)
+            .unwrap_or_else(|_| unreachable!());
+    assert!(
+        plan_tick(
+            &TickInput {
+                ledger: &recorded,
+                decisions: &decisions_with_open,
+                ..stale_input
+            },
+            &policy
+        )
+        .is_empty()
+    );
+
+    // A fresh observation closes the stale decision and resumes normal renewal.
+    let recovered_now = stale_now + MINUTE;
+    let recovered = observe(
+        &recorded,
+        &session,
+        status(AgentStatus::Working),
+        recovered_now,
+    )
+    .unwrap_or_else(|_| unreachable!());
+    let (closed_decisions, closed_ids) = crate::fleet::decision::close_stale_for_session(
+        &decisions_with_open,
+        &session,
+        recovered_now,
+    );
+    assert_eq!(closed_ids, vec![open_decision.identity]);
+    assert!(closed_decisions.open_for_session(&session).is_none());
+    let recovered_attempts = [view(
+        '1',
+        AttemptViewState::Executing,
+        recovered_now + MINUTE,
+    )];
+    assert_eq!(
+        plan_tick(
+            &TickInput {
+                now_ms: recovered_now,
+                ledger: &recovered,
+                attempts: &recovered_attempts,
+                free_slots: 0,
+                ready_work: 0,
+                decisions: &closed_decisions,
+            },
+            &policy
+        ),
+        vec![FleetEffect::Renew {
+            attempt: content('1'),
+            fence: 1
+        }]
+    );
+}
+
+#[test]
+// r[verify kiln.fleet.dispatch] r[verify kiln.fleet.decisions]
+fn keep_waiting_extends_renewal_bounded_then_re_raises_decision() {
+    let policy = FleetPolicy {
+        stale_keep_waiting_leases: 2,
+        ..FleetPolicy::default()
+    };
+    let (ledger, session) = session_with(&SessionLedger::default(), '1', &working(NOW));
+    let decisions = DecisionLedger::default();
+
+    let t1 = NOW + 20 * MINUTE;
+    let lease1 = t1 + 5 * MINUTE;
+    let input1 = TickInput {
+        now_ms: t1,
+        ledger: &ledger,
+        attempts: &[view('1', AttemptViewState::Executing, lease1)],
+        free_slots: 0,
+        ready_work: 0,
+        decisions: &decisions,
+    };
+    let effects1 = plan_tick(&input1, &policy);
+    let question1 = match effects1.as_slice() {
+        [FleetEffect::RaiseDecision { question, .. }] => question.clone(),
+        other => unreachable!("expected stale decision, got {other:?}"),
+    };
+    let ledger =
+        record_issued_with_policy(&input1, &effects1, &policy).unwrap_or_else(|_| unreachable!());
+    let (decisions, d1) = raise(&decisions, &session, &content('1'), &question1, t1)
+        .unwrap_or_else(|_| unreachable!());
+
+    // Operator answers "keep waiting".
+    let (decisions, _) = answer(
+        &decisions,
+        &d1.identity,
+        "keep waiting",
+        "britton-desktop",
+        true,
+        t1 + MINUTE,
+    )
+    .unwrap_or_else(|_| unreachable!());
+
+    // Renewal #1 granted.
+    let t2 = t1 + 2 * MINUTE;
+    let input2 = TickInput {
+        now_ms: t2,
+        ledger: &ledger,
+        attempts: &[view('1', AttemptViewState::Executing, lease1)],
+        free_slots: 0,
+        ready_work: 0,
+        decisions: &decisions,
+    };
+    let effects2 = plan_tick(&input2, &policy);
+    assert_eq!(
+        effects2,
+        vec![FleetEffect::Renew {
+            attempt: content('1'),
+            fence: 1
+        }]
+    );
+    let ledger =
+        record_issued_with_policy(&input2, &effects2, &policy).unwrap_or_else(|_| unreachable!());
+    assert_eq!(session_of(&ledger, &session).stale_renewals_remaining, 1);
+
+    // Renewal #2 granted when the renewed lease approaches expiry.
+    let lease2 = t2 + HOUR;
+    let t3 = lease2 - 5 * MINUTE;
+    let input3 = TickInput {
+        now_ms: t3,
+        ledger: &ledger,
+        attempts: &[view('1', AttemptViewState::Executing, lease2)],
+        free_slots: 0,
+        ready_work: 0,
+        decisions: &decisions,
+    };
+    let effects3 = plan_tick(&input3, &policy);
+    assert_eq!(
+        effects3,
+        vec![FleetEffect::Renew {
+            attempt: content('1'),
+            fence: 1
+        }]
+    );
+    let ledger =
+        record_issued_with_policy(&input3, &effects3, &policy).unwrap_or_else(|_| unreachable!());
+    assert_eq!(session_of(&ledger, &session).stale_renewals_remaining, 0);
+    assert!(session_of(&ledger, &session).stale_wait_until_renewal);
+
+    // During the 2nd granted lease before renewal is due, no decision is raised yet.
+    let lease3 = t3 + HOUR;
+    let t4 = t3 + 10 * MINUTE;
+    assert!(
+        plan_tick(
+            &TickInput {
+                now_ms: t4,
+                ledger: &ledger,
+                attempts: &[view('1', AttemptViewState::Executing, lease3)],
+                free_slots: 0,
+                ready_work: 0,
+                decisions: &decisions,
+            },
+            &policy
+        )
+        .is_empty()
+    );
+
+    // When the 3rd renewal would become due, the bounded extension is exhausted:
+    // no Renew is emitted and a new stale decision is raised.
+    let t5 = lease3 - 5 * MINUTE;
+    let input5 = TickInput {
+        now_ms: t5,
+        ledger: &ledger,
+        attempts: &[view('1', AttemptViewState::Executing, lease3)],
+        free_slots: 0,
+        ready_work: 0,
+        decisions: &decisions,
+    };
+    let effects5 = plan_tick(&input5, &policy);
+    assert!(matches!(
+        effects5.as_slice(),
+        [FleetEffect::RaiseDecision { session: target, question }]
+            if *target == session && is_stale_observation_question(question)
+    ));
+
+    // Even after the session recovers, the stale decision answer ("keep waiting")
+    // is never relayed as an agent prompt.
+    let recovered = observe(&ledger, &session, status(AgentStatus::Working), t5 + MINUTE)
+        .unwrap_or_else(|_| unreachable!());
+    assert!(
+        plan_tick(
+            &TickInput {
+                now_ms: t5 + MINUTE,
+                ledger: &recovered,
+                attempts: &[view('1', AttemptViewState::Executing, t5 + HOUR)],
+                free_slots: 0,
+                ready_work: 0,
+                decisions: &decisions,
+            },
+            &policy
+        )
+        .is_empty()
+    );
+}
+
+#[test]
+// r[verify kiln.fleet.dispatch] r[verify kiln.fleet.decisions]
+fn stale_decision_cancel_and_let_lease_lapse() {
+    let policy = FleetPolicy::default();
+    let (ledger, session) = session_with(&SessionLedger::default(), '1', &working(NOW));
+    let t1 = NOW + 20 * MINUTE;
+    let lease = t1 + 5 * MINUTE;
+    let (decisions, d1) = raise(
+        &DecisionLedger::default(),
+        &session,
+        &content('1'),
+        &stale_observation_question(session_of(&ledger, &session), 20 * MINUTE),
+        t1,
+    )
+    .unwrap_or_else(|_| unreachable!());
+
+    // "let the lease lapse": no Renew, no Cancel, no new RaiseDecision.
+    let (lapse_decisions, _) = answer(
+        &decisions,
+        &d1.identity,
+        "let the lease lapse",
+        "britton-desktop",
+        true,
+        t1 + MINUTE,
+    )
+    .unwrap_or_else(|_| unreachable!());
+    let lapse_input = TickInput {
+        now_ms: t1 + 2 * MINUTE,
+        ledger: &ledger,
+        attempts: &[view('1', AttemptViewState::Executing, lease)],
+        free_slots: 0,
+        ready_work: 0,
+        decisions: &lapse_decisions,
+    };
+    assert!(plan_tick(&lapse_input, &policy).is_empty());
+    let lapsed_ledger =
+        record_issued_with_policy(&lapse_input, &[], &policy).unwrap_or_else(|_| unreachable!());
+    assert!(
+        plan_tick(
+            &TickInput {
+                ledger: &lapsed_ledger,
+                ..lapse_input
+            },
+            &policy
+        )
+        .is_empty()
+    );
+    // Once the lease expires, Stop is emitted.
+    assert_eq!(
+        plan_tick(
+            &TickInput {
+                now_ms: lease,
+                ledger: &lapsed_ledger,
+                attempts: &[view('1', AttemptViewState::Executing, lease)],
+                free_slots: 0,
+                ready_work: 0,
+                decisions: &lapse_decisions,
+            },
+            &policy
+        ),
+        vec![FleetEffect::Stop {
+            session: session.clone()
+        }]
+    );
+
+    // "cancel": emits Cancel and Stop.
+    let (cancel_decisions, _) = answer(
+        &decisions,
+        &d1.identity,
+        "cancel",
+        "britton-desktop",
+        true,
+        t1 + MINUTE,
+    )
+    .unwrap_or_else(|_| unreachable!());
+    let cancel_effects = plan_tick(
+        &TickInput {
+            now_ms: t1 + 2 * MINUTE,
+            ledger: &ledger,
+            attempts: &[view('1', AttemptViewState::Executing, lease)],
+            free_slots: 0,
+            ready_work: 0,
+            decisions: &cancel_decisions,
+        },
+        &policy,
+    );
+    assert_eq!(
+        cancel_effects,
+        vec![
+            FleetEffect::Cancel {
+                attempt: content('1'),
+                fence: 1,
+                cause: "operator cancelled unobserved session".to_string(),
+            },
+            FleetEffect::Stop { session }
+        ]
+    );
+}
+
+#[test]
+// r[verify kiln.fleet.dispatch]
+fn handoff_received_and_captured_are_exempt_from_stale_observation() {
+    let policy = FleetPolicy::default();
+    let decisions = DecisionLedger::default();
+    let commit = "a".repeat(GIT_SHA1_HEX_BYTES);
+    let mut steps = working(NOW - 2 * HOUR);
+    steps.push((
+        Observation::Handoff {
+            commit: commit.clone(),
+        },
+        NOW - HOUR,
+    ));
+    let (ledger, session) = session_with(&SessionLedger::default(), '1', &steps);
+    let attempts = [view('1', AttemptViewState::Executing, NOW + MINUTE)];
+    let effects = plan_tick(
+        &TickInput {
+            now_ms: NOW,
+            ledger: &ledger,
+            attempts: &attempts,
+            free_slots: 0,
+            ready_work: 0,
+            decisions: &decisions,
+        },
+        &policy,
+    );
+    assert!(effects.contains(&FleetEffect::Renew {
+        attempt: content('1'),
+        fence: 1
+    }));
+    assert!(effects.contains(&FleetEffect::Capture {
+        session: session.clone(),
+        commit
+    }));
+
+    let captured = observe(&ledger, &session, Observation::Captured, NOW - HOUR)
+        .unwrap_or_else(|_| unreachable!());
+    let captured_effects = plan_tick(
+        &TickInput {
+            now_ms: NOW,
+            ledger: &captured,
+            attempts: &attempts,
+            free_slots: 0,
+            ready_work: 0,
+            decisions: &decisions,
+        },
+        &policy,
+    );
+    assert_eq!(
+        captured_effects,
+        vec![FleetEffect::Renew {
+            attempt: content('1'),
+            fence: 1
+        }]
+    );
 }
 
 #[test]

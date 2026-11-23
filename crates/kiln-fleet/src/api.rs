@@ -423,6 +423,7 @@ impl Service {
             .attempts()
             .map_err(|error| store_error(&error))?;
         let ledger = implementer.work().map_err(|error| store_error(&error))?;
+        let policy = self.config.policy.fleet();
         let listed: Vec<Value> = views
             .iter()
             .take(MAX_LISTED_ATTEMPTS)
@@ -442,6 +443,9 @@ impl Service {
                         session.attempt == view.attempt && session.fence == view.fence
                     })
                     .max_by_key(|session| session.created_ms);
+                let observation_age_ms = session.map(|session| session.observation_age_ms(now_ms));
+                let observation_stale =
+                    session.is_some_and(|session| session.is_observation_stale(now_ms, &policy));
                 json!({
                     "attempt": view.attempt,
                     "fence": view.fence,
@@ -452,6 +456,8 @@ impl Service {
                     "work": attempt.map(|attempt| &attempt.work_identity),
                     "repository": work.map(|work| &work.repository),
                     "title": work.map(|work| &work.title),
+                    "observation_age_ms": observation_age_ms,
+                    "observation_stale": observation_stale,
                     "session": session,
                 })
             })
@@ -605,6 +611,21 @@ impl Service {
             .values()
             .filter(|decision| decision.is_open())
             .count();
+        let policy = self.config.policy.fleet();
+        let max_observation_age_ms = state
+            .sessions
+            .sessions
+            .values()
+            .filter(|session| session.state.requires_observation())
+            .map(|session| session.observation_age_ms(now_ms))
+            .max()
+            .unwrap_or(0);
+        let stale_sessions = state
+            .sessions
+            .sessions
+            .values()
+            .filter(|session| session.is_observation_stale(now_ms, &policy))
+            .count();
         let mut text = String::new();
         use std::fmt::Write as _;
         let _ = writeln!(
@@ -638,6 +659,14 @@ impl Service {
         let _ = writeln!(
             text,
             "# HELP kiln_fleet_decisions_open Decisions neither answered nor closed.\n# TYPE kiln_fleet_decisions_open gauge\nkiln_fleet_decisions_open {open_decisions}"
+        );
+        let _ = writeln!(
+            text,
+            "# HELP kiln_fleet_session_max_observation_age_ms Maximum observation age across live observed sessions in milliseconds.\n# TYPE kiln_fleet_session_max_observation_age_ms gauge\nkiln_fleet_session_max_observation_age_ms {max_observation_age_ms}"
+        );
+        let _ = writeln!(
+            text,
+            "# HELP kiln_fleet_sessions_stale Live sessions whose observation age reached the stale bound.\n# TYPE kiln_fleet_sessions_stale gauge\nkiln_fleet_sessions_stale {stale_sessions}"
         );
         Ok(Response::text(200, text))
     }

@@ -19,6 +19,46 @@ pub const FLEET_DECISION_SCHEMA: &str = "kiln.fleet-decision.v1";
 pub const MAX_QUESTION_BYTES: usize = 2048;
 pub const MAX_ANSWER_BYTES: usize = 4096;
 pub const MAX_ANSWERER_BYTES: usize = 128;
+/// Phrase identifying a stale-observation decision raised by the tick planner.
+pub const STALE_OBSERVATION_QUESTION_MARKER: &str = "has been unobserved for ";
+
+/// Operator action parsed from an answer to a stale-observation decision.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum StaleDecisionAction {
+    KeepWaiting,
+    Cancel,
+    LetLeaseLapse,
+}
+
+/// Whether `decision` was raised for a stale session observation.
+#[must_use]
+pub fn is_stale_observation_decision(decision: &Decision) -> bool {
+    is_stale_observation_question(&decision.question)
+}
+
+/// Whether `question` is a stale-observation decision prompt.
+#[must_use]
+pub fn is_stale_observation_question(question: &str) -> bool {
+    question.contains(STALE_OBSERVATION_QUESTION_MARKER)
+}
+
+/// Parse an operator answer to a stale-observation decision.
+#[must_use]
+pub fn parse_stale_decision_action(text: &str) -> Option<StaleDecisionAction> {
+    let normalized = text.trim().to_ascii_lowercase();
+    if normalized.starts_with("keep waiting") || normalized == "wait" {
+        Some(StaleDecisionAction::KeepWaiting)
+    } else if normalized.starts_with("cancel") {
+        Some(StaleDecisionAction::Cancel)
+    } else if normalized.starts_with("let the lease lapse")
+        || normalized.starts_with("let lease lapse")
+        || normalized == "lapse"
+    {
+        Some(StaleDecisionAction::LetLeaseLapse)
+    } else {
+        None
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -246,6 +286,28 @@ pub fn close_for_ended_sessions(
             .get(&decision.session)
             .is_none_or(|session| session.state.is_ended());
         if decision.is_open() && ended {
+            decision.closed_ms = Some(now_ms);
+            closed.push(decision.identity.clone());
+        }
+    }
+    (next, closed)
+}
+
+/// Close any open stale-observation decision for `session` once a fresh
+/// observation arrives. Non-stale decisions remain open.
+#[must_use]
+pub fn close_stale_for_session(
+    ledger: &DecisionLedger,
+    session: &ContentId,
+    now_ms: u64,
+) -> (DecisionLedger, Vec<ContentId>) {
+    let mut next = ledger.clone();
+    let mut closed = Vec::new();
+    for decision in next.decisions.values_mut() {
+        if &decision.session == session
+            && decision.is_open()
+            && is_stale_observation_decision(decision)
+        {
             decision.closed_ms = Some(now_ms);
             closed.push(decision.identity.clone());
         }
