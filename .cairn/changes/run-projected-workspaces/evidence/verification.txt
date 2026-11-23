@@ -27,7 +27,12 @@ $ cairn traceability coverage --policy "$P" (accepted-only)
      which reach the accepted spec at `cairn sync`.
 $ gitleaks git --log-opts=90a9fb64..HEAD -> no leaks (6 commits)
 
-Restricted runtime (`evidence/projected-runtime-receipt.json`):
+SUPERSEDED restricted-runtime run (`evidence/projected-runtime-receipt.superseded.json`).
+It ran under the local-operator profile, which never authorizes projection, and
+its receipt accepted a partial probe set and an unobserved beta command. It is
+kept for the record and is not qualification evidence; the runtime task is
+reopened until the run is repeated on S1's verified profile with
+`projection_enabled`:
 $ cargo run -p kiln-web-service --all-features --example projected-runtime -- \
     --lattice /nix/store/7xa2qg5s2zxprxdjx0a5yryw9vwfimzy-lattice-0.1.0/bin/lattice ...
   -> exit 0. Lattice origin/main 7fb6dc47: the cohort pin 661499d2 has no

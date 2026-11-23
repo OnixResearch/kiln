@@ -7,7 +7,11 @@
 
 ## Phase 2: Restricted runtime
 
-- [x] [serial] [depends:kiln.source.projection.route] Dispatch the two-project Cargo and Nix corpora through `kiln-lattice-dispatch` to the real Lattice binary under bubblewrap, run each planned build, record the confinement negatives and capture the overlay into facts. r[kiln.source.projection.runtime] r[kiln.source.projection.runtime.scenario.qualified] r[kiln.source.projection.runtime.scenario.confined]
+- [ ] [serial] [depends:kiln.source.projection.route] Dispatch the two-project Cargo and Nix corpora through `kiln-lattice-dispatch` to the real Lattice binary under bubblewrap with an authority configuration that selects S1's verified profile with `projection_enabled`, run each planned build, record the complete confinement probe set and the local-operator refusal, and capture the overlay into facts. Reopened for integration: `evidence/projected-runtime-receipt.superseded.json` ran under the local-operator profile and accepted a partial probe set, and is superseded; requalify once S1's verified profile is integrated. r[kiln.source.projection.runtime] r[kiln.source.projection.runtime.scenario.qualified] r[kiln.source.projection.runtime.scenario.confined]
 - [x] [serial] Document routes, the runtime and writeback v2 in the operator guide, close the non-authority half of `materialize-projected-workspaces`, and run the gates. r[kiln.source.projection.route]
 
-Evidence: `evidence/verification.txt` (gates, toolchain, Cairn binary and policy) and `evidence/projected-runtime-receipt.json` (the restricted-runtime run).
+## Phase 3: Review findings
+
+- [ ] [serial] [depends:kiln.source.projection.route] Derive the route again at the dispatcher for the plan's own permitted paths, refuse nested unwritable aliases in creation directories, stores below runtime-mounted roots and VCS metadata destinations, refuse projected dispatch under any profile that does not enable projection, name mode-only changes in writeback conflicts, and judge the runtime receipt on the complete probe set, each with positive and negative tests, and run the gates. r[kiln.source.projection.route] r[kiln.source.projection.route.scenario.derived] r[kiln.source.projection.route.scenario.refused] r[kiln.source.projection.route.scenario.dispatch] r[kiln.source.projection.writeback.conflict]
+
+Evidence: `evidence/verification.txt` (gates, toolchain, Cairn binary and policy). `evidence/projected-runtime-receipt.superseded.json` is the superseded local-operator run, kept for the record; it is not qualification evidence.

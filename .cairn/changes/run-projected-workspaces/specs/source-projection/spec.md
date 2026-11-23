@@ -4,19 +4,19 @@
 
 ### Requirement: Projected workspace routes
 
-r[kiln.source.projection.route] A projected workspace MUST reach a restricted runtime only through a `kiln.projected-workspace-route.v1` route derived from the admitted definition, the completeness witness, the materialization plan and the dispatch pin of one attempt. The route MUST name the pin, the input and overlay roots in one materialization store, the `lattice-bwrap` runtime, the build plan the attempt runs, read paths and write paths relative to the overlay, and an identity over every field. Read paths MUST be the top-level components of every planned destination and, for a write, of every creation destination. Write paths MUST exist only for a completeness witness for a write: each destination whose native origin lies within a writable source path, and each creation destination whose every mounted source path does. The route MUST grant no read, write or execution authority beyond those paths, and MUST NOT name the host checkout, the Git database or any other store path.
+r[kiln.source.projection.route] A projected workspace MUST reach a restricted runtime only through a `kiln.projected-workspace-route.v1` route derived from the admitted definition, the completeness witness, the materialization plan and the dispatch pin of one attempt. The route MUST name the pin, the input and overlay roots in one materialization store, the `lattice-bwrap` runtime, the build plan the attempt runs, read paths and write paths relative to the overlay, the authored definition and resolved manifest it was derived from, and an identity over every field. Read paths MUST be the top-level components of every planned destination and, for a write, of every creation destination. Write paths MUST exist only for a completeness witness for a write: each destination whose native origin lies within a writable source path, and each creation destination whose every mounted source path, every native origin planned at or below it and the source prefix of every mount placed below it lie within one. The route MUST grant no read, write or execution authority beyond those paths, and MUST NOT name the host checkout, the Git database, any other store path or a path with a `.git` or `.jj` component. Its store MUST NOT lie at or below a host root the restricted runtime mounts (`/nix/store`, `/usr`, `/bin`, `/lib`, `/lib64`, `/run/current-system/sw/bin`).
 
 #### Scenario: A route grants only writable origins
 
 r[kiln.source.projection.route.scenario.derived]
-- GIVEN a writable view with an aliased shared origin, creation destinations and a writable grant over some source paths
+- GIVEN a writable view with an aliased shared origin, creation destinations, an origin of another source path mounted inside a creation destination, and a writable grant over some source paths
 - WHEN its route is derived and its overlay prepared for it
-- THEN both aliases of a writable origin and the writable creation destinations MUST be write paths, every other planned destination MUST stay read-only, a build route MUST have no write path, and derivation MUST be reproducible
+- THEN both aliases of a writable origin and the writable creation destinations MUST be write paths, a creation destination holding an unwritable origin or mount MUST NOT be granted whole, every other planned destination MUST stay read-only, a build route MUST have no write path, and derivation MUST be reproducible
 
 #### Scenario: Unsafe or crossed routes are refused
 
 r[kiln.source.projection.route.scenario.refused]
-- GIVEN a build witness with writable paths, an unsafe writable path or store, a bound violation, a pin the plan does not derive, another view's plan or a build plan of another manifest
+- GIVEN a build witness with writable paths, an unsafe writable path or store, a store at or below a runtime-mounted host root, a destination with a `.git` or `.jj` component, a bound violation, a pin the plan does not derive, another view's plan or a build plan of another manifest
 - WHEN a route is derived, or a recorded route with any changed field is verified
 - THEN it MUST be refused before any effect
 
@@ -25,7 +25,7 @@ r[kiln.source.projection.route.scenario.refused]
 r[kiln.source.projection.route.scenario.dispatch]
 - GIVEN a dispatch plan that pins a projected workspace
 - WHEN `kiln-lattice-dispatch` or `kiln-implementation-fixture bind-execution` receives a worker request
-- THEN it MUST refuse, before any durable step or transport, a missing or invalid route, a route for another pin, a route for an unpinned plan, a linked overlay root, and a request whose workspace root, read paths, write paths or network differ from the route
+- THEN it MUST refuse, before any durable step or transport, a missing or invalid route, a route for another pin, a route for an unpinned plan, a route that derived again from its definition and manifest for the plan's own permitted paths has other read or write paths, a linked overlay root, and a request whose workspace root, read paths, write paths or network differ from the route; and `kiln-lattice-dispatch` MUST refuse a pinned plan or a supplied route with `projection-requires-operator` under any authority profile that does not enable projection, the local-operator profile included
 
 ### Requirement: Restricted projected runtime
 
@@ -34,16 +34,16 @@ r[kiln.source.projection.runtime] A projected attempt MUST run under Lattice's b
 #### Scenario: Two projects build through the dispatcher
 
 r[kiln.source.projection.runtime.scenario.qualified]
-- GIVEN the two-project Cargo corpus and a two-project Nix flake, each resolved, planned, materialized and routed for a claimed local attempt
+- GIVEN the two-project Cargo corpus and a two-project Nix flake, each resolved, planned, materialized and routed for a claimed local attempt, and an authority configuration selecting a verified profile with projection enabled
 - WHEN each is dispatched through `kiln-lattice-dispatch` to the real Lattice binary and its planned command runs inside the restricted runtime
-- THEN each planned build MUST succeed inside the runtime, and the receipt MUST record the route and the runtime observations
+- THEN each planned build MUST succeed inside the runtime except the beta Cargo build, whose failure on an undeclared read MUST be observed, the same request under the local-operator profile MUST be refused for projection, and the receipt MUST record the route and the runtime observations
 
 #### Scenario: Confinement negatives
 
 r[kiln.source.projection.runtime.scenario.confined]
 - GIVEN a dispatched projected attempt
 - WHEN the worker tries to read the host checkout, its `.git`, the store's input and overlay backing paths, to connect to a host UNIX, abstract or loopback socket, or to write a read-only planned entry, the workspace root or any path outside its write paths
-- THEN every attempt MUST fail, while reading planned entries and writing a write path MUST succeed
+- THEN every attempt MUST fail, while reading planned entries and writing a write path MUST succeed, and the run MUST qualify only when every probe sent reports exactly its expected outcome
 
 ### Requirement: Structural writeback operations
 
@@ -58,7 +58,7 @@ r[kiln.source.projection.writeback.structural.scenario.distinct]
 
 ### Requirement: Writeback conflicts
 
-r[kiln.source.projection.writeback.conflict] A capture over a source that moved since the view was resolved MUST NOT seal a candidate or rebase. It MUST return a `kiln.projection.writeback-conflict.v1` outcome naming the base and current revisions and every source path where the captured operations and the current source disagree, normalized to canonical origins. A rebase MUST be an explicit re-resolution and a new overlay generation. Fence, pin and other refusals MUST take precedence over a conflict.
+r[kiln.source.projection.writeback.conflict] A capture over a source that moved since the view was resolved MUST NOT seal a candidate or rebase. It MUST return a `kiln.projection.writeback-conflict.v1` outcome naming the base and current revisions and every source path where the captured operations and the current source disagree, a changed object or entry kind (a mode-only change included), normalized to canonical origins. A rebase MUST be an explicit re-resolution and a new overlay generation. Fence, pin and other refusals MUST take precedence over a conflict.
 
 #### Scenario: Ownership and observed content are independent
 
