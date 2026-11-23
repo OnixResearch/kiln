@@ -1,6 +1,6 @@
 # Cairn policy provenance
 
-`contracts.ncl` and `upstream-default.ncl` are exact snapshots from Cairn revision `9082e1aece4f04bcbead5eeea087e496bc48a675` (source NAR `sha256-MupXo6ha88a5GtCWyurc6ogIw5N0i7nat2BQ3btglnA=`). Refresh both together with `scripts/import-cairn-policy.sh`; it refuses source or local snapshot drift.
+`contracts.ncl` and `upstream-default.ncl` are exact snapshots from Cairn revision `317d3ff648f01a5ea1572e6126f4dd71bc7afa99` (source NAR `sha256-8NcPYYKMZsOV86rxpQ5Wk61rKbCPBA9ZtbYE3pG1SqA=`). Refresh both together with `scripts/import-cairn-policy.sh`; it refuses source or local snapshot drift.
 
 `default.ncl` overlays Kiln traceability roots, including the separately built, Kiln-owned `runtime/kiln-aspen-host` and `runtime/kiln-radicle-nix-provider` Rust implementation and conformance sources. It keeps the upstream lifecycle, workflow, receipt, and validation policy, including the required `outcome-machine` workflow profile. Existing changes selecting `spec-driven` retain that selection. Imported producer trees are not Kiln implementation evidence.
 

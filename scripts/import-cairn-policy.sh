@@ -2,12 +2,12 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-revision=9082e1aece4f04bcbead5eeea087e496bc48a675
-nar_hash='sha256-MupXo6ha88a5GtCWyurc6ogIw5N0i7nat2BQ3btglnA='
-source_default_hash=6a031f3a92ae55bc79eb2417ccb7289c2aabdeda639570563d4cdb294bd316db
+revision=317d3ff648f01a5ea1572e6126f4dd71bc7afa99
+nar_hash='sha256-8NcPYYKMZsOV86rxpQ5Wk61rKbCPBA9ZtbYE3pG1SqA='
+source_default_hash=18d7c4ec3985108cde68fd7022f51dd62b69f8e4d9c98c22c19e397301088fed
 source_contracts_hash=46ebe026e1b69bb6bee7e24947bd5d18be307e4d977100dd6f8f8fc696d1a15e
-previous_default_hash=c3b5981d71789b04ff3a7567a84a7b1df29b5703dcb3a65e664143713e77a97e
-previous_contracts_hash=bc537dc32ff01fc9004dc032b78ad6fb5855c5c6f0158ecda219d5912b46619c
+previous_default_hash=6a031f3a92ae55bc79eb2417ccb7289c2aabdeda639570563d4cdb294bd316db
+previous_contracts_hash=46ebe026e1b69bb6bee7e24947bd5d18be307e4d977100dd6f8f8fc696d1a15e
 
 actual_hash() { b3sum --no-names "$1"; }
 require_hash() {
