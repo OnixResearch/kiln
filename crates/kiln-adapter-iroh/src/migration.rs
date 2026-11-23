@@ -91,20 +91,26 @@ impl DirectMigrationEndpoint {
             .transport_config(transport)
             .alpns(vec![MIGRATION_ALPN.to_vec()])
             .clear_ip_transports();
+        // The configured address is required; the supplemental loopback of the
+        // other family is optional, so an IPv4-only host still binds.
+        let optional = |prefix: u8| {
+            iroh::endpoint::BindOpts::default()
+                .set_is_required(false)
+                .set_is_default_route(false)
+                .set_prefix_len(prefix)
+        };
         let builder = match address {
             std::net::SocketAddr::V4(address) => builder.bind_addr(address).and_then(|builder| {
-                builder.bind_addr(std::net::SocketAddrV6::new(
-                    std::net::Ipv6Addr::LOCALHOST,
-                    0,
-                    0,
-                    0,
-                ))
+                builder.bind_addr_with_opts(
+                    std::net::SocketAddrV6::new(std::net::Ipv6Addr::LOCALHOST, 0, 0, 0),
+                    optional(128),
+                )
             }),
             std::net::SocketAddr::V6(address) => builder.bind_addr(address).and_then(|builder| {
-                builder.bind_addr(std::net::SocketAddrV4::new(
-                    std::net::Ipv4Addr::LOCALHOST,
-                    0,
-                ))
+                builder.bind_addr_with_opts(
+                    std::net::SocketAddrV4::new(std::net::Ipv4Addr::LOCALHOST, 0),
+                    optional(32),
+                )
             }),
         }
         .map_err(|_| BridgeError::Denied)?;
@@ -120,9 +126,57 @@ impl DirectMigrationEndpoint {
     pub fn endpoint(&self) -> &Endpoint {
         &self.0
     }
+    /// Dial `remote` with only the migration ALPN, returning a channel bound to
+    /// this endpoint.
+    pub async fn connect(
+        &self,
+        remote: iroh::EndpointAddr,
+    ) -> Result<MigrationChannel, BridgeError> {
+        let connection = tokio::time::timeout(
+            Duration::from_millis(ENDPOINT_BIND_DEADLINE_MS),
+            self.0.connect(remote, MIGRATION_ALPN),
+        )
+        .await
+        .map_err(|_| BridgeError::Denied)?
+        .map_err(|_| BridgeError::Denied)?;
+        let (send, receive) = connection
+            .open_bi()
+            .await
+            .map_err(|_| BridgeError::Denied)?;
+        Ok(MigrationChannel {
+            connection,
+            send,
+            receive,
+            local: self.0.id(),
+        })
+    }
+    /// Accept one inbound migration connection on this endpoint.
+    pub async fn accept(&self) -> Result<MigrationChannel, BridgeError> {
+        let incoming = self.0.accept().await.ok_or(BridgeError::Denied)?;
+        let connection = incoming
+            .accept()
+            .map_err(|_| BridgeError::Denied)?
+            .await
+            .map_err(|_| BridgeError::Denied)?;
+        if connection.alpn() != MIGRATION_ALPN {
+            return Err(BridgeError::Denied);
+        }
+        let (send, receive) = connection
+            .accept_bi()
+            .await
+            .map_err(|_| BridgeError::Denied)?;
+        Ok(MigrationChannel {
+            connection,
+            send,
+            receive,
+            local: self.0.id(),
+        })
+    }
     /// The selected path's address when every open path of `connection` is a
     /// direct IP path; any relay or custom-transport path denies.
-    fn direct_address(&self, connection: &Connection) -> Result<std::net::SocketAddr, BridgeError> {
+    fn selected_direct_address(
+        connection: &Connection,
+    ) -> Result<std::net::SocketAddr, BridgeError> {
         let paths = connection.paths();
         let mut selected = None;
         for path in &paths {
@@ -137,10 +191,27 @@ impl DirectMigrationEndpoint {
     }
 }
 
+/// One bidirectional stream over a connection this crate's relay-disabled
+/// endpoint opened or accepted. Its fields are private, so a caller cannot
+/// pair a stream with a connection or endpoint it did not come from.
+#[derive(Debug)]
+pub struct MigrationChannel {
+    connection: Connection,
+    send: SendStream,
+    receive: RecvStream,
+    local: iroh::EndpointId,
+}
+
+impl MigrationChannel {
+    /// The endpoint id that owns this connection.
+    #[must_use]
+    pub fn local_id(&self) -> &[u8; 32] {
+        self.local.as_bytes()
+    }
+}
+
 #[derive(Debug)]
 pub struct BridgeContext<'a, R> {
-    pub endpoint: &'a DirectMigrationEndpoint,
-    pub connection: &'a Connection,
     pub plan: &'a MigrationBridgePlan,
     pub side: Side,
     pub reservation: &'a mut R,
@@ -164,34 +235,38 @@ fn protected_directory(path: &Path) -> Result<(), BridgeError> {
     Ok(())
 }
 
-/// Accept only a fully established authenticated connection, never a 0-RTT
-/// connection type. The exact peer and negotiated ALPN are checked before any
-/// protected socket is inspected/opened. The endpoint must be configured with
-/// max one bidirectional stream, zero unidirectional/datagram streams and an
+/// Accept only an admitted channel: a fully established authenticated
+/// connection, never a 0-RTT connection type, over the endpoint that owns it.
+/// The exact peer and negotiated ALPN are checked before any protected socket
+/// is inspected/opened. The endpoint must be configured with max one
+/// bidirectional stream, zero unidirectional/datagram streams and an
 /// explicitly admitted direct/relay policy. No relay policy is inferred here.
 // r[impl kiln.hosted.mobility.runtime]
 pub async fn bridge<R: MigrationReservation>(
-    mut send: SendStream,
-    mut receive: RecvStream,
+    channel: MigrationChannel,
     context: BridgeContext<'_, R>,
 ) -> Result<StreamReceipt, BridgeError> {
     let BridgeContext {
-        endpoint,
-        connection,
         plan,
         side,
         reservation,
         mut cancelled,
         maximum_bytes_per_second,
     } = context;
+    let MigrationChannel {
+        connection,
+        mut send,
+        mut receive,
+        local,
+    } = channel;
     let expected_local = match side {
         Side::Source => plan.source_endpoint,
         Side::Target => plan.target_endpoint,
     };
-    if endpoint.0.id().as_bytes() != &expected_local.id {
+    if local.as_bytes() != &expected_local.id {
         return Err(BridgeError::Denied);
     }
-    let initial_direct_address = endpoint.direct_address(connection)?;
+    let initial_direct_address = DirectMigrationEndpoint::selected_direct_address(&connection)?;
     let peer = BridgeEndpoint {
         id: *connection.remote_id().as_bytes(),
     };
@@ -331,7 +406,7 @@ pub async fn bridge<R: MigrationReservation>(
                 result = &mut copying => break result?,
                 _ = currentness.tick() => {
                     reservation.check_current().map_err(|_| BridgeError::ReconcileRequired)?;
-                    endpoint.direct_address(connection).map_err(|_| BridgeError::ReconcileRequired)?;
+                    DirectMigrationEndpoint::selected_direct_address(&connection).map_err(|_| BridgeError::ReconcileRequired)?;
                 },
             }
         };
@@ -343,8 +418,7 @@ pub async fn bridge<R: MigrationReservation>(
             peer_to_local_bytes: inbound,
             elapsed: started.elapsed(),
             initial_direct_address,
-            final_direct_address: endpoint
-                .direct_address(connection)
+            final_direct_address: DirectMigrationEndpoint::selected_direct_address(&connection)
                 .map_err(|_| BridgeError::ReconcileRequired)?,
             placement_committed: false,
         })

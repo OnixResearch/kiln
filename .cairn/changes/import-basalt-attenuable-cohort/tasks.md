@@ -12,3 +12,8 @@
 ## Phase 3: Verification
 
 - [x] [serial] Run fmt, clippy with and without all features, the wasm build and clippy, the `kiln-adapter-basalt` tests including `cohort`, the `kiln-implementer` authority tests, the Iroh adapter and `kiln-hosted` tests, `scripts/check-nickel-fixtures.sh`, `cairn validate` and the change gates, and record each exit code. r[kiln.iroh.workflow.profile] a[import-basalt-attenuable-cohort.v1-unchanged] a[import-basalt-attenuable-cohort.verification]
+
+## Phase 4: Review fixes
+
+- [x] [serial] P2: with `bind_addr` every 1.1.0 socket is required, so an IPv4 profile failed to start on a host without IPv6 loopback, unlike 0.95.1's per-family bind. The four endpoint builders keep the configured address required and bind the supplemental loopback with `BindOpts::is_required = false` and its own host prefix. a[import-basalt-attenuable-cohort.iroh] r[kiln.iroh.workflow.profile]
+- [x] [serial] P2: `bridge` could consume a reservation on a connection another endpoint owned, because the endpoint and the raw `Connection`/streams arrived separately; an all-IP path snapshot does not prove the relay-disabled builder produced it. `DirectMigrationEndpoint::connect`/`accept` now return a `MigrationChannel` with private fields, and `bridge` takes only that channel plus the plan, so local id, ALPN, authenticated peer and paths belong to one object. a[import-basalt-attenuable-cohort.iroh] r[kiln.iroh.workflow.profile]

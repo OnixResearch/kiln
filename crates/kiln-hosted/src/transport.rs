@@ -1,5 +1,5 @@
 use crate::{EXCHANGE_TIMEOUT_MS, MAX_CONNECTIONS, MAX_FRAME_BYTES, Request, Response};
-use iroh::endpoint::{QuicTransportConfig, VarInt, presets};
+use iroh::endpoint::{BindOpts, QuicTransportConfig, VarInt, presets};
 use iroh::{Endpoint, EndpointAddr, RelayMap, RelayMode, RelayUrl, SecretKey};
 use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
@@ -129,13 +129,24 @@ pub async fn bind(profile: &NetworkProfile) -> Result<Endpoint, String> {
         .transport_config(transport)
         .alpns(vec![ALPN.to_vec()])
         .clear_ip_transports();
+    // The configured address is required; the supplemental loopback of the
+    // other family is optional, so an IPv4-only host still binds.
+    let optional = |prefix: u8| {
+        BindOpts::default()
+            .set_is_required(false)
+            .set_is_default_route(false)
+            .set_prefix_len(prefix)
+    };
     let builder = match profile.bind_address {
-        SocketAddr::V4(v) => builder
-            .bind_addr(v)
-            .and_then(|b| b.bind_addr(SocketAddrV6::new(Ipv6Addr::LOCALHOST, 0, 0, 0))),
-        SocketAddr::V6(v) => builder
-            .bind_addr(v)
-            .and_then(|b| b.bind_addr(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0))),
+        SocketAddr::V4(v) => builder.bind_addr(v).and_then(|b| {
+            b.bind_addr_with_opts(
+                SocketAddrV6::new(Ipv6Addr::LOCALHOST, 0, 0, 0),
+                optional(128),
+            )
+        }),
+        SocketAddr::V6(v) => builder.bind_addr(v).and_then(|b| {
+            b.bind_addr_with_opts(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0), optional(32))
+        }),
     }
     .map_err(|_| "endpoint bind failed")?;
     tokio::time::timeout(Duration::from_millis(EXCHANGE_TIMEOUT_MS), builder.bind())

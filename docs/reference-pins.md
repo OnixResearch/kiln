@@ -224,8 +224,9 @@ Git source guide move together to `0.20.4`; native `libgit2-sys
 0.18.7+1.9.6` and separate COB `git2 0.21.0` do not change. The root and HTTP
 observation Rustls floors and celld's exact Rustls pin move to `0.23.46`.
 Both 0.26.11 roots compatibility wrappers retain their versions and now resolve
-to the patched 1.0.10 parents. Iroh remains exactly `0.95.1`, every prerelease
-lock entry (including the signing table above) is unchanged, and the Pijul and
+to the patched 1.0.10 parents. That dated maintenance left Iroh at `0.95.1` and
+its prerelease lock entries (including the signing table above) unchanged; the
+later cohort move supersedes both, as the note above records. The Pijul and
 Radicle cohorts are unchanged.
 
 The supplied baseline `cargo audit --json` reports **17 vulnerabilities

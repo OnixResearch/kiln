@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use iroh::endpoint::{QuicTransportConfig, VarInt, presets};
+use iroh::endpoint::{BindOpts, QuicTransportConfig, VarInt, presets};
 use iroh::{Endpoint, EndpointAddr, RelayMap, RelayMode, RelayUrl, SecretKey};
 use lattice_workflow_transport::{ExchangeRequest, ExchangeResponse};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
@@ -57,13 +57,25 @@ pub async fn bind_endpoint(profile: &Profile, secret_key: SecretKey) -> Result<E
         .alpns(vec![ALPN.to_vec()])
         .clear_ip_transports();
     // Do not leave the other address family listening on an ambient wildcard.
+    // The configured address is required; the supplemental loopback of the
+    // other family is optional, so an IPv4-only host still starts, as with
+    // Iroh 0.95.1's per-family bind.
+    let optional = |prefix: u8| {
+        BindOpts::default()
+            .set_is_required(false)
+            .set_is_default_route(false)
+            .set_prefix_len(prefix)
+    };
     let builder = match profile.bind_address {
-        SocketAddr::V4(address) => builder
-            .bind_addr(address)
-            .and_then(|builder| builder.bind_addr(SocketAddrV6::new(Ipv6Addr::LOCALHOST, 0, 0, 0))),
-        SocketAddr::V6(address) => builder
-            .bind_addr(address)
-            .and_then(|builder| builder.bind_addr(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0))),
+        SocketAddr::V4(address) => builder.bind_addr(address).and_then(|builder| {
+            builder.bind_addr_with_opts(
+                SocketAddrV6::new(Ipv6Addr::LOCALHOST, 0, 0, 0),
+                optional(128),
+            )
+        }),
+        SocketAddr::V6(address) => builder.bind_addr(address).and_then(|builder| {
+            builder.bind_addr_with_opts(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0), optional(32))
+        }),
     }
     .map_err(|_| Error::Transport)?;
     timeout(deadline(profile), builder.bind())

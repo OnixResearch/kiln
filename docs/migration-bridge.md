@@ -15,12 +15,15 @@ memfd modes, wrong peers and wrong protocol generations are refused.
 
 `kiln-adapter-iroh::migration` implements the VM-specific byte bridge, separately
 from the unchanged bounded workflow exchange. `DirectMigrationEndpoint` uses the
-existing Iroh **1.1.0** dependency, disables relays and address lookup, binds
-only the explicit address plus a loopback address for the other family, and
-admits one bidirectional stream with bounded flow-control windows, no
-unidirectional streams and no datagrams. It accepts a peer only while every
-open path of the connection is a direct IP path. It does not replace any runtime
-dependency pin.
+existing Iroh **1.1.0** dependency, disables relays and address lookup, requires
+the configured address, and binds a loopback address for the other family only
+when the host has it, as 0.95.1 did per family. The endpoint alone produces a
+`MigrationChannel` — a connection with one bidirectional stream whose fields are
+private — so a caller cannot pair a stream with a connection or endpoint that
+did not produce it. Admission checks the exact endpoint id, ALPN, authenticated
+peer, 0-RTT state and all-direct selected path before any protected resource or
+reservation is touched. One bidirectional stream has bounded flow-control
+windows, no unidirectional streams and no datagrams.
 
 `bridge` accepts only a fully established `Connection` and rejects 0-RTT stream
 data, wrong negotiated ALPN (`kiln/ch-migration/precopy/1`), wrong actual

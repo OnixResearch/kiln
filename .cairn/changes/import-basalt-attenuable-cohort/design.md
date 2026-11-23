@@ -103,6 +103,31 @@ neither, and the profile check still binds both. The negative cohort fixtures
 compiled constant, so profiles must name the version the binary links; a
 profile naming `0.95.1` is refused before any endpoint binds.
 
+### Decision: Keep the supplemental loopback bind optional
+
+**Choice:** All four builders bind the configured address as required and bind
+the loopback address of the other family through
+`bind_addr_with_opts` with `is_required = false`, `is_default_route = false` and
+the host prefix (`/128`, `/32`).
+
+**Rationale:** Iroh 1.1.0's `bind_addr` makes every declared socket required, so
+an IPv4 profile would refuse to start on a host without IPv6 loopback;
+0.95.1's per-family bind tolerated that. The configured address and the
+no-wildcard rule are unchanged, and a host with both families still binds both.
+
+### Decision: Seal a migration stream to its endpoint
+
+**Choice:** `DirectMigrationEndpoint::connect` and `accept` return a
+`MigrationChannel` whose connection, streams and local endpoint id are private.
+`bridge` takes the channel and the plan, never a separate connection.
+
+**Rationale:** A reservation could previously be consumed on a connection
+another endpoint owned, because the endpoint and the raw `Connection` and
+streams arrived independently and an all-IP path snapshot cannot prove which
+builder produced the connection. One constructor per side, with private fields,
+makes a mismatched pair unrepresentable; the local-id, ALPN, authenticated-peer,
+0-RTT and direct-path checks then all read one object.
+
 ## Specification classification
 
 `r[kiln.iroh.workflow.profile]` names Iroh 0.95.1, so the change carries one

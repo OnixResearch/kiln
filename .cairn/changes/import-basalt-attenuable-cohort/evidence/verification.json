@@ -1,0 +1,114 @@
+{
+  "kind": "local-cohort-verification",
+  "base": "83e06493424489483f07f428536ed0ac475d07e2",
+  "imported_cohort": "fb32858e5690ec6b297f7b3f8aa2d10ed660d73d",
+  "review_fixes": "the \"Keep the supplemental bind optional and seal migration channels\" commit on branch wave2-base (both P2 fixes plus the docs/reference-pins.md scoping)",
+  "lock_blake3": "e6bba81dda6fc23df24037ba113b5ad2447b8b5b2cc920e377631b0acf2c2f3b",
+  "imports": [
+    {
+      "name": "basalt",
+      "revision": "fac0d7f1fd7ac936ca4d3f251f3287666e93d4bb",
+      "importer_verification_exit": 0
+    },
+    {
+      "name": "ucan",
+      "revision": "fca62a6ed6895689ff18112b497bc7a986516c20",
+      "importer_verification_exit": 0
+    }
+  ],
+  "local_gates": [
+    {
+      "command": "cargo test -p kiln-adapter-iroh -p kiln-adapter-iroh-observe -p kiln-hosted --locked --all-targets",
+      "exit": 0,
+      "passed": 180,
+      "ignored": 1,
+      "log_blake3": "773b295fd076a2c7475ba03cc68a8f80fdc7c0e7a0f8d4ba5524677a174a910f",
+      "note": "after the two review fixes"
+    },
+    {
+      "command": "cargo clippy -p kiln-adapter-iroh -p kiln-adapter-iroh-observe -p kiln-hosted --locked --all-targets -- -D warnings",
+      "exit": 0,
+      "log_blake3": "6c0e5372f49ccf13835bc9ff03bc86eed6536e314653eb90110a227fb1518681",
+      "note": "after the two review fixes"
+    },
+    {
+      "command": "cargo fmt --all -- --check",
+      "exit": 0,
+      "log_blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262"
+    },
+    {
+      "command": "cargo clippy --locked --workspace --all-targets -- -D warnings",
+      "exit": 0,
+      "log_blake3": "3e92292d7ab2be9c8695fb940362333f76fd3c67d3b42f0556a8d4340dbd2355"
+    },
+    {
+      "command": "cargo clippy --locked --workspace --all-targets --all-features -- -D warnings",
+      "exit": 0,
+      "log_blake3": "ba36713dbedbfa65a087c554bdda1375049fcf5c8266ba45d69daca8bcbdd60d"
+    },
+    {
+      "command": "cargo build --locked -p onix-kiln-core -p kiln-observe-core -p kiln-radicle-source-contract --target wasm32-unknown-unknown",
+      "exit": 0,
+      "log_blake3": "02efbd480c80d65f8eedde9c75549f261d645edd0aa55a2ba7e4df53c480e848"
+    },
+    {
+      "command": "cargo clippy --locked -p onix-kiln-core -p kiln-observe-core -p kiln-radicle-source-contract --target wasm32-unknown-unknown -- -D warnings",
+      "exit": 0,
+      "log_blake3": "b7ca0310ade4854da08be3b21df6de225a3887853a4ddfd903d17ac2e2038e5c"
+    },
+    {
+      "command": "cargo test -p kiln-adapter-basalt --all-targets",
+      "exit": 0,
+      "passed": 12,
+      "log_blake3": "406d87745e847967a662398a180534554039e80f60637c3983cb4f653c212feb"
+    },
+    {
+      "command": "cargo test --locked -p kiln-implementer --test authority_verified --test authority_interleaving --test authority_coverage --test admission_host_owner",
+      "exit": 0,
+      "passed": 57,
+      "log_blake3": "4c78c707485adefce06c5ae63593dc61c288d39720dcdbd3a62c19ab8d5264d4"
+    },
+    {
+      "command": "scripts/check-nickel-fixtures.sh",
+      "exit": 0,
+      "positive": 107,
+      "negative": 666,
+      "log_blake3": "2d3b4d889cb92ea4148ffdd9b97e65d540bf92d12d56764554c281822632564c"
+    },
+    {
+      "command": "nix build git+file://$PWD?rev=fb32858e#checks.x86_64-linux.octet",
+      "exit": 0,
+      "note": "consumer check: 0 warnings, 0 errors"
+    }
+  ],
+  "cairn": {
+    "revision": "317d3ff648f01a5ea1572e6126f4dd71bc7afa99",
+    "validate_exit": 0,
+    "validate_issues": 0,
+    "proposal_gate": "PASS",
+    "design_gate": "PASS",
+    "tasks_gate": "PASS"
+  },
+  "review": {
+    "round": "ReviewKilnCohort on fb32858e",
+    "findings": 2,
+    "fixed": [
+      "optional supplemental loopback bind",
+      "MigrationChannel endpoint provenance"
+    ],
+    "re_review": "pending an independent reviewer that has not yet seen the fixes"
+  },
+  "artifact_hashes": {
+    "proposal": "0a67f3372b284c291d1f0cbeaa4f07e4100f290c2eedbf6d51bcb00deac8c53f",
+    "design": "05a29448a458a09496d75ffcd91a99c5b7ca9398ea8c163f7a92c4aba77aafe3",
+    "acceptance": "b471521c0a8e78b92ec0e1310f6b6dd32ed7540ca53a972e510da4e20ece0072",
+    "tasks": "474d3a78ce4aeab7eca1fae0f0f4a3386aa4f32556ce89777886f21c7cdcf8e1",
+    "spec_delta": "9cfcb95099441745dc9588e5f77928c1f39b22439c9b44f6423a207de3ea7fee"
+  },
+  "non_claims": [
+    "No interoperability promise with Iroh 0.95 peers.",
+    "No cross-host migration or live deployment qualification.",
+    "The optional supplemental bind and the sealed channel are exercised by compilation and the adapter suites, not by a host lacking IPv6 loopback or by a crossed-endpoint attempt.",
+    "These focused gates do not replace the Wave 2 integration gates."
+  ]
+}
