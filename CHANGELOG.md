@@ -43,6 +43,17 @@ entry describes the source tree prepared for the first tagged release.
   serialization until bound; an unwired issuance fold resumes an unissued
   intent under its original identity and propagates revocation. Verified
   cross-holder delegation waits for Basalt B1. (#70; pure-core fixtures)
+- Projected workspace source authority (`S7 authorize-projected-workspaces`):
+  `BasaltSourceAuthority`, `SourceSigner`, `SourceHolderKey`, and
+  `issue_delegated_source_grant` in `kiln-adapter-basalt` implement
+  `SourceAuthority` over `kiln://source/v1/` UCANs with pre-replay validation,
+  delegation-depth attenuation (`<= 8`), single-use replay, revocation/expiry
+  revalidation, and strict path-scope parsing (`e/` vs `s/` vs subtree).
+  `SourceAuthority`, `ViewCeiling`, `AudienceView`, and `RestrictedContext`
+  enforcement is wired across `kiln-web-service` restricted `/api/sources*` and
+  `/api/implementation/cairn*` (`#84`), `worker::materialize`, per-operation
+  `worker::writeback::{observe, seal, retrieve_result}`, `kiln-adapter-lattice`
+  projected route dispatch before credential read, and `projected-runtime`.
 - Pure `no_std + alloc` `kiln-core` implements both transitions:
   `state + command -> events + requested effects` and
   `state + event -> new state`, with no filesystem, process, network, clock or

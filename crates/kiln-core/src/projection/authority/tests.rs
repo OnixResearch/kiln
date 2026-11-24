@@ -840,7 +840,8 @@ fn capability_sets_confirm_but_never_extend_admitted_grants() {
         assert!(unconfirmed.grants().is_empty(), "{context:?}");
     }
 
-    // Individually admitted scopes join; a scope differing in any key does not.
+    // Individually admitted scopes join; same-PathScope grants merge into one
+    // grant slot, and a scope differing in any key does not join.
     let read = scope(
         vec![grant("crates/app", &[Op::ReadContent])],
         vec![grant("crates/app", &[Op::ReadContent])],
@@ -849,6 +850,37 @@ fn capability_sets_confirm_but_never_extend_admitted_grants() {
     assert!(joined.permits(Op::Discover, "crates/app/src/main.rs"));
     assert!(joined.permits(Op::ReadContent, "crates/app/src/main.rs"));
     assert!(!joined.permits(Op::Discover, "crates/secret/src/key.rs"));
+    assert_eq!(
+        joined.grants(),
+        &[grant("crates/app", &[Op::Discover, Op::ReadContent])]
+    );
+
+    // Joining MAX_SOURCE_GRANTS (4_096) Discover + 4_096 ReadContent scopes on
+    // identical exact paths merges cleanly into MAX_SOURCE_GRANTS slots, while
+    // adding a 4_097th distinct PathScope fails source_scope_bound.
+    let make_exact_scope = |i: usize, op: Op| {
+        let exact = SourceGrant {
+            path: PathScope::from_path(&format!("src/f{i:04}.rs"), false)
+                .unwrap_or_else(|| unreachable!("exact path")),
+            operations: ops(&[op]),
+        };
+        scope(vec![exact.clone()], vec![exact])
+    };
+    let mut to_join = Vec::with_capacity(MAX_SOURCE_GRANTS * 2);
+    for i in 0..MAX_SOURCE_GRANTS {
+        to_join.push(make_exact_scope(i, Op::Discover));
+        to_join.push(make_exact_scope(i, Op::ReadContent));
+    }
+    let merged_full = ok(EffectiveSourceScope::join(&to_join));
+    assert_eq!(merged_full.grants().len(), MAX_SOURCE_GRANTS);
+    assert!(merged_full.permits(Op::Discover, "src/f4095.rs"));
+    assert!(merged_full.permits(Op::ReadContent, "src/f4095.rs"));
+    to_join.push(make_exact_scope(MAX_SOURCE_GRANTS, Op::Discover));
+    let overflow = EffectiveSourceScope::join(&to_join);
+    assert_eq!(
+        overflow.err().map(|d| d.code),
+        Some("source_scope_bound".to_string())
+    );
     assert!(EffectiveSourceScope::join(&[]).is_err());
     type Change = fn(&mut EffectiveScopeFacts);
     let mismatches: [Change; 8] = [

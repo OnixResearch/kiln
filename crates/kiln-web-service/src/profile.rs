@@ -138,6 +138,11 @@ pub struct ServiceProfile {
     /// Optional repository feeds; absent keeps both publication and subscriptions disabled.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub feeds: Option<FeedsProfile>,
+    /// When true, `/api/sources` and `/api/implementation/cairn` enforce
+    /// restricted projection authority and fail closed without an active
+    /// `SourceAuthority` / `AudienceView` observer session.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub restricted_projection: bool,
 }
 
 pub(crate) fn absolute(path: &Path) -> bool {

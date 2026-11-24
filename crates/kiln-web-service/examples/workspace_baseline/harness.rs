@@ -17,6 +17,11 @@ use std::time::{Duration, Instant};
 
 use git2::build::TreeUpdateBuilder;
 use git2::{FileMode, Oid, Repository, Signature, Time};
+use kiln_core::implementation::authority::{AttemptCurrentness, AuthorityProfile};
+use kiln_core::projection::authority::{
+    LocalSourceAuthority, LocalSourceGrant, SnapshotObservation, SourceCurrentness,
+    SourceViewOperation,
+};
 use kiln_core::projection::materialization::{
     MATERIALIZER_PROFILE_SCHEMA, MaterializationPlan, MaterializerKind, MaterializerProfile,
     WorkspacePin, plan,
@@ -29,6 +34,7 @@ use kiln_core::projection::{
 };
 use kiln_core::types::{ContentId, Diagnostic, ExternalRef, ProviderProfileId};
 use kiln_web_service::worker::materialize::{prepare_input, prepare_overlay};
+use kiln_web_service::worker::source_auth::{RequestProfile, SourceAuthorization};
 use serde::{Deserialize, Serialize};
 
 pub type Result<T = ()> = std::result::Result<T, Box<dyn Error>>;
@@ -373,6 +379,34 @@ fn facts(
     })
 }
 
+fn baseline_auth(
+    plan: &MaterializationPlan,
+) -> Result<(LocalSourceAuthority, AuthorityProfile, SourceCurrentness)> {
+    let authority = LocalSourceAuthority::new(
+        "workspace-baseline-harness",
+        LocalSourceGrant {
+            repositories: BTreeSet::from([plan.repository().clone()]),
+            operations: BTreeSet::from([SourceViewOperation::PrepareWorkspace]),
+        },
+    )
+    .map_err(diagnostic)?;
+    let profile = AuthorityProfile::LocalOperator {
+        operator: "workspace-baseline-harness".into(),
+    };
+    let current = SourceCurrentness {
+        generation: 0,
+        revocation_generation: 0,
+        snapshot: SnapshotObservation {
+            revision: plan.source().clone(),
+            ref_name: None,
+            previous: None,
+            fast_forward: false,
+        },
+        attempt: AttemptCurrentness::Current,
+    };
+    Ok((authority, profile, current))
+}
+
 fn materialize(
     id: String,
     complete: CompleteProjection,
@@ -382,19 +416,26 @@ fn materialize(
     fresh_store: &Path,
     attempts: &[(String, ContentId)],
 ) -> Result<View> {
+    let (mut local_auth, profile, current) = baseline_auth(&planned)?;
+    let mut auth = SourceAuthorization {
+        authority: &mut local_auth,
+        profile: RequestProfile::Static(&profile),
+        current: &current,
+        now_unix_s: 1,
+    };
     let started = Instant::now();
-    let input = prepare_input(store, &planned, repository)?;
+    let input = prepare_input(store, &planned, repository, &mut auth)?;
     let input_cold = started.elapsed();
     let started = Instant::now();
-    let reused = prepare_input(store, &planned, repository)?;
+    let reused = prepare_input(store, &planned, repository, &mut auth)?;
     let input_reuse = started.elapsed();
-    let fresh = prepare_input(fresh_store, &planned, repository)?;
+    let fresh = prepare_input(fresh_store, &planned, repository, &mut auth)?;
     let mut overlays = Vec::with_capacity(attempts.len());
     let mut overlays_time = Duration::ZERO;
     for (label, attempt) in attempts {
         let pin = planned.pin(attempt, FENCE).map_err(diagnostic)?;
         let started = Instant::now();
-        let path = prepare_overlay(store, &planned, &pin)?;
+        let path = prepare_overlay(store, &planned, &pin, &mut auth)?;
         overlays_time += started.elapsed();
         overlays.push(Overlay {
             label: label.clone(),
@@ -652,9 +693,16 @@ fn check(
     fs::set_permissions(&path, fs::Permissions::from_mode(WRITABLE_FILE))?;
     fs::write(&path, b"damaged after publication\n")?;
     fs::set_permissions(&path, fs::Permissions::from_mode(sealed))?;
+    let (mut local_auth, profile, current) = baseline_auth(&first_view.plan)?;
+    let mut auth = SourceAuthorization {
+        authority: &mut local_auth,
+        profile: RequestProfile::Static(&profile),
+        current: &current,
+        now_unix_s: 1,
+    };
     records.push(record_check(
         "damaged_input_refused",
-        prepare_input(fresh_store, &first_view.plan, repository).is_err(),
+        prepare_input(fresh_store, &first_view.plan, repository, &mut auth).is_err(),
         "a published input whose file changed after publication was refused on reuse".into(),
     ));
 
@@ -666,12 +714,18 @@ fn check(
         &store_of(&first_view.input)?,
         &first_view.plan,
         &first_overlay.pin,
+        &mut auth,
     )?;
     let kept = fs::read(resumed.join("created-by-first-attempt")).is_ok();
     let mut forged = first_overlay.pin.clone();
     forged.manifest = digest(b"another manifest")?;
-    let refused =
-        prepare_overlay(&store_of(&first_view.input)?, &first_view.plan, &forged).is_err();
+    let refused = prepare_overlay(
+        &store_of(&first_view.input)?,
+        &first_view.plan,
+        &forged,
+        &mut auth,
+    )
+    .is_err();
     records.push(record_check(
         "exact_pin_reopen",
         resumed == first_overlay.path && kept && refused,

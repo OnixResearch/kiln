@@ -1,0 +1,86 @@
+{
+  "acceptance_ids": [],
+  "actions": [
+    {
+      "description": "merge delta spec into main specs: ./.cairn/changes/materialize-projected-workspaces/specs/source-projection/spec.md",
+      "kind": "sync_delta_spec",
+      "path": "./.cairn/changes/materialize-projected-workspaces/specs/source-projection/spec.md"
+    }
+  ],
+  "blocked": false,
+  "change": "materialize-projected-workspaces",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "8ecd569530fc8b43dac7419c2d151137bf0d5e7b375e7e30e8e9f2047bd671fe",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "62b75eb1580f61c61017761c3391b5afcab0ff7d88713ba05a9d4af51f522195",
+    "receipt_hash": "9af7cdcc3780f9fa889aa087c98ec2cd4fb9ffbe305b4960bc535e667b6bda53",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "delta_specs": [
+    "./.cairn/changes/materialize-projected-workspaces/specs/source-projection/spec.md"
+  ],
+  "dry_run": false,
+  "input_hash": "9738853a649297431ee0b9f8728e6e42e237a1e6dabc61e32bf4eed98cf92383",
+  "layout": "cairn",
+  "merge_preflight": {
+    "documents": [
+      {
+        "accepted_before_exists": true,
+        "accepted_before_hash": "80d4efdd5bb97797b6b52225457da108a53c1dd6812173c914e81d57047759d4",
+        "blocked": false,
+        "changed": false,
+        "delta_hash": "60316a4b349bd80285cbed8c13866fcba14d30d09e3f949536206b796b7a6d1d",
+        "destination": ".cairn/specs/source-projection/spec.md",
+        "diagnostics": [],
+        "expected_after_hash": "80d4efdd5bb97797b6b52225457da108a53c1dd6812173c914e81d57047759d4",
+        "operations": [
+          {
+            "block_hash": "e5ffa91034d81b16aa9c7a9ff1e7f7cd2b5af92dbe8c671ef24d81c83777c676",
+            "heading": "### Requirement: Materialized projection inputs and attempt overlays",
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.materialization"
+          }
+        ],
+        "outcomes": [
+          {
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.materialization",
+            "state": "already_applied"
+          }
+        ],
+        "source": ".cairn/changes/materialize-projected-workspaces/specs/source-projection/spec.md"
+      }
+    ]
+  },
+  "mutated": false,
+  "mutation_manifest": null,
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "plan_hash": "ad1e9c909b08f0879c23caab596c3cba101c9957259cda59e74c17cdaf4b4783",
+  "policy": "kiln-default",
+  "policy_hash": "62b75eb1580f61c61017761c3391b5afcab0ff7d88713ba05a9d4af51f522195",
+  "profile_identity_hash": "3d36327b8dc509fc2ff4a7e5bcb7ad39cbe4752eaaca7c4a25bf9b608da807b4",
+  "reasons": [],
+  "receipt_hash": "659b4c8b521a7e9c762088552308d4bb58f8a0fdecacc5321c1658bc5cab1eaa",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}

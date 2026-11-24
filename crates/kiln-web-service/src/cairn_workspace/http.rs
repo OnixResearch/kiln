@@ -10,7 +10,10 @@ use kiln_implementer::observation::ImplementationObservation;
 use kiln_provider_api::inventory::InventoryReadFailure;
 
 use super::agents::InventoryObservation;
-use super::{CairnKey, MALFORMED, detail, index};
+use super::{
+    CairnKey, MALFORMED, RestrictedCairnObserver, detail, index, restricted_detail,
+    restricted_index,
+};
 use crate::engine::{ApiResponse, Role};
 
 pub const INDEX_ROUTE: &str = "/api/implementation/cairn";
@@ -75,8 +78,70 @@ fn error(status: u16, code: &str) -> ApiResponse {
     }
 }
 
+fn unavailable() -> ApiResponse {
+    ApiResponse {
+        status: 404,
+        content_type: "application/json",
+        body: br#"{"error":"unavailable"}"#.to_vec(),
+        download_name: None,
+        headers: Vec::new(),
+    }
+}
+
 fn encode(value: &impl serde::Serialize) -> Result<Vec<u8>, &'static str> {
     serde_json::to_vec(value).map_err(|_| "cairn_workspace_encoding_invalid")
+}
+
+// r[impl kiln.source.projection.disclosure.cairn]
+// r[impl kiln.source.projection.disclosure.unavailable]
+/// Serves `/api/implementation/cairn*` for a capability-restricted observer
+/// (`#84`). Fails closed with `404 {"error":"unavailable"}` when no observer
+/// authority is present or when scope/ceiling admission refuses the request.
+pub fn restricted_response(
+    database: Option<&Path>,
+    method: &str,
+    target: &str,
+    role: Role,
+    inventory: &dyn Fn() -> InventoryObservation,
+    observer: Option<&mut RestrictedCairnObserver<'_>>,
+) -> ApiResponse {
+    let key = match admit(method, role, target) {
+        Ok(key) => key,
+        Err((status, code)) => return error(status, code),
+    };
+    let Some(observer) = observer else {
+        return unavailable();
+    };
+    let Some(database) = database else {
+        return error(503, "cairn_workspace_input_not_configured");
+    };
+    let snapshot = match ImplementationObservation::open(database)
+        .and_then(|observation| observation.snapshot())
+    {
+        Ok(snapshot) => snapshot,
+        Err(InventoryReadFailure::MalformedObservation) => return error(503, MALFORMED),
+        Err(_) => return error(503, "cairn_workspace_unavailable"),
+    };
+    let body = match key {
+        None => restricted_index(&snapshot, observer).and_then(|index| encode(&index)),
+        Some(key) => match restricted_detail(&snapshot, &key, &inventory(), observer) {
+            Ok(Some(detail)) => encode(&detail),
+            Ok(None) | Err("unavailable") => return unavailable(),
+            Err(code) => Err(code),
+        },
+    };
+    match body {
+        Ok(body) if body.len() <= MAX_RESPONSE_BYTES => ApiResponse {
+            status: 200,
+            content_type: "application/json",
+            body,
+            download_name: None,
+            headers: Vec::new(),
+        },
+        Ok(_) => error(503, "cairn_workspace_byte_bound"),
+        Err("unavailable") => unavailable(),
+        Err(code) => error(503, code),
+    }
 }
 
 // r[impl kiln.cairn.workspace]

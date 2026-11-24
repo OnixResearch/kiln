@@ -27,8 +27,13 @@ use bounded_exec::{
 use git2::build::TreeUpdateBuilder;
 use git2::{FileMode, Oid, Repository, Signature, Time};
 use kiln_build_graph::{ManifestTree, cargo_graph, cargo_layout, nix_graph, wanted_files};
+use kiln_core::implementation::authority::{AttemptCurrentness, AuthorityProfile};
 use kiln_core::monorepo::{
     AffectedSet, ChangedFiles, ProjectDecision, ProjectInput, ProjectScope, admit_scope, affected,
+};
+use kiln_core::projection::authority::{
+    LocalSourceAuthority, LocalSourceGrant, SnapshotObservation, SourceCurrentness,
+    SourceViewOperation,
 };
 use kiln_core::projection::build_inputs::{
     BuildInputPlan, BuildProfile, BuildRequest, ExternalPackages, InputRole, plan_cargo, plan_nix,
@@ -43,6 +48,7 @@ use kiln_core::projection::{
 };
 use kiln_core::types::{ContentId, Diagnostic, ExternalRef, ProviderProfileId};
 use kiln_web_service::worker::materialize::{prepare_input, prepare_overlay};
+use kiln_web_service::worker::source_auth::{RequestProfile, SourceAuthorization};
 use serde::{Deserialize, Serialize};
 
 pub type Result<T = ()> = std::result::Result<T, Box<dyn Error>>;
@@ -372,11 +378,39 @@ fn qualify(corpus: &Corpus, bytes: &[u8], scratch: &Path, cargo: Option<&Path>) 
         };
         let started = Instant::now();
         let materialized = plan(&complete, &profile).map_err(diagnostics)?;
-        let input = prepare_input(&store, &materialized, &repository)?;
+        let mut local_auth = LocalSourceAuthority::new(
+            "build-inputs-harness",
+            LocalSourceGrant {
+                repositories: BTreeSet::from([materialized.repository().clone()]),
+                operations: BTreeSet::from([SourceViewOperation::PrepareWorkspace]),
+            },
+        )
+        .map_err(diagnostic)?;
+        let local_profile = AuthorityProfile::LocalOperator {
+            operator: "build-inputs-harness".into(),
+        };
+        let current = SourceCurrentness {
+            generation: 0,
+            revocation_generation: 0,
+            snapshot: SnapshotObservation {
+                revision: materialized.source().clone(),
+                ref_name: None,
+                previous: None,
+                fast_forward: false,
+            },
+            attempt: AttemptCurrentness::Current,
+        };
+        let mut auth = SourceAuthorization {
+            authority: &mut local_auth,
+            profile: RequestProfile::Static(&local_profile),
+            current: &current,
+            now_unix_s: 1,
+        };
+        let input = prepare_input(&store, &materialized, &repository, &mut auth)?;
         let pin = materialized
             .pin(&digest(case.id.as_bytes())?, FENCE)
             .map_err(diagnostic)?;
-        let overlay = prepare_overlay(&store, &materialized, &pin)?;
+        let overlay = prepare_overlay(&store, &materialized, &pin, &mut auth)?;
         let materialize_us = micros(started.elapsed());
         let started = Instant::now();
         let execution = match &runner {

@@ -144,6 +144,18 @@ pub struct MaterializationPlan {
 }
 
 impl MaterializationPlan {
+    /// Admitted repository identity this plan materializes.
+    #[must_use]
+    pub fn repository(&self) -> &ContentId {
+        &self.repository
+    }
+
+    /// Exact source revision this plan materializes.
+    #[must_use]
+    pub fn source(&self) -> &ExternalRef {
+        &self.source
+    }
+
     /// Identity of the manifest this plan materializes.
     #[must_use]
     pub fn manifest(&self) -> &ContentId {

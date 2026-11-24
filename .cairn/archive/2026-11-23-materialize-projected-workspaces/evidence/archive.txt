@@ -1,0 +1,161 @@
+{
+  "acceptance_ids": [],
+  "actions": [
+    {
+      "description": "move active change to archive: materialize-projected-workspaces",
+      "kind": "archive_change",
+      "path": "./.cairn/archive/2026-11-23-materialize-projected-workspaces"
+    }
+  ],
+  "blocked": false,
+  "change": "materialize-projected-workspaces",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "8ecd569530fc8b43dac7419c2d151137bf0d5e7b375e7e30e8e9f2047bd671fe",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "62b75eb1580f61c61017761c3391b5afcab0ff7d88713ba05a9d4af51f522195",
+    "receipt_hash": "9af7cdcc3780f9fa889aa087c98ec2cd4fb9ffbe305b4960bc535e667b6bda53",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "dry_run": false,
+  "input_hash": "c3e5971f665073159b2f355034339bbb8c23712f615727518b6bea9c3b4c82f0",
+  "layout": "cairn",
+  "mutated": true,
+  "mutation_manifest": {
+    "after": {
+      "entries": [
+        {
+          "content_hash": "ab5a18e93d77cdf2044c14bf389c244629a2d03db9d90b118ba932b861651e8e",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-23-materialize-projected-workspaces/design.md"
+        },
+        {
+          "content_hash": "9f9c2baa8394609bc9368cf3c6631a94996cf5fe0c43007971e0e9d1ef27cad0",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-23-materialize-projected-workspaces/evidence/baseline-receipt.json"
+        },
+        {
+          "content_hash": "5bec22bfd0b0885c520f16afd2888d919873326867fb1c6c8eb898baab58f8eb",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-23-materialize-projected-workspaces/evidence/sync.txt"
+        },
+        {
+          "content_hash": "be03b699026a0f7d96fcffb1d5ea998c32d6d3f9c086ff4e7b4b244dcbae7e9f",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-23-materialize-projected-workspaces/evidence/verification.json"
+        },
+        {
+          "content_hash": "15e9bed3a7bc35fc40ba1b5f49bb67cdf57557d0021c0ff8b46dd7539257a00d",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-23-materialize-projected-workspaces/evidence/verification.txt"
+        },
+        {
+          "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-23-materialize-projected-workspaces/metadata.json"
+        },
+        {
+          "content_hash": "e16c411f2ba2f3b0bd25b4a74b192e374c7c44998ce78b77a90fe417541f0d8d",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-23-materialize-projected-workspaces/proposal.md"
+        },
+        {
+          "content_hash": "60316a4b349bd80285cbed8c13866fcba14d30d09e3f949536206b796b7a6d1d",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-23-materialize-projected-workspaces/specs/source-projection/spec.md"
+        },
+        {
+          "content_hash": "ecde62932bf929f191628c00aeb09d9d5fbb1dc0efdacff9aaafe9a673edf11c",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-23-materialize-projected-workspaces/tasks.md"
+        },
+        {
+          "content_hash": null,
+          "exists": false,
+          "path": "./.cairn/changes/materialize-projected-workspaces"
+        }
+      ],
+      "manifest_hash": "fa516671f66fdf24ab3a532a7eeb6b6947d14d4bbce46aa56737bfd960b03783"
+    },
+    "before": {
+      "entries": [
+        {
+          "content_hash": "ab5a18e93d77cdf2044c14bf389c244629a2d03db9d90b118ba932b861651e8e",
+          "exists": true,
+          "path": "./.cairn/changes/materialize-projected-workspaces/design.md"
+        },
+        {
+          "content_hash": "9f9c2baa8394609bc9368cf3c6631a94996cf5fe0c43007971e0e9d1ef27cad0",
+          "exists": true,
+          "path": "./.cairn/changes/materialize-projected-workspaces/evidence/baseline-receipt.json"
+        },
+        {
+          "content_hash": "5bec22bfd0b0885c520f16afd2888d919873326867fb1c6c8eb898baab58f8eb",
+          "exists": true,
+          "path": "./.cairn/changes/materialize-projected-workspaces/evidence/sync.txt"
+        },
+        {
+          "content_hash": "be03b699026a0f7d96fcffb1d5ea998c32d6d3f9c086ff4e7b4b244dcbae7e9f",
+          "exists": true,
+          "path": "./.cairn/changes/materialize-projected-workspaces/evidence/verification.json"
+        },
+        {
+          "content_hash": "15e9bed3a7bc35fc40ba1b5f49bb67cdf57557d0021c0ff8b46dd7539257a00d",
+          "exists": true,
+          "path": "./.cairn/changes/materialize-projected-workspaces/evidence/verification.txt"
+        },
+        {
+          "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+          "exists": true,
+          "path": "./.cairn/changes/materialize-projected-workspaces/metadata.json"
+        },
+        {
+          "content_hash": "e16c411f2ba2f3b0bd25b4a74b192e374c7c44998ce78b77a90fe417541f0d8d",
+          "exists": true,
+          "path": "./.cairn/changes/materialize-projected-workspaces/proposal.md"
+        },
+        {
+          "content_hash": "60316a4b349bd80285cbed8c13866fcba14d30d09e3f949536206b796b7a6d1d",
+          "exists": true,
+          "path": "./.cairn/changes/materialize-projected-workspaces/specs/source-projection/spec.md"
+        },
+        {
+          "content_hash": "ecde62932bf929f191628c00aeb09d9d5fbb1dc0efdacff9aaafe9a673edf11c",
+          "exists": true,
+          "path": "./.cairn/changes/materialize-projected-workspaces/tasks.md"
+        }
+      ],
+      "manifest_hash": "b207ae661aa7500a6434d2aac4dc3a04b244308ce2f2362156b16d627f2f05f4"
+    },
+    "kind": "archive",
+    "manifest_hash": "f3ab75848aac316c72255663dcb43fd9398fa3091a231cac05c65581a11e9cc8"
+  },
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "plan_hash": "0de21f6fc48f7b0f3190683a486ffd3d643bd81fce87c8a33936af6bd6344a60",
+  "policy": "kiln-default",
+  "policy_hash": "62b75eb1580f61c61017761c3391b5afcab0ff7d88713ba05a9d4af51f522195",
+  "profile_identity_hash": "3d36327b8dc509fc2ff4a7e5bcb7ad39cbe4752eaaca7c4a25bf9b608da807b4",
+  "reasons": [],
+  "receipt_hash": "eb9b9e834a0b78927f3064a7fa09d54432bc21d4b180c64e981435e2c19f42e9",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}

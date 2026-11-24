@@ -206,13 +206,16 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
             .map(crate::cobs::Profile::load)
             .transpose()?,
     )?;
-    let sources = crate::sources::Browser::new(
-        options
-            .sources
-            .as_deref()
-            .map(crate::sources::Profile::load)
-            .transpose()?,
-    )?;
+    let sources_profile = options
+        .sources
+        .as_deref()
+        .map(crate::sources::Profile::load)
+        .transpose()?;
+    let sources = if profile.restricted_projection {
+        crate::sources::Browser::restricted(sources_profile)?
+    } else {
+        crate::sources::Browser::new(sources_profile)?
+    };
     let reviews = crate::reviews::Browser::new(
         options
             .reviews
@@ -855,6 +858,16 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
             return fleet_response(&request, context, &principal);
         }
         if crate::cairn_workspace::http::ROUTES.contains(&path) {
+            if context.profile.restricted_projection {
+                return crate::cairn_workspace::http::restricted_response(
+                    context.implementation_work,
+                    &request.method,
+                    &request.target,
+                    principal.role,
+                    &|| inventory_api::cairn_observation(context, &principal),
+                    None,
+                );
+            }
             return crate::cairn_workspace::http::response(
                 context.implementation_work,
                 &request.method,

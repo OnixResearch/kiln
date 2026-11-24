@@ -19,6 +19,15 @@ use kiln_core::implementation::{
     ImplementationAttempt, ImplementationWork, PublicationPhase, SourceRef, TerminalPolicy,
     WorkLedger, WorkSourceKind,
 };
+use kiln_core::projection::authority::{
+    EffectiveSourceScope, MAX_SOURCE_GRANTS, OriginScope, PathScope, SnapshotRule, SourceAuthority,
+    SourceAuthorityRequest, SourceCurrentness, SourceViewOperation, check_request,
+};
+use kiln_core::projection::disclosure::{
+    CairnItem, CairnItemKind, CairnObservation, CairnStatus, HandleKey, RestrictedContext,
+    ScopedEnumeration, ScopedSelection, ViewCeiling, restrict, restrict_context,
+};
+use kiln_core::projection::{AdmittedDefinition, AdmittedRepository, ProjectionFacts, resolve};
 use kiln_core::types::{ContentId, ExternalRef};
 use kiln_implementer::campaign::AdmissionState;
 use kiln_implementer::native_publication::NativeCairnLifecycleReceipt;
@@ -27,6 +36,7 @@ use kiln_implementer::publication_effects::CairnLifecycleAction;
 use serde::Serialize;
 
 use crate::inventory::campaign_projection::repository_identity;
+use crate::worker::source_auth::RequestProfile;
 
 pub const INDEX_SCHEMA: &str = "kiln.cairn-workspace-index.v2";
 pub const DETAIL_SCHEMA: &str = "kiln.cairn-workspace-detail.v4";
@@ -39,7 +49,7 @@ const NATIVE_SOURCE_OWNER: &str = "native-source-owner";
 const NON_CLAIMS: [&str; 4] = [
     "display is not campaign, work, verification or lifecycle authority",
     "no claim, dispatch, reservation, publication or lifecycle mutation follows from this view",
-    "every authenticated viewer and operator sees the same projection; capability-restricted observers are not implemented",
+    "unrestricted local mode shows the full projection; restricted observers filter changes, text and prerequisites through SourceAuthority and RestrictedContext",
     "requirement text is limited to canonical acceptance obligations; native Cairn requirement references are not read",
 ];
 /// Board lanes in display order. A lane is a position derived from a unit's
@@ -1250,10 +1260,20 @@ pub fn index(snapshot: &CanonicalSnapshot) -> Result<Index, &'static str> {
 }
 
 fn index_bounded(snapshot: &CanonicalSnapshot, max_changes: usize) -> Result<Index, &'static str> {
+    index_filtered(snapshot, max_changes, |_| true)
+}
+
+fn index_filtered(
+    snapshot: &CanonicalSnapshot,
+    max_changes: usize,
+    mut include: impl FnMut(&CairnKey) -> bool,
+) -> Result<Index, &'static str> {
     let catalog = catalog(snapshot);
     let context = Context::new(snapshot)?;
-    let mut changes = Vec::with_capacity(catalog.len().min(max_changes));
-    for (key, facts) in catalog.iter().take(max_changes) {
+    let matching: Vec<_> = catalog.iter().filter(|(key, _)| include(key)).collect();
+    let total = matching.len();
+    let mut changes = Vec::with_capacity(total.min(max_changes));
+    for (key, facts) in matching.into_iter().take(max_changes) {
         // The index carries no agents section.
         let detail = project(
             key,
@@ -1288,10 +1308,742 @@ fn index_bounded(snapshot: &CanonicalSnapshot, max_changes: usize) -> Result<Ind
     Ok(Index {
         schema: INDEX_SCHEMA,
         changes,
-        truncated: catalog.len() > max_changes,
+        truncated: total > max_changes,
         snapshot: snapshot_facts(snapshot),
         non_claims: NON_CLAIMS,
     })
+}
+
+pub const RESTRICTED_INDEX_SCHEMA: &str = "kiln.cairn-workspace-restricted-index.v1";
+pub const RESTRICTED_DETAIL_SCHEMA: &str = "kiln.cairn-workspace-restricted-detail.v1";
+
+/// Source-authority observer context for restricted Cairn workspace views (#84).
+pub struct RestrictedCairnObserver<'a> {
+    pub authority: &'a mut dyn SourceAuthority,
+    pub profile: RequestProfile<'a>,
+    pub current: &'a SourceCurrentness,
+    pub repository_id: &'a ContentId,
+    pub definition: &'a AdmittedDefinition,
+    pub admitted_repository: &'a AdmittedRepository,
+    pub facts: &'a ProjectionFacts,
+    pub handle_key: &'a HandleKey,
+    pub now_unix_s: u64,
+}
+
+impl std::fmt::Debug for RestrictedCairnObserver<'_> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("RestrictedCairnObserver")
+            .field("repository_id", &self.repository_id)
+            .field("now_unix_s", &self.now_unix_s)
+            .finish_non_exhaustive()
+    }
+}
+
+/// Restricted Cairn workspace index filtered by `SourceAuthority` and
+/// `RestrictedContext`.
+#[derive(Clone, Debug, Serialize)]
+pub struct RestrictedIndex {
+    pub schema: &'static str,
+    pub index: Index,
+    pub restricted_context: serde_json::Value,
+}
+
+/// Restricted Cairn workspace detail filtered by `SourceAuthority` and
+/// `RestrictedContext`. Unauthorized prerequisite IDs/paths and unauthorized
+/// text are redacted.
+#[derive(Clone, Debug, Serialize)]
+pub struct RestrictedDetail {
+    pub schema: &'static str,
+    pub detail: Detail,
+    pub restricted_context: serde_json::Value,
+}
+
+struct AdmittedCairnContext {
+    scope: EffectiveSourceScope,
+    context: RestrictedContext,
+    work_to_change: BTreeMap<String, String>,
+    change_to_native: BTreeMap<String, String>,
+    visible_work_ids: BTreeSet<String>,
+    text_allowed_changes: BTreeSet<String>,
+}
+
+fn admit_change_op(
+    observer: &mut RestrictedCairnObserver<'_>,
+    op: SourceViewOperation,
+    path: PathScope,
+    payload: &[u8],
+) -> Option<EffectiveSourceScope> {
+    let request = SourceAuthorityRequest {
+        operation: op,
+        repository: observer.repository_id.clone(),
+        snapshot: SnapshotRule::Exact {
+            revision: observer.facts.exact_revision.clone(),
+        },
+        view_binding: observer.definition.identity().clone(),
+        scope: OriginScope::Components { path },
+        request_digest: *blake3::hash(payload).as_bytes(),
+        attempt: None,
+    };
+    let owned_profile;
+    let profile = match &observer.profile {
+        RequestProfile::Static(p) => *p,
+        RequestProfile::Signer(sign) => {
+            owned_profile = sign(&request).ok()?;
+            &owned_profile
+        }
+    };
+    let decision = observer
+        .authority
+        .admit(&request, profile, observer.current, observer.now_unix_s)
+        .ok()?;
+    let session = decision.session?;
+    let revalid = observer
+        .authority
+        .revalidate(session, &request, observer.current, observer.now_unix_s)
+        .is_ok();
+    let scope = observer.authority.effective_scope(session).cloned();
+    observer.authority.close(session);
+    if !revalid {
+        return None;
+    }
+    let scope = scope?;
+    check_request(&scope, &request, observer.current, observer.now_unix_s).ok()?;
+    Some(scope)
+}
+
+struct BuiltCairnObservation {
+    observation: CairnObservation,
+    work_to_change: BTreeMap<String, String>,
+    change_to_native: BTreeMap<String, String>,
+}
+
+fn build_cairn_observation(
+    snapshot: &CanonicalSnapshot,
+    observer_repo_hex: &str,
+    repository_id: &ContentId,
+    revision: &ExternalRef,
+) -> Result<BuiltCairnObservation, &'static str> {
+    let catalog = catalog(snapshot);
+    let mut work_to_change: BTreeMap<String, String> = BTreeMap::new();
+    let mut change_to_native: BTreeMap<String, String> = BTreeMap::new();
+    for (key, facts) in catalog
+        .iter()
+        .filter(|(key, _)| key.repository_identity == observer_repo_hex)
+    {
+        let native_id = format!("change-{}", key.change);
+        change_to_native.insert(key.change.clone(), native_id.clone());
+        for (work, is_current) in &facts.work {
+            if *is_current && let Ok(id) = work.identity() {
+                work_to_change.insert(id.as_str().to_owned(), key.change.clone());
+            }
+        }
+    }
+    let mut items = Vec::new();
+    let mut seen_native = BTreeSet::new();
+    for (key, facts) in catalog
+        .iter()
+        .filter(|(key, _)| key.repository_identity == observer_repo_hex)
+    {
+        let Some(native_id) = change_to_native.get(&key.change).cloned() else {
+            continue;
+        };
+        if !seen_native.insert(native_id.clone()) {
+            continue;
+        }
+        let mut prereqs = BTreeSet::new();
+        let mut text_parts = Vec::new();
+        for (work, is_current) in &facts.work {
+            if !*is_current {
+                continue;
+            }
+            text_parts.push(work.title.clone());
+            for dep in &work.dependencies {
+                if let Some(dep_change) = work_to_change.get(dep.as_str())
+                    && dep_change != &key.change
+                    && let Some(dep_native) = change_to_native.get(dep_change)
+                {
+                    prereqs.insert(dep_native.clone());
+                }
+            }
+        }
+        items.push(CairnItem {
+            change: key.change.clone(),
+            kind: CairnItemKind::Change,
+            native_id,
+            path: format!(".cairn/changes/{}/tasks.md", key.change),
+            text: text_parts.join("; "),
+            status: CairnStatus::Open,
+            prerequisites: prereqs.into_iter().collect(),
+        });
+    }
+    let observation = CairnObservation::new(repository_id.clone(), revision.clone(), items)
+        .map_err(|_| "cairn_observation_invalid")?;
+    Ok(BuiltCairnObservation {
+        observation,
+        work_to_change,
+        change_to_native,
+    })
+}
+
+fn can_add_grant_path(grant_paths: &BTreeSet<PathScope>, path: &PathScope) -> bool {
+    grant_paths.contains(path) || grant_paths.len() < MAX_SOURCE_GRANTS
+}
+
+fn push_cairn_scope(
+    scopes: &mut Vec<EffectiveSourceScope>,
+    grant_paths: &mut BTreeSet<PathScope>,
+    scope: EffectiveSourceScope,
+) -> bool {
+    if scope.grants().is_empty() {
+        return false;
+    }
+    let new_count = scope
+        .grants()
+        .iter()
+        .filter(|grant| !grant_paths.contains(&grant.path))
+        .count();
+    if grant_paths.len().saturating_add(new_count) > MAX_SOURCE_GRANTS {
+        return false;
+    }
+    for grant in scope.grants() {
+        grant_paths.insert(grant.path.clone());
+    }
+    scopes.push(scope);
+    true
+}
+
+fn collect_cairn_discover_scopes(
+    observer: &mut RestrictedCairnObserver<'_>,
+    ceiling: &ViewCeiling,
+    ceiling_changes: &[(String, PathScope)],
+    scopes: &mut Vec<EffectiveSourceScope>,
+    grant_paths: &mut BTreeSet<PathScope>,
+) {
+    if !ceiling
+        .operations()
+        .contains(&SourceViewOperation::Discover)
+    {
+        return;
+    }
+    let is_covered = |scopes: &[EffectiveSourceScope], scope: &PathScope| {
+        scopes
+            .iter()
+            .any(|s| s.permits_scope(SourceViewOperation::Discover, scope))
+    };
+    if ceiling_changes.len() > 1 {
+        for cpath in ceiling.paths() {
+            if !can_add_grant_path(grant_paths, cpath) {
+                continue;
+            }
+            if !ceiling_changes
+                .iter()
+                .any(|(_, cs)| cpath.contains(cs) && !is_covered(scopes, cs))
+            {
+                continue;
+            }
+            if let Some(scope) = admit_change_op(
+                observer,
+                SourceViewOperation::Discover,
+                cpath.clone(),
+                b"cairn:discover-ceiling",
+            ) {
+                let _ = push_cairn_scope(scopes, grant_paths, scope);
+            }
+        }
+        for prefix in [".cairn", ".cairn/changes"] {
+            let Some(dir_scope) = PathScope::from_path(prefix, true) else {
+                continue;
+            };
+            if !can_add_grant_path(grant_paths, &dir_scope)
+                || !ceiling.contains(&dir_scope)
+                || ceiling.paths().contains(&dir_scope)
+            {
+                continue;
+            }
+            let uncovered = ceiling_changes
+                .iter()
+                .filter(|(_, cs)| dir_scope.contains(cs) && !is_covered(scopes, cs))
+                .count();
+            if uncovered < 2 {
+                continue;
+            }
+            if let Some(scope) = admit_change_op(
+                observer,
+                SourceViewOperation::Discover,
+                dir_scope,
+                prefix.as_bytes(),
+            ) {
+                let _ = push_cairn_scope(scopes, grant_paths, scope);
+            }
+        }
+    }
+    for (change, change_scope) in ceiling_changes {
+        if is_covered(scopes, change_scope) || !can_add_grant_path(grant_paths, change_scope) {
+            continue;
+        }
+        if let Some(scope) = admit_change_op(
+            observer,
+            SourceViewOperation::Discover,
+            change_scope.clone(),
+            change.as_bytes(),
+        ) {
+            let _ = push_cairn_scope(scopes, grant_paths, scope);
+        }
+    }
+}
+
+fn collect_cairn_read_scopes(
+    observer: &mut RestrictedCairnObserver<'_>,
+    ceiling: &ViewCeiling,
+    discovered_changes: &[String],
+    prioritized_change: Option<&str>,
+    scopes: &mut Vec<EffectiveSourceScope>,
+    grant_paths: &mut BTreeSet<PathScope>,
+) {
+    if !ceiling
+        .operations()
+        .contains(&SourceViewOperation::ReadContent)
+    {
+        return;
+    }
+    let is_read_covered = |scopes: &[EffectiveSourceScope], path: &str| {
+        scopes
+            .iter()
+            .any(|s| s.permits(SourceViewOperation::ReadContent, path))
+    };
+    if discovered_changes.len() > 1 {
+        for cpath in ceiling.paths() {
+            if !can_add_grant_path(grant_paths, cpath) {
+                continue;
+            }
+            let uncovered = discovered_changes
+                .iter()
+                .filter(|change| {
+                    let tasks_path = format!(".cairn/changes/{change}/tasks.md");
+                    ceiling.allows(SourceViewOperation::ReadContent, &tasks_path)
+                        && cpath.covers_path(&tasks_path)
+                        && !is_read_covered(scopes, &tasks_path)
+                })
+                .count();
+            if uncovered < 2 {
+                continue;
+            }
+            if let Some(scope) = admit_change_op(
+                observer,
+                SourceViewOperation::ReadContent,
+                cpath.clone(),
+                b"cairn:read-ceiling",
+            ) {
+                let _ = push_cairn_scope(scopes, grant_paths, scope);
+            }
+        }
+        for prefix in [".cairn", ".cairn/changes"] {
+            let Some(dir_scope) = PathScope::from_path(prefix, true) else {
+                continue;
+            };
+            if !can_add_grant_path(grant_paths, &dir_scope)
+                || !ceiling.contains(&dir_scope)
+                || ceiling.paths().contains(&dir_scope)
+            {
+                continue;
+            }
+            let uncovered = discovered_changes
+                .iter()
+                .filter(|change| {
+                    let tasks_path = format!(".cairn/changes/{change}/tasks.md");
+                    ceiling.allows(SourceViewOperation::ReadContent, &tasks_path)
+                        && dir_scope.covers_path(&tasks_path)
+                        && !is_read_covered(scopes, &tasks_path)
+                })
+                .count();
+            if uncovered < 2 {
+                continue;
+            }
+            if let Some(scope) = admit_change_op(
+                observer,
+                SourceViewOperation::ReadContent,
+                dir_scope,
+                prefix.as_bytes(),
+            ) {
+                let _ = push_cairn_scope(scopes, grant_paths, scope);
+            }
+        }
+    }
+    let ordered = prioritized_change
+        .into_iter()
+        .filter(|target| discovered_changes.iter().any(|c| c == target))
+        .chain(
+            discovered_changes
+                .iter()
+                .map(String::as_str)
+                .filter(|change| Some(*change) != prioritized_change),
+        );
+    for change in ordered {
+        let tasks_path = format!(".cairn/changes/{change}/tasks.md");
+        if !ceiling.allows(SourceViewOperation::ReadContent, &tasks_path)
+            || is_read_covered(scopes, &tasks_path)
+        {
+            continue;
+        }
+        if let Some(tasks_scope) = PathScope::from_path(&tasks_path, false)
+            && can_add_grant_path(grant_paths, &tasks_scope)
+            && let Some(scope) = admit_change_op(
+                observer,
+                SourceViewOperation::ReadContent,
+                tasks_scope,
+                change.as_bytes(),
+            )
+        {
+            let _ = push_cairn_scope(scopes, grant_paths, scope);
+        }
+    }
+}
+
+fn visible_campaigns_read(
+    snapshot: &CanonicalSnapshot,
+    repo_hex: &str,
+    visible_changes: &BTreeSet<&str>,
+) -> usize {
+    snapshot
+        .campaigns
+        .iter()
+        .filter(|(state, _)| {
+            repository_identity(&state.contract.repository) == repo_hex
+                && state.contract.members.iter().any(|binding| {
+                    let (MemberSelector::WholeChange { change }
+                    | MemberSelector::Tasks { change, .. }) = &binding.selector;
+                    visible_changes.contains(change.as_str())
+                })
+        })
+        .count()
+}
+
+fn admit_cairn_context(
+    snapshot: &CanonicalSnapshot,
+    observer: &mut RestrictedCairnObserver<'_>,
+    prioritized_change: Option<&str>,
+) -> Result<AdmittedCairnContext, ()> {
+    let repo_hex = repository_identity(observer.admitted_repository.repository_id());
+    let ceiling = ViewCeiling::from_definition(observer.definition);
+    let catalog = catalog(snapshot);
+    let distinct_changes: BTreeSet<String> = catalog
+        .keys()
+        .filter(|k| k.repository_identity == repo_hex)
+        .map(|k| k.change.clone())
+        .collect();
+    let ceiling_changes: Vec<(String, PathScope)> = distinct_changes
+        .iter()
+        .filter_map(|change| {
+            let scope = PathScope::cairn_change(change)?;
+            ceiling.contains(&scope).then(|| (change.clone(), scope))
+        })
+        .collect();
+    if ceiling_changes.is_empty() {
+        return Err(());
+    }
+    let mut scopes = Vec::new();
+    let mut grant_paths = BTreeSet::new();
+    collect_cairn_discover_scopes(
+        observer,
+        &ceiling,
+        &ceiling_changes,
+        &mut scopes,
+        &mut grant_paths,
+    );
+    let discovered_changes: Vec<String> = ceiling_changes
+        .iter()
+        .filter(|(_, change_scope)| {
+            scopes
+                .iter()
+                .any(|s| s.permits_scope(SourceViewOperation::Discover, change_scope))
+        })
+        .map(|(change, _)| change.clone())
+        .collect();
+    if discovered_changes.is_empty() || scopes.is_empty() {
+        return Err(());
+    }
+    collect_cairn_read_scopes(
+        observer,
+        &ceiling,
+        &discovered_changes,
+        prioritized_change,
+        &mut scopes,
+        &mut grant_paths,
+    );
+    let joined = EffectiveSourceScope::join(&scopes).map_err(|_| ())?;
+    let selection = ScopedSelection::for_holder(&joined, &ceiling);
+    let filtered = selection.filter_facts(observer.facts).map_err(|_| ())?;
+    let partial =
+        resolve(observer.definition, observer.admitted_repository, &filtered).map_err(|_| ())?;
+    let enumeration = ScopedEnumeration::new(&selection, partial).map_err(|_| ())?;
+    let view = restrict(
+        &enumeration,
+        &joined,
+        &ceiling,
+        observer.handle_key,
+        observer.now_unix_s,
+    )
+    .map_err(|_| ())?;
+    let built = build_cairn_observation(
+        snapshot,
+        &repo_hex,
+        observer.repository_id,
+        &observer.facts.exact_revision,
+    )
+    .map_err(|_| ())?;
+    let context = restrict_context(
+        &view,
+        &built.observation,
+        &joined,
+        observer.handle_key,
+        observer.now_unix_s,
+    )
+    .map_err(|_| ())?;
+    let visible_changes: BTreeSet<&str> = context
+        .items()
+        .iter()
+        .map(|item| item.change.as_str())
+        .collect();
+    let text_allowed_changes: BTreeSet<String> = context
+        .items()
+        .iter()
+        .filter(|item| item.text.is_some())
+        .map(|item| item.change.clone())
+        .collect();
+    let mut visible_work_ids = BTreeSet::new();
+    for (_, facts) in catalog.iter().filter(|(k, _)| {
+        k.repository_identity == repo_hex && visible_changes.contains(k.change.as_str())
+    }) {
+        for (work, _) in &facts.work {
+            if let Ok(id) = work.identity() {
+                visible_work_ids.insert(id.as_str().to_owned());
+            }
+        }
+    }
+    Ok(AdmittedCairnContext {
+        scope: joined,
+        context,
+        work_to_change: built.work_to_change,
+        change_to_native: built.change_to_native,
+        visible_work_ids,
+        text_allowed_changes,
+    })
+}
+
+fn redacted_work_id() -> Result<ContentId, &'static str> {
+    ContentId::from_blake3_hex("0".repeat(64)).map_err(|_| "cairn_workspace_encoding_invalid")
+}
+
+fn redact_blocker(blocker: &mut Blocker, visible_work_ids: &BTreeSet<String>, text_allowed: bool) {
+    if blocker.condition == "missing_dependency" {
+        let visible = blocker
+            .detail
+            .strip_prefix("dependency work ")
+            .and_then(|rest| rest.strip_suffix(" is not current"))
+            .is_some_and(|id| visible_work_ids.contains(id));
+        if !visible {
+            blocker.detail = "prerequisite unavailable".into();
+        }
+    }
+    if !text_allowed && blocker.condition == "campaign_hold" {
+        blocker.detail = "[unavailable]".into();
+    }
+}
+
+// r[impl kiln.source.projection.disclosure.cairn]
+/// Filter the Cairn workspace index for a capability-restricted observer (#84).
+/// Fails closed if authority is missing, denied, expired, revoked, or stale.
+pub fn restricted_index(
+    snapshot: &CanonicalSnapshot,
+    observer: &mut RestrictedCairnObserver<'_>,
+) -> Result<RestrictedIndex, &'static str> {
+    restricted_index_bounded(snapshot, observer, MAX_INDEX_CHANGES)
+}
+
+fn restricted_index_bounded(
+    snapshot: &CanonicalSnapshot,
+    observer: &mut RestrictedCairnObserver<'_>,
+    max_changes: usize,
+) -> Result<RestrictedIndex, &'static str> {
+    let repo_hex = repository_identity(observer.admitted_repository.repository_id());
+    let admitted = admit_cairn_context(snapshot, observer, None).map_err(|()| "unavailable")?;
+    let visible_changes: BTreeSet<&str> = admitted
+        .context
+        .items()
+        .iter()
+        .map(|item| item.change.as_str())
+        .collect();
+    let mut idx = index_filtered(snapshot, max_changes, |key| {
+        key.repository_identity == repo_hex && visible_changes.contains(key.change.as_str())
+    })?;
+    idx.snapshot.campaigns_read = visible_campaigns_read(snapshot, &repo_hex, &visible_changes);
+    for entry in &mut idx.changes {
+        let text_allowed = admitted.text_allowed_changes.contains(&entry.change);
+        if let Some(blocker) = &mut entry.first_blocker {
+            redact_blocker(blocker, &admitted.visible_work_ids, text_allowed);
+        }
+    }
+    let presentation = serde_json::to_value(admitted.context.presentation())
+        .map_err(|_| "cairn_workspace_encoding_invalid")?;
+    Ok(RestrictedIndex {
+        schema: RESTRICTED_INDEX_SCHEMA,
+        index: idx,
+        restricted_context: presentation,
+    })
+}
+
+// r[impl kiln.source.projection.disclosure.cairn]
+/// Filter one Cairn change detail for a capability-restricted observer (#84).
+/// Returns `Ok(None)` when the change does not exist or is outside the
+/// observer's authorized scope, preventing 403/404 discovery oracles, and
+/// redacts unauthorized prerequisite IDs/paths and unauthorized text.
+pub fn restricted_detail(
+    snapshot: &CanonicalSnapshot,
+    key: &CairnKey,
+    inventory: &agents::InventoryObservation,
+    observer: &mut RestrictedCairnObserver<'_>,
+) -> Result<Option<RestrictedDetail>, &'static str> {
+    let repo_hex = repository_identity(observer.admitted_repository.repository_id());
+    let admitted = admit_cairn_context(snapshot, observer, Some(key.change.as_str()))
+        .map_err(|()| "unavailable")?;
+    if key.repository_identity != repo_hex {
+        return Ok(None);
+    }
+    let Some(visible_item) = admitted
+        .context
+        .items()
+        .iter()
+        .find(|item| item.change == key.change)
+    else {
+        return Ok(None);
+    };
+    let Some(mut det) = detail(snapshot, key, inventory)? else {
+        return Ok(None);
+    };
+    let text_allowed = visible_item.text.is_some();
+    let visible_changes: BTreeSet<&str> = admitted
+        .context
+        .items()
+        .iter()
+        .map(|item| item.change.as_str())
+        .collect();
+    let ceiling = ViewCeiling::from_definition(observer.definition);
+    let can_discover_change = |change: &str| {
+        visible_changes.contains(change)
+            && PathScope::cairn_change(change).is_some_and(|scope| {
+                ceiling.contains(&scope)
+                    && admitted
+                        .scope
+                        .permits_scope(SourceViewOperation::Discover, &scope)
+            })
+    };
+    let hidden_work_ids: BTreeSet<&str> = admitted
+        .work_to_change
+        .iter()
+        .filter(|(_, ch)| !can_discover_change(ch))
+        .map(|(work_id, _)| work_id.as_str())
+        .collect();
+    let redacted_id = redacted_work_id()?;
+
+    for unit in &mut det.units {
+        for work in &mut unit.current_work {
+            if !text_allowed {
+                work.title = "[unavailable]".into();
+                work.requested_outcome = "[unavailable]".into();
+                work.acceptance.clear();
+            }
+            for reason in &mut work.block_reasons {
+                if let BlockReason::MissingDependency { identity } = reason
+                    && !admitted.visible_work_ids.contains(identity.as_str())
+                {
+                    *identity = redacted_id.clone();
+                }
+            }
+            for dep in work
+                .dependencies
+                .iter_mut()
+                .chain(work.dependents.iter_mut())
+            {
+                let dep_hidden = !admitted.visible_work_ids.contains(dep.identity.as_str());
+                if dep_hidden {
+                    let opaque_id = admitted
+                        .work_to_change
+                        .get(&dep.identity)
+                        .and_then(|ch| admitted.change_to_native.get(ch))
+                        .map_or_else(
+                            || "unavailable".to_string(),
+                            |native_id| {
+                                format!(
+                                    "handle:{}",
+                                    admitted
+                                        .context
+                                        .item_handle(observer.handle_key, native_id)
+                                        .to_hex()
+                                )
+                            },
+                        );
+                    dep.identity = opaque_id;
+                    dep.state = "unavailable";
+                    dep.native_ids.clear();
+                    dep.repository_identity = None;
+                }
+            }
+        }
+        if !text_allowed {
+            for attempt in &mut unit.attempts {
+                if attempt.cause.is_some() {
+                    attempt.cause = Some("[unavailable]".into());
+                }
+            }
+        }
+    }
+    if !text_allowed {
+        for decision in &mut det.decisions {
+            decision.question = "[unavailable]".into();
+            decision.options.clear();
+            if decision.recommendation.is_some() {
+                decision.recommendation = Some("[unavailable]".into());
+            }
+            if decision.resolved_answer.is_some() {
+                decision.resolved_answer = Some("[unavailable]".into());
+            }
+            if decision.pending_reason.is_some() {
+                decision.pending_reason = Some("[unavailable]".into());
+            }
+        }
+    }
+    for blocker in &mut det.blockers {
+        redact_blocker(blocker, &admitted.visible_work_ids, text_allowed);
+    }
+    det.overview.first_blocker = det.blockers.first().cloned();
+    for membership in &mut det.memberships {
+        membership.dependencies.retain(|dep| {
+            !hidden_work_ids.contains(dep.as_str())
+                && dep
+                    .split_once('/')
+                    .is_some_and(|(ch, _)| can_discover_change(ch))
+        });
+        if !text_allowed {
+            for blocker in &mut membership.blockers {
+                *blocker = "[unavailable]".into();
+            }
+            if let Some(hold) = &mut membership.hold {
+                hold.reason = "[unavailable]".into();
+            }
+        }
+    }
+    det.snapshot.campaigns_read = visible_campaigns_read(snapshot, &repo_hex, &visible_changes);
+    det.identity.clear();
+    let bytes = serde_json::to_vec(&det).map_err(|_| "cairn_workspace_encoding_invalid")?;
+    det.identity = blake3::hash(&bytes).to_hex().to_string();
+    let presentation = serde_json::to_value(admitted.context.presentation())
+        .map_err(|_| "cairn_workspace_encoding_invalid")?;
+    Ok(Some(RestrictedDetail {
+        schema: RESTRICTED_DETAIL_SCHEMA,
+        detail: det,
+        restricted_context: presentation,
+    }))
 }
 
 #[path = "cairn_workspace/agents.rs"]

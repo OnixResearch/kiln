@@ -15,6 +15,7 @@ mod profile;
 mod reports;
 mod sandbox;
 pub(crate) mod source;
+pub mod source_auth;
 mod streaming;
 mod telemetry;
 pub mod writeback;

@@ -694,7 +694,8 @@ fn run_with(
         flags.get("--local-operator").map(String::as_str),
         flags.get("--authority-config").map(Path::new),
     )?;
-    let mut implementer = Implementer::open(&required(flags, "--database")?, enrollment)?;
+    let database = required(flags, "--database")?;
+    let mut implementer = Implementer::open(&database, enrollment)?;
     implementer.select_authority(&selection, &worker_holder_roles())?;
     let attempt = implementer.authorize_current(&plan.attempt_identity, plan.fence, clock()?)?;
     // The exact Dispatch request the plan reservation below makes is admitted
@@ -702,21 +703,70 @@ fn run_with(
     // The reservation revalidates this session in its own transaction.
     implementer.authorize_dispatch_plan(&attempt.identity, attempt.fence, clock()?, &plan)?;
     // A pinned projected workspace runs only under a profile that enables
-    // projection and only with its exact route. The route is checked after
-    // the authority pre-check and before the credential read, so a refused
-    // route reads no credential. Only a selected verified profile with
-    // `projection_enabled` enables projection; the local-operator profile
-    // never does.
+    // projection, with its exact route, and with verified SourceAuthority
+    // covering PrepareWorkspace, read paths, and write paths. Checked before
+    // the credential read so a refused route/grant reads no credential.
+    let route_flag = flags
+        .get(crate::projected_workspace::ROUTE_FLAG)
+        .map(Path::new);
     let projection_authority =
         crate::projected_workspace::ProjectionAuthority::of_selected(&selection);
-    crate::projected_workspace::check_route(
-        flags
-            .get(crate::projected_workspace::ROUTE_FLAG)
-            .map(Path::new),
-        &plan,
-        &request,
+    if let (
+        Some(pin),
+        Some(_),
+        crate::projected_workspace::ProjectionAuthority::ProjectionEnabled,
+        kiln_implementer::authority_config::ProfileConfig::VerifiedUcan(verified),
+    ) = (
+        plan.workspace.projection.as_ref(),
+        route_flag,
         projection_authority,
-    )?;
+        &selection.profile,
+    ) {
+        let now_ms = clock()?;
+        let (mut source_auth, source_signer, revocation_generation) =
+            kiln_implementer::authority_config::open_verified_source_authority(
+                verified, &database, now_ms,
+            )
+            .map_err(|error| format!("{error}; nothing was dispatched"))?;
+        let current = kiln_core::projection::authority::SourceCurrentness {
+            generation: verified.generation,
+            revocation_generation,
+            snapshot: kiln_core::projection::authority::SnapshotObservation {
+                revision: pin.source.clone(),
+                ref_name: None,
+                previous: None,
+                fast_forward: false,
+            },
+            attempt: kiln_core::implementation::authority::AttemptCurrentness::Current,
+        };
+        let sign_request = |req: &kiln_core::projection::authority::SourceAuthorityRequest| {
+            source_signer
+                .sign(req)
+                .map(kiln_core::implementation::authority::AuthorityProfile::VerifiedUcan)
+                .map_err(|error| format!("{}: {}", error.code, error.message))
+        };
+        let mut dispatch_source = crate::projected_workspace::SourceDispatchAuthority {
+            authority: &mut source_auth,
+            sign_request: &sign_request,
+            current: &current,
+            now_unix_s: now_ms / 1_000,
+        };
+        crate::projected_workspace::check_route(
+            route_flag,
+            &plan,
+            &request,
+            projection_authority,
+            Some(&mut dispatch_source),
+        )?;
+    } else {
+        crate::projected_workspace::check_route(
+            route_flag,
+            &plan,
+            &request,
+            projection_authority,
+            None,
+        )?;
+    }
     // Before any durable step (plan reservation, request seal, admission or
     // transport intent), a fresh run needs its one credential variable.
     let recovery = implementer.dispatch_requires_recovery(&attempt.identity)?;
@@ -1793,6 +1843,273 @@ mod credential_ordering_tests {
         );
         assert_eq!(reads.get(), 1);
         assert!(!reserved);
+    }
+
+    // r[verify kiln.source.projection.route.scenario.dispatch]
+    #[test]
+    fn pinned_projected_route_requires_kiln_source_ucan_grant_before_credential_read() {
+        use kiln_adapter_basalt::issue_source_grant;
+        use kiln_adapter_basalt::test_support;
+        use kiln_core::projection::authority::{AttemptFence, PathScope, SourceViewOperation};
+        use kiln_core::projection::materialization::{
+            MATERIALIZER_PROFILE_SCHEMA, MaterializerKind, MaterializerProfile, RouteRequest,
+            plan as plan_materialization, route as derive_route,
+        };
+        use kiln_core::projection::{
+            ComponentVersion, Coverage, EntryKind, GeneratedInputs, Mount, ProjectionDefinition,
+            ProjectionFacts, ProjectionOperation, ProjectionProfile, ProviderBinding,
+            RepositoryEnrollment, RepositoryLocator, Selection, SourceCapability, SourceEntry,
+            TargetProfile, admit_definition, admit_repositories, resolve,
+        };
+        use kiln_core::types::{ExternalRef, ProviderProfileId};
+
+        let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+        let root = std::fs::canonicalize(directory.path()).unwrap_or_else(|_| unreachable!());
+        let store = root.join("store");
+        let cfg_dir = root.join("cfg");
+        std::fs::create_dir_all(&cfg_dir).unwrap_or_else(|_| unreachable!());
+        let config_path = verified_config(&cfg_dir, true);
+
+        let database = root.join("kiln.sqlite");
+        let now_ms = super::clock().unwrap_or_else(|_| unreachable!());
+        let w = work();
+        let attempt = {
+            let mut owner =
+                Implementer::open_with_local_operator(&database, enrollment(), "test-operator")
+                    .unwrap_or_else(|_| unreachable!());
+            owner.admit(&w, None).unwrap_or_else(|_| unreachable!());
+            owner
+                .claim_next(now_ms, 60_000)
+                .unwrap_or_else(|_| unreachable!())
+                .unwrap_or_else(|| unreachable!())
+        };
+
+        let repository = admit_repositories(
+            &[RepositoryEnrollment {
+                repository_id: "fixture".into(),
+                binding: ProviderBinding {
+                    source_provider: ProviderProfileId::new("git-source-v1")
+                        .unwrap_or_else(|_| unreachable!()),
+                    native_repository: ExternalRef::new("git", "repository", "fixture")
+                        .unwrap_or_else(|_| unreachable!()),
+                },
+                locators: vec![RepositoryLocator::LocalPath {
+                    path: root.join("repo").to_string_lossy().into_owned(),
+                }],
+            }],
+            &[],
+        )
+        .unwrap_or_else(|_| unreachable!())
+        .pop()
+        .unwrap_or_else(|| unreachable!());
+        let base_rev = w.base.clone().unwrap_or_else(|| unreachable!());
+        let component = |name: &str| ComponentVersion {
+            name: name.into(),
+            version: "1".into(),
+        };
+        let facts = ProjectionFacts {
+            repository: repository.identity().clone(),
+            exact_revision: base_rev,
+            canonical_tree: content('e'),
+            evaluator: component("kiln-projection"),
+            adapter: component("git-source"),
+            source_capabilities: vec![SourceCapability::ExactTree],
+            coverage: Coverage::Complete,
+            entries: vec![SourceEntry {
+                path: "crates/src/lib.rs".into(),
+                object: ExternalRef::new("git", "blob", &"a".repeat(40))
+                    .unwrap_or_else(|_| unreachable!()),
+                kind: EntryKind::File,
+            }],
+            dependencies: Vec::new(),
+            generated: Vec::new(),
+        };
+        let def = admit_definition(&ProjectionDefinition {
+            schema: kiln_core::projection::DEFINITION_SCHEMA.into(),
+            id: "worker-route".into(),
+            profile: ProjectionProfile::Writable,
+            selection: Selection {
+                root: String::new(),
+                include: vec!["crates/**".into()],
+                exclude: Vec::new(),
+            },
+            mounts: vec![Mount {
+                source_prefix: String::new(),
+                destination_prefix: String::new(),
+            }],
+            dependencies: Vec::new(),
+            creation_destinations: Vec::new(),
+            required_capabilities: vec![SourceCapability::ExactTree],
+            generated_inputs: GeneratedInputs::Refused,
+            target: TargetProfile::POSIX,
+            compatibility: None,
+        })
+        .unwrap_or_else(|_| unreachable!());
+        let view = resolve(&def, &repository, &facts)
+            .unwrap_or_else(|_| unreachable!())
+            .require_complete(ProjectionOperation::Write)
+            .unwrap_or_else(|_| unreachable!());
+        let mat_profile = MaterializerProfile {
+            schema: MATERIALIZER_PROFILE_SCHEMA.into(),
+            kind: MaterializerKind::EagerLocalDirectory,
+            materializer: ComponentVersion {
+                name: "kiln-eager-local".into(),
+                version: "1".into(),
+            },
+            platform: TargetProfile::POSIX,
+        };
+        let mat_plan = plan_materialization(&view, &mat_profile).unwrap_or_else(|_| unreachable!());
+        let pin = mat_plan
+            .pin(&attempt.identity, attempt.fence)
+            .unwrap_or_else(|_| unreachable!());
+        let routed = derive_route(
+            &def,
+            &view,
+            &mat_plan,
+            &pin,
+            RouteRequest {
+                store: &store.to_string_lossy(),
+                writable: &["crates".to_owned()],
+                build_plan: None,
+            },
+        )
+        .unwrap_or_else(|_| unreachable!());
+        std::fs::create_dir_all(&routed.overlay_root).unwrap_or_else(|_| unreachable!());
+        let route_file = root.join("route.json");
+        write(&route_file, &routed);
+
+        let mut plan = ImplementationDispatchPlan {
+            schema: DISPATCH_PLAN_SCHEMA.into(),
+            work_identity: attempt.work_identity.clone(),
+            work_revision: attempt.work_revision,
+            attempt_identity: attempt.identity.clone(),
+            fence: attempt.fence,
+            repository: w.repository.clone(),
+            base: w.base.clone(),
+            workspace: DispatchWorkspace {
+                identity: pin.overlay.clone(),
+                isolation: WorkspaceIsolation::IsolatedSnapshot,
+                network: false,
+                credentials: false,
+                projection: Some(pin.clone()),
+            },
+            provider_profile: ProviderProfileId::new("lattice-implementation")
+                .unwrap_or_else(|_| unreachable!()),
+            permitted_paths: w.permitted_paths.clone(),
+            permitted_effects: w.permitted_effects.clone(),
+            controls: DispatchControls {
+                cancel: true,
+                pause: false,
+                resume: false,
+            },
+            deadline_minutes: 1,
+            token_budget: 1000,
+            invocation_budget: 1,
+            expected_output: content('f'),
+            execution: None,
+        };
+        write(&root.join("plan.json"), &plan);
+        write(&root.join("enrollment.json"), &enrollment());
+        write(
+            &root.join("request.json"),
+            &serde_json::json!({
+                "workspace_root": routed.overlay_root,
+                "read_paths": routed.read_paths,
+                "write_paths": routed.write_paths,
+                "network": false,
+                "envelope": {},
+                "omp": {"model_broker": {"credential": declared()}}
+            }),
+        );
+        write(
+            &root.join("transport.json"),
+            &serde_json::json!({
+                "schema": "kiln.lattice-implementation-cli.v2",
+                "lattice_program": root.join("not-a-store-program"),
+                "executable_blake3": "b".repeat(64),
+                "state_directory": root.join("state"),
+                "output_directory": root.join("transport"),
+            }),
+        );
+        let flags = BTreeMap::from([
+            ("--database".to_string(), database.display().to_string()),
+            (
+                "--enrollment".to_string(),
+                root.join("enrollment.json").display().to_string(),
+            ),
+            (
+                "--dispatch-plan".to_string(),
+                root.join("plan.json").display().to_string(),
+            ),
+            (
+                "--worker-request".to_string(),
+                root.join("request.json").display().to_string(),
+            ),
+            (
+                "--worker-transport-profile".to_string(),
+                root.join("transport.json").display().to_string(),
+            ),
+            ("--authority-config".to_string(), config_path),
+            (
+                crate::projected_workspace::ROUTE_FLAG.to_string(),
+                route_file.display().to_string(),
+            ),
+        ]);
+
+        // 1. Without a kiln://source/v1/ token in proofs_dir, run_with fails BEFORE credential read.
+        let reads = Cell::new(0);
+        let denied = run_with(&flags, &counted(&reads, Some("token")));
+        assert!(denied.is_err(), "{denied:?}");
+        assert_eq!(
+            reads.get(),
+            0,
+            "missing source UCAN grant must refuse before credential read"
+        );
+
+        // 2. Add a valid root-issued kiln://source/v1/ grant for the coordinator holder & pinned attempt.
+        let now_s = super::clock().unwrap_or_else(|_| unreachable!()) / 1_000;
+        let source_token = issue_source_grant(
+            test_support::seed(test_support::ROOT_SEED),
+            &test_support::did(test_support::COORDINATOR_SEED),
+            test_support::AUDIENCE,
+            test_support::GENERATION,
+            &pin.repository,
+            Some(&AttemptFence {
+                attempt: attempt.identity.clone(),
+                fence: attempt.fence,
+            }),
+            &[(
+                PathScope::root(),
+                vec![
+                    SourceViewOperation::PrepareWorkspace,
+                    SourceViewOperation::Discover,
+                    SourceViewOperation::ReadContent,
+                    SourceViewOperation::ModifySource,
+                    SourceViewOperation::CreateSource,
+                ],
+            )],
+            &[],
+            now_s.saturating_sub(60),
+            now_s + 3_600,
+        )
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+        std::fs::write(cfg_dir.join("proofs").join("source.ucan"), source_token)
+            .unwrap_or_else(|_| unreachable!());
+
+        let reads = Cell::new(0);
+        let allowed = run_with(&flags, &counted(&reads, Some("token")));
+        assert!(
+            allowed
+                .as_ref()
+                .is_err_and(|error| error.contains("not an admitted immutable Nix program")),
+            "{allowed:?}"
+        );
+        assert_eq!(
+            reads.get(),
+            1,
+            "authorized projected route proceeds to credential read"
+        );
+        let _ = &mut plan;
     }
 }
 

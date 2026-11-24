@@ -28,11 +28,16 @@ use ucan::{
 
 pub mod compose;
 pub mod signer;
+pub mod source;
 pub mod state;
 #[cfg(feature = "test-support")]
 pub mod test_support;
 
 pub use signer::{HolderKey, RoleSigner};
+pub use source::{
+    BasaltSourceAuthority, SourceHolderKey, SourceSigner, encode_snapshot_rule,
+    issue_delegated_source_grant, issue_source_grant,
+};
 pub use state::{REPLAY_DIGEST_BYTES, ReplayLedger, ReplayRecord, RevocationView};
 
 use state::{BoundReplay, BoundRevocations, NoReplay};

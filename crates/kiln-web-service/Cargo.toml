@@ -29,6 +29,7 @@ kiln-adapter-github = { path = "../kiln-adapter-github" }
 kiln-adapter-http-observe.workspace = true
 kiln-adapter-jj.workspace = true
 kiln-adapter-animus.workspace = true
+kiln-adapter-basalt.workspace = true
 kiln-adapter-lattice.workspace = true
 kiln-adapter-swarm = { path = "../kiln-adapter-swarm" }
 kiln-adapter-webhook.workspace = true
@@ -75,6 +76,7 @@ path = "src/bin/implementation-fixture.rs"
 required-features = ["implementation-fixtures"]
 
 [dev-dependencies]
+kiln-adapter-basalt = { workspace = true, features = ["test-support"] }
 parking_lot = "0.12.5"
 
 [lints]

@@ -40,7 +40,7 @@ pub fn proof_store(tokens: &[String]) -> Result<ProofCollection, String> {
     Ok(ProofCollection::from_tokens(parsed))
 }
 
-/// Select the one grant addressed to `holder_did` among `tokens`.
+/// Select the one implementation grant addressed to `holder_did` among `tokens`.
 ///
 /// Selection verifies signatures, proof chains and time at `now_unix_s` so a
 /// stale or foreign token is never chosen; revocation and replay are enforced
@@ -57,6 +57,50 @@ pub fn select_holder_grant(
     now_unix_s: u64,
     limits: VerificationLimits,
 ) -> Result<String, String> {
+    select_family_grant(
+        tokens,
+        holder_did,
+        keys,
+        proofs,
+        now_unix_s,
+        limits,
+        |resource| resource.starts_with("kiln://implementation/") || resource == "kiln://",
+    )
+}
+
+/// Select the one `kiln://source/v1/` grant addressed to `holder_did` among `tokens`.
+///
+/// # Errors
+/// Returns a message when no source token or more than one source token is
+/// addressed to the holder.
+pub fn select_source_holder_grant(
+    tokens: &[String],
+    holder_did: &str,
+    keys: &KeyResolutionContext,
+    proofs: &ProofCollection,
+    now_unix_s: u64,
+    limits: VerificationLimits,
+) -> Result<String, String> {
+    select_family_grant(
+        tokens,
+        holder_did,
+        keys,
+        proofs,
+        now_unix_s,
+        limits,
+        |resource| resource.starts_with("kiln://source/v1/"),
+    )
+}
+
+fn select_family_grant(
+    tokens: &[String],
+    holder_did: &str,
+    keys: &KeyResolutionContext,
+    proofs: &ProofCollection,
+    now_unix_s: u64,
+    limits: VerificationLimits,
+    matches_family: impl Fn(&str) -> bool,
+) -> Result<String, String> {
     let mut selected = None;
     for token in tokens {
         let Ok(verified) = ucan::verify_compact_token_str_with_resolvers_and_revocations(
@@ -70,6 +114,15 @@ pub fn select_holder_grant(
             continue;
         };
         if verified.audience().as_str() != holder_did {
+            continue;
+        }
+        let has_family = verified
+            .effective_delegation()
+            .capabilities()
+            .as_slice()
+            .iter()
+            .any(|cap| matches_family(&cap.resource));
+        if !has_family {
             continue;
         }
         if selected.replace(token.clone()).is_some() {

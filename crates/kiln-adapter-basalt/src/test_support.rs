@@ -16,7 +16,10 @@ use kiln_core::implementation::authority::{
     ProtectedOperation,
 };
 use kiln_core::implementation::grant::GrantRole;
-use kiln_core::types::CoreResult;
+use kiln_core::projection::authority::{
+    AttemptFence, MAX_DELEGATION_DEPTH, PathScope, SourceViewOperation,
+};
+use kiln_core::types::{ContentId, CoreResult};
 use ucan::token::DenyUnknownCaveats;
 use ucan::{
     AudienceDid, CapabilityDocument, CapabilitySet, ED25519_SECRET_KEY_BYTES,
@@ -27,8 +30,9 @@ use ucan::{
 
 use crate::signer::NonceSource;
 use crate::{
-    AuthorityServices, BasaltAuthority, HolderKey, REPLAY_DIGEST_BYTES, ReplayLedger, ReplayRecord,
-    RevocationView, RoleSigner, VerifiedAuthorityConfig, basalt_operation,
+    AuthorityServices, BasaltAuthority, BasaltSourceAuthority, HolderKey, REPLAY_DIGEST_BYTES,
+    ReplayLedger, ReplayRecord, RevocationView, RoleSigner, SourceHolderKey, SourceSigner,
+    VerifiedAuthorityConfig, basalt_operation, issue_source_grant,
 };
 
 /// Root issuer seed byte.
@@ -574,5 +578,190 @@ impl HolderInvocationSigner for ReplayingSigner {
     /// replay tests reach the verifier.
     fn holds(&self, _role: GrantRole) -> bool {
         true
+    }
+}
+
+/// Complete `kiln://source/v1/` fixture with root/delegated tokens, shared
+/// replay ledger, and shared revocation view.
+#[derive(Debug)]
+pub struct SourceFixture {
+    /// Admitted root issuers.
+    pub roots: Vec<String>,
+    /// Holder seed byte.
+    pub holder_seed: u8,
+    /// Holder compact token.
+    pub token: String,
+    /// Proof tokens served by the proof store.
+    pub proofs: Vec<String>,
+    /// Maximum delegation depth configured on the verifier.
+    pub max_delegation_depth: u8,
+    /// Shared replay ledger.
+    pub replay: MemoryReplay,
+    /// Shared revocation view.
+    pub revocations: MemoryRevocations,
+}
+
+impl SourceFixture {
+    /// Direct root-issued `kiln://source/v1/` fixture for `holder_seed`.
+    #[must_use]
+    pub fn direct(
+        holder_seed: u8,
+        repository: &ContentId,
+        attempt: Option<&AttemptFence>,
+        grants: &[(PathScope, Vec<SourceViewOperation>)],
+        expires_s: u64,
+    ) -> Self {
+        let token = issue_source_grant(
+            seed(ROOT_SEED),
+            &did(holder_seed),
+            AUDIENCE,
+            GENERATION,
+            repository,
+            attempt,
+            grants,
+            &[],
+            NOT_BEFORE_S,
+            expires_s,
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        Self {
+            roots: vec![did(ROOT_SEED)],
+            holder_seed,
+            token,
+            proofs: Vec::new(),
+            max_delegation_depth: MAX_DELEGATION_DEPTH,
+            replay: MemoryReplay::default(),
+            revocations: MemoryRevocations::default(),
+        }
+    }
+
+    /// Delegated `kiln://source/v1/` fixture: root issues `parent_grants`
+    /// (with `Delegate`) to `DELEGATE_SEED`, which delegates attenuated
+    /// `child_grants` to `holder_seed`.
+    #[must_use]
+    pub fn delegated(
+        holder_seed: u8,
+        repository: &ContentId,
+        attempt: Option<&AttemptFence>,
+        parent_grants: &[(PathScope, Vec<SourceViewOperation>)],
+        child_grants: &[(PathScope, Vec<SourceViewOperation>)],
+        expires_s: u64,
+    ) -> Self {
+        let parent = issue_source_grant(
+            seed(ROOT_SEED),
+            &did(DELEGATE_SEED),
+            AUDIENCE,
+            GENERATION,
+            repository,
+            attempt,
+            parent_grants,
+            &[],
+            NOT_BEFORE_S,
+            expires_s,
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        let token = issue_source_grant(
+            seed(DELEGATE_SEED),
+            &did(holder_seed),
+            AUDIENCE,
+            GENERATION,
+            repository,
+            attempt,
+            child_grants,
+            &[&parent],
+            NOT_BEFORE_S,
+            expires_s,
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        Self {
+            roots: vec![did(ROOT_SEED)],
+            holder_seed,
+            token,
+            proofs: vec![parent],
+            max_delegation_depth: MAX_DELEGATION_DEPTH,
+            replay: MemoryReplay::default(),
+            revocations: MemoryRevocations::default(),
+        }
+    }
+
+    /// Verified configuration over the packaged Basalt policy.
+    ///
+    /// # Panics
+    /// Never for the fixed fixture values.
+    #[must_use]
+    pub fn config(&self) -> VerifiedAuthorityConfig {
+        VerifiedAuthorityConfig::from_packaged_policy(GENERATION, AUDIENCE, self.roots.clone())
+            .unwrap_or_else(|error| unreachable!("{error}"))
+    }
+
+    /// Static keys for every fixture participant.
+    #[must_use]
+    pub fn keys(&self) -> KeyResolutionContext {
+        crate::compose::static_keys(
+            &[
+                ROOT_SEED,
+                DELEGATE_SEED,
+                COORDINATOR_SEED,
+                VERIFIER_SEED,
+                PUBLISHER_SEED,
+                UNTRUSTED_ROOT_SEED,
+            ]
+            .map(|byte| (did(byte), public_key(byte))),
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"))
+    }
+
+    /// Services sharing this fixture's replay and revocation state.
+    #[must_use]
+    pub fn services(&self) -> AuthorityServices {
+        AuthorityServices {
+            key_resolver: Box::new(self.keys()),
+            proof_store: Box::new(
+                crate::compose::proof_store(&self.proofs)
+                    .unwrap_or_else(|error| unreachable!("{error}")),
+            ),
+            revocations: Box::new(self.revocations.clone()),
+            caveat_policies: Box::new(DenyUnknownCaveats),
+            replay: Box::new(self.replay.clone()),
+            replay_retention_ms: REPLAY_RETENTION_MS,
+            verification_limits: VerificationLimits::default(),
+            holder_limits: HolderInvocationLimits::default(),
+        }
+    }
+
+    /// Verified source-authority adapter over this fixture.
+    ///
+    /// # Panics
+    /// Never for the fixed fixture values.
+    #[must_use]
+    pub fn authority(&self) -> BasaltSourceAuthority {
+        BasaltSourceAuthority::verified(self.config(), self.services(), self.max_delegation_depth)
+            .unwrap_or_else(|error| unreachable!("{error}"))
+    }
+
+    /// Source signer for this fixture's holder with deterministic nonces.
+    ///
+    /// # Panics
+    /// Never for the fixed fixture values.
+    #[must_use]
+    pub fn signer(&self) -> SourceSigner {
+        self.signer_from(1)
+    }
+
+    /// Source signer whose deterministic nonces start at `start`.
+    ///
+    /// # Panics
+    /// Never for the fixed fixture values.
+    #[must_use]
+    pub fn signer_from(&self, start: u8) -> SourceSigner {
+        let holder = SourceHolderKey::new(seed(self.holder_seed), self.token.clone())
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        SourceSigner::new(
+            &self.config(),
+            holder,
+            self.max_delegation_depth,
+            counting_nonces_from(start),
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"))
     }
 }

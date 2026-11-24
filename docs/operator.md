@@ -2557,8 +2557,9 @@ be deserialized; each comes only from current authority.
   path, operation, snapshot and lifetime; it needs `delegate` over every
   shared path, gives the recipient a depth below the sharer's, and binds the
   ceiling, so expanding a saved view later never expands an existing share.
-  A view reference or handle alone confers nothing. Issuing the delegation
-  is not implemented.
+  A view reference or handle alone confers nothing.
+  `kiln_adapter_basalt::issue_delegated_source_grant` issues attenuated
+  `kiln://source/v1/` UCAN delegations from an admitted `SharePlan`.
 
 Known owner-side gaps, tracked in
 [#110](https://github.com/OnixResearch/kiln/issues/110), affect only how a
@@ -2588,9 +2589,17 @@ against the source-authority contracts in
 export, `fixtures/source-projection/restricted/corpus.json`, and
 `scripts/check-nickel-fixtures.sh` refuses a stale export.
 
-No route, worker or adapter uses these contracts yet; the source browser and
-Cairn workspace still serve every viewer the same projection, and the Basalt
-source operations are pending.
+`BasaltSourceAuthority` (`kiln-adapter-basalt`) bridges `SourceAuthority` to
+vendored `basalt::kiln::{Verifier::verify_source, revalidate_source,
+source_enforcement}` using `kiln://source/v1/` length-hex-framed UCAN grants,
+enforcing single-use replay, delegation depth bounds (`<= MAX_DELEGATION_DEPTH`),
+and `RevocationView` / `SnapshotRule` checks before consuming replay nonces.
+When `ServiceProfile::restricted_projection` is enabled, `kiln-web-service`
+constructs `sources::Browser::restricted` and routes `/api/sources*` and
+`/api/implementation/cairn*` through `restricted_response`, filtering visible
+repositories, paths, handles, Cairn changes, text, and prerequisite status
+(`PublicUnavailable` `{"error":"unavailable"}` on any missing/denied/stale
+scope or absent observer context).
 
 <!-- r[related kiln.source.projection.materialization] -->
 **Materialization.** `kiln_core::projection::materialization::plan` turns a
@@ -2662,8 +2671,14 @@ request whose `workspace_root`, `read_paths`, `write_paths` or network
 differ; `kiln-implementation-fixture bind-execution
 --projected-workspace-route FILE` binds the same paths and emits the route. A
 file write path admits in-place edits only; removing an origin in the runtime
-needs a writable creation destination. Current-authority checks at retrieval
-and workspace effects are not wired (S7).
+needs a writable creation destination. `SourceAuthority` admission,
+revalidation, and pure `check_request` enforcement are wired at retrieval and
+workspace effects (S7): `worker::materialize::{prepare_input, prepare_overlay,
+prepare_route}`, `kiln-adapter-lattice`'s `check_route` / `worker.rs` (checked
+before reading credentials via `open_verified_source_authority`),
+`worker::writeback::observe` (`RetrieveResult`), per-`SourceOperation`
+`worker::writeback::seal` (`ModifySource`, `CreateSource`, `ReadContent`),
+`worker::writeback::retrieve_result`, and the `projected-runtime` example.
 
 <!-- r[related kiln.source.projection.materialization.scenario.baseline] -->
 **Materializer baseline.** `config/workspace-corpus-contracts.ncl` types a

@@ -472,6 +472,13 @@ impl ViewCeiling {
     }
 }
 
+/// Whether `definition` covers the whole repository root with no excluded paths.
+#[must_use]
+pub fn permits_unfiltered_history(definition: &AdmittedDefinition) -> bool {
+    ViewCeiling::from_definition(definition).contains(&PathScope::root())
+        && definition.selection.exclude().is_empty()
+}
+
 /// Drop every path another path of the set already contains.
 fn outermost(candidates: BTreeSet<PathScope>) -> BTreeSet<PathScope> {
     candidates
@@ -1835,6 +1842,13 @@ impl RestrictedContext {
         }
     }
 
+    /// Derive the opaque handle for a Cairn item `native_id` under this
+    /// context's view binding and handle key (server-side only).
+    #[must_use]
+    pub fn item_handle(&self, key: &HandleKey, native_id: &str) -> OpaqueHandle {
+        cairn_item_handle(key, &self.binding, native_id)
+    }
+
     /// Whether a visible item still waits on any prerequisite, hidden ones
     /// included; `None` for a handle this context does not hold.
     #[must_use]
@@ -1854,6 +1868,13 @@ impl RestrictedContext {
             visible.or(hidden).unwrap_or(true)
         }))
     }
+}
+
+fn cairn_item_handle(key: &HandleKey, binding: &ViewBinding, native_id: &str) -> OpaqueHandle {
+    OpaqueHandle(key.keyed(
+        CAIRN_HANDLE_DOMAIN,
+        &[binding.keying.as_str().as_bytes(), native_id.as_bytes()],
+    ))
 }
 
 /// Restrict a Cairn observation to the holder of a current audience view.
@@ -1879,12 +1900,7 @@ pub fn restrict_context(
     if observation.repository != binding.repository || observation.revision != binding.snapshot {
         return Err(Unavailable::new(UnavailableReason::Stale));
     }
-    let handle = |native_id: &str| {
-        OpaqueHandle(key.keyed(
-            CAIRN_HANDLE_DOMAIN,
-            &[binding.keying.as_str().as_bytes(), native_id.as_bytes()],
-        ))
-    };
+    let handle = |native_id: &str| cairn_item_handle(key, binding, native_id);
     let allowed = |operation: Op, path: &str| {
         view.ceiling.allows(operation, path) && scope.permits(operation, path)
     };

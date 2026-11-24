@@ -859,3 +859,2332 @@ fn unsupported_and_binary_source_files_report_explicit_skips() {
         )
     );
 }
+
+// r[verify kiln.source.projection.disclosure.restricted]
+// r[verify kiln.source.projection.disclosure.handles]
+// r[verify kiln.source.projection.disclosure.unavailable]
+#[test]
+fn restricted_projection_sources_enforce_basalt_authority_handles_and_unavailable_oracles() {
+    use kiln_adapter_basalt::test_support::{
+        COORDINATOR_SEED, EXPIRED_AT_S, EXPIRES_S, GENERATION, SourceFixture, VERIFY_AT_S,
+    };
+    use kiln_core::implementation::authority::{AttemptCurrentness, AuthorityProfile};
+    use kiln_core::projection::authority::{
+        PathScope, SnapshotObservation, SourceAuthorityRequest, SourceCurrentness,
+        SourceViewOperation,
+    };
+    use kiln_core::projection::disclosure::{HandleKey, OpaqueHandle};
+    use kiln_core::projection::{
+        ComponentVersion, Coverage, EntryKind, GeneratedInputs, Mount, ProjectionDefinition,
+        ProjectionFacts, ProjectionProfile, ProviderBinding, RepositoryEnrollment,
+        RepositoryLocator, Selection, SourceCapability, SourceEntry, TargetProfile,
+        admit_definition, admit_repositories,
+    };
+    use kiln_core::types::{ContentId, ExternalRef, ProviderProfileId};
+    use kiln_web_service::sources::{BrowserMode, RestrictedSourceAccess, RestrictedSourceRepo};
+    use kiln_web_service::worker::source_auth::RequestProfile;
+
+    let root =
+        tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let (_repo_a, _first_a, second_a) = git_fixture(&root.path().join("a"));
+    let repo_b = Repository::init(root.path().join("b").join("work"))
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let head_b = commit(
+        &repo_b,
+        &[("secret.md", "hidden\n"), ("src/lib.rs", "pub fn x() {}\n")],
+        "Secret commit",
+        None,
+    );
+    repo_b
+        .reference("refs/heads/main", head_b, true, "fixture")
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    repo_b
+        .set_head("refs/heads/main")
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+
+    let profile = Profile {
+        schema: "kiln.web-sources.v1".into(),
+        sources: vec![
+            policy("kiln", "git", &root.path().join("a/work")),
+            policy("secret", "git", &root.path().join("b/work")),
+        ],
+    };
+    let browser = Browser::restricted(Some(profile))
+        .unwrap_or_else(|error| unreachable!("restricted browser: {error:?}"));
+    assert_eq!(browser.mode(), BrowserMode::RestrictedProjection);
+
+    // Un-scoped Browser::response fails closed in RestrictedProjection mode.
+    let unscoped = browser.response("GET", "/api/sources", &[], Role::Viewer);
+    assert_eq!(unscoped.status, 404);
+    assert_eq!(value(&unscoped), json!({"error": "unavailable"}));
+    assert_eq!(
+        browser
+            .response("GET", "/api/sources", &[], Role::Worker)
+            .status,
+        403
+    );
+    assert_eq!(
+        browser
+            .response("POST", "/api/sources", &[], Role::Viewer)
+            .status,
+        405
+    );
+
+    let enroll = |id: &str, path: &Path| {
+        admit_repositories(
+            &[RepositoryEnrollment {
+                repository_id: id.into(),
+                binding: ProviderBinding {
+                    source_provider: ProviderProfileId::new("git-source-v1")
+                        .unwrap_or_else(|e| unreachable!("{e:?}")),
+                    native_repository: ExternalRef::new("git", "repository", id)
+                        .unwrap_or_else(|e| unreachable!("{e:?}")),
+                },
+                locators: vec![RepositoryLocator::LocalPath {
+                    path: path.to_string_lossy().into_owned(),
+                }],
+            }],
+            &[],
+        )
+        .unwrap_or_else(|e| unreachable!("{e:?}"))
+        .pop()
+        .unwrap_or_else(|| unreachable!("admitted repo"))
+    };
+    let adm_a = enroll("kiln", &root.path().join("a/work"));
+    let adm_b = enroll("secret", &root.path().join("b/work"));
+
+    let def = admit_definition(&ProjectionDefinition {
+        schema: kiln_core::projection::DEFINITION_SCHEMA.into(),
+        id: "restricted-browser".into(),
+        profile: ProjectionProfile::Runnable,
+        selection: Selection {
+            root: String::new(),
+            include: vec!["src/**".into(), "README.md".into()],
+            exclude: vec!["secret.txt".into()],
+        },
+        mounts: vec![Mount {
+            source_prefix: String::new(),
+            destination_prefix: String::new(),
+        }],
+        dependencies: Vec::new(),
+        creation_destinations: Vec::new(),
+        required_capabilities: vec![SourceCapability::ExactTree],
+        generated_inputs: GeneratedInputs::Refused,
+        target: TargetProfile::POSIX,
+        compatibility: None,
+    })
+    .unwrap_or_else(|e| unreachable!("{e:?}"));
+
+    let rev_a = ExternalRef::new("git", "commit", &second_a.to_string())
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let rev_b = ExternalRef::new("git", "commit", &head_b.to_string())
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let blob_ref = |bytes: &[u8]| {
+        let oid = Oid::hash_object(git2::ObjectType::Blob, bytes)
+            .unwrap_or_else(|e| unreachable!("{e:?}"));
+        ExternalRef::new("git", "blob", &oid.to_string()).unwrap_or_else(|e| unreachable!("{e:?}"))
+    };
+    let component = |name: &str| ComponentVersion {
+        name: name.into(),
+        version: "1".into(),
+    };
+    let tree_digest = ContentId::from_blake3_hex(blake3::hash(b"tree").to_hex().to_string())
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let facts_a = ProjectionFacts {
+        repository: adm_a.identity().clone(),
+        exact_revision: rev_a.clone(),
+        canonical_tree: tree_digest.clone(),
+        evaluator: component("kiln-projection"),
+        adapter: component("git-source"),
+        source_capabilities: vec![SourceCapability::ExactTree],
+        coverage: Coverage::Complete,
+        entries: vec![
+            SourceEntry {
+                path: "README.md".into(),
+                object: blob_ref(b"# fixture v2\n"),
+                kind: EntryKind::File,
+            },
+            SourceEntry {
+                path: "secret.txt".into(),
+                object: blob_ref(b"excluded"),
+                kind: EntryKind::File,
+            },
+            SourceEntry {
+                path: "src/main.rs".into(),
+                object: blob_ref(b"fn main() { println!(); }\n"),
+                kind: EntryKind::File,
+            },
+        ],
+        dependencies: Vec::new(),
+        generated: Vec::new(),
+    };
+    let facts_b = ProjectionFacts {
+        repository: adm_b.identity().clone(),
+        exact_revision: rev_b.clone(),
+        canonical_tree: tree_digest,
+        evaluator: component("kiln-projection"),
+        adapter: component("git-source"),
+        source_capabilities: vec![SourceCapability::ExactTree],
+        coverage: Coverage::Complete,
+        entries: vec![SourceEntry {
+            path: "src/lib.rs".into(),
+            object: blob_ref(b"pub fn x() {}\n"),
+            kind: EntryKind::File,
+        }],
+        dependencies: Vec::new(),
+        generated: Vec::new(),
+    };
+    let cur_a = SourceCurrentness {
+        generation: GENERATION,
+        revocation_generation: 0,
+        snapshot: SnapshotObservation {
+            revision: rev_a,
+            ref_name: Some("refs/heads/main".into()),
+            previous: None,
+            fast_forward: false,
+        },
+        attempt: AttemptCurrentness::Current,
+    };
+    let cur_b = SourceCurrentness {
+        generation: GENERATION,
+        revocation_generation: 0,
+        snapshot: SnapshotObservation {
+            revision: rev_b,
+            ref_name: Some("refs/heads/main".into()),
+            previous: None,
+            fast_forward: false,
+        },
+        attempt: AttemptCurrentness::Current,
+    };
+
+    // Grant access ONLY to repo `kiln` (Discover + ReadContent on src/main.rs and root Discover),
+    // leaving repo `secret` completely unauthorized.
+    let fixture = SourceFixture::direct(
+        COORDINATOR_SEED,
+        adm_a.identity(),
+        None,
+        &[
+            (PathScope::root(), vec![SourceViewOperation::Discover]),
+            (
+                PathScope::from_path("src/main.rs", false).unwrap_or_else(|| unreachable!("path")),
+                vec![SourceViewOperation::ReadContent],
+            ),
+        ],
+        EXPIRES_S,
+    );
+    let mut authority = fixture.authority();
+    let signer = fixture.signer();
+    let sign = |req: &SourceAuthorityRequest| -> Result<AuthorityProfile, String> {
+        signer
+            .sign(req)
+            .map(AuthorityProfile::VerifiedUcan)
+            .map_err(|e| e.message)
+    };
+    let handle_key = HandleKey::from_bytes([0x42; 32]);
+    let repos = [
+        RestrictedSourceRepo {
+            policy_id: "kiln",
+            admitted: &adm_a,
+            definition: &def,
+            facts: &facts_a,
+            current: &cur_a,
+        },
+        RestrictedSourceRepo {
+            policy_id: "secret",
+            admitted: &adm_b,
+            definition: &def,
+            facts: &facts_b,
+            current: &cur_b,
+        },
+    ];
+
+    let mut call = |target: &str, role: Role, now_unix_s: u64| -> ApiResponse {
+        let mut access = RestrictedSourceAccess {
+            authority: &mut authority,
+            profile: RequestProfile::Signer(&sign),
+            repos: &repos,
+            handle_key: &handle_key,
+            now_unix_s,
+        };
+        browser.restricted_response("GET", target, &[], role, &mut access)
+    };
+
+    // 1. Worker role denied (403).
+    assert_eq!(call("/api/sources", Role::Worker, VERIFY_AT_S).status, 403);
+
+    // 2. Inventory omits unauthorized repo `secret`.
+    let inv = call("/api/sources", Role::Viewer, VERIFY_AT_S);
+    assert_eq!(inv.status, 200);
+    let inv_json = value(&inv);
+    let listed = inv_json
+        .get("sources")
+        .and_then(Value::as_array)
+        .unwrap_or_else(|| unreachable!("sources array"));
+    assert_eq!(listed.len(), 1);
+    assert_eq!(
+        listed
+            .first()
+            .and_then(|s| s.get("id"))
+            .and_then(Value::as_str),
+        Some("kiln")
+    );
+
+    // 3. Lookup omits unauthorized repo `secret`.
+    let lookup_b = call(
+        &format!("/api/sources/lookup?revision={head_b}"),
+        Role::Viewer,
+        VERIFY_AT_S,
+    );
+    assert_eq!(lookup_b.status, 200);
+    assert_eq!(
+        value(&lookup_b)
+            .get("matches")
+            .and_then(Value::as_array)
+            .map(Vec::len),
+        Some(0)
+    );
+
+    // 4. Hidden repo and nonexistent repo return identical 404 PublicUnavailable (no oracle).
+    for hidden_route in [
+        "/api/sources/secret/tree",
+        "/api/sources/secret/file?path=src/lib.rs",
+        "/api/sources/secret/log",
+        "/api/sources/secret/diff",
+        "/api/sources/nonexistent/tree",
+        "/api/sources/nonexistent/file?path=src/lib.rs",
+    ] {
+        let resp = call(hidden_route, Role::Viewer, VERIFY_AT_S);
+        assert_eq!(resp.status, 404, "{hidden_route}");
+        assert_eq!(
+            value(&resp),
+            json!({"error": "unavailable"}),
+            "{hidden_route}"
+        );
+    }
+
+    // 5. Excluded ViewCeiling path and ungranted sibling path return 404 unavailable.
+    for blocked in [
+        "/api/sources/kiln/file?path=secret.txt",
+        "/api/sources/kiln/file?path=README.md",
+        "/api/sources/kiln/file?path=missing.txt",
+    ] {
+        let resp = call(blocked, Role::Viewer, VERIFY_AT_S);
+        assert_eq!(resp.status, 404, "{blocked}");
+        assert_eq!(value(&resp), json!({"error": "unavailable"}), "{blocked}");
+    }
+
+    // 6. Tree lists admitted `src` and extracts opaque handle for `src/main.rs`, then
+    //    `file?handle=<hex>` resolves via AudienceView::resolve + revalidate.
+    let tree_resp = call("/api/sources/kiln/tree", Role::Viewer, VERIFY_AT_S);
+    assert_eq!(tree_resp.status, 200);
+    let tree_json = value(&tree_resp);
+    let handle_hex = tree_json
+        .pointer("/view/entries")
+        .and_then(Value::as_array)
+        .and_then(|entries| {
+            entries.iter().find(|entry| {
+                entry.get("display_path").and_then(Value::as_str) == Some("src/main.rs")
+            })
+        })
+        .and_then(|entry| entry.get("handle").and_then(Value::as_str))
+        .unwrap_or_else(|| unreachable!("handle for src/main.rs in {tree_json}"))
+        .to_owned();
+    let by_handle = call(
+        &format!("/api/sources/kiln/file?handle={handle_hex}"),
+        Role::Viewer,
+        VERIFY_AT_S,
+    );
+    assert_eq!(by_handle.status, 200);
+    assert_eq!(
+        value(&by_handle).get("text").and_then(Value::as_str),
+        Some("fn main() { println!(); }\n")
+    );
+
+    // 7. Forged handle fails closed with 404 unavailable.
+    let forged = OpaqueHandle::from_hex(&"11".repeat(32))
+        .unwrap_or_else(|| unreachable!("forged handle"))
+        .to_hex();
+    let forged_resp = call(
+        &format!("/api/sources/kiln/file?handle={forged}"),
+        Role::Viewer,
+        VERIFY_AT_S,
+    );
+    assert_eq!(forged_resp.status, 404);
+    assert_eq!(value(&forged_resp), json!({"error": "unavailable"}));
+
+    // 8. Expired time fails closed.
+    let expired = call("/api/sources/kiln/tree", Role::Viewer, EXPIRED_AT_S);
+    assert_eq!(expired.status, 404);
+    assert_eq!(value(&expired), json!({"error": "unavailable"}));
+
+    // 9. Revoked token fails closed and disappears from inventory.
+    fixture.revocations.revoke(&fixture.token);
+    let revoked_file = call(
+        "/api/sources/kiln/file?path=src/main.rs",
+        Role::Viewer,
+        VERIFY_AT_S,
+    );
+    assert_eq!(revoked_file.status, 404);
+    assert_eq!(value(&revoked_file), json!({"error": "unavailable"}));
+    let revoked_inv = call("/api/sources", Role::Viewer, VERIFY_AT_S);
+    assert_eq!(
+        value(&revoked_inv)
+            .get("sources")
+            .and_then(Value::as_array)
+            .map(Vec::len),
+        Some(0)
+    );
+}
+
+fn commit_nested(
+    repository: &Repository,
+    files: &[(&str, &str)],
+    message: &str,
+    parent: Option<Oid>,
+) -> Oid {
+    let mut update = git2::build::TreeUpdateBuilder::new();
+    for (path, body) in files {
+        let blob = repository
+            .blob(body.as_bytes())
+            .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+        update.upsert(*path, blob, git2::FileMode::Blob);
+    }
+    let empty_oid = repository
+        .treebuilder(None)
+        .and_then(|tb| tb.write())
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let empty_tree = repository
+        .find_tree(empty_oid)
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let tree_oid = update
+        .create_updated(repository, &empty_tree)
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let tree = repository
+        .find_tree(tree_oid)
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let parents: Vec<_> = parent
+        .into_iter()
+        .filter_map(|oid| repository.find_commit(oid).ok())
+        .collect();
+    let borrowed: Vec<_> = parents.iter().collect();
+    let oid = repository
+        .commit(None, &signature(), &signature(), message, &tree, &borrowed)
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    repository
+        .reference("refs/heads/main", oid, true, "fixture")
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    repository
+        .set_head("refs/heads/main")
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    oid
+}
+
+#[test]
+fn restricted_file_path_requires_discover_and_read_and_pins_exact_revision_against_moved_head() {
+    use kiln_adapter_basalt::test_support::{
+        COORDINATOR_SEED, EXPIRES_S, GENERATION, SourceFixture, VERIFY_AT_S,
+    };
+    use kiln_core::implementation::authority::{AttemptCurrentness, AuthorityProfile};
+    use kiln_core::projection::authority::{
+        PathScope, SnapshotObservation, SourceAuthorityRequest, SourceCurrentness,
+        SourceViewOperation,
+    };
+    use kiln_core::projection::disclosure::HandleKey;
+    use kiln_core::projection::{
+        ComponentVersion, Coverage, EntryKind, GeneratedInputs, Mount, ProjectionDefinition,
+        ProjectionFacts, ProjectionProfile, ProviderBinding, RepositoryEnrollment,
+        RepositoryLocator, Selection, SourceCapability, SourceEntry, TargetProfile,
+        admit_definition, admit_repositories,
+    };
+    use kiln_core::types::{ContentId, ExternalRef, ProviderProfileId};
+    use kiln_web_service::sources::{RestrictedSourceAccess, RestrictedSourceRepo};
+    use kiln_web_service::worker::source_auth::RequestProfile;
+
+    let root =
+        tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let work_a = root.path().join("a/work");
+    let repo_a =
+        Repository::init(&work_a).unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let first_a = commit_nested(
+        &repo_a,
+        &[
+            ("README.md", "# v1\n"),
+            ("src/main.rs", "const OLD_SECRET: &str = \"REV1\";\n"),
+        ],
+        "rev1",
+        None,
+    );
+    let second_a = commit_nested(
+        &repo_a,
+        &[
+            ("README.md", "# v2\n"),
+            ("src/main.rs", "fn main() { /* v2 */ }\n"),
+        ],
+        "rev2",
+        Some(first_a),
+    );
+    // Advance HEAD to third_a AFTER facts are pinned to second_a.
+    let third_a = commit_nested(
+        &repo_a,
+        &[
+            ("README.md", "# v3\n"),
+            ("src/main.rs", "const FUTURE_SECRET: &str = \"REV3\";\n"),
+        ],
+        "rev3",
+        Some(second_a),
+    );
+
+    let profile = Profile {
+        schema: "kiln.web-sources.v1".into(),
+        sources: vec![policy("kiln", "git", &work_a)],
+    };
+    let browser = Browser::restricted(Some(profile))
+        .unwrap_or_else(|error| unreachable!("restricted browser: {error:?}"));
+    let adm_a = admit_repositories(
+        &[RepositoryEnrollment {
+            repository_id: "kiln".into(),
+            binding: ProviderBinding {
+                source_provider: ProviderProfileId::new("git-source-v1")
+                    .unwrap_or_else(|e| unreachable!("{e:?}")),
+                native_repository: ExternalRef::new("git", "repository", "kiln")
+                    .unwrap_or_else(|e| unreachable!("{e:?}")),
+            },
+            locators: vec![RepositoryLocator::LocalPath {
+                path: work_a.to_string_lossy().into_owned(),
+            }],
+        }],
+        &[],
+    )
+    .unwrap_or_else(|e| unreachable!("{e:?}"))
+    .pop()
+    .unwrap_or_else(|| unreachable!("admitted repo"));
+
+    let def = admit_definition(&ProjectionDefinition {
+        schema: kiln_core::projection::DEFINITION_SCHEMA.into(),
+        id: "full-pinned".into(),
+        profile: ProjectionProfile::Runnable,
+        selection: Selection {
+            root: String::new(),
+            include: vec!["**".into()],
+            exclude: Vec::new(),
+        },
+        mounts: vec![Mount {
+            source_prefix: String::new(),
+            destination_prefix: String::new(),
+        }],
+        dependencies: Vec::new(),
+        creation_destinations: Vec::new(),
+        required_capabilities: vec![SourceCapability::ExactTree],
+        generated_inputs: GeneratedInputs::Refused,
+        target: TargetProfile::POSIX,
+        compatibility: None,
+    })
+    .unwrap_or_else(|e| unreachable!("{e:?}"));
+
+    let rev_a = ExternalRef::new("git", "commit", &second_a.to_string())
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let blob_ref = |bytes: &[u8]| {
+        let oid = Oid::hash_object(git2::ObjectType::Blob, bytes)
+            .unwrap_or_else(|e| unreachable!("{e:?}"));
+        ExternalRef::new("git", "blob", &oid.to_string()).unwrap_or_else(|e| unreachable!("{e:?}"))
+    };
+    let component = |name: &str| ComponentVersion {
+        name: name.into(),
+        version: "1".into(),
+    };
+    let tree_digest = ContentId::from_blake3_hex(blake3::hash(b"t2").to_hex().to_string())
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let facts_a = ProjectionFacts {
+        repository: adm_a.identity().clone(),
+        exact_revision: rev_a.clone(),
+        canonical_tree: tree_digest,
+        evaluator: component("kiln-projection"),
+        adapter: component("git-source"),
+        source_capabilities: vec![SourceCapability::ExactTree],
+        coverage: Coverage::Complete,
+        entries: vec![
+            SourceEntry {
+                path: "README.md".into(),
+                object: blob_ref(b"# v2\n"),
+                kind: EntryKind::File,
+            },
+            SourceEntry {
+                path: "src/main.rs".into(),
+                object: blob_ref(b"fn main() { /* v2 */ }\n"),
+                kind: EntryKind::File,
+            },
+        ],
+        dependencies: Vec::new(),
+        generated: Vec::new(),
+    };
+    let cur_a = SourceCurrentness {
+        generation: GENERATION,
+        revocation_generation: 0,
+        snapshot: SnapshotObservation {
+            revision: rev_a,
+            ref_name: Some("refs/heads/main".into()),
+            previous: None,
+            fast_forward: false,
+        },
+        attempt: AttemptCurrentness::Current,
+    };
+    let handle_key = HandleKey::from_bytes([0x42; 32]);
+    let repos = [RestrictedSourceRepo {
+        policy_id: "kiln",
+        admitted: &adm_a,
+        definition: &def,
+        facts: &facts_a,
+        current: &cur_a,
+    }];
+
+    // 1. Full Discover + ReadContent + ReadHistory pinned to second_a
+    let full_fix = SourceFixture::direct(
+        COORDINATOR_SEED,
+        adm_a.identity(),
+        None,
+        &[(
+            PathScope::root(),
+            vec![
+                SourceViewOperation::Discover,
+                SourceViewOperation::ReadContent,
+                SourceViewOperation::ReadHistory,
+            ],
+        )],
+        EXPIRES_S,
+    );
+    let mut full_auth = full_fix.authority();
+    let full_signer = full_fix.signer();
+    let sign_full = |req: &SourceAuthorityRequest| -> Result<AuthorityProfile, String> {
+        full_signer
+            .sign(req)
+            .map(AuthorityProfile::VerifiedUcan)
+            .map_err(|e| e.message)
+    };
+    let mut call_full = |target: &str| {
+        let mut access = RestrictedSourceAccess {
+            authority: &mut full_auth,
+            profile: RequestProfile::Signer(&sign_full),
+            repos: &repos,
+            handle_key: &handle_key,
+            now_unix_s: VERIFY_AT_S,
+        };
+        browser.restricted_response("GET", target, &[], Role::Viewer, &mut access)
+    };
+
+    // file?path= works with omitted revision and exact revision, pinned to second_a
+    for target in [
+        "/api/sources/kiln/file?path=src/main.rs".to_string(),
+        format!("/api/sources/kiln/file?revision={second_a}&path=src/main.rs"),
+    ] {
+        let resp = call_full(&target);
+        assert_eq!(resp.status, 200, "{target}");
+        let body = value(&resp);
+        assert_eq!(
+            body.get("revision").and_then(Value::as_str),
+            Some(second_a.to_string().as_str())
+        );
+        assert_eq!(
+            body.get("text").and_then(Value::as_str),
+            Some("fn main() { /* v2 */ }\n")
+        );
+    }
+
+    // Extract handle for handle-based checks
+    let tree_resp = call_full("/api/sources/kiln/tree");
+    assert_eq!(tree_resp.status, 200);
+    let tree_json = value(&tree_resp);
+    assert_eq!(
+        tree_json.get("revision").and_then(Value::as_str),
+        Some(second_a.to_string().as_str())
+    );
+    let handle_hex = tree_json
+        .pointer("/view/entries")
+        .and_then(Value::as_array)
+        .and_then(|entries| {
+            entries.iter().find(|entry| {
+                entry.get("display_path").and_then(Value::as_str) == Some("src/main.rs")
+            })
+        })
+        .and_then(|entry| entry.get("handle").and_then(Value::as_str))
+        .unwrap_or_else(|| unreachable!("handle for src/main.rs"))
+        .to_owned();
+
+    // Omitted revision on file?handle=, diff, log, inventory all stay pinned to second_a
+    let fh_omitted = call_full(&format!("/api/sources/kiln/file?handle={handle_hex}"));
+    assert_eq!(fh_omitted.status, 200);
+    let fh_body = value(&fh_omitted);
+    assert_eq!(
+        fh_body.get("revision").and_then(Value::as_str),
+        Some(second_a.to_string().as_str())
+    );
+    assert_eq!(
+        fh_body.get("text").and_then(Value::as_str),
+        Some("fn main() { /* v2 */ }\n")
+    );
+
+    let diff_omitted = call_full("/api/sources/kiln/diff");
+    assert_eq!(diff_omitted.status, 200);
+    assert_eq!(
+        value(&diff_omitted).get("revision").and_then(Value::as_str),
+        Some(second_a.to_string().as_str())
+    );
+
+    let log_resp = call_full("/api/sources/kiln/log");
+    assert_eq!(log_resp.status, 200);
+    let log_json = value(&log_resp);
+    assert_eq!(
+        log_json.get("head").and_then(Value::as_str),
+        Some(second_a.to_string().as_str())
+    );
+    assert!(
+        !String::from_utf8_lossy(&log_resp.body).contains(&third_a.to_string()),
+        "moved HEAD leaked in restricted_log"
+    );
+
+    let inv_resp = call_full("/api/sources");
+    assert_eq!(inv_resp.status, 200);
+    assert_eq!(
+        value(&inv_resp)
+            .pointer("/sources/0/head")
+            .and_then(Value::as_str),
+        Some(second_a.to_string().as_str())
+    );
+
+    // Mismatched revisions (first_a and third_a) are rejected across file, tree, diff, and lookup(third_a)
+    for bad_rev in [first_a, third_a] {
+        for bad_route in [
+            format!("/api/sources/kiln/file?handle={handle_hex}&revision={bad_rev}"),
+            format!("/api/sources/kiln/file?path=src/main.rs&revision={bad_rev}"),
+            format!("/api/sources/kiln/tree?revision={bad_rev}"),
+            format!("/api/sources/kiln/diff?revision={bad_rev}"),
+        ] {
+            let resp = call_full(&bad_route);
+            assert_eq!(resp.status, 404, "{bad_route}");
+            assert_eq!(value(&resp), json!({"error": "unavailable"}), "{bad_route}");
+        }
+    }
+    let lookup_future = call_full(&format!("/api/sources/lookup?revision={third_a}"));
+    assert_eq!(lookup_future.status, 200);
+    assert_eq!(
+        value(&lookup_future)
+            .get("matches")
+            .and_then(Value::as_array)
+            .map(Vec::len),
+        Some(0)
+    );
+
+    // 2. ReadContent-only (without Discover) MUST fail closed on file?path=
+    let read_only_fix = SourceFixture::direct(
+        COORDINATOR_SEED,
+        adm_a.identity(),
+        None,
+        &[(
+            PathScope::from_path("src/main.rs", false).unwrap_or_else(|| unreachable!("path")),
+            vec![SourceViewOperation::ReadContent],
+        )],
+        EXPIRES_S,
+    );
+    let mut read_only_auth = read_only_fix.authority();
+    let read_only_signer = read_only_fix.signer();
+    let sign_ro = |req: &SourceAuthorityRequest| -> Result<AuthorityProfile, String> {
+        read_only_signer
+            .sign(req)
+            .map(AuthorityProfile::VerifiedUcan)
+            .map_err(|e| e.message)
+    };
+    let mut ro_access = RestrictedSourceAccess {
+        authority: &mut read_only_auth,
+        profile: RequestProfile::Signer(&sign_ro),
+        repos: &repos,
+        handle_key: &handle_key,
+        now_unix_s: VERIFY_AT_S,
+    };
+    let ro_resp = browser.restricted_response(
+        "GET",
+        "/api/sources/kiln/file?path=src/main.rs",
+        &[],
+        Role::Viewer,
+        &mut ro_access,
+    );
+    assert_eq!(ro_resp.status, 404);
+    assert_eq!(value(&ro_resp), json!({"error": "unavailable"}));
+}
+
+#[test]
+fn restricted_sources_eliminate_400_vs_404_oracle_on_invalid_queries() {
+    use kiln_adapter_basalt::test_support::{
+        COORDINATOR_SEED, EXPIRES_S, GENERATION, SourceFixture, VERIFY_AT_S,
+    };
+    use kiln_core::implementation::authority::{AttemptCurrentness, AuthorityProfile};
+    use kiln_core::projection::authority::{
+        PathScope, SnapshotObservation, SourceAuthorityRequest, SourceCurrentness,
+        SourceViewOperation,
+    };
+    use kiln_core::projection::disclosure::HandleKey;
+    use kiln_core::projection::{
+        ComponentVersion, Coverage, EntryKind, GeneratedInputs, Mount, ProjectionDefinition,
+        ProjectionFacts, ProjectionProfile, ProviderBinding, RepositoryEnrollment,
+        RepositoryLocator, Selection, SourceCapability, SourceEntry, TargetProfile,
+        admit_definition, admit_repositories,
+    };
+    use kiln_core::types::{ContentId, ExternalRef, ProviderProfileId};
+    use kiln_web_service::sources::{RestrictedSourceAccess, RestrictedSourceRepo};
+    use kiln_web_service::worker::source_auth::RequestProfile;
+
+    let root =
+        tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let (_repo_a, _, second_a) = git_fixture(&root.path().join("a"));
+    let (_repo_b, _, head_b) = git_fixture(&root.path().join("b"));
+    let profile = Profile {
+        schema: "kiln.web-sources.v1".into(),
+        sources: vec![
+            policy("kiln", "git", &root.path().join("a/work")),
+            policy("secret", "git", &root.path().join("b/work")),
+        ],
+    };
+    let browser = Browser::restricted(Some(profile))
+        .unwrap_or_else(|error| unreachable!("restricted browser: {error:?}"));
+    let enroll = |id: &str, path: &Path| {
+        admit_repositories(
+            &[RepositoryEnrollment {
+                repository_id: id.into(),
+                binding: ProviderBinding {
+                    source_provider: ProviderProfileId::new("git-source-v1")
+                        .unwrap_or_else(|e| unreachable!("{e:?}")),
+                    native_repository: ExternalRef::new("git", "repository", id)
+                        .unwrap_or_else(|e| unreachable!("{e:?}")),
+                },
+                locators: vec![RepositoryLocator::LocalPath {
+                    path: path.to_string_lossy().into_owned(),
+                }],
+            }],
+            &[],
+        )
+        .unwrap_or_else(|e| unreachable!("{e:?}"))
+        .pop()
+        .unwrap_or_else(|| unreachable!("admitted repo"))
+    };
+    let adm_a = enroll("kiln", &root.path().join("a/work"));
+    let adm_b = enroll("secret", &root.path().join("b/work"));
+    let def = admit_definition(&ProjectionDefinition {
+        schema: kiln_core::projection::DEFINITION_SCHEMA.into(),
+        id: "oracle-def".into(),
+        profile: ProjectionProfile::Runnable,
+        selection: Selection {
+            root: String::new(),
+            include: vec!["src/**".into()],
+            exclude: Vec::new(),
+        },
+        mounts: vec![Mount {
+            source_prefix: String::new(),
+            destination_prefix: String::new(),
+        }],
+        dependencies: Vec::new(),
+        creation_destinations: Vec::new(),
+        required_capabilities: vec![SourceCapability::ExactTree],
+        generated_inputs: GeneratedInputs::Refused,
+        target: TargetProfile::POSIX,
+        compatibility: None,
+    })
+    .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let mk_facts = |adm: &kiln_core::projection::AdmittedRepository, rev: Oid| {
+        let ext = ExternalRef::new("git", "commit", &rev.to_string())
+            .unwrap_or_else(|e| unreachable!("{e:?}"));
+        let blob = ExternalRef::new(
+            "git",
+            "blob",
+            &Oid::hash_object(git2::ObjectType::Blob, b"fn main() {}\n")
+                .unwrap_or_else(|e| unreachable!("{e:?}"))
+                .to_string(),
+        )
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+        let tree_id = ContentId::from_blake3_hex(blake3::hash(b"t").to_hex().to_string())
+            .unwrap_or_else(|e| unreachable!("{e:?}"));
+        ProjectionFacts {
+            repository: adm.identity().clone(),
+            exact_revision: ext.clone(),
+            canonical_tree: tree_id,
+            evaluator: ComponentVersion {
+                name: "kiln-projection".into(),
+                version: "1".into(),
+            },
+            adapter: ComponentVersion {
+                name: "git-source".into(),
+                version: "1".into(),
+            },
+            source_capabilities: vec![SourceCapability::ExactTree],
+            coverage: Coverage::Complete,
+            entries: vec![SourceEntry {
+                path: "src/main.rs".into(),
+                object: blob,
+                kind: EntryKind::File,
+            }],
+            dependencies: Vec::new(),
+            generated: Vec::new(),
+        }
+    };
+    let facts_a = mk_facts(&adm_a, second_a);
+    let facts_b = mk_facts(&adm_b, head_b);
+    let mk_cur = |facts: &ProjectionFacts| SourceCurrentness {
+        generation: GENERATION,
+        revocation_generation: 0,
+        snapshot: SnapshotObservation {
+            revision: facts.exact_revision.clone(),
+            ref_name: None,
+            previous: None,
+            fast_forward: false,
+        },
+        attempt: AttemptCurrentness::Current,
+    };
+    let cur_a = mk_cur(&facts_a);
+    let cur_b = mk_cur(&facts_b);
+    let fixture = SourceFixture::direct(
+        COORDINATOR_SEED,
+        adm_a.identity(),
+        None,
+        &[(PathScope::root(), vec![SourceViewOperation::Discover])],
+        EXPIRES_S,
+    );
+    let mut authority = fixture.authority();
+    let signer = fixture.signer();
+    let sign = |req: &SourceAuthorityRequest| -> Result<AuthorityProfile, String> {
+        signer
+            .sign(req)
+            .map(AuthorityProfile::VerifiedUcan)
+            .map_err(|e| e.message)
+    };
+    let handle_key = HandleKey::from_bytes([0x42; 32]);
+    let repos = [
+        RestrictedSourceRepo {
+            policy_id: "kiln",
+            admitted: &adm_a,
+            definition: &def,
+            facts: &facts_a,
+            current: &cur_a,
+        },
+        RestrictedSourceRepo {
+            policy_id: "secret",
+            admitted: &adm_b,
+            definition: &def,
+            facts: &facts_b,
+            current: &cur_b,
+        },
+    ];
+    let mut call = |target: &str| {
+        let mut access = RestrictedSourceAccess {
+            authority: &mut authority,
+            profile: RequestProfile::Signer(&sign),
+            repos: &repos,
+            handle_key: &handle_key,
+            now_unix_s: VERIFY_AT_S,
+        };
+        browser.restricted_response("GET", target, &[], Role::Viewer, &mut access)
+    };
+
+    for (secret_path, missing_path) in [
+        (
+            "/api/sources/secret/tree?path=../x",
+            "/api/sources/nonexistent/tree?path=../x",
+        ),
+        (
+            "/api/sources/secret/file?path=../x",
+            "/api/sources/nonexistent/file?path=../x",
+        ),
+        ("/api/sources/secret/file", "/api/sources/nonexistent/file"),
+        (
+            "/api/sources/secret/log?limit=0",
+            "/api/sources/nonexistent/log?limit=0",
+        ),
+    ] {
+        let r_secret = call(secret_path);
+        let r_missing = call(missing_path);
+        assert_eq!(r_secret.status, 404, "{secret_path}");
+        assert_eq!(r_missing.status, 404, "{missing_path}");
+        assert_eq!(
+            r_secret.body, r_missing.body,
+            "{secret_path} vs {missing_path}"
+        );
+    }
+
+    let r_secret_both = call(&format!(
+        "/api/sources/secret/file?handle={}&path=../x",
+        "11".repeat(32)
+    ));
+    let r_missing_both = call(&format!(
+        "/api/sources/nonexistent/file?handle={}&path=../x",
+        "11".repeat(32)
+    ));
+    assert_eq!(r_secret_both.status, 400);
+    assert_eq!(r_missing_both.status, 400);
+    assert_eq!(
+        value(&r_secret_both).get("code").and_then(Value::as_str),
+        Some("query_invalid")
+    );
+    assert_eq!(r_secret_both.body, r_missing_both.body);
+}
+
+#[test]
+fn restricted_sources_support_multi_ceiling_and_sub_ceiling_discovery_and_handles() {
+    use kiln_adapter_basalt::test_support::{
+        COORDINATOR_SEED, EXPIRES_S, GENERATION, SourceFixture, VERIFY_AT_S,
+    };
+    use kiln_core::implementation::authority::{AttemptCurrentness, AuthorityProfile};
+    use kiln_core::projection::authority::{
+        PathScope, SnapshotObservation, SourceAuthorityRequest, SourceCurrentness,
+        SourceViewOperation,
+    };
+    use kiln_core::projection::disclosure::HandleKey;
+    use kiln_core::projection::{
+        ComponentVersion, Coverage, EntryKind, GeneratedInputs, Mount, ProjectionDefinition,
+        ProjectionFacts, ProjectionProfile, ProviderBinding, RepositoryEnrollment,
+        RepositoryLocator, Selection, SourceCapability, SourceEntry, TargetProfile,
+        admit_definition, admit_repositories,
+    };
+    use kiln_core::types::{ContentId, ExternalRef, ProviderProfileId};
+    use kiln_web_service::sources::{RestrictedSourceAccess, RestrictedSourceRepo};
+    use kiln_web_service::worker::source_auth::RequestProfile;
+
+    let root =
+        tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let work = root.path().join("work");
+    let repo =
+        Repository::init(&work).unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let rev = commit_nested(
+        &repo,
+        &[
+            ("docs/a.md", "doc a\n"),
+            ("src/public/mod.rs", "pub fn ok() {}\n"),
+            (
+                "src/private/secret.rs",
+                "const SECRET: &str = \"hidden\";\n",
+            ),
+        ],
+        "multi",
+        None,
+    );
+    let browser = Browser::restricted(Some(Profile {
+        schema: "kiln.web-sources.v1".into(),
+        sources: vec![policy("kiln", "git", &work)],
+    }))
+    .unwrap_or_else(|error| unreachable!("restricted browser: {error:?}"));
+    let adm = admit_repositories(
+        &[RepositoryEnrollment {
+            repository_id: "kiln".into(),
+            binding: ProviderBinding {
+                source_provider: ProviderProfileId::new("git-source-v1")
+                    .unwrap_or_else(|e| unreachable!("{e:?}")),
+                native_repository: ExternalRef::new("git", "repository", "kiln")
+                    .unwrap_or_else(|e| unreachable!("{e:?}")),
+            },
+            locators: vec![RepositoryLocator::LocalPath {
+                path: work.to_string_lossy().into_owned(),
+            }],
+        }],
+        &[],
+    )
+    .unwrap_or_else(|e| unreachable!("{e:?}"))
+    .pop()
+    .unwrap_or_else(|| unreachable!("admitted repo"));
+    let def = admit_definition(&ProjectionDefinition {
+        schema: kiln_core::projection::DEFINITION_SCHEMA.into(),
+        id: "multi-ceiling".into(),
+        profile: ProjectionProfile::Runnable,
+        selection: Selection {
+            root: String::new(),
+            include: vec!["docs/**".into(), "src/**".into()],
+            exclude: Vec::new(),
+        },
+        mounts: vec![Mount {
+            source_prefix: String::new(),
+            destination_prefix: String::new(),
+        }],
+        dependencies: Vec::new(),
+        creation_destinations: Vec::new(),
+        required_capabilities: vec![SourceCapability::ExactTree],
+        generated_inputs: GeneratedInputs::Refused,
+        target: TargetProfile::POSIX,
+        compatibility: None,
+    })
+    .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let ext_rev = ExternalRef::new("git", "commit", &rev.to_string())
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let blob_ref = |bytes: &[u8]| {
+        let oid = Oid::hash_object(git2::ObjectType::Blob, bytes)
+            .unwrap_or_else(|e| unreachable!("{e:?}"));
+        ExternalRef::new("git", "blob", &oid.to_string()).unwrap_or_else(|e| unreachable!("{e:?}"))
+    };
+    let component = |name: &str| ComponentVersion {
+        name: name.into(),
+        version: "1".into(),
+    };
+    let tree_id = ContentId::from_blake3_hex(blake3::hash(b"t-multi").to_hex().to_string())
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let facts = ProjectionFacts {
+        repository: adm.identity().clone(),
+        exact_revision: ext_rev.clone(),
+        canonical_tree: tree_id,
+        evaluator: component("kiln-projection"),
+        adapter: component("git-source"),
+        source_capabilities: vec![SourceCapability::ExactTree],
+        coverage: Coverage::Complete,
+        entries: vec![
+            SourceEntry {
+                path: "docs/a.md".into(),
+                object: blob_ref(b"doc a\n"),
+                kind: EntryKind::File,
+            },
+            SourceEntry {
+                path: "src/public/mod.rs".into(),
+                object: blob_ref(b"pub fn ok() {}\n"),
+                kind: EntryKind::File,
+            },
+            SourceEntry {
+                path: "src/private/secret.rs".into(),
+                object: blob_ref(b"const SECRET: &str = \"hidden\";\n"),
+                kind: EntryKind::File,
+            },
+        ],
+        dependencies: Vec::new(),
+        generated: Vec::new(),
+    };
+    let cur = SourceCurrentness {
+        generation: GENERATION,
+        revocation_generation: 0,
+        snapshot: SnapshotObservation {
+            revision: ext_rev,
+            ref_name: None,
+            previous: None,
+            fast_forward: false,
+        },
+        attempt: AttemptCurrentness::Current,
+    };
+    let fixture = SourceFixture::direct(
+        COORDINATOR_SEED,
+        adm.identity(),
+        None,
+        &[
+            (
+                PathScope::from_path("docs", true).unwrap_or_else(|| unreachable!("path")),
+                vec![
+                    SourceViewOperation::Discover,
+                    SourceViewOperation::ReadContent,
+                ],
+            ),
+            (
+                PathScope::from_path("src/public", true).unwrap_or_else(|| unreachable!("path")),
+                vec![
+                    SourceViewOperation::Discover,
+                    SourceViewOperation::ReadContent,
+                ],
+            ),
+        ],
+        EXPIRES_S,
+    );
+    let mut authority = fixture.authority();
+    let signer = fixture.signer();
+    let sign = |req: &SourceAuthorityRequest| -> Result<AuthorityProfile, String> {
+        signer
+            .sign(req)
+            .map(AuthorityProfile::VerifiedUcan)
+            .map_err(|e| e.message)
+    };
+    let handle_key = HandleKey::from_bytes([0x42; 32]);
+    let repos = [RestrictedSourceRepo {
+        policy_id: "kiln",
+        admitted: &adm,
+        definition: &def,
+        facts: &facts,
+        current: &cur,
+    }];
+    let mut call = |target: &str| {
+        let mut access = RestrictedSourceAccess {
+            authority: &mut authority,
+            profile: RequestProfile::Signer(&sign),
+            repos: &repos,
+            handle_key: &handle_key,
+            now_unix_s: VERIFY_AT_S,
+        };
+        browser.restricted_response("GET", target, &[], Role::Viewer, &mut access)
+    };
+
+    let inv = call("/api/sources");
+    assert_eq!(inv.status, 200);
+    let inv_str = String::from_utf8_lossy(&inv.body);
+    assert!(inv_str.contains("docs/a.md"), "{inv_str}");
+    assert!(inv_str.contains("src/public/mod.rs"), "{inv_str}");
+    assert!(!inv_str.contains("src/private"), "{inv_str}");
+
+    let root_tree = call("/api/sources/kiln/tree");
+    assert_eq!(root_tree.status, 200);
+    let root_json = value(&root_tree);
+    let root_entries: Vec<&str> = root_json
+        .get("entries")
+        .and_then(Value::as_array)
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|e| e.get("path").and_then(Value::as_str))
+                .collect()
+        })
+        .unwrap_or_default();
+    assert_eq!(root_entries, vec!["docs", "src"]);
+
+    let docs_tree = call("/api/sources/kiln/tree?path=docs");
+    assert_eq!(docs_tree.status, 200);
+    assert_eq!(
+        value(&docs_tree)
+            .pointer("/entries/0/path")
+            .and_then(Value::as_str),
+        Some("docs/a.md")
+    );
+
+    let src_tree = call("/api/sources/kiln/tree?path=src");
+    assert_eq!(src_tree.status, 200);
+    let src_json = value(&src_tree);
+    let src_entries: Vec<&str> = src_json
+        .get("entries")
+        .and_then(Value::as_array)
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|e| e.get("path").and_then(Value::as_str))
+                .collect()
+        })
+        .unwrap_or_default();
+    assert_eq!(src_entries, vec!["src/public"]);
+
+    let pub_tree = call("/api/sources/kiln/tree?path=src/public");
+    assert_eq!(pub_tree.status, 200);
+    let pub_json = value(&pub_tree);
+    assert_eq!(
+        pub_json.pointer("/entries/0/path").and_then(Value::as_str),
+        Some("src/public/mod.rs")
+    );
+    let pub_handle = pub_json
+        .pointer("/view/entries")
+        .and_then(Value::as_array)
+        .and_then(|arr| {
+            arr.iter().find(|e| {
+                e.get("display_path").and_then(Value::as_str) == Some("src/public/mod.rs")
+            })
+        })
+        .and_then(|e| e.get("handle").and_then(Value::as_str))
+        .unwrap_or_else(|| unreachable!("handle for src/public/mod.rs in {pub_json}"))
+        .to_owned();
+
+    let priv_tree = call("/api/sources/kiln/tree?path=src/private");
+    assert_eq!(priv_tree.status, 404);
+    assert_eq!(value(&priv_tree), json!({"error": "unavailable"}));
+
+    let pub_file = call(&format!("/api/sources/kiln/file?handle={pub_handle}"));
+    assert_eq!(pub_file.status, 200);
+    assert_eq!(
+        value(&pub_file).get("text").and_then(Value::as_str),
+        Some("pub fn ok() {}\n")
+    );
+}
+
+#[test]
+fn restricted_diff_enforces_full_ceiling_and_empty_excludes_and_inventory_revalidates() {
+    use kiln_adapter_basalt::test_support::{
+        COORDINATOR_SEED, EXPIRES_S, GENERATION, SourceFixture, VERIFY_AT_S,
+    };
+    use kiln_core::implementation::authority::{
+        AttemptCurrentness, AuthorityProfile, AuthoritySessionId,
+    };
+    use kiln_core::projection::authority::{
+        EffectiveSourceScope, PathScope, SnapshotObservation, SourceAuthority,
+        SourceAuthorityDecision, SourceAuthorityRequest, SourceCurrentness, SourceDenialReason,
+        SourceViewOperation,
+    };
+    use kiln_core::projection::disclosure::HandleKey;
+    use kiln_core::projection::{
+        ComponentVersion, Coverage, EntryKind, GeneratedInputs, Mount, ProjectionDefinition,
+        ProjectionFacts, ProjectionProfile, ProviderBinding, RepositoryEnrollment,
+        RepositoryLocator, Selection, SourceCapability, SourceEntry, TargetProfile,
+        admit_definition, admit_repositories,
+    };
+    use kiln_core::types::{ContentId, ExternalRef, ProviderProfileId};
+    use kiln_web_service::sources::{RestrictedSourceAccess, RestrictedSourceRepo};
+    use kiln_web_service::worker::source_auth::RequestProfile;
+
+    let root =
+        tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let (_repo_a, _, second_a) = git_fixture(&root.path().join("a"));
+    let profile = Profile {
+        schema: "kiln.web-sources.v1".into(),
+        sources: vec![policy("kiln", "git", &root.path().join("a/work"))],
+    };
+    let browser = Browser::restricted(Some(profile))
+        .unwrap_or_else(|error| unreachable!("restricted browser: {error:?}"));
+    let adm = admit_repositories(
+        &[RepositoryEnrollment {
+            repository_id: "kiln".into(),
+            binding: ProviderBinding {
+                source_provider: ProviderProfileId::new("git-source-v1")
+                    .unwrap_or_else(|e| unreachable!("{e:?}")),
+                native_repository: ExternalRef::new("git", "repository", "kiln")
+                    .unwrap_or_else(|e| unreachable!("{e:?}")),
+            },
+            locators: vec![RepositoryLocator::LocalPath {
+                path: root.path().join("a/work").to_string_lossy().into_owned(),
+            }],
+        }],
+        &[],
+    )
+    .unwrap_or_else(|e| unreachable!("{e:?}"))
+    .pop()
+    .unwrap_or_else(|| unreachable!("admitted repo"));
+
+    let make_def = |id: &str, include: Vec<String>, exclude: Vec<String>| {
+        admit_definition(&ProjectionDefinition {
+            schema: kiln_core::projection::DEFINITION_SCHEMA.into(),
+            id: id.into(),
+            profile: ProjectionProfile::Runnable,
+            selection: Selection {
+                root: String::new(),
+                include,
+                exclude,
+            },
+            mounts: vec![Mount {
+                source_prefix: String::new(),
+                destination_prefix: String::new(),
+            }],
+            dependencies: Vec::new(),
+            creation_destinations: Vec::new(),
+            required_capabilities: vec![SourceCapability::ExactTree],
+            generated_inputs: GeneratedInputs::Refused,
+            target: TargetProfile::POSIX,
+            compatibility: None,
+        })
+        .unwrap_or_else(|e| unreachable!("{e:?}"))
+    };
+    let def_partial = make_def("partial", vec!["src/**".into()], Vec::new());
+    let def_excluded = make_def("excluded", vec!["**".into()], vec!["README.md".into()]);
+    let def_full = make_def("full", vec!["**".into()], Vec::new());
+
+    let rev = ExternalRef::new("git", "commit", &second_a.to_string())
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let blob = ExternalRef::new(
+        "git",
+        "blob",
+        &Oid::hash_object(git2::ObjectType::Blob, b"fn main() { println!(); }\n")
+            .unwrap_or_else(|e| unreachable!("{e:?}"))
+            .to_string(),
+    )
+    .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let component = |name: &str| ComponentVersion {
+        name: name.into(),
+        version: "1".into(),
+    };
+    let tree_id = ContentId::from_blake3_hex(blake3::hash(b"t-diff").to_hex().to_string())
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let facts = ProjectionFacts {
+        repository: adm.identity().clone(),
+        exact_revision: rev.clone(),
+        canonical_tree: tree_id,
+        evaluator: component("kiln-projection"),
+        adapter: component("git-source"),
+        source_capabilities: vec![SourceCapability::ExactTree],
+        coverage: Coverage::Complete,
+        entries: vec![SourceEntry {
+            path: "src/main.rs".into(),
+            object: blob,
+            kind: EntryKind::File,
+        }],
+        dependencies: Vec::new(),
+        generated: Vec::new(),
+    };
+    let cur = SourceCurrentness {
+        generation: GENERATION,
+        revocation_generation: 0,
+        snapshot: SnapshotObservation {
+            revision: rev,
+            ref_name: None,
+            previous: None,
+            fast_forward: false,
+        },
+        attempt: AttemptCurrentness::Current,
+    };
+    let fixture = SourceFixture::direct(
+        COORDINATOR_SEED,
+        adm.identity(),
+        None,
+        &[(
+            PathScope::root(),
+            vec![
+                SourceViewOperation::Discover,
+                SourceViewOperation::ReadContent,
+                SourceViewOperation::ReadHistory,
+            ],
+        )],
+        EXPIRES_S,
+    );
+    let signer = fixture.signer();
+    let sign = |req: &SourceAuthorityRequest| -> Result<AuthorityProfile, String> {
+        signer
+            .sign(req)
+            .map(AuthorityProfile::VerifiedUcan)
+            .map_err(|e| e.message)
+    };
+    let handle_key = HandleKey::from_bytes([0x42; 32]);
+
+    // 1. Partial ceiling & non-empty exclude both deny restricted_diff
+    for bad_def in [&def_partial, &def_excluded] {
+        let mut auth = fixture.authority();
+        let repos = [RestrictedSourceRepo {
+            policy_id: "kiln",
+            admitted: &adm,
+            definition: bad_def,
+            facts: &facts,
+            current: &cur,
+        }];
+        let mut access = RestrictedSourceAccess {
+            authority: &mut auth,
+            profile: RequestProfile::Signer(&sign),
+            repos: &repos,
+            handle_key: &handle_key,
+            now_unix_s: VERIFY_AT_S,
+        };
+        let resp = browser.restricted_response(
+            "GET",
+            "/api/sources/kiln/diff",
+            &[],
+            Role::Viewer,
+            &mut access,
+        );
+        assert_eq!(resp.status, 404);
+        assert_eq!(value(&resp), json!({"error": "unavailable"}));
+    }
+
+    // 2. Full ceiling allows restricted_diff, and inventory invokes revalidate
+    struct RevalidateSpy<A> {
+        inner: A,
+        revalid_calls: usize,
+        deny_revalid: bool,
+    }
+    impl<A: SourceAuthority> SourceAuthority for RevalidateSpy<A> {
+        fn admit(
+            &mut self,
+            request: &SourceAuthorityRequest,
+            profile: &AuthorityProfile,
+            current: &SourceCurrentness,
+            now_unix_s: u64,
+        ) -> Result<SourceAuthorityDecision, SourceAuthorityDecision> {
+            self.inner.admit(request, profile, current, now_unix_s)
+        }
+        fn revalidate(
+            &mut self,
+            session: AuthoritySessionId,
+            request: &SourceAuthorityRequest,
+            current: &SourceCurrentness,
+            now_unix_s: u64,
+        ) -> Result<(), SourceAuthorityDecision> {
+            self.revalid_calls = self.revalid_calls.saturating_add(1);
+            if self.deny_revalid {
+                return Err(SourceAuthorityDecision::deny(
+                    request,
+                    SourceDenialReason::Revoked,
+                ));
+            }
+            self.inner.revalidate(session, request, current, now_unix_s)
+        }
+        fn close(&mut self, session: AuthoritySessionId) {
+            self.inner.close(session);
+        }
+        fn effective_scope(&self, session: AuthoritySessionId) -> Option<&EffectiveSourceScope> {
+            self.inner.effective_scope(session)
+        }
+        fn decisions(&self) -> &[SourceAuthorityDecision] {
+            self.inner.decisions()
+        }
+    }
+
+    let mut spy = RevalidateSpy {
+        inner: fixture.authority(),
+        revalid_calls: 0,
+        deny_revalid: false,
+    };
+    let repos_full = [RestrictedSourceRepo {
+        policy_id: "kiln",
+        admitted: &adm,
+        definition: &def_full,
+        facts: &facts,
+        current: &cur,
+    }];
+    {
+        let mut access = RestrictedSourceAccess {
+            authority: &mut spy,
+            profile: RequestProfile::Signer(&sign),
+            repos: &repos_full,
+            handle_key: &handle_key,
+            now_unix_s: VERIFY_AT_S,
+        };
+        let diff_ok = browser.restricted_response(
+            "GET",
+            "/api/sources/kiln/diff",
+            &[],
+            Role::Viewer,
+            &mut access,
+        );
+        assert_eq!(diff_ok.status, 200);
+        let inv_ok =
+            browser.restricted_response("GET", "/api/sources", &[], Role::Viewer, &mut access);
+        assert_eq!(inv_ok.status, 200);
+        assert_eq!(
+            value(&inv_ok)
+                .get("sources")
+                .and_then(Value::as_array)
+                .map(Vec::len),
+            Some(1)
+        );
+    }
+    assert!(spy.revalid_calls >= 2, "expected revalidate on inventory");
+
+    spy.deny_revalid = true;
+    let mut access_denied = RestrictedSourceAccess {
+        authority: &mut spy,
+        profile: RequestProfile::Signer(&sign),
+        repos: &repos_full,
+        handle_key: &handle_key,
+        now_unix_s: VERIFY_AT_S,
+    };
+    let inv_denied =
+        browser.restricted_response("GET", "/api/sources", &[], Role::Viewer, &mut access_denied);
+    assert_eq!(inv_denied.status, 200);
+    assert_eq!(
+        value(&inv_denied)
+            .get("sources")
+            .and_then(Value::as_array)
+            .map(Vec::len),
+        Some(0)
+    );
+}
+
+#[test]
+fn restricted_sources_support_over_64_files_under_local_and_basalt_authorities() {
+    use std::cell::Cell;
+    use std::collections::BTreeSet;
+
+    use kiln_adapter_basalt::test_support::{
+        COORDINATOR_SEED, EXPIRES_S, GENERATION, SourceFixture, VERIFY_AT_S, seed,
+    };
+    use kiln_adapter_basalt::{SourceHolderKey, SourceSigner};
+    use kiln_core::implementation::authority::{
+        AttemptCurrentness, AuthorityProfile, AuthoritySessionId,
+    };
+    use kiln_core::projection::authority::{
+        EffectiveSourceScope, LocalSourceAuthority, LocalSourceGrant, PathScope,
+        SnapshotObservation, SourceAuthority, SourceAuthorityDecision, SourceAuthorityRequest,
+        SourceCurrentness, SourceViewOperation,
+    };
+    use kiln_core::projection::disclosure::HandleKey;
+    use kiln_core::projection::{
+        ComponentVersion, Coverage, EntryKind, GeneratedInputs, Mount, ProjectionDefinition,
+        ProjectionFacts, ProjectionProfile, ProviderBinding, RepositoryEnrollment,
+        RepositoryLocator, Selection, SourceCapability, SourceEntry, TargetProfile,
+        admit_definition, admit_repositories,
+    };
+    use kiln_core::types::{ContentId, ExternalRef, ProviderProfileId};
+    use kiln_web_service::sources::{RestrictedSourceAccess, RestrictedSourceRepo};
+    use kiln_web_service::worker::source_auth::RequestProfile;
+
+    let root =
+        tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let work = root.path().join("work");
+    let repo =
+        Repository::init(&work).unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let file_specs: Vec<(String, String)> = (0..70)
+        .map(|i| {
+            (
+                format!("src/f{i:02}.rs"),
+                format!("pub const F{i}: usize = {i};\n"),
+            )
+        })
+        .collect();
+    let file_refs: Vec<(&str, &str)> = file_specs
+        .iter()
+        .map(|(p, b)| (p.as_str(), b.as_str()))
+        .collect();
+    let rev = commit_nested(&repo, &file_refs, "70 files", None);
+    let browser = Browser::restricted(Some(Profile {
+        schema: "kiln.web-sources.v1".into(),
+        sources: vec![policy("kiln", "git", &work)],
+    }))
+    .unwrap_or_else(|error| unreachable!("restricted browser: {error:?}"));
+    let adm = admit_repositories(
+        &[RepositoryEnrollment {
+            repository_id: "kiln".into(),
+            binding: ProviderBinding {
+                source_provider: ProviderProfileId::new("git-source-v1")
+                    .unwrap_or_else(|e| unreachable!("{e:?}")),
+                native_repository: ExternalRef::new("git", "repository", "kiln")
+                    .unwrap_or_else(|e| unreachable!("{e:?}")),
+            },
+            locators: vec![RepositoryLocator::LocalPath {
+                path: work.to_string_lossy().into_owned(),
+            }],
+        }],
+        &[],
+    )
+    .unwrap_or_else(|e| unreachable!("{e:?}"))
+    .pop()
+    .unwrap_or_else(|| unreachable!("admitted repo"));
+    let def = admit_definition(&ProjectionDefinition {
+        schema: kiln_core::projection::DEFINITION_SCHEMA.into(),
+        id: "over-64".into(),
+        profile: ProjectionProfile::Runnable,
+        selection: Selection {
+            root: String::new(),
+            include: vec!["**".into()],
+            exclude: Vec::new(),
+        },
+        mounts: vec![Mount {
+            source_prefix: String::new(),
+            destination_prefix: String::new(),
+        }],
+        dependencies: Vec::new(),
+        creation_destinations: Vec::new(),
+        required_capabilities: vec![SourceCapability::ExactTree],
+        generated_inputs: GeneratedInputs::Refused,
+        target: TargetProfile::POSIX,
+        compatibility: None,
+    })
+    .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let ext_rev = ExternalRef::new("git", "commit", &rev.to_string())
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let blob_ref = |bytes: &[u8]| {
+        let oid = Oid::hash_object(git2::ObjectType::Blob, bytes)
+            .unwrap_or_else(|e| unreachable!("{e:?}"));
+        ExternalRef::new("git", "blob", &oid.to_string()).unwrap_or_else(|e| unreachable!("{e:?}"))
+    };
+    let component = |name: &str| ComponentVersion {
+        name: name.into(),
+        version: "1".into(),
+    };
+    let tree_id = ContentId::from_blake3_hex(blake3::hash(b"t-70").to_hex().to_string())
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let facts = ProjectionFacts {
+        repository: adm.identity().clone(),
+        exact_revision: ext_rev.clone(),
+        canonical_tree: tree_id,
+        evaluator: component("kiln-projection"),
+        adapter: component("git-source"),
+        source_capabilities: vec![SourceCapability::ExactTree],
+        coverage: Coverage::Complete,
+        entries: file_specs
+            .iter()
+            .map(|(path, body)| SourceEntry {
+                path: path.clone(),
+                object: blob_ref(body.as_bytes()),
+                kind: EntryKind::File,
+            })
+            .collect(),
+        dependencies: Vec::new(),
+        generated: Vec::new(),
+    };
+    let cur = SourceCurrentness {
+        generation: GENERATION,
+        revocation_generation: 0,
+        snapshot: SnapshotObservation {
+            revision: ext_rev,
+            ref_name: None,
+            previous: None,
+            fast_forward: false,
+        },
+        attempt: AttemptCurrentness::Current,
+    };
+    let handle_key = HandleKey::from_bytes([0x42; 32]);
+    let repos = [RestrictedSourceRepo {
+        policy_id: "kiln",
+        admitted: &adm,
+        definition: &def,
+        facts: &facts,
+        current: &cur,
+    }];
+
+    // Helper for BasaltSourceAuthority with u64 nonces (>255 signatures).
+    let make_u64_signer = |fixture: &SourceFixture| {
+        let nonce_counter = Cell::new(0_u64);
+        let holder = SourceHolderKey::new(seed(COORDINATOR_SEED), fixture.token.clone())
+            .unwrap_or_else(|e| unreachable!("{e}"));
+        SourceSigner::new(
+            &fixture.config(),
+            holder,
+            fixture.max_delegation_depth,
+            Box::new(move || {
+                let next = nonce_counter.get().checked_add(1)?;
+                nonce_counter.set(next);
+                let mut bytes = [0_u8; 32];
+                if let Some(head) = bytes.get_mut(..8) {
+                    head.copy_from_slice(&next.to_le_bytes());
+                }
+                Some(bytes)
+            }),
+        )
+        .unwrap_or_else(|e| unreachable!("{e}"))
+    };
+
+    // Part A1: BasaltSourceAuthority with full root grant across 70 files.
+    let fixture_full = SourceFixture::direct(
+        COORDINATOR_SEED,
+        adm.identity(),
+        None,
+        &[(
+            PathScope::root(),
+            vec![
+                SourceViewOperation::Discover,
+                SourceViewOperation::ReadContent,
+            ],
+        )],
+        EXPIRES_S,
+    );
+    let mut auth_full = fixture_full.authority();
+    let signer_full = make_u64_signer(&fixture_full);
+    let sign_full = |req: &SourceAuthorityRequest| -> Result<AuthorityProfile, String> {
+        signer_full
+            .sign(req)
+            .map(AuthorityProfile::VerifiedUcan)
+            .map_err(|e| e.message)
+    };
+    let mut call_full = |target: &str| {
+        let mut access = RestrictedSourceAccess {
+            authority: &mut auth_full,
+            profile: RequestProfile::Signer(&sign_full),
+            repos: &repos,
+            handle_key: &handle_key,
+            now_unix_s: VERIFY_AT_S,
+        };
+        browser.restricted_response("GET", target, &[], Role::Viewer, &mut access)
+    };
+
+    let inv = call_full("/api/sources");
+    assert_eq!(inv.status, 200);
+    let inv_json = value(&inv);
+    assert_eq!(
+        inv_json
+            .get("sources")
+            .and_then(Value::as_array)
+            .map(Vec::len),
+        Some(1)
+    );
+    let inv_entries = inv_json
+        .pointer("/sources/0/view/entries")
+        .and_then(Value::as_array)
+        .unwrap_or_else(|| unreachable!("inv view entries in {inv_json}"));
+    assert_eq!(inv_entries.len(), 70);
+    assert_eq!(
+        inv_entries
+            .iter()
+            .find(|e| e.get("display_path").and_then(Value::as_str) == Some("src/f00.rs"))
+            .and_then(|e| e.get("readable").and_then(Value::as_bool)),
+        Some(true)
+    );
+    assert_eq!(
+        inv_entries
+            .iter()
+            .find(|e| e.get("display_path").and_then(Value::as_str) == Some("src/f69.rs"))
+            .and_then(|e| e.get("readable").and_then(Value::as_bool)),
+        Some(true)
+    );
+
+    let tree = call_full("/api/sources/kiln/tree?path=src");
+    assert_eq!(tree.status, 200);
+    let tree_json = value(&tree);
+    assert_eq!(
+        tree_json
+            .get("entries")
+            .and_then(Value::as_array)
+            .map(Vec::len),
+        Some(70)
+    );
+    let f69_handle = tree_json
+        .pointer("/view/entries")
+        .and_then(Value::as_array)
+        .and_then(|arr| {
+            arr.iter()
+                .find(|e| e.get("display_path").and_then(Value::as_str) == Some("src/f69.rs"))
+        })
+        .and_then(|e| {
+            assert_eq!(e.get("readable").and_then(Value::as_bool), Some(true));
+            e.get("handle").and_then(Value::as_str)
+        })
+        .unwrap_or_else(|| unreachable!("src/f69.rs handle in {tree_json}"))
+        .to_owned();
+    assert!(!f69_handle.is_empty());
+
+    let file_by_handle = call_full(&format!("/api/sources/kiln/file?handle={f69_handle}"));
+    assert_eq!(file_by_handle.status, 200);
+    assert_eq!(
+        value(&file_by_handle).get("text").and_then(Value::as_str),
+        Some("pub const F69: usize = 69;\n")
+    );
+
+    let file_by_path = call_full("/api/sources/kiln/file?path=src/f69.rs");
+    assert_eq!(file_by_path.status, 200);
+    assert_eq!(
+        value(&file_by_path).get("text").and_then(Value::as_str),
+        Some("pub const F69: usize = 69;\n")
+    );
+
+    // Part A2: Partial ReadContent negative/mixed case on the 70-file repo.
+    let f00_scope =
+        PathScope::from_path("src/f00.rs", false).unwrap_or_else(|| unreachable!("f00"));
+    let f69_scope =
+        PathScope::from_path("src/f69.rs", false).unwrap_or_else(|| unreachable!("f69"));
+    let fixture_partial = SourceFixture::direct(
+        COORDINATOR_SEED,
+        adm.identity(),
+        None,
+        &[
+            (PathScope::root(), vec![SourceViewOperation::Discover]),
+            (f00_scope, vec![SourceViewOperation::ReadContent]),
+            (f69_scope, vec![SourceViewOperation::ReadContent]),
+        ],
+        EXPIRES_S,
+    );
+    let mut auth_partial = fixture_partial.authority();
+    let signer_partial = make_u64_signer(&fixture_partial);
+    let sign_partial = |req: &SourceAuthorityRequest| -> Result<AuthorityProfile, String> {
+        signer_partial
+            .sign(req)
+            .map(AuthorityProfile::VerifiedUcan)
+            .map_err(|e| e.message)
+    };
+    let mut call_partial = |target: &str| {
+        let mut access = RestrictedSourceAccess {
+            authority: &mut auth_partial,
+            profile: RequestProfile::Signer(&sign_partial),
+            repos: &repos,
+            handle_key: &handle_key,
+            now_unix_s: VERIFY_AT_S,
+        };
+        browser.restricted_response("GET", target, &[], Role::Viewer, &mut access)
+    };
+    let partial_tree = call_partial("/api/sources/kiln/tree?path=src");
+    assert_eq!(partial_tree.status, 200);
+    let partial_json = value(&partial_tree);
+    let partial_view_entries = partial_json
+        .pointer("/view/entries")
+        .and_then(Value::as_array)
+        .unwrap_or_else(|| unreachable!("partial view entries in {partial_json}"));
+    let partial_f69 = partial_view_entries
+        .iter()
+        .find(|e| e.get("display_path").and_then(Value::as_str) == Some("src/f69.rs"))
+        .unwrap_or_else(|| unreachable!("f69 in {partial_json}"));
+    assert_eq!(
+        partial_f69.get("readable").and_then(Value::as_bool),
+        Some(true)
+    );
+    let partial_f69_handle = partial_f69
+        .get("handle")
+        .and_then(Value::as_str)
+        .unwrap_or_else(|| unreachable!("f69 handle"))
+        .to_owned();
+    let partial_f01 = partial_view_entries
+        .iter()
+        .find(|e| e.get("display_path").and_then(Value::as_str) == Some("src/f01.rs"))
+        .unwrap_or_else(|| unreachable!("f01 in {partial_json}"));
+    assert_eq!(
+        partial_f01.get("readable").and_then(Value::as_bool),
+        Some(false)
+    );
+    let partial_f01_handle = partial_f01
+        .get("handle")
+        .and_then(Value::as_str)
+        .unwrap_or_else(|| unreachable!("f01 handle"))
+        .to_owned();
+    let f69_ok = call_partial(&format!(
+        "/api/sources/kiln/file?handle={partial_f69_handle}"
+    ));
+    assert_eq!(f69_ok.status, 200);
+    assert_eq!(
+        value(&f69_ok).get("text").and_then(Value::as_str),
+        Some("pub const F69: usize = 69;\n")
+    );
+    let f01_denied = call_partial(&format!(
+        "/api/sources/kiln/file?handle={partial_f01_handle}"
+    ));
+    assert_eq!(f01_denied.status, 404);
+    assert_eq!(value(&f01_denied), json!({"error": "unavailable"}));
+
+    // Part B: LocalSourceAuthority collapses Discover + ReadContent to <= 3 admit calls.
+    struct AdmitSpy<A> {
+        inner: A,
+        admit_calls: usize,
+    }
+    impl<A: SourceAuthority> SourceAuthority for AdmitSpy<A> {
+        fn admit(
+            &mut self,
+            request: &SourceAuthorityRequest,
+            profile: &AuthorityProfile,
+            current: &SourceCurrentness,
+            now_unix_s: u64,
+        ) -> Result<SourceAuthorityDecision, SourceAuthorityDecision> {
+            self.admit_calls = self.admit_calls.saturating_add(1);
+            self.inner.admit(request, profile, current, now_unix_s)
+        }
+        fn revalidate(
+            &mut self,
+            session: AuthoritySessionId,
+            request: &SourceAuthorityRequest,
+            current: &SourceCurrentness,
+            now_unix_s: u64,
+        ) -> Result<(), SourceAuthorityDecision> {
+            self.inner.revalidate(session, request, current, now_unix_s)
+        }
+        fn close(&mut self, session: AuthoritySessionId) {
+            self.inner.close(session);
+        }
+        fn effective_scope(&self, session: AuthoritySessionId) -> Option<&EffectiveSourceScope> {
+            self.inner.effective_scope(session)
+        }
+        fn decisions(&self) -> &[SourceAuthorityDecision] {
+            self.inner.decisions()
+        }
+    }
+
+    let local_auth = LocalSourceAuthority::new(
+        "operator@host",
+        LocalSourceGrant {
+            repositories: BTreeSet::from([adm.identity().clone()]),
+            operations: BTreeSet::from([
+                SourceViewOperation::Discover,
+                SourceViewOperation::ReadContent,
+            ]),
+        },
+    )
+    .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let mut local_spy = AdmitSpy {
+        inner: local_auth,
+        admit_calls: 0,
+    };
+    let local_profile = AuthorityProfile::LocalOperator {
+        operator: "operator@host".into(),
+    };
+    let local_tree = {
+        let mut access = RestrictedSourceAccess {
+            authority: &mut local_spy,
+            profile: RequestProfile::Static(&local_profile),
+            repos: &repos,
+            handle_key: &handle_key,
+            now_unix_s: VERIFY_AT_S,
+        };
+        browser.restricted_response(
+            "GET",
+            "/api/sources/kiln/tree?path=src",
+            &[],
+            Role::Viewer,
+            &mut access,
+        )
+    };
+    assert_eq!(local_tree.status, 200);
+    assert!(
+        local_spy.admit_calls <= 3,
+        "expected LocalSourceAuthority subtree collapse (<= 3 admit calls), got {}",
+        local_spy.admit_calls
+    );
+    let local_tree_json = value(&local_tree);
+    let local_f69_handle = local_tree_json
+        .pointer("/view/entries")
+        .and_then(Value::as_array)
+        .and_then(|arr| {
+            arr.iter()
+                .find(|e| e.get("display_path").and_then(Value::as_str) == Some("src/f69.rs"))
+        })
+        .and_then(|e| {
+            assert_eq!(e.get("readable").and_then(Value::as_bool), Some(true));
+            e.get("handle").and_then(Value::as_str)
+        })
+        .unwrap_or_else(|| unreachable!("local f69 handle in {local_tree_json}"))
+        .to_owned();
+    let local_file = {
+        let mut access = RestrictedSourceAccess {
+            authority: &mut local_spy,
+            profile: RequestProfile::Static(&local_profile),
+            repos: &repos,
+            handle_key: &handle_key,
+            now_unix_s: VERIFY_AT_S,
+        };
+        browser.restricted_response(
+            "GET",
+            &format!("/api/sources/kiln/file?handle={local_f69_handle}"),
+            &[],
+            Role::Viewer,
+            &mut access,
+        )
+    };
+    assert_eq!(local_file.status, 200);
+    assert_eq!(
+        value(&local_file).get("text").and_then(Value::as_str),
+        Some("pub const F69: usize = 69;\n")
+    );
+}
+
+#[test]
+fn restricted_tree_hides_excluded_directories_uniformly_with_aliased_mounts() {
+    use kiln_adapter_basalt::test_support::{
+        COORDINATOR_SEED, EXPIRES_S, GENERATION, SourceFixture, VERIFY_AT_S,
+    };
+    use kiln_core::implementation::authority::{AttemptCurrentness, AuthorityProfile};
+    use kiln_core::projection::authority::{
+        PathScope, SnapshotObservation, SourceAuthorityRequest, SourceCurrentness,
+        SourceViewOperation,
+    };
+    use kiln_core::projection::disclosure::HandleKey;
+    use kiln_core::projection::{
+        ComponentVersion, Coverage, EntryKind, GeneratedInputs, Mount, ProjectionDefinition,
+        ProjectionFacts, ProjectionProfile, ProviderBinding, RepositoryEnrollment,
+        RepositoryLocator, Selection, SourceCapability, SourceEntry, TargetProfile,
+        admit_definition, admit_repositories,
+    };
+    use kiln_core::types::{ContentId, ExternalRef, ProviderProfileId};
+    use kiln_web_service::sources::{RestrictedSourceAccess, RestrictedSourceRepo};
+    use kiln_web_service::worker::source_auth::RequestProfile;
+
+    let root =
+        tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let work = root.path().join("work");
+    let repo =
+        Repository::init(&work).unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let rev = commit_nested(
+        &repo,
+        &[
+            ("docs/a.md", "doc a\n"),
+            ("src/public/mod.rs", "pub fn ok() {}\n"),
+            ("src/private/secret.rs", "const S: u8 = 1;\n"),
+            ("src/excluded/hidden.rs", "const H: u8 = 2;\n"),
+            ("mounted/src/shadow.rs", "const M: u8 = 3;\n"),
+        ],
+        "excluded-dir-oracle",
+        None,
+    );
+    let browser = Browser::restricted(Some(Profile {
+        schema: "kiln.web-sources.v1".into(),
+        sources: vec![policy("kiln", "git", &work)],
+    }))
+    .unwrap_or_else(|error| unreachable!("restricted browser: {error:?}"));
+    let adm = admit_repositories(
+        &[RepositoryEnrollment {
+            repository_id: "kiln".into(),
+            binding: ProviderBinding {
+                source_provider: ProviderProfileId::new("git-source-v1")
+                    .unwrap_or_else(|e| unreachable!("{e:?}")),
+                native_repository: ExternalRef::new("git", "repository", "kiln")
+                    .unwrap_or_else(|e| unreachable!("{e:?}")),
+            },
+            locators: vec![RepositoryLocator::LocalPath {
+                path: work.to_string_lossy().into_owned(),
+            }],
+        }],
+        &[],
+    )
+    .unwrap_or_else(|e| unreachable!("{e:?}"))
+    .pop()
+    .unwrap_or_else(|| unreachable!("admitted repo"));
+    let def = admit_definition(&ProjectionDefinition {
+        schema: kiln_core::projection::DEFINITION_SCHEMA.into(),
+        id: "exclude-aliased".into(),
+        profile: ProjectionProfile::Runnable,
+        selection: Selection {
+            root: String::new(),
+            include: vec!["docs/**".into(), "src/**".into()],
+            exclude: vec!["src/excluded/**".into(), "mounted/**".into()],
+        },
+        mounts: vec![
+            Mount {
+                source_prefix: "docs".into(),
+                destination_prefix: "mounted/docs".into(),
+            },
+            Mount {
+                source_prefix: "src".into(),
+                destination_prefix: "mounted/src".into(),
+            },
+            Mount {
+                source_prefix: "src/public".into(),
+                destination_prefix: "alias/public".into(),
+            },
+        ],
+        dependencies: Vec::new(),
+        creation_destinations: Vec::new(),
+        required_capabilities: vec![SourceCapability::ExactTree],
+        generated_inputs: GeneratedInputs::Refused,
+        target: TargetProfile::POSIX,
+        compatibility: None,
+    })
+    .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let ext_rev = ExternalRef::new("git", "commit", &rev.to_string())
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let blob_ref = |bytes: &[u8]| {
+        let oid = Oid::hash_object(git2::ObjectType::Blob, bytes)
+            .unwrap_or_else(|e| unreachable!("{e:?}"));
+        ExternalRef::new("git", "blob", &oid.to_string()).unwrap_or_else(|e| unreachable!("{e:?}"))
+    };
+    let component = |name: &str| ComponentVersion {
+        name: name.into(),
+        version: "1".into(),
+    };
+    let tree_id = ContentId::from_blake3_hex(blake3::hash(b"t-excl").to_hex().to_string())
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let facts = ProjectionFacts {
+        repository: adm.identity().clone(),
+        exact_revision: ext_rev.clone(),
+        canonical_tree: tree_id,
+        evaluator: component("kiln-projection"),
+        adapter: component("git-source"),
+        source_capabilities: vec![SourceCapability::ExactTree],
+        coverage: Coverage::Complete,
+        entries: vec![
+            SourceEntry {
+                path: "docs/a.md".into(),
+                object: blob_ref(b"doc a\n"),
+                kind: EntryKind::File,
+            },
+            SourceEntry {
+                path: "src/public/mod.rs".into(),
+                object: blob_ref(b"pub fn ok() {}\n"),
+                kind: EntryKind::File,
+            },
+            SourceEntry {
+                path: "src/private/secret.rs".into(),
+                object: blob_ref(b"const S: u8 = 1;\n"),
+                kind: EntryKind::File,
+            },
+            SourceEntry {
+                path: "src/excluded/hidden.rs".into(),
+                object: blob_ref(b"const H: u8 = 2;\n"),
+                kind: EntryKind::File,
+            },
+            SourceEntry {
+                path: "mounted/src/shadow.rs".into(),
+                object: blob_ref(b"const M: u8 = 3;\n"),
+                kind: EntryKind::File,
+            },
+        ],
+        dependencies: Vec::new(),
+        generated: Vec::new(),
+    };
+    let cur = SourceCurrentness {
+        generation: GENERATION,
+        revocation_generation: 0,
+        snapshot: SnapshotObservation {
+            revision: ext_rev,
+            ref_name: None,
+            previous: None,
+            fast_forward: false,
+        },
+        attempt: AttemptCurrentness::Current,
+    };
+    let handle_key = HandleKey::from_bytes([0x42; 32]);
+    let repos = [RestrictedSourceRepo {
+        policy_id: "kiln",
+        admitted: &adm,
+        definition: &def,
+        facts: &facts,
+        current: &cur,
+    }];
+
+    // 1. Root Discover + ReadContent holder.
+    let fixture_root = SourceFixture::direct(
+        COORDINATOR_SEED,
+        adm.identity(),
+        None,
+        &[(
+            PathScope::root(),
+            vec![
+                SourceViewOperation::Discover,
+                SourceViewOperation::ReadContent,
+            ],
+        )],
+        EXPIRES_S,
+    );
+    let mut auth_root = fixture_root.authority();
+    let signer_root = fixture_root.signer();
+    let sign_root = |req: &SourceAuthorityRequest| -> Result<AuthorityProfile, String> {
+        signer_root
+            .sign(req)
+            .map(AuthorityProfile::VerifiedUcan)
+            .map_err(|e| e.message)
+    };
+    let mut call_root = |target: &str| {
+        let mut access = RestrictedSourceAccess {
+            authority: &mut auth_root,
+            profile: RequestProfile::Signer(&sign_root),
+            repos: &repos,
+            handle_key: &handle_key,
+            now_unix_s: VERIFY_AT_S,
+        };
+        browser.restricted_response("GET", target, &[], Role::Viewer, &mut access)
+    };
+
+    let excl = call_root("/api/sources/kiln/tree?path=src/excluded");
+    let nonex = call_root("/api/sources/kiln/tree?path=src/nonexistent");
+    assert_eq!(excl.status, 404);
+    assert_eq!(value(&excl), json!({"error": "unavailable"}));
+    assert_eq!(nonex.status, 404);
+    assert_eq!(excl.body, nonex.body);
+
+    let mounted = call_root("/api/sources/kiln/tree?path=mounted/src");
+    assert_eq!(mounted.status, 404);
+    assert_eq!(value(&mounted), json!({"error": "unavailable"}));
+
+    let src = call_root("/api/sources/kiln/tree?path=src");
+    assert_eq!(src.status, 200);
+    let src_json = value(&src);
+    let src_paths: Vec<&str> = src_json
+        .get("entries")
+        .and_then(Value::as_array)
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|e| e.get("path").and_then(Value::as_str))
+                .collect()
+        })
+        .unwrap_or_default();
+    assert!(!src_paths.contains(&"src/excluded"), "{src_paths:?}");
+    assert!(src_paths.contains(&"src/public"), "{src_paths:?}");
+
+    let pub_tree = call_root("/api/sources/kiln/tree?path=src/public");
+    assert_eq!(pub_tree.status, 200);
+    let pub_json = value(&pub_tree);
+    assert_eq!(
+        pub_json.pointer("/entries/0/path").and_then(Value::as_str),
+        Some("src/public/mod.rs")
+    );
+    let view_entries = pub_json
+        .pointer("/view/entries")
+        .and_then(Value::as_array)
+        .unwrap_or_else(|| unreachable!("view entries in {pub_json}"));
+    let h_mounted = view_entries
+        .iter()
+        .find(|e| {
+            e.get("display_path").and_then(Value::as_str) == Some("mounted/src/public/mod.rs")
+        })
+        .and_then(|e| e.get("handle").and_then(Value::as_str))
+        .unwrap_or_else(|| unreachable!("mounted handle in {pub_json}"))
+        .to_owned();
+    let h_alias = view_entries
+        .iter()
+        .find(|e| e.get("display_path").and_then(Value::as_str) == Some("alias/public/mod.rs"))
+        .and_then(|e| e.get("handle").and_then(Value::as_str))
+        .unwrap_or_else(|| unreachable!("alias handle in {pub_json}"))
+        .to_owned();
+    for h in [h_mounted, h_alias] {
+        let f = call_root(&format!("/api/sources/kiln/file?handle={h}"));
+        assert_eq!(f.status, 200);
+        assert_eq!(
+            value(&f).get("text").and_then(Value::as_str),
+            Some("pub fn ok() {}\n")
+        );
+    }
+
+    // 2. Narrow sub-ceiling holder (docs/** and src/public/**).
+    let fixture_narrow = SourceFixture::direct(
+        COORDINATOR_SEED,
+        adm.identity(),
+        None,
+        &[
+            (
+                PathScope::from_path("docs", true).unwrap_or_else(|| unreachable!("docs")),
+                vec![
+                    SourceViewOperation::Discover,
+                    SourceViewOperation::ReadContent,
+                ],
+            ),
+            (
+                PathScope::from_path("src/public", true)
+                    .unwrap_or_else(|| unreachable!("src/public")),
+                vec![
+                    SourceViewOperation::Discover,
+                    SourceViewOperation::ReadContent,
+                ],
+            ),
+        ],
+        EXPIRES_S,
+    );
+    let mut auth_narrow = fixture_narrow.authority();
+    let signer_narrow = fixture_narrow.signer();
+    let sign_narrow = |req: &SourceAuthorityRequest| -> Result<AuthorityProfile, String> {
+        signer_narrow
+            .sign(req)
+            .map(AuthorityProfile::VerifiedUcan)
+            .map_err(|e| e.message)
+    };
+    let mut call_narrow = |target: &str| {
+        let mut access = RestrictedSourceAccess {
+            authority: &mut auth_narrow,
+            profile: RequestProfile::Signer(&sign_narrow),
+            repos: &repos,
+            handle_key: &handle_key,
+            now_unix_s: VERIFY_AT_S,
+        };
+        browser.restricted_response("GET", target, &[], Role::Viewer, &mut access)
+    };
+
+    let narrow_src = call_narrow("/api/sources/kiln/tree?path=src");
+    assert_eq!(narrow_src.status, 200);
+    let narrow_src_json = value(&narrow_src);
+    let narrow_src_paths: Vec<&str> = narrow_src_json
+        .get("entries")
+        .and_then(Value::as_array)
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|e| e.get("path").and_then(Value::as_str))
+                .collect()
+        })
+        .unwrap_or_default();
+    assert_eq!(narrow_src_paths, vec!["src/public"]);
+    assert_eq!(
+        call_narrow("/api/sources/kiln/tree?path=src/public").status,
+        200
+    );
+    for hidden_path in ["src/private", "src/excluded", "src/nonexistent"] {
+        let resp = call_narrow(&format!("/api/sources/kiln/tree?path={hidden_path}"));
+        assert_eq!(resp.status, 404, "{hidden_path}");
+        assert_eq!(value(&resp), json!({"error": "unavailable"}));
+    }
+
+    // 3. Excluded-only narrow holder vs nonexistent-file narrow holder must match.
+    let call_only = |scope_path: &str| {
+        let fixture = SourceFixture::direct(
+            COORDINATOR_SEED,
+            adm.identity(),
+            None,
+            &[(
+                PathScope::from_path(scope_path, false).unwrap_or_else(|| unreachable!("path")),
+                vec![SourceViewOperation::Discover],
+            )],
+            EXPIRES_S,
+        );
+        let mut auth = fixture.authority();
+        let signer = fixture.signer();
+        let sign = |req: &SourceAuthorityRequest| -> Result<AuthorityProfile, String> {
+            signer
+                .sign(req)
+                .map(AuthorityProfile::VerifiedUcan)
+                .map_err(|e| e.message)
+        };
+        let mut access = RestrictedSourceAccess {
+            authority: &mut auth,
+            profile: RequestProfile::Signer(&sign),
+            repos: &repos,
+            handle_key: &handle_key,
+            now_unix_s: VERIFY_AT_S,
+        };
+        let inv_resp =
+            browser.restricted_response("GET", "/api/sources", &[], Role::Viewer, &mut access);
+        let tree_resp = browser.restricted_response(
+            "GET",
+            "/api/sources/kiln/tree",
+            &[],
+            Role::Viewer,
+            &mut access,
+        );
+        (inv_resp, tree_resp)
+    };
+    let (excl_inv, excl_tree) = call_only("src/excluded/hidden.rs");
+    let (miss_inv, miss_tree) = call_only("src/nonexistent/file.rs");
+    assert_eq!(excl_inv.status, 200);
+    assert_eq!(value(&excl_inv).get("sources"), Some(&json!([])));
+    assert_eq!(excl_inv.body, miss_inv.body);
+    assert_eq!(excl_tree.status, 404);
+    assert_eq!(value(&excl_tree), json!({"error": "unavailable"}));
+    assert_eq!(excl_tree.body, miss_tree.body);
+}

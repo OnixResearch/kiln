@@ -10,6 +10,7 @@
 //! missing or different is never reused or overwritten, and a reused input is
 //! verified again. Materializing grants no read, write or execution
 //! authority; callers admit those separately.
+use std::collections::BTreeSet;
 use std::fs::{self, OpenOptions};
 use std::io::{Read, Write};
 use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
@@ -17,6 +18,10 @@ use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use git2::{ObjectType, Oid, Repository};
+use kiln_core::projection::EntryOrigin;
+use kiln_core::projection::authority::{
+    AttemptFence, OriginScope, PathScope, SnapshotRule, SourceAuthorityRequest, SourceViewOperation,
+};
 use kiln_core::projection::materialization::{
     INPUTS_DIRECTORY, MaterializationPlan, OVERLAYS_DIRECTORY, PlannedEntry,
     ProjectedWorkspaceRoute, WorkspacePin,
@@ -26,6 +31,7 @@ use nix::fcntl::{AT_FDCWD, RenameFlags, renameat2};
 use serde::{Deserialize, Serialize};
 
 use super::files::owned_directory;
+use super::source_auth::SourceAuthorization;
 
 const BINDING_SCHEMA: &str = "kiln.materialization.binding.v2";
 const INPUTS: &str = INPUTS_DIRECTORY;
@@ -69,12 +75,28 @@ impl Binding {
 // r[impl kiln.source.projection.materialization.scenario.repeat]
 // r[impl kiln.source.projection.materialization.scenario.refused]
 /// Publish, or reuse after re-verification, the immutable input of `plan`
-/// under the private `store`, reading blobs from `repository`.
+/// under the private `store`, reading blobs from `repository`, after
+/// admitting and revalidating `PrepareWorkspace` via `auth`.
 pub fn prepare_input(
     store: &Path,
     plan: &MaterializationPlan,
     repository: &Repository,
+    auth: &mut SourceAuthorization<'_>,
 ) -> Result<PathBuf, String> {
+    let request = SourceAuthorityRequest {
+        operation: SourceViewOperation::PrepareWorkspace,
+        repository: plan.repository().clone(),
+        snapshot: SnapshotRule::Exact {
+            revision: plan.source().clone(),
+        },
+        view_binding: plan.manifest().clone(),
+        scope: OriginScope::Components {
+            path: PathScope::root(),
+        },
+        request_digest: *blake3::hash(plan.input_identity().as_str().as_bytes()).as_bytes(),
+        attempt: None,
+    };
+    auth.authorize(&request)?;
     owned_directory(store)?;
     let inputs = private_child(store, INPUTS)?;
     let name = plan.input_identity().as_str();
@@ -99,14 +121,33 @@ pub fn prepare_input(
 // r[impl kiln.source.projection.materialization.scenario.isolated]
 // r[impl kiln.source.projection.materialization.scenario.pinned]
 /// Prepare, or resume, the private writable overlay that `pin` names over the
-/// published input of `plan`. The pin must be exactly the one `plan` derives
-/// for its attempt and fence, and an existing overlay is resumed only when its
-/// binding records that same pin.
+/// published input of `plan`, after admitting and revalidating attempt-bound
+/// `PrepareWorkspace` via `auth`. The pin must be exactly the one `plan`
+/// derives for its attempt and fence, and an existing overlay is resumed only
+/// when its binding records that same pin.
 pub fn prepare_overlay(
     store: &Path,
     plan: &MaterializationPlan,
     pin: &WorkspacePin,
+    auth: &mut SourceAuthorization<'_>,
 ) -> Result<PathBuf, String> {
+    let request = SourceAuthorityRequest {
+        operation: SourceViewOperation::PrepareWorkspace,
+        repository: pin.repository.clone(),
+        snapshot: SnapshotRule::Exact {
+            revision: pin.source.clone(),
+        },
+        view_binding: pin.manifest.clone(),
+        scope: OriginScope::Components {
+            path: PathScope::root(),
+        },
+        request_digest: *blake3::hash(pin.overlay.as_str().as_bytes()).as_bytes(),
+        attempt: Some(AttemptFence {
+            attempt: pin.attempt.clone(),
+            fence: pin.fence,
+        }),
+    };
+    auth.authorize(&request)?;
     owned_directory(store)?;
     let derived = plan
         .pin(&pin.attempt, pin.fence)
@@ -147,16 +188,14 @@ pub fn prepare_overlay(
 }
 
 // r[impl kiln.source.projection.route.scenario.derived]
-/// Make a prepared overlay ready for its route: the route must verify, name
-/// this `store`, and its overlay must be published and bound to the route's
-/// pin. Every write path must then be an ordinary file of the overlay or a
-/// directory, which is created when it is a missing creation destination, so
-/// the runtime can mount it. Nothing outside the overlay is touched. Returns
-/// the overlay root.
+/// Make a prepared overlay ready for its route after admitting and revalidating
+/// `PrepareWorkspace` and write-path (`ModifySource`/`CreateSource`) authority
+/// via `auth`. Returns the overlay root.
 pub fn prepare_route(
     store: &Path,
     plan: &MaterializationPlan,
     route: &ProjectedWorkspaceRoute,
+    auth: &mut SourceAuthorization<'_>,
 ) -> Result<PathBuf, String> {
     route.verify().map_err(|diagnostics| {
         diagnostics
@@ -167,6 +206,71 @@ pub fn prepare_route(
     })?;
     if route.store() != store.to_str() {
         return Err("the route names another materialization store".into());
+    }
+    let request_digest = *blake3::hash(route.identity.as_str().as_bytes()).as_bytes();
+    let attempt = Some(AttemptFence {
+        attempt: route.pin.attempt.clone(),
+        fence: route.pin.fence,
+    });
+    let snapshot = SnapshotRule::Exact {
+        revision: route.pin.source.clone(),
+    };
+    auth.authorize(&SourceAuthorityRequest {
+        operation: SourceViewOperation::PrepareWorkspace,
+        repository: route.pin.repository.clone(),
+        snapshot: snapshot.clone(),
+        view_binding: route.pin.manifest.clone(),
+        scope: OriginScope::Components {
+            path: PathScope::root(),
+        },
+        request_digest,
+        attempt: attempt.clone(),
+    })?;
+    for write in &route.write_paths {
+        let prefix = format!("{write}/");
+        for entry in &route.manifest.entries {
+            if (entry.destination == *write || entry.destination.starts_with(&prefix))
+                && let EntryOrigin::Native { path: origin, .. } = &entry.origin
+            {
+                let scope_path = PathScope::from_path(origin, false)
+                    .ok_or_else(|| format!("{origin}: unsafe origin path in route manifest"))?;
+                auth.authorize(&SourceAuthorityRequest {
+                    operation: SourceViewOperation::ModifySource,
+                    repository: route.pin.repository.clone(),
+                    snapshot: snapshot.clone(),
+                    view_binding: route.pin.manifest.clone(),
+                    scope: OriginScope::Components { path: scope_path },
+                    request_digest,
+                    attempt: attempt.clone(),
+                })?;
+            }
+        }
+        if route.definition.creation_destinations.iter().any(|cd| {
+            cd == write
+                || write.starts_with(&format!("{cd}/"))
+                || cd.starts_with(&prefix)
+                || cd.is_empty()
+        }) {
+            let probes = mapped_creation_probes(route, write);
+            if probes.is_empty() {
+                return Err(format!(
+                    "{write}: creation destination has no matching mount in route"
+                ));
+            }
+            for source_create_path in probes {
+                let scope_path = PathScope::from_path(&source_create_path, false)
+                    .ok_or_else(|| format!("{write}: unsafe creation destination in route"))?;
+                auth.authorize(&SourceAuthorityRequest {
+                    operation: SourceViewOperation::CreateSource,
+                    repository: route.pin.repository.clone(),
+                    snapshot: snapshot.clone(),
+                    view_binding: route.pin.manifest.clone(),
+                    scope: OriginScope::Components { path: scope_path },
+                    request_digest,
+                    attempt: attempt.clone(),
+                })?;
+            }
+        }
     }
     let overlays = store.join(OVERLAYS);
     let overlay = overlays.join(route.pin.overlay.as_str());
@@ -194,6 +298,46 @@ pub fn prepare_route(
         }
     }
     Ok(overlay)
+}
+
+fn mapped_creation_probes(route: &ProjectedWorkspaceRoute, write: &str) -> Vec<String> {
+    let mut probes = BTreeSet::new();
+    for mount in &route.definition.mounts {
+        let rest = if mount.destination_prefix.is_empty() {
+            Some(write)
+        } else if write == mount.destination_prefix {
+            Some("")
+        } else {
+            write
+                .strip_prefix(mount.destination_prefix.as_str())
+                .and_then(|s| s.strip_prefix('/'))
+        };
+        if let Some(rest) = rest {
+            let mapped = match (mount.source_prefix.is_empty(), rest.is_empty()) {
+                (true, _) => rest.to_string(),
+                (false, true) => mount.source_prefix.clone(),
+                (false, false) => format!("{}/{rest}", mount.source_prefix),
+            };
+            let probe = if mapped.is_empty() {
+                "_route_create".to_string()
+            } else {
+                format!("{mapped}/_route_create")
+            };
+            probes.insert(probe);
+        } else if mount
+            .destination_prefix
+            .strip_prefix(write)
+            .is_some_and(|tail| tail.starts_with('/'))
+        {
+            let probe = if mount.source_prefix.is_empty() {
+                "_route_create".to_string()
+            } else {
+                format!("{}/_route_create", mount.source_prefix)
+            };
+            probes.insert(probe);
+        }
+    }
+    probes.into_iter().collect()
 }
 
 /// Whether `directory` is published with exactly `expected`. A directory or

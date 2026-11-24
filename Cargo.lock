@@ -3721,6 +3721,7 @@ dependencies = [
  "hmac 0.12.1",
  "jiff",
  "kiln-adapter-animus",
+ "kiln-adapter-basalt",
  "kiln-adapter-cairn",
  "kiln-adapter-git",
  "kiln-adapter-github",

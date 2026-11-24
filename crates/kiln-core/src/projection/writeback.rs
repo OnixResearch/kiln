@@ -197,6 +197,21 @@ impl SealedCandidate {
     pub fn identity(&self) -> &ContentId {
         &self.identity
     }
+    /// The repository the operations apply to.
+    #[must_use]
+    pub fn repository(&self) -> &ContentId {
+        &self.repository
+    }
+    /// The attempt that produced this candidate.
+    #[must_use]
+    pub fn attempt(&self) -> &ContentId {
+        &self.attempt
+    }
+    /// The attempt fence the candidate was captured at.
+    #[must_use]
+    pub const fn fence(&self) -> u64 {
+        self.fence
+    }
     /// The exact source revision the operations apply to.
     #[must_use]
     pub fn base_revision(&self) -> &ExternalRef {

@@ -48,8 +48,12 @@ use std::process::{Command, ExitCode};
 use base64::Engine as _;
 use git2::build::TreeUpdateBuilder;
 use git2::{FileMode, Oid, Repository, Signature, Time};
+use kiln_adapter_basalt::test_support::{
+    COORDINATOR_SEED, EXPIRES_S, SourceFixture, VERIFIER_SEED, VERIFY_AT_S,
+};
 use kiln_build_graph::{ManifestTree, cargo_graph, cargo_layout, nix_graph, wanted_files};
 use kiln_core::fair_admission::EligibilityInput;
+use kiln_core::implementation::authority::{AttemptCurrentness, AuthorityProfile};
 use kiln_core::implementation::{
     AcceptanceObligation, DISPATCH_PLAN_SCHEMA, DispatchControls, DispatchWorkspace, Enrollment,
     IMPLEMENTATION_WORK_SCHEMA, ImplementationAttempt, ImplementationDispatchPlan,
@@ -57,9 +61,14 @@ use kiln_core::implementation::{
     acceptance_digest,
 };
 use kiln_core::monorepo::{GraphFacts, ProjectInput, ProjectScope, admit_scope};
+use kiln_core::projection::authority::{
+    AttemptFence, OriginScope, PathScope, SnapshotObservation, SnapshotRule, SourceAuthority,
+    SourceAuthorityRequest, SourceCurrentness, SourceDenialReason, SourceViewOperation,
+};
 use kiln_core::projection::build_inputs::{
     BuildInputPlan, BuildProfile, BuildRequest, plan_cargo, plan_nix,
 };
+use kiln_core::projection::disclosure::ViewCeiling;
 use kiln_core::projection::materialization::{
     MATERIALIZER_PROFILE_SCHEMA, MaterializerKind, MaterializerProfile, ProjectedWorkspaceRoute,
     RouteRequest, plan, route,
@@ -75,7 +84,8 @@ use kiln_core::types::{ContentId, ExternalRef, ProviderProfileId};
 use kiln_implementer::Implementer;
 use kiln_implementer::admission::{AdmissionCommand, AdmissionResult};
 use kiln_web_service::worker::materialize::{prepare_input, prepare_overlay, prepare_route};
-use kiln_web_service::worker::writeback::observe;
+use kiln_web_service::worker::source_auth::{RequestProfile, SourceAuthorization};
+use kiln_web_service::worker::writeback::{observe, retrieve_result, seal};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
@@ -206,6 +216,7 @@ struct CaseReceipt {
     missing_probes: Vec<Value>,
     unexpected_probes: Vec<Value>,
     host_checks: Vec<Value>,
+    source_authority_checks: Vec<Value>,
     capture: Value,
 }
 
@@ -364,7 +375,11 @@ fn run() -> Result<bool> {
                     .get("exit")
                     .and_then(Value::as_i64)
                     .is_some()
-                && receipt.host_checks.iter().all(|check| check["ok"] == true);
+                && receipt.host_checks.iter().all(|check| check["ok"] == true)
+                && receipt
+                    .source_authority_checks
+                    .iter()
+                    .all(|check| check["ok"] == true);
             receipts.push(receipt);
         }
     }
@@ -380,7 +395,7 @@ fn run() -> Result<bool> {
         "non_claims": [
             "no model was contacted; the worker is a probe in place of OMP",
             "confinement is Lattice's bubblewrap provider on this host only",
-            "no authority was admitted for retrieval, workspace effects or writeback (S7)",
+            "source authority was verified per operation via Basalt kiln://source/v1/ UCAN grants for materialization, writeback sealing and result retrieval",
             "no source reference was moved or published"
         ],
     });
@@ -796,11 +811,90 @@ fn qualify(
     let store = directory.join("store");
     fs::create_dir(&store)?;
     fs::set_permissions(&store, fs::Permissions::from_mode(PRIVATE_DIRECTORY))?;
-    prepare_input(&store, &materialized, &repository)?;
+
+    let snapshot_revision =
+        ExternalRef::new("git", "commit", &revision.to_string()).map_err(|e| e.message)?;
+    let source_current = SourceCurrentness {
+        generation: kiln_adapter_basalt::test_support::GENERATION,
+        revocation_generation: 0,
+        snapshot: SnapshotObservation {
+            revision: snapshot_revision.clone(),
+            ref_name: None,
+            previous: None,
+            fast_forward: false,
+        },
+        attempt: AttemptCurrentness::Current,
+    };
+    let attempt_fence = AttemptFence {
+        attempt: attempt.identity.clone(),
+        fence: attempt.fence,
+    };
+    let input_fixture = SourceFixture::direct(
+        COORDINATOR_SEED,
+        admitted.identity(),
+        None,
+        &[(
+            PathScope::root(),
+            vec![SourceViewOperation::PrepareWorkspace],
+        )],
+        EXPIRES_S,
+    );
+    let mut input_authority = input_fixture.authority();
+    let input_signer = input_fixture.signer();
+    let sign_input =
+        |req: &SourceAuthorityRequest| -> std::result::Result<AuthorityProfile, String> {
+            input_signer
+                .sign(req)
+                .map(AuthorityProfile::VerifiedUcan)
+                .map_err(|error| error.message)
+        };
+    let mut input_auth = SourceAuthorization {
+        authority: &mut input_authority,
+        profile: RequestProfile::Signer(&sign_input),
+        current: &source_current,
+        now_unix_s: VERIFY_AT_S,
+    };
+    prepare_input(&store, &materialized, &repository, &mut input_auth)?;
+
+    let attempt_fixture = SourceFixture::direct(
+        VERIFIER_SEED,
+        admitted.identity(),
+        Some(&attempt_fence),
+        &[(
+            PathScope::root(),
+            vec![
+                SourceViewOperation::PrepareWorkspace,
+                SourceViewOperation::Discover,
+                SourceViewOperation::ReadContent,
+                SourceViewOperation::ModifySource,
+                SourceViewOperation::CreateSource,
+                SourceViewOperation::RetrieveResult,
+            ],
+        )],
+        EXPIRES_S,
+    );
+    let mut attempt_authority = attempt_fixture.authority();
+    let attempt_signer = attempt_fixture.signer();
+    let sign_attempt =
+        |req: &SourceAuthorityRequest| -> std::result::Result<AuthorityProfile, String> {
+            attempt_signer
+                .sign(req)
+                .map(AuthorityProfile::VerifiedUcan)
+                .map_err(|error| error.message)
+        };
+
     let pin = materialized
         .pin(&attempt.identity, attempt.fence)
         .map_err(|error| error.message)?;
-    prepare_overlay(&store, &materialized, &pin)?;
+    {
+        let mut attempt_auth = SourceAuthorization {
+            authority: &mut attempt_authority,
+            profile: RequestProfile::Signer(&sign_attempt),
+            current: &source_current,
+            now_unix_s: VERIFY_AT_S,
+        };
+        prepare_overlay(&store, &materialized, &pin, &mut attempt_auth)?;
+    }
     let routed = route(
         &definition,
         &write,
@@ -813,7 +907,15 @@ fn qualify(
         },
     )
     .map_err(diagnostics)?;
-    let overlay = prepare_route(&store, &materialized, &routed)?;
+    let overlay = {
+        let mut attempt_auth = SourceAuthorization {
+            authority: &mut attempt_authority,
+            profile: RequestProfile::Signer(&sign_attempt),
+            current: &source_current,
+            now_unix_s: VERIFY_AT_S,
+        };
+        prepare_route(&store, &materialized, &routed, &mut attempt_auth)?
+    };
     let route_file = directory.join("route.json");
     write_json(&route_file, &routed)?;
 
@@ -1041,8 +1143,30 @@ fn qualify(
         json!({"check": "the host checkout is unchanged",
                "ok": fs::read(checkout.join(&read_only))? == fs::read(overlay.join(&read_only))?}),
     ];
-    // Capture the overlay and derive the facts verification consumes.
-    let observed = observe(&overlay)?;
+    // Capture the overlay, authorize sealing and result retrieval via Basalt,
+    // and derive the facts verification consumes.
+    let observe_request = SourceAuthorityRequest {
+        operation: SourceViewOperation::RetrieveResult,
+        repository: admitted.identity().clone(),
+        snapshot: SnapshotRule::Exact {
+            revision: snapshot_revision.clone(),
+        },
+        view_binding: pin.manifest.clone(),
+        scope: OriginScope::Components {
+            path: PathScope::root(),
+        },
+        request_digest: *blake3::hash(pin.overlay.as_str().as_bytes()).as_bytes(),
+        attempt: Some(attempt_fence.clone()),
+    };
+    let observed = {
+        let mut attempt_auth = SourceAuthorization {
+            authority: &mut attempt_authority,
+            profile: RequestProfile::Signer(&sign_attempt),
+            current: &source_current,
+            now_unix_s: VERIFY_AT_S,
+        };
+        observe(&overlay, &observe_request, &mut attempt_auth)?
+    };
     let captured = capture(
         &definition,
         &write,
@@ -1055,8 +1179,27 @@ fn qualify(
         },
     )
     .map_err(diagnostics)?;
+    let ceiling = ViewCeiling::from_definition(&definition);
     let capture = match captured {
         Captured::Sealed(sealed) => {
+            let sealed_commit = {
+                let mut attempt_auth = SourceAuthorization {
+                    authority: &mut attempt_authority,
+                    profile: RequestProfile::Signer(&sign_attempt),
+                    current: &source_current,
+                    now_unix_s: VERIFY_AT_S,
+                };
+                seal(&repository, &overlay, &source, &sealed, &mut attempt_auth)?
+            };
+            let restricted_result = {
+                let mut attempt_auth = SourceAuthorization {
+                    authority: &mut attempt_authority,
+                    profile: RequestProfile::Signer(&sign_attempt),
+                    current: &source_current,
+                    now_unix_s: VERIFY_AT_S,
+                };
+                retrieve_result(&sealed, &ceiling, &PathScope::root(), &mut attempt_auth)?
+            };
             let projects = corpus
                 .projects
                 .iter()
@@ -1073,10 +1216,22 @@ fn qualify(
             let graphs: Vec<GraphFacts> = vec![graph];
             let facts = candidate_facts(&sealed, Some(&build_plan), &projects, &graphs)
                 .map_err(diagnostics)?;
-            json!({"sealed": sealed, "facts": facts})
+            json!({
+                "sealed": sealed,
+                "sealed_commit": sealed_commit.to_string(),
+                "restricted_result": restricted_result,
+                "facts": facts
+            })
         }
         Captured::Conflict(conflict) => json!({"conflict": conflict}),
     };
+    let source_authority_checks = verify_negative_source_authority(
+        admitted.identity(),
+        &snapshot_revision,
+        &pin.manifest,
+        &attempt_fence,
+        &source_current,
+    );
     Ok(CaseReceipt {
         case: case.id.clone(),
         attempt: attempt.identity.clone(),
@@ -1091,6 +1246,7 @@ fn qualify(
         missing_probes,
         unexpected_probes,
         host_checks,
+        source_authority_checks,
         capture,
     })
 }
@@ -1339,6 +1495,142 @@ fn base64(bytes: &[u8]) -> String {
     encoded
 }
 
+/// Negative Basalt `SourceAuthority` checks run per qualified case:
+/// 1) out-of-scope path refused (`CredentialDenied` / `BindingMismatch`),
+/// 2) revoked grant refused (`Revoked`),
+/// 3) zero/mismatched attempt fence refused (`RequestInvalid` / `CredentialDenied`).
+fn verify_negative_source_authority(
+    repository: &ContentId,
+    revision: &ExternalRef,
+    view_binding: &ContentId,
+    attempt_fence: &AttemptFence,
+    current: &SourceCurrentness,
+) -> Vec<Value> {
+    let denied_scope =
+        PathScope::from_path("projects/allowed/src", true).unwrap_or_else(PathScope::root);
+    let fixture = SourceFixture::direct(
+        VERIFIER_SEED,
+        repository,
+        Some(attempt_fence),
+        &[(
+            denied_scope,
+            vec![
+                SourceViewOperation::ModifySource,
+                SourceViewOperation::PrepareWorkspace,
+            ],
+        )],
+        EXPIRES_S,
+    );
+    let mut authority = fixture.authority();
+    let signer = fixture.signer();
+    let ungranted_path =
+        PathScope::from_path("projects/secret/src/lib.rs", false).unwrap_or_else(PathScope::root);
+    let ungranted_req = SourceAuthorityRequest {
+        operation: SourceViewOperation::ModifySource,
+        repository: repository.clone(),
+        snapshot: SnapshotRule::Exact {
+            revision: revision.clone(),
+        },
+        view_binding: view_binding.clone(),
+        scope: OriginScope::Components {
+            path: ungranted_path,
+        },
+        request_digest: [7; 32],
+        attempt: Some(attempt_fence.clone()),
+    };
+    let ungranted_ok = signer.sign(&ungranted_req).ok().is_some_and(|cred| {
+        authority
+            .admit(
+                &ungranted_req,
+                &AuthorityProfile::VerifiedUcan(cred),
+                current,
+                VERIFY_AT_S,
+            )
+            .is_err()
+    });
+
+    let valid_scope_req = SourceAuthorityRequest {
+        operation: SourceViewOperation::PrepareWorkspace,
+        repository: repository.clone(),
+        snapshot: SnapshotRule::Exact {
+            revision: revision.clone(),
+        },
+        view_binding: view_binding.clone(),
+        scope: OriginScope::Components {
+            path: PathScope::from_path("projects/allowed/src", true)
+                .unwrap_or_else(PathScope::root),
+        },
+        request_digest: [8; 32],
+        attempt: Some(attempt_fence.clone()),
+    };
+    let mut zero_fence_req = valid_scope_req.clone();
+    zero_fence_req.attempt = Some(AttemptFence {
+        attempt: attempt_fence.attempt.clone(),
+        fence: 0,
+    });
+    let zero_fence_ok = signer.sign(&valid_scope_req).ok().is_some_and(|cred| {
+        matches!(
+            authority.admit(
+                &zero_fence_req,
+                &AuthorityProfile::VerifiedUcan(cred),
+                current,
+                VERIFY_AT_S,
+            ),
+            Err(denial) if denial.reason == SourceDenialReason::RequestInvalid
+        )
+    });
+    let mut wrong_fence_req = valid_scope_req.clone();
+    wrong_fence_req.attempt = Some(AttemptFence {
+        attempt: attempt_fence.attempt.clone(),
+        fence: attempt_fence.fence.saturating_add(1),
+    });
+    let wrong_fence_ok = signer.sign(&wrong_fence_req).ok().is_some_and(|cred| {
+        matches!(
+            authority.admit(
+                &wrong_fence_req,
+                &AuthorityProfile::VerifiedUcan(cred),
+                current,
+                VERIFY_AT_S,
+            ),
+            Err(denial) if denial.reason == SourceDenialReason::CredentialDenied
+        )
+    });
+    let stale_ok = zero_fence_ok && wrong_fence_ok && fixture.replay.calls() == 0;
+
+    fixture.revocations.revoke(&fixture.token);
+    let revoked_req = SourceAuthorityRequest {
+        operation: SourceViewOperation::PrepareWorkspace,
+        repository: repository.clone(),
+        snapshot: SnapshotRule::Exact {
+            revision: revision.clone(),
+        },
+        view_binding: view_binding.clone(),
+        scope: OriginScope::Components {
+            path: PathScope::from_path("projects/allowed/src", true)
+                .unwrap_or_else(PathScope::root),
+        },
+        request_digest: [9; 32],
+        attempt: Some(attempt_fence.clone()),
+    };
+    let revoked_ok = signer.sign(&revoked_req).ok().is_some_and(|cred| {
+        matches!(
+            authority.admit(
+                &revoked_req,
+                &AuthorityProfile::VerifiedUcan(cred),
+                current,
+                VERIFY_AT_S,
+            ),
+            Err(denial) if denial.reason == SourceDenialReason::Revoked
+        )
+    });
+
+    vec![
+        json!({"check": "unauthorized path refused by Basalt SourceAuthority", "ok": ungranted_ok}),
+        json!({"check": "zero/stale attempt fence refused before credential verification", "ok": stale_ok}),
+        json!({"check": "revoked kiln://source/v1/ grant refused by Basalt SourceAuthority", "ok": revoked_ok}),
+    ]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1452,5 +1744,36 @@ mod tests {
         let mut other = verified(true);
         other["schema"] = json!("kiln.implementation-authority-config.v0");
         assert!(!enables_projection(&other));
+    }
+
+    #[test]
+    fn negative_source_authority_checks_all_pass() {
+        let repo = ContentId::from_blake3_hex(
+            blake3::hash(b"projected-runtime-repo").to_hex().to_string(),
+        )
+        .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let rev = ExternalRef::new("git", "commit", &"a".repeat(40))
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let binding = ContentId::from_blake3_hex(blake3::hash(b"binding").to_hex().to_string())
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let fence = AttemptFence {
+            attempt: ContentId::from_blake3_hex(blake3::hash(b"attempt").to_hex().to_string())
+                .unwrap_or_else(|error| unreachable!("{error:?}")),
+            fence: 1,
+        };
+        let current = SourceCurrentness {
+            generation: kiln_adapter_basalt::test_support::GENERATION,
+            revocation_generation: 0,
+            snapshot: SnapshotObservation {
+                revision: rev.clone(),
+                ref_name: None,
+                previous: None,
+                fast_forward: false,
+            },
+            attempt: AttemptCurrentness::Current,
+        };
+        let checks = verify_negative_source_authority(&repo, &rev, &binding, &fence, &current);
+        assert_eq!(checks.len(), 3);
+        assert!(checks.iter().all(|c| c["ok"] == true), "{checks:?}");
     }
 }

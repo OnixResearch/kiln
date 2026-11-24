@@ -10,6 +10,7 @@ publish = false
 blake3.workspace = true
 bounded-exec.workspace = true
 kiln-core.workspace = true
+kiln-adapter-basalt.workspace = true
 kiln-provider-api.workspace = true
 kiln-codec.workspace = true
 kiln-implementer.workspace = true

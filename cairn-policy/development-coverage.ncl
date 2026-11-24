@@ -7,7 +7,6 @@ let ActiveRoots = [
   ".cairn/changes/complete-independent-verification/specs/independent-verification/spec.md",
   ".cairn/changes/recover-exact-publication/specs/publication-recovery/spec.md",
   ".cairn/changes/integrate-retained-mobility/specs/retained-mobility-runtime/spec.md",
-  ".cairn/changes/materialize-projected-workspaces/specs/source-projection/spec.md",
 ]
 in
 let Active =

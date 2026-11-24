@@ -47,7 +47,7 @@ const LOCAL_SOURCE_POLICY_SCHEMA: &str = "kiln.local-source-policy.v1";
 /// Path components in one scope.
 pub const MAX_PATH_COMPONENTS: usize = 256;
 /// Grants in one effective scope or share.
-pub const MAX_SOURCE_GRANTS: usize = 64;
+pub const MAX_SOURCE_GRANTS: usize = 4_096;
 /// Bytes in a holder, audience or operator identity.
 pub const MAX_SOURCE_PRINCIPAL_BYTES: usize = 512;
 /// Bytes in a reference name of a live view.
@@ -887,9 +887,19 @@ impl EffectiveSourceScope {
                 "joined scopes must share holder, source, generations and provenance",
             ));
         }
-        let grants: Vec<SourceGrant> = scopes
-            .iter()
-            .flat_map(|scope| scope.grants.iter().cloned())
+        let mut merged: BTreeMap<PathScope, BTreeSet<SourceViewOperation>> = BTreeMap::new();
+        for scope in scopes {
+            for grant in &scope.grants {
+                merged
+                    .entry(grant.path.clone())
+                    .or_default()
+                    .extend(grant.operations.iter().copied());
+            }
+        }
+        let grants: Vec<SourceGrant> = merged
+            .into_iter()
+            .filter(|(_, operations)| !operations.is_empty())
+            .map(|(path, operations)| SourceGrant { path, operations })
             .collect();
         let mut facts = EffectiveScopeFacts {
             audience: first.audience.clone(),

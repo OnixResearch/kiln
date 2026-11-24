@@ -11,11 +11,25 @@ use std::path::{Path, PathBuf};
 use bounded_exec::{CommandSpec, EnvironmentMode, Input, RunRequest, TerminationScope};
 use bounded_exec_core::{ExecutionLimits, OutcomePolicy};
 use git2::{ObjectType, Oid, Repository, RepositoryOpenFlags};
+use kiln_core::implementation::authority::AuthoritySessionId;
+use kiln_core::projection::authority::{
+    EffectiveSourceScope, OriginScope, PathScope, SnapshotRule, SourceAuthority,
+    SourceAuthorityRequest, SourceCurrentness, SourceViewOperation, check_request,
+};
+use kiln_core::projection::disclosure::{
+    AudienceView, HandleKey, OpaqueHandle, OriginLookup, ScopedEnumeration, ScopedSelection,
+    ViewCeiling, permits_unfiltered_history, restrict,
+};
+use kiln_core::projection::{
+    AdmittedDefinition, AdmittedPartialView, AdmittedRepository, EntryOrigin, ProjectionFacts,
+    resolve,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use crate::engine::api::{decoded, error, json_response, query};
 use crate::engine::{ApiResponse, Role};
+use crate::worker::source_auth::RequestProfile;
 
 pub const MAX_SOURCES: usize = 64;
 const MAX_POLICY_BYTES: usize = 262_144;
@@ -119,9 +133,49 @@ impl Profile {
     }
 }
 
+/// Whether a [`Browser`] runs in local unrestricted mode or enforces
+/// capability-restricted projection views (`SourceAuthority` + `AudienceView`).
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BrowserMode {
+    LocalUnrestricted,
+    RestrictedProjection,
+}
+
+/// Pure projection facts and currentness for one source repository under
+/// restricted projection mode.
+#[derive(Debug)]
+pub struct RestrictedSourceRepo<'a> {
+    pub policy_id: &'a str,
+    pub admitted: &'a AdmittedRepository,
+    pub definition: &'a AdmittedDefinition,
+    pub facts: &'a ProjectionFacts,
+    pub current: &'a SourceCurrentness,
+}
+
+/// Caller-supplied `SourceAuthority`, credential/signer, repository projections,
+/// handle key, and wall clock for restricted source browsing.
+pub struct RestrictedSourceAccess<'a> {
+    pub authority: &'a mut dyn SourceAuthority,
+    pub profile: RequestProfile<'a>,
+    pub repos: &'a [RestrictedSourceRepo<'a>],
+    pub handle_key: &'a HandleKey,
+    pub now_unix_s: u64,
+}
+
+impl std::fmt::Debug for RestrictedSourceAccess<'_> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("RestrictedSourceAccess")
+            .field("repos", &self.repos.len())
+            .field("now_unix_s", &self.now_unix_s)
+            .finish_non_exhaustive()
+    }
+}
+
 #[derive(Debug)]
 pub struct Browser {
     profile: Option<Profile>,
+    mode: BrowserMode,
 }
 
 impl Browser {
@@ -129,11 +183,42 @@ impl Browser {
         if let Some(profile) = &profile {
             profile.admit()?;
         }
-        Ok(Self { profile })
+        Ok(Self {
+            profile,
+            mode: BrowserMode::LocalUnrestricted,
+        })
+    }
+
+    /// Construct a restricted-projection browser. Un-scoped [`Self::response`]
+    /// calls fail closed with `PublicUnavailable` (`{"error":"unavailable"}`);
+    /// callers must use [`Self::restricted_response`] with a live
+    /// [`RestrictedSourceAccess`].
+    pub fn restricted(profile: Option<Profile>) -> Result<Self, String> {
+        if let Some(profile) = &profile {
+            profile.admit()?;
+        }
+        Ok(Self {
+            profile,
+            mode: BrowserMode::RestrictedProjection,
+        })
+    }
+
+    #[must_use]
+    pub const fn mode(&self) -> BrowserMode {
+        self.mode
     }
 
     // r[impl kiln.dashboard.source.read] r[impl kiln.dashboard.source.authority]
     pub fn response(&self, method: &str, target: &str, body: &[u8], role: Role) -> ApiResponse {
+        if self.mode == BrowserMode::RestrictedProjection {
+            if role == Role::Worker {
+                return error(403, "worker_scope").unwrap_or_else(|_| public_unavailable());
+            }
+            if method != "GET" {
+                return error(405, "sources_read_only").unwrap_or_else(|_| public_unavailable());
+            }
+            return public_unavailable();
+        }
         match self.read(method, target, body, role) {
             Ok(response) if response.body.len() <= MAX_RESPONSE_BYTES => response,
             _ => ApiResponse {
@@ -143,6 +228,30 @@ impl Browser {
                 download_name: None,
                 headers: Vec::new(),
             },
+        }
+    }
+
+    // r[impl kiln.source.projection.disclosure.restricted]
+    // r[impl kiln.source.projection.disclosure.handles]
+    // r[impl kiln.source.projection.disclosure.unavailable]
+    /// Serve `/api/sources*` strictly through `SourceAuthority` (`Discover`,
+    /// `ReadContent`, `ReadHistory`), `ViewCeiling`, `ScopedSelection`, and
+    /// `AudienceView::restrict`/`resolve`. Missing, forbidden, expired, revoked,
+    /// or stale requests all return uniform [`PublicUnavailable`]
+    /// (`{"error":"unavailable"}`) with status `404` so hidden repositories and
+    /// paths never leak via a 403/404 oracle.
+    pub fn restricted_response(
+        &self,
+        method: &str,
+        target: &str,
+        body: &[u8],
+        role: Role,
+        access: &mut RestrictedSourceAccess<'_>,
+    ) -> ApiResponse {
+        match self.read_restricted(method, target, body, role, access) {
+            Ok(response) if response.body.len() <= MAX_RESPONSE_BYTES => response,
+            Ok(_) => public_unavailable(),
+            Err(response) => response,
         }
     }
 
@@ -364,6 +473,917 @@ impl Browser {
             _ => git_file(policy, revision, &components, highlight),
         }
     }
+
+    fn read_restricted(
+        &self,
+        method: &str,
+        target: &str,
+        body: &[u8],
+        role: Role,
+        access: &mut RestrictedSourceAccess<'_>,
+    ) -> Result<ApiResponse, ApiResponse> {
+        let err_resp = |status: u16, code: &str| -> ApiResponse {
+            error(status, code).unwrap_or_else(|_| public_unavailable())
+        };
+        if role == Role::Worker {
+            return Err(err_resp(403, "worker_scope"));
+        }
+        if method != "GET" {
+            return Err(err_resp(405, "sources_read_only"));
+        }
+        if !body.is_empty() {
+            return Err(err_resp(400, "unexpected_body"));
+        }
+        let (path, parameters) = query(target).map_err(|()| err_resp(400, "query_invalid"))?;
+        let mut values = BTreeMap::new();
+        for (key, value) in parameters {
+            match decoded(value) {
+                Ok(value)
+                    if value.len() <= MAX_QUERY_BYTES && !value.chars().any(char::is_control) =>
+                {
+                    values.insert(key.to_owned(), value);
+                }
+                _ => return Err(err_resp(400, "query_invalid")),
+            }
+        }
+        if path == "/api/sources" {
+            if !values.is_empty() {
+                return Err(err_resp(400, "query_invalid"));
+            }
+            return Ok(self.restricted_inventory(access));
+        }
+        if path == "/api/sources/lookup" {
+            if values.keys().any(|key| key != "revision") {
+                return Err(err_resp(400, "query_invalid"));
+            }
+            let revision = values.get("revision").map_or("", String::as_str);
+            if !is_revision(revision) {
+                return Err(err_resp(400, "source_revision_invalid"));
+            }
+            return Ok(self.restricted_lookup(revision, access));
+        }
+        let Some(rest) = path.strip_prefix("/api/sources/") else {
+            return Err(public_unavailable());
+        };
+        let Some((id, leaf)) = rest.split_once('/') else {
+            return Err(public_unavailable());
+        };
+        let allowed: &[&str] = match leaf {
+            "log" => &["limit", "cursor"],
+            "tree" => &["revision", "path"],
+            "file" => &["revision", "path", "handle", "highlight"],
+            "diff" => &["revision", "highlight"],
+            _ => return Err(public_unavailable()),
+        };
+        if values.keys().any(|key| !allowed.contains(&key.as_str())) {
+            return Err(err_resp(400, "query_invalid"));
+        }
+        if leaf == "file" && values.contains_key("handle") && values.contains_key("path") {
+            return Err(err_resp(400, "query_invalid"));
+        }
+        let highlight = match values.get("highlight").map(String::as_str) {
+            None => false,
+            Some("1") => true,
+            Some(_) => return Err(err_resp(400, "query_invalid")),
+        };
+        let Some(profile) = &self.profile else {
+            return Err(public_unavailable());
+        };
+        let Some(policy) = profile.sources.iter().find(|row| row.id == id) else {
+            return Err(public_unavailable());
+        };
+        let Some(repo) = access.repos.iter().find(|r| r.policy_id == id) else {
+            return Err(public_unavailable());
+        };
+        match leaf {
+            "log" => self.restricted_log(policy, repo, &values, access),
+            "tree" => self.restricted_tree(policy, repo, &values, access),
+            "diff" => self.restricted_diff(policy, repo, &values, highlight, access),
+            _ => self.restricted_file(policy, repo, &values, highlight, access),
+        }
+    }
+
+    fn restricted_inventory(&self, access: &mut RestrictedSourceAccess<'_>) -> ApiResponse {
+        let Some(profile) = &self.profile else {
+            return json_response(
+                200,
+                json!({"configured":false,"sources":[],"non_claims":NON_CLAIMS}),
+            )
+            .unwrap_or_else(|_| public_unavailable());
+        };
+        let mut sources = Vec::new();
+        for policy in &profile.sources {
+            let Some(repo) = access.repos.iter().find(|r| r.policy_id == policy.id) else {
+                continue;
+            };
+            let Some((_, view, _)) = admit_best_discovery_view(repo, b"inventory", access) else {
+                continue;
+            };
+            let exact = repo.facts.exact_revision.native_id.as_str();
+            let (available, head_value, reason) = if policy.kind == "pijul" {
+                match pijul_head(policy) {
+                    Ok(head) if head == exact => (true, Some(exact), None),
+                    Ok(_) => (false, None, Some("pinned revision unavailable")),
+                    Err(reason) => (false, None, Some(reason)),
+                }
+            } else {
+                match open_git(policy).and_then(|repository| commit(&repository, exact).map(|_| ()))
+                {
+                    Ok(()) => (true, Some(exact), None),
+                    Err(reason) => (false, None, Some(reason)),
+                }
+            };
+            sources.push(json!({
+                "id": policy.id,
+                "label": policy.label,
+                "kind": policy.kind,
+                "channel": policy.channel,
+                "status": if available { "available" } else { "unavailable" },
+                "head": head_value,
+                "revision_scope": if policy.kind == "pijul" { "current_channel_state" } else { "revision" },
+                "reason": reason,
+                "view": view.presentation(),
+            }));
+        }
+        json_response(
+            200,
+            json!({"configured":true,"sources":sources,"non_claims":NON_CLAIMS}),
+        )
+        .unwrap_or_else(|_| public_unavailable())
+    }
+
+    fn restricted_lookup(
+        &self,
+        revision: &str,
+        access: &mut RestrictedSourceAccess<'_>,
+    ) -> ApiResponse {
+        let Some(profile) = &self.profile else {
+            return json_response(
+                200,
+                json!({"revision":revision,"matches":[],"non_claims":NON_CLAIMS}),
+            )
+            .unwrap_or_else(|_| public_unavailable());
+        };
+        let Ok(oid) = Oid::from_str(revision) else {
+            return public_unavailable();
+        };
+        let mut matches = Vec::new();
+        for policy in &profile.sources {
+            if policy.kind == "pijul" {
+                continue;
+            }
+            let Some(repo) = access.repos.iter().find(|r| r.policy_id == policy.id) else {
+                continue;
+            };
+            let ceiling = ViewCeiling::from_definition(repo.definition);
+            if !ceiling
+                .operations()
+                .contains(&SourceViewOperation::ReadHistory)
+            {
+                continue;
+            }
+            let Some(scope) = authorize_source_op(
+                repo,
+                SourceViewOperation::ReadHistory,
+                PathScope::root(),
+                revision.as_bytes(),
+                access,
+            ) else {
+                continue;
+            };
+            if !scope.permits_scope(SourceViewOperation::ReadHistory, &PathScope::root()) {
+                continue;
+            }
+            let Ok(repository) = open_git(policy) else {
+                continue;
+            };
+            let Ok(exact_oid) = Oid::from_str(repo.facts.exact_revision.native_id.as_str()) else {
+                continue;
+            };
+            if oid == exact_oid
+                || repository
+                    .graph_descendant_of(exact_oid, oid)
+                    .unwrap_or(false)
+            {
+                matches.push(json!({"id":policy.id,"label":policy.label,"kind":policy.kind}));
+            }
+        }
+        json_response(
+            200,
+            json!({"revision":revision,"matches":matches,"non_claims":NON_CLAIMS}),
+        )
+        .unwrap_or_else(|_| public_unavailable())
+    }
+
+    fn restricted_log(
+        &self,
+        policy: &SourcePolicy,
+        repo: &RestrictedSourceRepo<'_>,
+        values: &BTreeMap<String, String>,
+        access: &mut RestrictedSourceAccess<'_>,
+    ) -> Result<ApiResponse, ApiResponse> {
+        let ceiling = ViewCeiling::from_definition(repo.definition);
+        if !ceiling
+            .operations()
+            .contains(&SourceViewOperation::ReadHistory)
+        {
+            return Err(public_unavailable());
+        }
+        let Some(scope) = authorize_source_op(
+            repo,
+            SourceViewOperation::ReadHistory,
+            PathScope::root(),
+            b"log",
+            access,
+        ) else {
+            return Err(public_unavailable());
+        };
+        if !scope.permits_scope(SourceViewOperation::ReadHistory, &PathScope::root()) {
+            return Err(public_unavailable());
+        }
+        let limit = match values.get("limit") {
+            None => DEFAULT_LOG_LIMIT,
+            Some(value) => match value.parse::<usize>() {
+                Ok(limit) if (1..=MAX_LOG_LIMIT).contains(&limit) => limit,
+                _ => return Err(public_unavailable()),
+            },
+        };
+        let offset = match values.get("cursor") {
+            None => 0,
+            Some(value) => match value.parse::<usize>() {
+                Ok(offset) if offset <= 100_000 => offset,
+                _ => return Err(public_unavailable()),
+            },
+        };
+        let exact = repo.facts.exact_revision.native_id.as_str();
+        let resp = if policy.kind == "pijul" {
+            if pijul_head(policy).ok().as_deref() != Some(exact) {
+                return Err(public_unavailable());
+            }
+            pijul_log(policy, limit, offset)
+        } else {
+            git_log_at(policy, Some(exact), limit, offset)
+        }
+        .map_err(|_| public_unavailable())?;
+        if resp.status != 200 {
+            return Err(public_unavailable());
+        }
+        Ok(resp)
+    }
+
+    fn restricted_tree(
+        &self,
+        policy: &SourcePolicy,
+        repo: &RestrictedSourceRepo<'_>,
+        values: &BTreeMap<String, String>,
+        access: &mut RestrictedSourceAccess<'_>,
+    ) -> Result<ApiResponse, ApiResponse> {
+        let revision = values.get("revision").map_or("", String::as_str);
+        let path = values.get("path").map_or("", String::as_str);
+        let Ok(components) = components(path) else {
+            return Err(public_unavailable());
+        };
+        if PathScope::from_path(path, true).is_none() {
+            return Err(public_unavailable());
+        }
+        let pinned_rev = pin_restricted_revision(policy, repo, revision)?;
+        let Some((scope, view, partial)) = admit_best_discovery_view(repo, path.as_bytes(), access)
+        else {
+            return Err(public_unavailable());
+        };
+        let visible_origins: BTreeSet<&str> = view
+            .entries()
+            .iter()
+            .filter(|entry| entry.display_path.is_some())
+            .filter_map(|entry| {
+                view.resolve(
+                    &partial,
+                    &scope,
+                    access.now_unix_s,
+                    &entry.handle,
+                    SourceViewOperation::Discover,
+                )
+                .ok()
+                .and_then(|manifest_entry| match &manifest_entry.origin {
+                    EntryOrigin::Native { path, .. } => Some(path.as_str()),
+                    EntryOrigin::Generated { .. } => None,
+                })
+            })
+            .collect();
+        if !path.is_empty() {
+            let prefix = format!("{path}/");
+            let has_visible_descendant = visible_origins.iter().any(|p| p.starts_with(&prefix));
+            if !has_visible_descendant {
+                return Err(public_unavailable());
+            }
+        }
+        let response = match policy.kind.as_str() {
+            "pijul" => pijul_tree(policy, pinned_rev, &components),
+            _ => git_tree(policy, pinned_rev, &components),
+        }
+        .map_err(|_| public_unavailable())?;
+        if response.status != 200 {
+            return Err(public_unavailable());
+        }
+        let mut body: Value =
+            serde_json::from_slice(&response.body).map_err(|_| public_unavailable())?;
+        if let Some(entries) = body.get_mut("entries").and_then(Value::as_array_mut) {
+            entries.retain(|entry| {
+                let Some(entry_path) = entry.get("path").and_then(Value::as_str) else {
+                    return false;
+                };
+                let entry_kind = entry.get("kind").and_then(Value::as_str);
+                if entry_kind == Some("directory") {
+                    let prefix = format!("{entry_path}/");
+                    visible_origins.iter().any(|p| p.starts_with(&prefix))
+                } else {
+                    visible_origins.contains(entry_path)
+                }
+            });
+        }
+        if let Some(obj) = body.as_object_mut() {
+            obj.insert(
+                "view".into(),
+                serde_json::to_value(view.presentation()).map_err(|_| public_unavailable())?,
+            );
+        }
+        json_response(200, body).map_err(|_| public_unavailable())
+    }
+
+    fn restricted_diff(
+        &self,
+        policy: &SourcePolicy,
+        repo: &RestrictedSourceRepo<'_>,
+        values: &BTreeMap<String, String>,
+        highlight: bool,
+        access: &mut RestrictedSourceAccess<'_>,
+    ) -> Result<ApiResponse, ApiResponse> {
+        if policy.kind == "pijul" {
+            return Err(public_unavailable());
+        }
+        let ceiling = ViewCeiling::from_definition(repo.definition);
+        if !ceiling
+            .operations()
+            .contains(&SourceViewOperation::ReadHistory)
+            || !permits_unfiltered_history(repo.definition)
+        {
+            return Err(public_unavailable());
+        }
+        let revision = values.get("revision").map_or("", String::as_str);
+        let pinned_rev = pin_restricted_revision(policy, repo, revision)?;
+        let Some(scope) = authorize_source_op(
+            repo,
+            SourceViewOperation::ReadHistory,
+            PathScope::root(),
+            pinned_rev.as_bytes(),
+            access,
+        ) else {
+            return Err(public_unavailable());
+        };
+        // Only full-ceiling + root ReadHistory scopes may read whole-commit diffs
+        // without leaking hidden paths.
+        if !scope.permits_scope(SourceViewOperation::ReadHistory, &PathScope::root()) {
+            return Err(public_unavailable());
+        }
+        let resp = git_diff(policy, pinned_rev, highlight).map_err(|_| public_unavailable())?;
+        if resp.status != 200 {
+            return Err(public_unavailable());
+        }
+        Ok(resp)
+    }
+
+    fn restricted_file(
+        &self,
+        policy: &SourcePolicy,
+        repo: &RestrictedSourceRepo<'_>,
+        values: &BTreeMap<String, String>,
+        highlight: bool,
+        access: &mut RestrictedSourceAccess<'_>,
+    ) -> Result<ApiResponse, ApiResponse> {
+        let revision = values.get("revision").map_or("", String::as_str);
+        let pinned_rev = pin_restricted_revision(policy, repo, revision)?;
+        let ceiling = ViewCeiling::from_definition(repo.definition);
+        let resolved_path: String = if let Some(handle_hex) = values.get("handle") {
+            let Some(handle) = OpaqueHandle::from_hex(handle_hex) else {
+                return Err(public_unavailable());
+            };
+            // Build the holder's AudienceView over their discover/read paths so we
+            // can resolve the OpaqueHandle strictly via `AudienceView::resolve`.
+            let Some((disc_scope, view, trusted)) =
+                admit_best_discovery_view(repo, handle_hex.as_bytes(), access)
+            else {
+                return Err(public_unavailable());
+            };
+            let Ok(entry) = view.resolve(
+                &trusted,
+                &disc_scope,
+                access.now_unix_s,
+                &handle,
+                SourceViewOperation::ReadContent,
+            ) else {
+                return Err(public_unavailable());
+            };
+            let EntryOrigin::Native {
+                path: target_origin,
+                ..
+            } = &entry.origin
+            else {
+                return Err(public_unavailable());
+            };
+            if !ceiling.allows(SourceViewOperation::ReadContent, target_origin) {
+                return Err(public_unavailable());
+            }
+            let Some(exact_scope) = PathScope::from_path(target_origin, false) else {
+                return Err(public_unavailable());
+            };
+            let Some(read_scope) = authorize_source_op(
+                repo,
+                SourceViewOperation::ReadContent,
+                exact_scope,
+                target_origin.as_bytes(),
+                access,
+            ) else {
+                return Err(public_unavailable());
+            };
+            let selection = ScopedSelection::for_holder(&read_scope, &ceiling);
+            let Ok(filtered) = selection.filter_facts(repo.facts) else {
+                return Err(public_unavailable());
+            };
+            let Ok(partial) = resolve(repo.definition, repo.admitted, &filtered) else {
+                return Err(public_unavailable());
+            };
+            let Ok(enumeration) = ScopedEnumeration::new(&selection, partial.clone()) else {
+                return Err(public_unavailable());
+            };
+            let Ok(read_view) = restrict(
+                &enumeration,
+                &read_scope,
+                &ceiling,
+                access.handle_key,
+                access.now_unix_s,
+            ) else {
+                return Err(public_unavailable());
+            };
+            let mut matched_origin = None;
+            for candidate in read_view.entries().iter().filter(|e| e.readable) {
+                if let Ok(resolved) = read_view.resolve(
+                    &partial,
+                    &read_scope,
+                    access.now_unix_s,
+                    &candidate.handle,
+                    SourceViewOperation::ReadContent,
+                ) && let EntryOrigin::Native { path, .. } = &resolved.origin
+                    && path == target_origin
+                {
+                    matched_origin = Some(path.clone());
+                    break;
+                }
+            }
+            let Some(resolved_path) = matched_origin else {
+                return Err(public_unavailable());
+            };
+            resolved_path
+        } else {
+            let path = values.get("path").map_or("", String::as_str);
+            if components(path).is_err() || path.is_empty() {
+                return Err(public_unavailable());
+            }
+            let Some(exact_scope) = PathScope::from_path(path, false) else {
+                return Err(public_unavailable());
+            };
+            if !ceiling.allows(SourceViewOperation::Discover, path)
+                || !ceiling.allows(SourceViewOperation::ReadContent, path)
+            {
+                return Err(public_unavailable());
+            }
+            let Some(disc_scope) = authorize_source_op(
+                repo,
+                SourceViewOperation::Discover,
+                exact_scope.clone(),
+                path.as_bytes(),
+                access,
+            ) else {
+                return Err(public_unavailable());
+            };
+            let Some(read_scope) = authorize_source_op(
+                repo,
+                SourceViewOperation::ReadContent,
+                exact_scope,
+                path.as_bytes(),
+                access,
+            ) else {
+                return Err(public_unavailable());
+            };
+            let Ok(joined) = EffectiveSourceScope::join(&[disc_scope, read_scope]) else {
+                return Err(public_unavailable());
+            };
+            let selection = ScopedSelection::for_holder(&joined, &ceiling);
+            let Ok(filtered) = selection.filter_facts(repo.facts) else {
+                return Err(public_unavailable());
+            };
+            let Ok(partial) = resolve(repo.definition, repo.admitted, &filtered) else {
+                return Err(public_unavailable());
+            };
+            let Ok(enumeration) = ScopedEnumeration::new(&selection, partial.clone()) else {
+                return Err(public_unavailable());
+            };
+            let Ok(view) = restrict(
+                &enumeration,
+                &joined,
+                &ceiling,
+                access.handle_key,
+                access.now_unix_s,
+            ) else {
+                return Err(public_unavailable());
+            };
+            let Ok(OriginLookup::Entries(entries)) =
+                view.lookup_origin(repo.definition, &joined, access.now_unix_s, path)
+            else {
+                return Err(public_unavailable());
+            };
+            let Some(entry) = entries.into_iter().find(|e| e.readable) else {
+                return Err(public_unavailable());
+            };
+            let Ok(manifest_entry) = view.resolve(
+                &partial,
+                &joined,
+                access.now_unix_s,
+                &entry.handle,
+                SourceViewOperation::ReadContent,
+            ) else {
+                return Err(public_unavailable());
+            };
+            match &manifest_entry.origin {
+                EntryOrigin::Native { path, .. } => path.clone(),
+                EntryOrigin::Generated { .. } => return Err(public_unavailable()),
+            }
+        };
+
+        let comps = components(&resolved_path).map_err(|()| public_unavailable())?;
+        let resp = match policy.kind.as_str() {
+            "pijul" => pijul_file(policy, pinned_rev, &comps, highlight),
+            _ => git_file(policy, pinned_rev, &comps, highlight),
+        }
+        .map_err(|_| public_unavailable())?;
+        if resp.status != 200 {
+            return Err(public_unavailable());
+        }
+        Ok(resp)
+    }
+}
+
+fn public_unavailable() -> ApiResponse {
+    ApiResponse {
+        status: 404,
+        content_type: "application/json",
+        body: br#"{"error":"unavailable"}"#.to_vec(),
+        download_name: None,
+        headers: Vec::new(),
+    }
+}
+
+fn source_request(
+    repo: &RestrictedSourceRepo<'_>,
+    operation: SourceViewOperation,
+    path: PathScope,
+    payload: &[u8],
+) -> SourceAuthorityRequest {
+    SourceAuthorityRequest {
+        operation,
+        repository: repo.admitted.identity().clone(),
+        snapshot: SnapshotRule::Exact {
+            revision: repo.facts.exact_revision.clone(),
+        },
+        view_binding: repo.definition.identity().clone(),
+        scope: OriginScope::Components { path },
+        request_digest: *blake3::hash(payload).as_bytes(),
+        attempt: None,
+    }
+}
+
+fn admit_source_op(
+    repo: &RestrictedSourceRepo<'_>,
+    operation: SourceViewOperation,
+    path: PathScope,
+    payload: &[u8],
+    access: &mut RestrictedSourceAccess<'_>,
+) -> Option<(
+    AuthoritySessionId,
+    SourceAuthorityRequest,
+    EffectiveSourceScope,
+)> {
+    let req = source_request(repo, operation, path, payload);
+    let owned_profile;
+    let profile = match &access.profile {
+        RequestProfile::Static(p) => *p,
+        RequestProfile::Signer(sign) => {
+            owned_profile = sign(&req).ok()?;
+            &owned_profile
+        }
+    };
+    let decision = access
+        .authority
+        .admit(&req, profile, repo.current, access.now_unix_s)
+        .ok()?;
+    let session = decision.session?;
+    let scope = access.authority.effective_scope(session)?.clone();
+    check_request(&scope, &req, repo.current, access.now_unix_s).ok()?;
+    Some((session, req, scope))
+}
+
+fn authorize_source_op(
+    repo: &RestrictedSourceRepo<'_>,
+    operation: SourceViewOperation,
+    path: PathScope,
+    payload: &[u8],
+    access: &mut RestrictedSourceAccess<'_>,
+) -> Option<EffectiveSourceScope> {
+    let (session, req, scope) = admit_source_op(repo, operation, path, payload, access)?;
+    let revalid = access
+        .authority
+        .revalidate(session, &req, repo.current, access.now_unix_s)
+        .is_ok();
+    access.authority.close(session);
+    revalid.then_some(scope)
+}
+
+fn pin_restricted_revision<'a>(
+    policy: &SourcePolicy,
+    repo: &'a RestrictedSourceRepo<'_>,
+    requested: &str,
+) -> Result<&'a str, ApiResponse> {
+    let exact = repo.facts.exact_revision.native_id.as_str();
+    if !requested.is_empty() && requested != exact {
+        return Err(public_unavailable());
+    }
+    if policy.kind == "pijul" {
+        if !requested.is_empty() || pijul_head(policy).ok().as_deref() != Some(exact) {
+            return Err(public_unavailable());
+        }
+        return Ok("");
+    }
+    Ok(exact)
+}
+
+fn can_add_grant_path(grant_paths: &BTreeSet<PathScope>, path: &PathScope) -> bool {
+    grant_paths.contains(path)
+        || grant_paths.len() < kiln_core::projection::authority::MAX_SOURCE_GRANTS
+}
+
+fn push_source_scope(
+    scopes: &mut Vec<EffectiveSourceScope>,
+    grant_paths: &mut BTreeSet<PathScope>,
+    scope: EffectiveSourceScope,
+) -> bool {
+    if scope.grants().is_empty() {
+        return false;
+    }
+    let new_count = scope
+        .grants()
+        .iter()
+        .filter(|grant| !grant_paths.contains(&grant.path))
+        .count();
+    if grant_paths.len().saturating_add(new_count)
+        > kiln_core::projection::authority::MAX_SOURCE_GRANTS
+    {
+        return false;
+    }
+    for grant in scope.grants() {
+        grant_paths.insert(grant.path.clone());
+    }
+    scopes.push(scope);
+    true
+}
+
+fn collect_discover_scopes(
+    repo: &RestrictedSourceRepo<'_>,
+    payload: &[u8],
+    access: &mut RestrictedSourceAccess<'_>,
+    scopes: &mut Vec<EffectiveSourceScope>,
+    grant_paths: &mut BTreeSet<PathScope>,
+) {
+    if let Some(root_scope) = authorize_source_op(
+        repo,
+        SourceViewOperation::Discover,
+        PathScope::root(),
+        payload,
+        access,
+    ) && push_source_scope(scopes, grant_paths, root_scope)
+    {
+        return;
+    }
+    let ceiling = ViewCeiling::from_definition(repo.definition);
+    let mut denied_subtrees = BTreeSet::from([PathScope::root()]);
+    for cpath in ceiling.paths() {
+        if !can_add_grant_path(grant_paths, cpath) {
+            continue;
+        }
+        if denied_subtrees.contains(cpath) {
+            continue;
+        }
+        if let Some(scope) = authorize_source_op(
+            repo,
+            SourceViewOperation::Discover,
+            cpath.clone(),
+            payload,
+            access,
+        ) {
+            let _ = push_source_scope(scopes, grant_paths, scope);
+        } else if cpath.subtree {
+            denied_subtrees.insert(cpath.clone());
+        }
+    }
+    for entry in &repo.facts.entries {
+        if grant_paths.len() >= kiln_core::projection::authority::MAX_SOURCE_GRANTS {
+            break;
+        }
+        if !repo.definition.selects(&entry.path)
+            || !ceiling.allows(SourceViewOperation::Discover, &entry.path)
+            || scopes
+                .iter()
+                .any(|s| s.permits(SourceViewOperation::Discover, &entry.path))
+        {
+            continue;
+        }
+        let mut admitted = false;
+        let parts: Vec<&str> = entry.path.split('/').collect();
+        for end in 1..parts.len() {
+            let prefix = parts
+                .get(..end)
+                .map(|slice| slice.join("/"))
+                .unwrap_or_default();
+            if let Some(dir_scope) = PathScope::from_path(&prefix, true)
+                && ceiling.contains(&dir_scope)
+                && !denied_subtrees.contains(&dir_scope)
+                && can_add_grant_path(grant_paths, &dir_scope)
+            {
+                if let Some(scope) = authorize_source_op(
+                    repo,
+                    SourceViewOperation::Discover,
+                    dir_scope.clone(),
+                    payload,
+                    access,
+                ) {
+                    if push_source_scope(scopes, grant_paths, scope) {
+                        admitted = true;
+                        break;
+                    }
+                } else {
+                    denied_subtrees.insert(dir_scope);
+                }
+            }
+        }
+        if !admitted
+            && let Some(entry_scope) = PathScope::from_path(&entry.path, false)
+            && can_add_grant_path(grant_paths, &entry_scope)
+            && let Some(scope) = authorize_source_op(
+                repo,
+                SourceViewOperation::Discover,
+                entry_scope,
+                payload,
+                access,
+            )
+        {
+            let _ = push_source_scope(scopes, grant_paths, scope);
+        }
+    }
+}
+
+fn collect_read_scopes(
+    repo: &RestrictedSourceRepo<'_>,
+    entries: &[kiln_core::projection::SourceEntry],
+    payload: &[u8],
+    access: &mut RestrictedSourceAccess<'_>,
+    scopes: &mut Vec<EffectiveSourceScope>,
+    grant_paths: &mut BTreeSet<PathScope>,
+) {
+    let ceiling = ViewCeiling::from_definition(repo.definition);
+    if !ceiling
+        .operations()
+        .contains(&SourceViewOperation::ReadContent)
+        || entries.is_empty()
+    {
+        return;
+    }
+    if can_add_grant_path(grant_paths, &PathScope::root())
+        && let Some(root_scope) = authorize_source_op(
+            repo,
+            SourceViewOperation::ReadContent,
+            PathScope::root(),
+            payload,
+            access,
+        )
+        && push_source_scope(scopes, grant_paths, root_scope)
+    {
+        return;
+    }
+    let mut denied_subtrees = BTreeSet::from([PathScope::root()]);
+    for cpath in ceiling.paths() {
+        if !can_add_grant_path(grant_paths, cpath) || denied_subtrees.contains(cpath) {
+            continue;
+        }
+        if let Some(scope) = authorize_source_op(
+            repo,
+            SourceViewOperation::ReadContent,
+            cpath.clone(),
+            payload,
+            access,
+        ) {
+            let _ = push_source_scope(scopes, grant_paths, scope);
+        } else if cpath.subtree {
+            denied_subtrees.insert(cpath.clone());
+        }
+    }
+    for entry in entries {
+        if !repo.definition.selects(&entry.path)
+            || !ceiling.allows(SourceViewOperation::ReadContent, &entry.path)
+            || scopes
+                .iter()
+                .any(|s| s.permits(SourceViewOperation::ReadContent, &entry.path))
+        {
+            continue;
+        }
+        let mut admitted = false;
+        let parts: Vec<&str> = entry.path.split('/').collect();
+        for end in 1..parts.len() {
+            let prefix = parts
+                .get(..end)
+                .map(|slice| slice.join("/"))
+                .unwrap_or_default();
+            if let Some(dir_scope) = PathScope::from_path(&prefix, true)
+                && ceiling.contains(&dir_scope)
+                && !denied_subtrees.contains(&dir_scope)
+                && can_add_grant_path(grant_paths, &dir_scope)
+            {
+                if let Some(scope) = authorize_source_op(
+                    repo,
+                    SourceViewOperation::ReadContent,
+                    dir_scope.clone(),
+                    payload,
+                    access,
+                ) {
+                    if push_source_scope(scopes, grant_paths, scope) {
+                        admitted = true;
+                        break;
+                    }
+                } else {
+                    denied_subtrees.insert(dir_scope);
+                }
+            }
+        }
+        if !admitted
+            && let Some(entry_scope) = PathScope::from_path(&entry.path, false)
+            && can_add_grant_path(grant_paths, &entry_scope)
+            && let Some(scope) = authorize_source_op(
+                repo,
+                SourceViewOperation::ReadContent,
+                entry_scope,
+                payload,
+                access,
+            )
+        {
+            let _ = push_source_scope(scopes, grant_paths, scope);
+        }
+    }
+}
+
+fn admit_best_discovery_view(
+    repo: &RestrictedSourceRepo<'_>,
+    payload: &[u8],
+    access: &mut RestrictedSourceAccess<'_>,
+) -> Option<(EffectiveSourceScope, AudienceView, AdmittedPartialView)> {
+    let ceiling = ViewCeiling::from_definition(repo.definition);
+    let mut scopes = Vec::new();
+    let mut grant_paths = BTreeSet::new();
+    collect_discover_scopes(repo, payload, access, &mut scopes, &mut grant_paths);
+    if scopes.is_empty() {
+        return None;
+    }
+    let disc_scope = EffectiveSourceScope::join(&scopes).ok()?;
+    let disc_selection = ScopedSelection::for_holder(&disc_scope, &ceiling);
+    let disc_filtered = disc_selection.filter_facts(repo.facts).ok()?;
+    collect_read_scopes(
+        repo,
+        &disc_filtered.entries,
+        payload,
+        access,
+        &mut scopes,
+        &mut grant_paths,
+    );
+    let joined = EffectiveSourceScope::join(&scopes).ok()?;
+    let selection = ScopedSelection::for_holder(&joined, &ceiling);
+    let filtered = selection.filter_facts(repo.facts).ok()?;
+    let partial = resolve(repo.definition, repo.admitted, &filtered).ok()?;
+    let enumeration = ScopedEnumeration::new(&selection, partial.clone()).ok()?;
+    let view = restrict(
+        &enumeration,
+        &joined,
+        &ceiling,
+        access.handle_key,
+        access.now_unix_s,
+    )
+    .ok()?;
+    Some((joined, view, partial))
 }
 
 struct Observation {
@@ -525,13 +1545,28 @@ fn brief(value: &str, maximum: usize) -> String {
 }
 
 fn git_log(policy: &SourcePolicy, limit: usize, offset: usize) -> Result<ApiResponse, String> {
+    git_log_at(policy, None, limit, offset)
+}
+
+fn git_log_at(
+    policy: &SourcePolicy,
+    revision: Option<&str>,
+    limit: usize,
+    offset: usize,
+) -> Result<ApiResponse, String> {
     let repository = match open_git(policy) {
         Ok(repository) => repository,
         Err(_) => return error(503, "source_unavailable"),
     };
-    let head = match head(&repository) {
-        Ok(head) => head,
-        Err(_) => return error(503, "source_unavailable"),
+    let head = match revision {
+        Some(rev) => match commit(&repository, rev) {
+            Ok(commit) => commit.id(),
+            Err(_) => return error(503, "source_unavailable"),
+        },
+        None => match head(&repository) {
+            Ok(head) => head,
+            Err(_) => return error(503, "source_unavailable"),
+        },
     };
     let mut walk = match repository.revwalk() {
         Ok(walk) => walk,

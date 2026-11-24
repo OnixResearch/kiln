@@ -12,20 +12,23 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use kiln_adapter_basalt::compose::{
-    ED25519_PUBLIC_KEY_BYTES, proof_store, select_holder_grant, static_keys,
+    ED25519_PUBLIC_KEY_BYTES, proof_store, select_holder_grant, select_source_holder_grant,
+    static_keys,
 };
 use kiln_adapter_basalt::{
-    AuthorityServices, BasaltAuthority, HolderKey, RoleSigner, VerifiedAuthorityConfig,
+    AuthorityServices, BasaltAuthority, BasaltSourceAuthority, HolderKey, RoleSigner,
+    SourceHolderKey, SourceSigner, VerifiedAuthorityConfig,
 };
 use kiln_core::implementation::authority::{AuthoritySelection, LocalOperatorAuthority};
 use kiln_core::implementation::grant::GrantRole;
+use kiln_core::projection::authority::MAX_DELEGATION_DEPTH;
 use serde::{Deserialize, Serialize};
 use ucan::token::DenyUnknownCaveats;
 use ucan::{HolderInvocationLimits, VerificationLimits};
 
 use crate::authority_state::{
-    RecordingAuthority, SqliteAuthorityState, SqliteReplayLedger, SqliteRevocationView,
-    authority_state_path, revocation_feed_key,
+    AuthorityStateStore, RecordingAuthority, SqliteAuthorityState, SqliteReplayLedger,
+    SqliteRevocationView, authority_state_path, revocation_feed_key,
 };
 use crate::{Implementer, diagnostic, text};
 
@@ -572,4 +575,83 @@ impl Implementer {
         );
         Ok(())
     }
+}
+
+/// Construct a verified [`BasaltSourceAuthority`] and coordinator
+/// [`SourceSigner`] over the durable authority state beside `database`.
+/// Returns `(authority, signer, revocation_generation)`.
+///
+/// # Errors
+/// Returns a message when the configuration is invalid, the coordinator has no
+/// current `kiln://source/v1/` grant, or the durable authority state cannot
+/// be opened.
+pub fn open_verified_source_authority(
+    config: &VerifiedUcanConfig,
+    database: &Path,
+    now_ms: u64,
+) -> Result<(BasaltSourceAuthority, SourceSigner, u64), String> {
+    config.validate()?;
+    let verifier = match &config.policy {
+        PolicyConfig::Packaged => VerifiedAuthorityConfig::from_packaged_policy(
+            config.generation,
+            config.audience.clone(),
+            config.trusted_roots.clone(),
+        )?,
+        PolicyConfig::File { path, blake3 } => {
+            let bytes = read_bounded(path, MAX_POLICY_FILE_BYTES)?;
+            let json = String::from_utf8(bytes).map_err(text)?;
+            VerifiedAuthorityConfig::from_policy_json(
+                &json,
+                blake3,
+                config.generation,
+                config.audience.clone(),
+                config.trusted_roots.clone(),
+            )?
+        }
+    };
+    let mut keys = Vec::with_capacity(config.keys.len());
+    for key in &config.keys {
+        let public: [u8; ED25519_PUBLIC_KEY_BYTES] = hex32(&key.ed25519, "key ed25519")?;
+        keys.push((key.did.clone(), public));
+    }
+    let tokens = read_proofs(&config.proofs_dir)?;
+    let resolver = static_keys(&keys)?;
+    let proofs = proof_store(&tokens)?;
+    let seed = read_seed(&config.holders.coordinator)?;
+    let probe = SourceHolderKey::new(seed, "probe".into())?;
+    let grant = select_source_holder_grant(
+        &tokens,
+        probe.did(),
+        &resolver,
+        &proofs,
+        now_ms / 1_000,
+        VerificationLimits::default(),
+    )?;
+    let holder = SourceHolderKey::new(seed, grant)?;
+    let signer = SourceSigner::new(
+        &verifier,
+        holder,
+        MAX_DELEGATION_DEPTH,
+        Box::new(kiln_adapter_basalt::signer::os_nonce),
+    )?;
+    let state_path = authority_state_path(database)?;
+    let state = SqliteAuthorityState::open(&state_path)?;
+    let feed = import_revocations(&state, &config.revocation.path, now_ms)?;
+    let revocation_generation = state.revocation_generation()?;
+    let services = AuthorityServices {
+        key_resolver: Box::new(resolver),
+        proof_store: Box::new(proofs),
+        revocations: Box::new(SqliteRevocationView::open(
+            &state_path,
+            feed,
+            config.revocation.max_age_ms,
+        )?),
+        caveat_policies: Box::new(DenyUnknownCaveats),
+        replay: Box::new(SqliteReplayLedger::open(&state_path)?),
+        replay_retention_ms: config.replay.retention_ms,
+        verification_limits: VerificationLimits::default(),
+        holder_limits: HolderInvocationLimits::default(),
+    };
+    let authority = BasaltSourceAuthority::verified(verifier, services, MAX_DELEGATION_DEPTH)?;
+    Ok((authority, signer, revocation_generation))
 }
