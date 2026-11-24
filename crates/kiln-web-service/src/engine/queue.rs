@@ -33,9 +33,9 @@ struct RerunRequest {
     mode: String,
 }
 
-struct CandidateSource {
-    resolution: SourceResolution,
-    dirty_snapshot: Option<crate::snapshot::SnapshotProvenance>,
+pub(super) struct CandidateSource {
+    pub(super) resolution: SourceResolution,
+    pub(super) dirty_snapshot: Option<crate::snapshot::SnapshotProvenance>,
 }
 
 pub(super) fn resolve_source(
@@ -149,6 +149,7 @@ impl Engine {
             None,
             None,
             None,
+            None,
         )
     }
 
@@ -232,9 +233,29 @@ impl Engine {
             req.pull_request,
             req.source_registration.clone(),
             None,
+            None,
         )
     }
-    pub(super) fn rerun(&mut self, id: &str, body: &[u8]) -> Result<ApiResponse, String> {
+    pub(super) fn rerun(
+        &mut self,
+        id: &str,
+        body: &[u8],
+        principal: &crate::access::Principal,
+    ) -> Result<ApiResponse, String> {
+        let prior = self.state.runs.get(id).ok_or("run missing")?.clone();
+        let is_runbook = prior.runbook.is_some();
+        if let Some(rb) = prior.runbook.as_ref() {
+            let project = self
+                .profile
+                .projects
+                .iter()
+                .find(|p| p.id == prior.project_id)
+                .cloned()
+                .ok_or("project missing")?;
+            if let Some(denied) = self.authorize_runbook_rerun(principal, &project, &prior, rb)? {
+                return Ok(denied);
+            }
+        }
         let req: RerunRequest = match serde_json::from_slice(body) {
             Ok(v) => v,
             Err(_) => return error(400, "rerun_invalid"),
@@ -244,7 +265,11 @@ impl Engine {
         {
             return error(400, "rerun_invalid");
         }
-        let fingerprint = identity(&("rerun", id, &req))?;
+        let fingerprint = if is_runbook {
+            identity(&("rerun", id, &principal.id, &req))?
+        } else {
+            identity(&("rerun", id, &req))?
+        };
         if let Some(response) = self.request_replay(&req.request_id, &fingerprint)? {
             return Ok(response);
         }
@@ -271,6 +296,9 @@ impl Engine {
         }
         if req.mode == "latest" && prior.dirty_snapshot.is_some() {
             return error(409, "dirty_retry_requires_exact_source");
+        }
+        if req.mode == "latest" && prior.runbook.is_some() {
+            return error(409, "runbook_retry_requires_exact_source");
         }
         // r[impl kiln.untrusted.execution]
         // Retries of untrusted runs stay untrusted at the exact commit; there is
@@ -311,6 +339,7 @@ impl Engine {
         } else {
             prior.affected.clone()
         };
+        let runbook = prior.runbook.clone();
         self.pending_untrusted = untrusted;
         let result = self.enqueue(
             &project,
@@ -327,6 +356,7 @@ impl Engine {
             None,
             None,
             None,
+            runbook,
         );
         self.pending_untrusted = None;
         result
@@ -346,7 +376,7 @@ impl Engine {
             .state
             .runs
             .get(id)
-            .is_some_and(RunRecord::is_engine_owned_execution)
+            .is_some_and(|run| run.is_engine_owned_execution() || run.runbook.is_some())
         {
             return Ok(());
         }
@@ -367,7 +397,7 @@ impl Engine {
         if project.retry_failed == 0 {
             return Ok(());
         }
-        let Some((outcome, ordinal, source, dirty_snapshot, affected, untrusted)) =
+        let Some((outcome, ordinal, source, dirty_snapshot, affected, untrusted, runbook)) =
             self.state.runs.get(id).map(|run| {
                 (
                     run.outcome(),
@@ -376,6 +406,7 @@ impl Engine {
                     run.dirty_snapshot.clone(),
                     run.affected.clone(),
                     run.untrusted.clone(),
+                    run.runbook.clone(),
                 )
             })
         else {
@@ -441,6 +472,7 @@ impl Engine {
             None,
             None,
             Some(next),
+            runbook,
         );
         self.pending_untrusted = None;
         // Retention and other bounded refusals are not poll failures: the
@@ -462,6 +494,43 @@ impl Engine {
         requested_pull_request: Option<u64>,
         requested_trigger: Option<String>,
         auto_retry: Option<u32>,
+        runbook: Option<crate::runbooks::RunbookRunBinding>,
+    ) -> Result<ApiResponse, String> {
+        self.enqueue_inner(
+            project,
+            request_id,
+            fingerprint,
+            candidate,
+            parent,
+            selected,
+            affected,
+            requested_reference,
+            requested_pull_request,
+            requested_trigger,
+            auto_retry,
+            runbook,
+            RequestKind::Start,
+            |run| serde_json::to_value(run.view()).map_err(|_| "run view encoding failed".into()),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn enqueue_inner(
+        &mut self,
+        project: &ProjectProfile,
+        request_id: &str,
+        fingerprint: kiln_core::types::ContentId,
+        candidate: CandidateSource,
+        parent: Option<String>,
+        selected: Vec<String>,
+        affected: Option<crate::monorepo::RunAffected>,
+        requested_reference: Option<String>,
+        requested_pull_request: Option<u64>,
+        requested_trigger: Option<String>,
+        auto_retry: Option<u32>,
+        runbook: Option<crate::runbooks::RunbookRunBinding>,
+        request_kind: RequestKind,
+        build_response: impl FnOnce(&RunRecord) -> Result<serde_json::Value, String>,
     ) -> Result<ApiResponse, String> {
         let CandidateSource {
             resolution: source,
@@ -478,8 +547,8 @@ impl Engine {
         // r[impl kiln.monorepo.gating]
         // A scoped project's scope identity (and so its project) enters the run
         // and candidate identity; a changed scope never reuses older results.
-        let run_identity = match &scope {
-            None => identity(&(
+        let run_identity = match (&scope, &runbook) {
+            (None, None) => identity(&(
                 &self.profile.service_id,
                 request_id,
                 &source,
@@ -487,7 +556,7 @@ impl Engine {
                 &parent,
                 &selected,
             ))?,
-            Some(scope) => identity(&(
+            (Some(scope), None) => identity(&(
                 &self.profile.service_id,
                 request_id,
                 &source,
@@ -496,6 +565,26 @@ impl Engine {
                 &selected,
                 &project.id,
                 &scope.identity,
+            ))?,
+            (None, Some(rb)) => identity(&(
+                &self.profile.service_id,
+                request_id,
+                &source,
+                &pipeline,
+                &parent,
+                &selected,
+                rb,
+            ))?,
+            (Some(scope), Some(rb)) => identity(&(
+                &self.profile.service_id,
+                request_id,
+                &source,
+                &pipeline,
+                &parent,
+                &selected,
+                &project.id,
+                &scope.identity,
+                rb,
             ))?,
         };
         let id = format!("web-run-{}", run_identity.as_str());
@@ -544,6 +633,7 @@ impl Engine {
             untrusted: None,
             implementation_verification: None,
             preview_build: None,
+            runbook,
             state: State::default(),
         };
         self.attach_untrusted(&mut record)?;
@@ -555,20 +645,12 @@ impl Engine {
         })?;
         self.state.runs.insert(id.clone(), record);
         self.supersede_untrusted(&id)?;
-        self.reserve_request(
-            request_id.to_owned(),
-            fingerprint,
-            id.clone(),
-            RequestKind::Start,
-        )?;
+        self.reserve_request(request_id.to_owned(), fingerprint, id.clone(), request_kind)?;
         self.dispatch_queued()?;
         let run = self.state.runs.get(&id).ok_or("run missing")?;
         let status = if run.waiting() { 202 } else { 201 };
-        self.finish_request(
-            request_id,
-            status,
-            serde_json::to_value(run.view()).map_err(|_| "run view encoding failed")?,
-        )
+        let body = build_response(run)?;
+        self.finish_request(request_id, status, body)
     }
     pub(super) fn dispatch_queued(&mut self) -> Result<(), String> {
         let mut busy: BTreeSet<_> = self

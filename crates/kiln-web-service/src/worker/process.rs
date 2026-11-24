@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -45,9 +46,33 @@ pub fn execute(
 /// channel apply backpressure; a failed upload is never retried, but readers
 /// continue draining until Bounded Exec completes owned-process teardown.
 /// `directory` is the job working directory inside `checkout`.
+#[cfg(test)]
 pub fn execute_streamed(
     profile: &WorkerProfile,
     step: &Step,
+    checkout: &Path,
+    directory: &Path,
+    cancellation: &AtomicBool,
+    chunk_bytes: usize,
+    upload: impl FnMut(&Chunk) -> Result<(), String>,
+) -> Result<StepOutput, String> {
+    execute_streamed_with_env(
+        profile,
+        step,
+        &step.environment,
+        checkout,
+        directory,
+        cancellation,
+        chunk_bytes,
+        upload,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn execute_streamed_with_env(
+    profile: &WorkerProfile,
+    step: &Step,
+    environment: &BTreeMap<String, String>,
     checkout: &Path,
     directory: &Path,
     cancellation: &AtomicBool,
@@ -59,8 +84,14 @@ pub fn execute_streamed(
     }
     let chunk_bytes = chunk_bytes.min(streaming::MAX_CHUNK_BYTES);
     let endpoints = streaming::Endpoints::new()?;
-    let (isolated_program, isolated_args) =
-        super::sandbox::command(profile, step, checkout, directory, &endpoints.usage_path)?;
+    let (isolated_program, isolated_args) = super::sandbox::command(
+        profile,
+        step,
+        environment,
+        checkout,
+        directory,
+        &endpoints.usage_path,
+    )?;
     let (program, args) = streaming::helper_command(
         &endpoints.stdout_path,
         &endpoints.stderr_path,
@@ -78,7 +109,7 @@ pub fn execute_streamed(
             environment: if profile.execution.is_some() {
                 Vec::new()
             } else {
-                step.environment
+                environment
                     .iter()
                     .map(|(k, v)| (OsString::from(k), OsString::from(v)))
                     .collect()

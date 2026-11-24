@@ -30,12 +30,13 @@ pub struct DurableState {
     #[serde(default, skip_serializing_if = "crate::feeds::FeedsState::is_empty")]
     pub feeds: crate::feeds::FeedsState,
 }
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RequestKind {
     Enroll,
     Start,
     Control,
+    RunbookDispatch,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -127,7 +128,7 @@ impl LogChunk {
         ))
     }
 }
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct LogBounds {
     pub maximum_chunk_bytes: usize,
     pub maximum_total_bytes: usize,
@@ -204,10 +205,13 @@ pub struct RunRecord {
     /// Actual admitted local Nix product build attached to this exact workflow run.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub preview_build: Option<super::PreviewBuildEvidence>,
+    /// Reviewed runbook metadata and parameter bindings for runbook-dispatched runs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub runbook: Option<crate::runbooks::RunbookRunBinding>,
     #[serde(skip)]
     pub state: State,
 }
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct NodeView {
     pub id: String,
     pub state: WorkflowNodeState,
@@ -216,7 +220,7 @@ pub struct NodeView {
     pub completed_at_ms: Option<u64>,
     pub duration_ms: Option<u64>,
 }
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct RunView {
     pub id: String,
     pub project_id: String,
@@ -262,6 +266,8 @@ pub struct RunView {
     pub scope_identity: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub untrusted: Option<kiln_core::untrusted::UntrustedSummary>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub runbook: Option<crate::runbooks::RunbookRunBinding>,
 }
 impl RunRecord {
     pub(super) fn is_independent_verification(&self) -> bool {
@@ -309,6 +315,9 @@ impl RunRecord {
         }
         super::verification::validate_record_provenance(self)?;
         super::telemetry::validate(self)?;
+        if let Some(runbook) = &self.runbook {
+            crate::runbooks::validate_stored_binding(runbook)?;
+        }
         Ok(())
     }
     /// Never dispatched: queued, or blocked awaiting untrusted-run approval.
@@ -472,6 +481,7 @@ impl RunRecord {
                 .untrusted
                 .as_ref()
                 .map(kiln_core::untrusted::UntrustedGate::summary),
+            runbook: self.runbook.clone(),
             log_bounds: LogBounds {
                 maximum_chunk_bytes: self.plan.bounds.max_log_read_bytes,
                 maximum_total_bytes: self.plan.bounds.max_total_log_bytes,

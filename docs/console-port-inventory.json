@@ -1089,6 +1089,36 @@
         "density"
       ],
       "states": []
+    },
+    {
+      "page": "runbooks",
+      "number": "1.5",
+      "cohort": "projects-source",
+      "panel": "runbooks",
+      "modules": [
+        {
+          "file": "runbooks.js",
+          "global": "KilnRunbooks",
+          "renderer": true,
+          "node_tests": [
+            "tests/live-console-ui.test.mjs"
+          ]
+        }
+      ],
+      "stylesheets": [],
+      "api": [
+        "/api/runbooks"
+      ],
+      "url_state": [
+        "runbook"
+      ],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "denied",
+        "queued"
+      ]
     }
   ]
 }

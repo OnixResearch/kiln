@@ -152,6 +152,7 @@ fn binding_fixture(
         },
         project_root: None,
         untrusted: None,
+        runbook: None,
     }
 }
 
@@ -1020,4 +1021,69 @@ fn scoped_jobs_start_in_the_project_root_and_reject_missing_or_escaping_roots() 
         String::from_utf8_lossy(&stdout).trim_end(),
         canonical.join("crates/api").to_string_lossy()
     );
+}
+
+#[test]
+fn runbook_bindings_inject_lattice_param_and_source_env_for_matching_node() {
+    let (root, mut profile, context) = fixture();
+    {
+        let step = profile.steps.first_mut().unwrap_or_else(|| unreachable!());
+        step.node_id = "build".into();
+        step.program = std::path::PathBuf::from("/bin/sh");
+        step.argv = vec![
+            "-c".into(),
+            "printf '%s|%s|%s' \"$LATTICE_SOURCE_PROVIDER\" \"$LATTICE_PARAM_MODE\" \"${LATTICE_PARAM_OTHER:-unset}\"".into(),
+        ];
+    }
+    let step = profile.steps.first().unwrap_or_else(|| unreachable!());
+    let mut env_bindings = BTreeMap::new();
+    env_bindings.insert(
+        "build".into(),
+        BTreeMap::from([("LATTICE_PARAM_MODE".into(), "full".into())]),
+    );
+    env_bindings.insert(
+        "other-node".into(),
+        BTreeMap::from([("LATTICE_PARAM_OTHER".into(), "secret".into())]),
+    );
+    let rb = crate::runbooks::RunbookRunBinding {
+        runbook_id: "security-audit".into(),
+        mode: crate::runbooks::RunbookMode::ReadOnly,
+        target: "onixresearch/kiln@main".into(),
+        lattice_bundle_id: Some("security-audit".into()),
+        lattice_bundle_identity: "b".repeat(64),
+        lattice_workflow_name: "security-audit".into(),
+        lattice_workflow_revision: "c".repeat(64),
+        params_identity: "d".repeat(64),
+        params: BTreeMap::new(),
+        env_bindings,
+        source_env: BTreeMap::from([
+            ("LATTICE_SOURCE_PROVIDER".into(), "git".into()),
+            (
+                "LATTICE_SOURCE_REPOSITORY".into(),
+                profile.source_repository.clone(),
+            ),
+            ("LATTICE_SOURCE_REVISION".into(), context.revision.clone()),
+        ]),
+    };
+    let runtime_env = super::step_runtime_environment(step, &context, Some(&rb))
+        .unwrap_or_else(|e| unreachable!("{e}"));
+    let mut stdout = Vec::new();
+    let output = process::execute_streamed_with_env(
+        &profile,
+        step,
+        &runtime_env,
+        root.path(),
+        root.path(),
+        &AtomicBool::new(false),
+        256,
+        |chunk| {
+            if matches!(chunk.stream, super::streaming::Stream::Stdout) {
+                stdout.extend_from_slice(&chunk.bytes);
+            }
+            Ok(())
+        },
+    )
+    .unwrap_or_else(|e| unreachable!("{e}"));
+    assert_eq!(output.code, 0);
+    assert_eq!(String::from_utf8_lossy(&stdout), "git|full|unset");
 }

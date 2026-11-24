@@ -36,6 +36,7 @@ vm.runInNewContext(asset("ui.js"), context);
 vm.runInNewContext(asset("source.js"), context);
 vm.runInNewContext(asset("receipts.js"), context);
 vm.runInNewContext(asset("workers.js"), context);
+vm.runInNewContext(asset("runbooks.js"), context);
 vm.runInNewContext(asset("cairn.js"), context);
 const ui = context.window.KilnUi;
 const icons = context.window.KilnIcons;
@@ -321,7 +322,7 @@ test("static placeholders hydrate into icons that keep their classes", () => {
 
 // r[verify kiln.web.design_system]
 test("every icon the console names is in the reviewed list", () => {
-  const sources = ["web.html", "web.js", "ui.js", "work.js", "work-board.js", "work-interaction.js", "code-review.js", "project.js", "source.js", "receipts.js", "workers.js"];
+  const sources = ["web.html", "web.js", "ui.js", "work.js", "work-board.js", "work-interaction.js", "code-review.js", "project.js", "source.js", "receipts.js", "workers.js", "runbooks.js"];
   const used = new Set();
   for (const name of sources) {
     const text = asset(name);
@@ -1871,4 +1872,327 @@ test("a refused workflow source beside an admitted one is named, and an unlisted
   const card = unlisted.querySelectorAll(".cairn-workflow")[0].textContent;
   assert.match(card, /Revision not listed/);
   assert.doesNotMatch(card, /Pairs with/);
+});
+
+test("KilnRunbooks helpers validate targets, typed params, routes, and errors", () => {
+  const rb = context.window.KilnRunbooks;
+  assert.deepEqual(plain(rb.normalizeRoute({ runbook: "  flake-update  " })), { runbook: "flake-update" });
+  assert.deepEqual(plain(rb.normalizeRoute({ runbook: "../etc/passwd" })), { runbook: "" });
+  assert.deepEqual(plain(rb.normalizeRoute({ runbook: "a".repeat(64) })), { runbook: "a".repeat(64) });
+  assert.deepEqual(plain(rb.normalizeRoute({ runbook: "a".repeat(65) })), { runbook: "" });
+
+  assert.equal(rb.parseTarget("onixresearch/kiln@refs/heads/main").repository, "onixresearch/kiln");
+  assert.equal(rb.parseTarget("kiln@main").reference, "main");
+  assert.ok(!rb.parseTarget(`${"a".repeat(256)}@${"b".repeat(1023)}`).error);
+  assert.ok(rb.parseTarget(`${"a".repeat(256)}@${"b".repeat(1024)}`).error);
+  assert.ok(rb.parseTarget("no-at-sign").error);
+  assert.ok(rb.parseTarget("@refs/heads/main").error);
+  assert.ok(rb.parseTarget("repo@").error);
+  assert.ok(rb.parseTarget("repo@refs/heads/main ").error);
+  assert.ok(rb.parseTarget("repo@-bad").error);
+  assert.ok(rb.parseTarget("repo@a..b").error);
+
+  const decls = [
+    { name: "dry", kind: "bool", required: true },
+    { name: "limit", kind: "integer", required: false, default: 5, integer_min: 1, integer_max: 10 },
+    { name: "profile", kind: "enum", required: true, enum_values: ["fast", "full"] },
+    { name: "path", kind: "relative_path", required: true, relative_path_max_bytes: 32 },
+  ];
+  const good = rb.coerceParams(decls, { dry: "true", limit: "7", profile: "full", path: "crates/kiln" });
+  assert.deepEqual(plain(good), {
+    params: { dry: true, limit: 7, profile: "full", path: "crates/kiln" },
+    errors: [],
+  });
+  const bad = rb.coerceParams(decls, { dry: "maybe", limit: "11", profile: "other", path: "../escape" });
+  assert.equal(bad.errors.length, 4);
+
+  const missingReq = rb.validateInputs({ params: decls }, { target: "onixresearch/kiln@refs/heads/main", params: { dry: "false" }, requestId: "req-1" });
+  assert.equal(missingReq.ok, false);
+  assert.ok(missingReq.errors.some((e) => e.includes("profile")));
+  assert.ok(missingReq.errors.some((e) => e.includes("path")));
+
+  assert.equal(rb.classifyError({ status: 400, message: "bad param" }).kind, "validation");
+  assert.equal(rb.classifyError({ status: 403, code: "runbook_grant_required", message: "denied" }).title, "Missing runbook grant");
+  assert.equal(rb.classifyError({ status: 404, message: "missing" }).kind, "not_found");
+  assert.equal(rb.classifyError({ status: 409, message: "conflict" }).kind, "conflict");
+  const unknownErr = rb.classifyError({ status: 503 });
+  assert.equal(unknownErr.kind, "unknown");
+  assert.match(unknownErr.message, /Do not blindly retry/);
+});
+
+test("KilnRunbooks UI renders register, dispatches valid runbook, handles errors, and clears", async () => {
+  const page = cairnPage();
+  const doc = {
+    createElement: (tag) => new CairnNode(tag),
+  };
+  const win = { KilnUi: ui };
+  const ctxObj = {
+    window: win,
+    document: doc,
+    TextEncoder,
+    crypto: webcrypto,
+  };
+  vm.runInNewContext(asset("runbooks.js"), ctxObj);
+  const rb = ctxObj.window.KilnRunbooks;
+
+  const sampleRunbooks = {
+    schema: "kiln.web-runbooks-view.v1",
+    configured: true,
+    principal: "local:operator",
+    runbooks: [
+      {
+        id: "security-audit",
+        display_name: "Security Audit",
+        description: "Read-only audit.",
+        mode: "read_only",
+        lattice_bundle_id: "security-audit",
+        lattice_bundle_identity: "a".repeat(64),
+        lattice_workflow_name: "security-audit",
+        lattice_workflow_revision: "b".repeat(64),
+        params: [
+          { name: "strict", kind: "bool", required: false, default: true, bindings: [{ node: "audit", shell_env: "LATTICE_PARAM_STRICT" }] },
+        ],
+        allowed_targets: [
+          { repository: "onixresearch/kiln", project_id: "kiln-audit", references: ["refs/heads/main"], allow_commit_sha: false },
+        ],
+        can_dispatch: true,
+        dispatch_refusal: null,
+      },
+      {
+        id: "flake-update",
+        display_name: "Flake Update",
+        description: "Mutating update.",
+        mode: "mutating",
+        lattice_bundle_id: "flake-update",
+        lattice_bundle_identity: "1".repeat(64),
+        lattice_workflow_name: "flake-update",
+        lattice_workflow_revision: "2".repeat(64),
+        params: [],
+        allowed_targets: [
+          { repository: "onixresearch/kiln", project_id: "kiln-flake", references: ["refs/heads/main"], allow_commit_sha: true },
+        ],
+        can_dispatch: false,
+        dispatch_refusal: "runbook_grant_required",
+      },
+    ],
+  };
+
+  const root = new CairnNode("div");
+  const dispatched = [];
+  const notices = [];
+  const ctx = {
+    route: { page: "runbooks", runbook: "security-audit" },
+    canOperate: true,
+    principal: { id: "local:operator", role: "operator" },
+    navigate() {},
+    notice(msg, tone) { notices.push({ msg, tone }); },
+    runLink(runId, label) {
+      const a = new CairnNode("a");
+      a.href = `?page=runs&run=${runId}&view=pipeline`;
+      a.textContent = label;
+      return a;
+    },
+    isCurrent: () => true,
+    async api(path, opts) {
+      if (path === "/api/runbooks") return sampleRunbooks;
+      if (path === "/api/runbooks/security-audit/dispatch") {
+        dispatched.push(opts.body);
+        return {
+          schema: "kiln.runbook-dispatch-result.v1",
+          request_id: opts.body.request_id,
+          replayed: false,
+          run_id: "web-run-abc123",
+          target: opts.body.target,
+          source_revision: "c".repeat(40),
+        };
+      }
+      throw new Error(`unexpected ${path}`);
+    },
+  };
+
+  const findById = (node, id) => {
+    if (!node) return null;
+    if (node.id === id) return node;
+    for (const child of node.children || []) {
+      const hit = findById(child, id);
+      if (hit) return hit;
+    }
+    return null;
+  };
+
+  await rb.load(root, ctx);
+  assert.match(root.textContent, /Security Audit/);
+  assert.match(root.textContent, /Flake Update/);
+  const form = findById(root, "runbook-dispatch-form");
+  assert.ok(form);
+  const reqInput = findById(root, "runbook-request-id");
+  reqInput.value = "ui-req-1";
+  await form.listeners.get("submit")[0]({ preventDefault() {} });
+  assert.equal(dispatched.length, 1);
+  assert.deepEqual(plain(dispatched[0]), {
+    request_id: "ui-req-1",
+    target: "onixresearch/kiln@refs/heads/main",
+    params: { strict: true },
+  });
+  const resultBox = findById(root, "runbook-dispatch-result");
+  assert.equal(resultBox.hidden, false);
+  assert.match(resultBox.textContent, /web-run-abc123/);
+
+  // Ungranted mutating runbook keeps submit disabled and explains grant refusal.
+  await rb.load(root, { ...ctx, route: { page: "runbooks", runbook: "flake-update" } });
+  assert.equal(findById(root, "runbook-dispatch-submit").disabled, true);
+  assert.match(root.textContent, /runbook_grant_required/);
+
+  // Missing runbook does not substitute another runbook.
+  await rb.load(root, { ...ctx, route: { page: "runbooks", runbook: "unknown-id" } });
+  assert.match(root.textContent, /Runbook not found: unknown-id/);
+  assert.equal(findById(root, "runbook-dispatch-form"), null);
+
+  rb.clear();
+});
+
+test("KilnRunbooks stale submit finally does not clear newer generation busy state or disabled button", async () => {
+  const doc = { createElement: (tag) => new CairnNode(tag) };
+  const ctxObj = {
+    window: { KilnUi: ui },
+    document: doc,
+    TextEncoder,
+    crypto: webcrypto,
+  };
+  vm.runInNewContext(asset("runbooks.js"), ctxObj);
+  const rb = ctxObj.window.KilnRunbooks;
+
+  const makeRunbook = (id, canDispatch) => ({
+    id,
+    display_name: id,
+    description: `${id} desc`,
+    mode: "read_only",
+    lattice_bundle_id: id,
+    lattice_bundle_identity: "a".repeat(64),
+    lattice_workflow_name: id,
+    lattice_workflow_revision: "b".repeat(64),
+    params: [],
+    allowed_targets: [
+      { repository: "onixresearch/kiln", project_id: "kiln-audit", references: ["refs/heads/main"], allow_commit_sha: false },
+    ],
+    can_dispatch: canDispatch,
+    dispatch_refusal: canDispatch ? null : "runbook_grant_required",
+  });
+
+  const listPayload = {
+    schema: "kiln.web-runbooks-view.v1",
+    configured: true,
+    principal: "local:operator",
+    runbooks: [makeRunbook("rb-a", true), makeRunbook("rb-b", true), makeRunbook("rb-locked", false)],
+  };
+
+  const deferred = () => {
+    let resolve;
+    let reject;
+    const promise = new Promise((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  };
+
+  let dispatchA;
+  let dispatchB;
+  let dispatchCountB = 0;
+
+  const findById = (node, id) => {
+    if (!node) return null;
+    if (node.id === id) return node;
+    for (const child of node.children || []) {
+      const hit = findById(child, id);
+      if (hit) return hit;
+    }
+    return null;
+  };
+
+  const makeCtx = (runbookId) => ({
+    route: { page: "runbooks", runbook: runbookId },
+    canOperate: true,
+    principal: { id: "local:operator", role: "operator" },
+    navigate() {},
+    notice() {},
+    isCurrent: () => true,
+    async api(path, opts) {
+      if (path === "/api/runbooks") return listPayload;
+      if (path === "/api/runbooks/rb-a/dispatch") {
+        return dispatchA.promise;
+      }
+      if (path === "/api/runbooks/rb-b/dispatch") {
+        dispatchCountB += 1;
+        return dispatchB.promise;
+      }
+      throw new Error(`unexpected ${path} ${JSON.stringify(opts)}`);
+    },
+  });
+
+  // Case 1: stale submit resolves while newer generation submit is in flight.
+  dispatchA = deferred();
+  dispatchB = deferred();
+  const root = new CairnNode("div");
+  await rb.load(root, makeCtx("rb-a"));
+  const formA = findById(root, "runbook-dispatch-form");
+  const submitBtnA = findById(root, "runbook-dispatch-submit");
+  findById(root, "runbook-request-id").value = "req-a-1";
+  const pendingA = formA.listeners.get("submit")[0]({ preventDefault() {} });
+  assert.equal(submitBtnA.disabled, true);
+
+  await rb.load(root, makeCtx("rb-b"));
+  const formB = findById(root, "runbook-dispatch-form");
+  const submitBtnB = findById(root, "runbook-dispatch-submit");
+  findById(root, "runbook-request-id").value = "req-b-1";
+  const pendingB = formB.listeners.get("submit")[0]({ preventDefault() {} });
+  assert.equal(dispatchCountB, 1);
+  assert.equal(submitBtnB.disabled, true);
+
+  dispatchA.resolve({
+    schema: "kiln.runbook-dispatch-result.v1",
+    request_id: "req-a-1",
+    replayed: false,
+    run_id: "web-run-a",
+    target: "onixresearch/kiln@refs/heads/main",
+    source_revision: "c".repeat(40),
+  });
+  await pendingA;
+  await new Promise((r) => setTimeout(r, 0));
+
+  // Second submit on formB must be ignored because busy is still true for generation B.
+  await formB.listeners.get("submit")[0]({ preventDefault() {} });
+  assert.equal(dispatchCountB, 1);
+  assert.equal(submitBtnB.disabled, true);
+
+  dispatchB.resolve({
+    schema: "kiln.runbook-dispatch-result.v1",
+    request_id: "req-b-1",
+    replayed: false,
+    run_id: "web-run-b",
+    target: "onixresearch/kiln@refs/heads/main",
+    source_revision: "d".repeat(40),
+  });
+  await pendingB;
+  assert.equal(submitBtnB.disabled, false);
+  const resultBoxB = findById(root, "runbook-dispatch-result");
+  assert.equal(resultBoxB.hidden, false);
+
+  // Case 2: stale submit rejects after navigating to unpermitted rb-locked.
+  dispatchA = deferred();
+  await rb.load(root, makeCtx("rb-a"));
+  const formA2 = findById(root, "runbook-dispatch-form");
+  findById(root, "runbook-request-id").value = "req-a-2";
+  const pendingA2 = formA2.listeners.get("submit")[0]({ preventDefault() {} });
+
+  await rb.load(root, makeCtx("rb-locked"));
+  const submitBtnLocked = findById(root, "runbook-dispatch-submit");
+  assert.equal(submitBtnLocked.disabled, true);
+
+  dispatchA.reject({ status: 503, message: "upstream unavailable" });
+  await pendingA2;
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(submitBtnLocked.disabled, true);
+
+  rb.clear();
 });

@@ -19,6 +19,7 @@ mod queue;
 mod registry;
 pub use registry::extend_projects;
 mod reports;
+mod runbooks;
 pub use automation::{NotificationCompletion, NotificationWork};
 mod snapshots;
 mod storage;
@@ -67,6 +68,8 @@ pub struct Engine {
     known: BTreeSet<String>,
     storage_failed: bool,
     automation_profile: Option<crate::automation::AutomationProfile>,
+    runbook_profile: Option<crate::runbooks::RunbookRegistry>,
+    runbooks_path: Option<std::path::PathBuf>,
     cache_store: Option<crate::cache::CacheStore>,
     worker_status: Option<worker_status::Store>,
     /// Affected decision handed from automation dispatch to the run it starts.
@@ -181,6 +184,8 @@ impl Engine {
             known: BTreeSet::new(),
             storage_failed: false,
             automation_profile: None,
+            runbook_profile: None,
+            runbooks_path: None,
             cache_store: None,
             worker_status: None,
             automation_affected: None,

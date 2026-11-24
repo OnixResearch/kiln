@@ -264,6 +264,7 @@ impl Engine {
             scope: None,
             untrusted: None,
             implementation_verification: None,
+            runbook: None,
             preview_build: Some(super::PreviewBuildEvidence {
                 source_run_id: source_run_id.to_owned(),
                 request_id: request_id.to_owned(),

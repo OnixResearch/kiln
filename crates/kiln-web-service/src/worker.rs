@@ -110,10 +110,12 @@ pub fn run_job(
             } else {
                 None
             };
+        let step_environment = step_runtime_environment(step, context, binding.runbook.as_ref())?;
         let clock = telemetry::StepClock::start()?;
-        let output = process::execute_streamed(
+        let output = process::execute_streamed_with_env(
             profile,
             step,
+            &step_environment,
             &source.checkout,
             &directory,
             cancellation,
@@ -208,6 +210,39 @@ pub fn run_job(
         }
     }
     Ok(0)
+}
+
+fn step_runtime_environment(
+    step: &Step,
+    context: &SourceContext,
+    runbook: Option<&crate::runbooks::RunbookRunBinding>,
+) -> Result<std::collections::BTreeMap<String, String>, String> {
+    let mut env = step.environment.clone();
+    if let Some(runbook) = runbook {
+        for (key, value) in [
+            ("LATTICE_SOURCE_PROVIDER", context.provider.as_str()),
+            ("LATTICE_SOURCE_REPOSITORY", context.repository.as_str()),
+            ("LATTICE_SOURCE_REVISION", context.revision.as_str()),
+        ] {
+            if env.contains_key(key) {
+                return Err("worker step environment collides with source context".into());
+            }
+            env.insert(key.to_owned(), value.to_owned());
+        }
+        if let Some(node_env) = runbook.env_bindings.get(&step.node_id) {
+            for (key, value) in node_env {
+                if !crate::runbooks::valid_param_env_key(key)
+                    || value.len() > crate::runbooks::MAX_PARAM_ENV_VALUE_BYTES
+                    || value.contains('\0')
+                    || env.contains_key(key)
+                {
+                    return Err("worker runbook parameter binding invalid".into());
+                }
+                env.insert(key.clone(), value.clone());
+            }
+        }
+    }
+    Ok(env)
 }
 
 fn finish_step(code: i32, ingress: Result<(), String>) -> Result<i32, String> {

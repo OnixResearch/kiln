@@ -68,6 +68,8 @@ pub struct ExecutionBinding {
     #[serde(default)]
     pub cancel_requested: bool,
     pub log_bounds: LogBounds,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub runbook: Option<crate::runbooks::RunbookRunBinding>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -88,6 +90,9 @@ pub struct RunBinding {
     /// Untrusted pull-request gate projection; absent for trusted runs.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub untrusted: Option<Value>,
+    /// Reviewed runbook binding projection; absent for non-runbook runs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub runbook: Option<crate::runbooks::RunbookRunBinding>,
 }
 impl RunBinding {
     // r[impl kiln.untrusted.execution]
@@ -799,6 +804,27 @@ pub fn admit_binding(
     {
         return Err("worker active run source or node binding mismatch".into());
     }
+    if let Some(runbook) = &run.runbook {
+        crate::runbooks::validate_stored_binding(runbook)?;
+        if runbook
+            .source_env
+            .get("LATTICE_SOURCE_PROVIDER")
+            .map(String::as_str)
+            != Some("git")
+            || runbook
+                .source_env
+                .get("LATTICE_SOURCE_REPOSITORY")
+                .map(String::as_str)
+                != Some(profile.source_repository.as_str())
+            || runbook
+                .source_env
+                .get("LATTICE_SOURCE_REVISION")
+                .map(String::as_str)
+                != Some(source.exact_revision.native_id.as_str())
+        {
+            return Err("worker runbook source environment mismatch".into());
+        }
+    }
     Ok(())
 }
 
@@ -813,6 +839,7 @@ pub fn exact_binding(expected: &RunBinding, current: &RunBinding) -> Result<(), 
         || current.log_bounds != expected.log_bounds
         || current.nodes != expected.nodes
         || current.project_root != expected.project_root
+        || current.runbook != expected.runbook
         || current.outcome != "Pending"
     {
         return Err("worker attempt or execution became stale".into());

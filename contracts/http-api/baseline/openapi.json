@@ -11,6 +11,16 @@
         },
         "description": "Request does not match bounded API contract"
       },
+      "Conflict": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Request conflicts with current identity or retained state"
+      },
       "Forbidden": {
         "content": {
           "application/json": {
@@ -86,6 +96,10 @@
             "type": "string"
           },
           "plan": {
+            "type": "object"
+          },
+          "runbook": {
+            "nullable": true,
             "type": "object"
           }
         },
@@ -216,6 +230,10 @@
           "project_id": {
             "type": "string"
           },
+          "runbook": {
+            "nullable": true,
+            "type": "object"
+          },
           "source_revision": {
             "type": "string"
           }
@@ -228,6 +246,306 @@
           "phase"
         ],
         "type": "object"
+      },
+      "RunbookDispatchRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "params": {
+            "type": "object"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "target"
+        ],
+        "type": "object"
+      },
+      "RunbookDispatchResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "env_bindings": {
+            "type": "object"
+          },
+          "lattice_bundle_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "lattice_bundle_identity": {
+            "type": "string"
+          },
+          "lattice_workflow_name": {
+            "type": "string"
+          },
+          "lattice_workflow_revision": {
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "read_only",
+              "mutating"
+            ],
+            "type": "string"
+          },
+          "params": {
+            "type": "object"
+          },
+          "params_identity": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "replayed": {
+            "type": "boolean"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "run": {
+            "$ref": "#/components/schemas/RunView"
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "runbook_id": {
+            "type": "string"
+          },
+          "schema": {
+            "type": "string"
+          },
+          "source_env": {
+            "type": "object"
+          },
+          "source_revision": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema",
+          "request_id",
+          "replayed",
+          "runbook_id",
+          "mode",
+          "target",
+          "project_id",
+          "source_revision",
+          "lattice_bundle_identity",
+          "lattice_workflow_name",
+          "lattice_workflow_revision",
+          "params_identity",
+          "params",
+          "env_bindings",
+          "source_env",
+          "run_id",
+          "run"
+        ],
+        "type": "object"
+      },
+      "RunbookList": {
+        "additionalProperties": false,
+        "properties": {
+          "configured": {
+            "type": "boolean"
+          },
+          "principal": {
+            "type": "string"
+          },
+          "runbooks": {
+            "items": {
+              "$ref": "#/components/schemas/RunbookSummary"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "schema": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema",
+          "configured",
+          "principal",
+          "runbooks"
+        ],
+        "type": "object"
+      },
+      "RunbookParam": {
+        "additionalProperties": false,
+        "properties": {
+          "bindings": {
+            "items": {
+              "$ref": "#/components/schemas/RunbookParamBinding"
+            },
+            "maxItems": 8,
+            "type": "array"
+          },
+          "default": {
+            "nullable": true
+          },
+          "enum_values": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "nullable": true,
+            "type": "array"
+          },
+          "integer_max": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "integer_min": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "bool",
+              "integer",
+              "enum",
+              "relative_path"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "relative_path_max_bytes": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "required",
+          "bindings"
+        ],
+        "type": "object"
+      },
+      "RunbookParamBinding": {
+        "additionalProperties": false,
+        "properties": {
+          "node": {
+            "type": "string"
+          },
+          "shell_env": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "node",
+          "shell_env"
+        ],
+        "type": "object"
+      },
+      "RunbookSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed_targets": {
+            "items": {
+              "$ref": "#/components/schemas/RunbookTarget"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "can_dispatch": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "dispatch_refusal": {
+            "nullable": true,
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lattice_bundle_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "lattice_bundle_identity": {
+            "type": "string"
+          },
+          "lattice_workflow_name": {
+            "type": "string"
+          },
+          "lattice_workflow_revision": {
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "read_only",
+              "mutating"
+            ],
+            "type": "string"
+          },
+          "params": {
+            "items": {
+              "$ref": "#/components/schemas/RunbookParam"
+            },
+            "maxItems": 16,
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "display_name",
+          "description",
+          "mode",
+          "lattice_bundle_identity",
+          "lattice_workflow_name",
+          "lattice_workflow_revision",
+          "params",
+          "allowed_targets",
+          "can_dispatch"
+        ],
+        "type": "object"
+      },
+      "RunbookTarget": {
+        "additionalProperties": false,
+        "properties": {
+          "allow_commit_sha": {
+            "type": "boolean"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "references": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "repository": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "repository",
+          "project_id",
+          "references",
+          "allow_commit_sha"
+        ],
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -238,7 +556,7 @@
     }
   },
   "info": {
-    "description": "GET-only contract for run summary and execution-binding/artifact metadata. This pilot describes existing Engine::api behavior; it is not authorization, execution evidence, or a server migration.\n",
+    "description": "Bounded contract for run summary, execution-binding/artifact metadata, and reviewed runbook dispatch. This describes existing Engine::api behavior; it is not authorization, execution evidence, or a server migration.\n",
     "title": "Kiln bounded HTTP API",
     "version": "kiln.http-api.v1"
   },
@@ -267,6 +585,95 @@
           }
         ],
         "summary": "List available and enrolled projects"
+      }
+    },
+    "/api/runbooks": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunbookList"
+                }
+              }
+            },
+            "description": "Reviewed runbook inventory"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List reviewed runbooks and principal dispatch eligibility"
+      }
+    },
+    "/api/runbooks/{id}/dispatch": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunbookDispatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunbookDispatchResponse"
+                }
+              }
+            },
+            "description": "Dispatched runbook run (or idempotent replay of a dispatched run)"
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunbookDispatchResponse"
+                }
+              }
+            },
+            "description": "Queued runbook run (or idempotent replay of a queued run)"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Dispatch a reviewed runbook with idempotency, target resolution, and typed parameters"
       }
     },
     "/api/runs": {

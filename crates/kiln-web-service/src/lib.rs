@@ -20,6 +20,7 @@ pub mod preview;
 pub mod profile;
 pub mod reports;
 pub mod reviews;
+pub mod runbooks;
 pub mod schedule;
 pub mod snapshot;
 pub mod sources;

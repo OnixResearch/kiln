@@ -76,6 +76,7 @@ fn fixture() -> (
         },
         project_root: None,
         untrusted: None,
+        runbook: None,
     };
     checked(super::admit_binding(&profile, &source, &binding));
     (root, profile, source, binding)
@@ -393,6 +394,7 @@ fn execution_fixture(source: &SourceResolution, run: &RunBinding) -> super::Exec
         outcome: kiln_core::domain::Outcome::Pending,
         cancel_requested: false,
         log_bounds: run.log_bounds.clone(),
+        runbook: None,
     }
 }
 

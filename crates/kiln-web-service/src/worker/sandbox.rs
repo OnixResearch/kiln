@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use super::profile::{Step, WorkerProfile};
@@ -6,6 +7,7 @@ use super::profile::{Step, WorkerProfile};
 pub fn command(
     profile: &WorkerProfile,
     step: &Step,
+    environment: &BTreeMap<String, String>,
     checkout: &Path,
     directory: &Path,
     usage: &Path,
@@ -46,7 +48,7 @@ pub fn command(
                 &working,
                 &step.program,
                 &step.argv,
-                &step.environment,
+                environment,
                 crate::execution::ObservationMount {
                     executable: &observer,
                     arguments: &arguments,

@@ -229,6 +229,7 @@
         let diagnostic;
         try { diagnostic = JSON.parse(await boundedText(response, MAX_JSON_BYTES)); } catch { diagnostic = null; }
         const error = new Error(diagnostic && typeof diagnostic.message === "string" ? `${text(diagnostic.code)}: ${diagnostic.message}` : `Service request rejected (HTTP ${response.status}).`);
+        if (diagnostic && typeof diagnostic.code === "string") error.code = diagnostic.code;
         error.status = response.status;
         throw error;
       }
@@ -725,8 +726,8 @@
     const waiting = WAITING_PHASES.has(run?.phase);
     const gate = ui.untrustedSummary(run?.untrusted);
     for (const action of ["cancel", "pause", "resume"]) $("control-" + action).disabled = !canOperate() || state.mutation || !fresh || !(exactIdentity(run) || (action === "cancel" && waiting)) || run.controls?.[action] !== true;
-    // Untrusted runs retry only their exact approved commit; the service refuses latest-source retries.
-    for (const mode of ["exact", "latest", "failed"]) $("rerun-" + mode).disabled = !canOperate() || state.mutation || !run || (mode === "latest" && Boolean(gate)) || (mode === "failed" && !run.nodes?.some((node) => FAILED_NODE_STATE.test(node.state)));
+    // Untrusted and runbook runs retry only their exact approved commit; the service refuses latest-source retries.
+    for (const mode of ["exact", "latest", "failed"]) $("rerun-" + mode).disabled = !canOperate() || state.mutation || !run || (mode === "latest" && (Boolean(gate) || Boolean(run.runbook))) || (mode === "failed" && !run.nodes?.some((node) => FAILED_NODE_STATE.test(node.state)));
     $("control-note").textContent = !canOperate() ? "Read-only principal. Execution mutations are disabled." : gate?.awaitingApproval ? "This untrusted pull-request run waits for an operator to approve its exact commit. Nothing has executed. Cancel removes it before dispatch." : run?.phase === "queued" ? "Queued work has no provider execution yet. Cancel removes this exact queued request before dispatch." : !run ? "Select a run to inspect controls." : !exactIdentity(run) ? "Exact control identity unavailable. No approximate identity will be sent." : !fresh ? "Snapshot stale or live observation disconnected. Refresh before control." : "Only advertised capabilities are enabled. Fresh reads and confirmation bind controls to the exact execution.";
     // r[impl kiln.web.failure_first_run] Header shortcuts mirror the disclosure controls: same enablement, same confirmation.
     const operate = canOperate() && Boolean(run);
@@ -1179,6 +1180,8 @@
     // r[impl kiln.dashboard.workers.view.scenario.cleared] Invalidate reads, filters and private DOM in the page module.
     window.KilnWorkers.clear();
     $("workers-content").replaceChildren();
+    window.KilnRunbooks?.clear();
+    $("runbooks-content").replaceChildren();
     $("source-reference").replaceChildren();
     for (const id of ["source-revision", "log-search"]) $(id).value = "";
     for (const id of ["overview-content", "project-cards", "reports-content", "compare-content", "activity-content", "run-activity-content", "evidence-content", "run-evidence-content", "automation-content", "operations-content", "principal-facts", "node-facts", "pipeline-graph", "source-status", "page-primary-action"]) $(id).replaceChildren();
@@ -1324,6 +1327,7 @@
       receipt: (params.get("receipt") || "").slice(0, 128), receipt_q: (params.get("receipt_q") || "").slice(0, 256), receipt_decision: (params.get("receipt_decision") || "").slice(0, 32),
       worker_q: (params.get("worker_q") || "").slice(0, 256), worker_status: Object.hasOwn(window.KilnWorkers.statuses, params.get("worker_status")) ? params.get("worker_status") : "", worker: params.get("worker") || "",
       worker_campaign: params.get("worker_campaign") || "",
+      runbook: (params.get("runbook") || "").slice(0, 128),
       // r[impl kiln.cairn.workspace.scenario.reload] The selected Cairn change, its open unit, register view and filters are bound to the URL.
       cairn_repository: (params.get("cairn_repository") || "").slice(0, 64), cairn_change: (params.get("cairn_change") || "").slice(0, 1024), cairn_q: (params.get("cairn_q") || "").slice(0, 256),
       cairn_unit: (params.get("cairn_unit") || "").slice(0, 2048), cairn_lane: (params.get("cairn_lane") || "").slice(0, 32),
@@ -1373,6 +1377,7 @@
     if (previous?.page === "reviews" && state.route.page !== "reviews") window.KilnReceipts?.clear();
     if (previous?.page === "cairn" && state.route.page !== "cairn") window.KilnCairn?.clear();
     if (previous?.page === "fleet" && state.route.page !== "fleet") window.KilnFleet?.clear();
+    if (previous?.page === "runbooks" && state.route.page !== "runbooks") window.KilnRunbooks?.clear();
     // r[impl kiln.web.live_progress] Leaving the run (or the runs page) stops its elapsed ticker.
     if (previous && (state.route.page !== "runs" || previous.run !== state.route.run)) stopLiveTicker();
     const route = state.route;
@@ -1947,6 +1952,20 @@
     }
     // r[impl kiln.dashboard.workers.view] The Workers module owns its register, local filters and exact detail.
     if (route.page === "workers") await window.KilnWorkers.load($("workers-content"), { api, navigate, route, isCurrent: () => state.route === route && !!state.session, runLink, projectLink });
+    if (route.page === "runbooks") {
+      if (!window.KilnRunbooks) { $("runbooks-content").replaceChildren(element("p", "Runbooks are loading.", "small")); return; }
+      await window.KilnRunbooks.load($("runbooks-content"), {
+        api,
+        navigate,
+        notice,
+        route,
+        canOperate: canOperate(),
+        principal: state.principal,
+        runLink,
+        isCurrent: () => state.route === route && !!state.session,
+      });
+      return;
+    }
     if (route.page === "activity") await renderEndpoint(`/api/activity?${activityQuery()}`, "activity-content", renderActivity);
     if (route.page === "evidence") {
       void loadRunChoices();

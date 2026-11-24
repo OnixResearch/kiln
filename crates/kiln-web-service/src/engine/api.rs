@@ -145,6 +145,13 @@ impl Engine {
                 return error(409, "request_id_conflict").map(Some);
             }
             if let Some(response) = &prior.response {
+                if prior.kind == RequestKind::RunbookDispatch {
+                    return json_response(
+                        prior.status,
+                        super::runbooks::replay_response_with_flag(response.clone()),
+                    )
+                    .map(Some);
+                }
                 return json_response(prior.status, response).map(Some);
             }
             match prior.kind {
@@ -156,6 +163,23 @@ impl Engine {
                             .get(&prior.resource)
                             .ok_or("reserved run missing")?
                             .view(),
+                    )
+                    .map(Some);
+                }
+                RequestKind::RunbookDispatch => {
+                    let run = self
+                        .state
+                        .runs
+                        .get(&prior.resource)
+                        .ok_or("reserved runbook run missing")?;
+                    let rb = run
+                        .runbook
+                        .as_ref()
+                        .ok_or("reserved runbook binding missing")?;
+                    let status = if run.waiting() { 202 } else { 201 };
+                    return json_response(
+                        status,
+                        super::runbooks::dispatch_response(key, true, run, rb),
                     )
                     .map(Some);
                 }
@@ -324,6 +348,19 @@ impl Engine {
         if path == "/api/automation" {
             return self.automation_route(method, target, body, role);
         }
+        if method == "GET" && path == "/api/runbooks" && params.is_empty() {
+            return self.list_runbooks(principal);
+        }
+        if method == "POST"
+            && params.is_empty()
+            && let Some(runbook_id) = path
+                .strip_prefix("/api/runbooks/")
+                .and_then(|rest| rest.strip_suffix("/dispatch"))
+            && !runbook_id.contains('/')
+            && !runbook_id.is_empty()
+        {
+            return self.dispatch_runbook(runbook_id, body, principal);
+        }
         if method == "GET"
             && let Some(response) = self.dashboard_route(path, &params)?
         {
@@ -434,12 +471,15 @@ impl Engine {
                             maximum_total_bytes: run.plan.bounds.max_total_log_bytes,
                             maximum_chunks: run.plan.bounds.max_log_references,
                         },
+                        runbook: run.runbook.clone(),
                     };
                     bound.log_bounds.maximum_chunk_bytes =
                         bound.maximum_upload_chunk_bytes(self.profile.bounds.max_request_bytes)?;
                     return json_response(200, bound);
                 }
-                ("POST", Some("rerun"), None) if params.is_empty() => return self.rerun(id, body),
+                ("POST", Some("rerun"), None) if params.is_empty() => {
+                    return self.rerun(id, body, principal);
+                }
                 ("POST", Some("approve"), None) if params.is_empty() => {
                     return self.approve_untrusted(id, body, principal);
                 }

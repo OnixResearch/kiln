@@ -1032,6 +1032,7 @@ mod tests {
                 maximum_total_bytes: 4096,
                 maximum_chunks: 4,
             },
+            runbook: None,
         };
         assert_eq!(verify_web_binding(&policy, &request, &approved), Ok(()));
         let mut wrong = approved.clone();

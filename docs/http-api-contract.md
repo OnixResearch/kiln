@@ -1,22 +1,27 @@
 # HTTP API contract pilot
 
-This document describes the bounded GET-only HTTP contract for Kiln's web
-service, version `kiln.http-api.v1`. The machine-readable contract is the
+This document describes the bounded read and reviewed runbook-dispatch HTTP
+contract for Kiln's web service, version `kiln.http-api.v1`. The
+machine-readable contract is the
 canonical OpenAPI 3.0.3 document `contracts/http-api/openapi.json` (sorted keys,
 two-space indentation, trailing newline). The archived lifecycle change is
 `.cairn/archive/1970-01-01-pilot-http-api-contract/`.
 
 ## Owned family
 
-GET only:
-
 - `GET /api/projects`
+- `GET /api/runbooks`
+- `POST /api/runbooks/{id}/dispatch`
 - `GET /api/runs`
 - `GET /api/runs/{id}`
 - `GET /api/runs/{id}/execution-binding`
 - `GET /api/runs/{id}/artifacts`
 
-No mutating endpoint is part of this pilot.
+`POST /api/runbooks/{id}/dispatch` is idempotent on `request_id` (bound to
+runbook ID, principal ID, and request body; mismatch returns `409 request_id_conflict`,
+exact replay returns the original `201`/`202` status with `"replayed": true`) and
+requires an explicit, non-expired principal grant for `mutating` runbooks
+(`403 runbook_grant_required`).
 
 ## Authentication and admission
 

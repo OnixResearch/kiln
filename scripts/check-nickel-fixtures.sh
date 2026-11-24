@@ -18,9 +18,15 @@ done
 
 for fixture in config/fixtures/*-negative.ncl; do
   negative_count=$((negative_count + 1))
-  if nickel export "$fixture" >/dev/null 2>&1; then
+  if refusal=$(nickel export "$fixture" 2>&1 >/dev/null); then
     printf 'negative Nickel fixture passed: %s\n' "$fixture" >&2
     exit 1
+  fi
+  if [[ "$fixture" == config/fixtures/runbook-registry-*-negative.ncl ]]; then
+    if ! grep -q 'runbook-registry\.ncl' <<<"$refusal" || grep -q 'contract\.Equal' <<<"$refusal"; then
+      printf 'negative Nickel fixture failed outside runbook-registry.ncl contract: %s\n' "$fixture" >&2
+      exit 1
+    fi
   fi
 done
 

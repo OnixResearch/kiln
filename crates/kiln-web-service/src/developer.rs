@@ -158,6 +158,17 @@ impl Client {
             return Err("developer response exceeds bound".into());
         }
         if !status.is_success() {
+            if let Ok(error_body) = serde_json::from_slice::<Value>(&bytes)
+                && let (Some(code), Some(message)) = (
+                    error_body.get("code").and_then(Value::as_str),
+                    error_body.get("message").and_then(Value::as_str),
+                )
+            {
+                return Err(format!(
+                    "developer service rejected request (HTTP {}, {code}): {message}",
+                    status.as_u16()
+                ));
+            }
             return Err(format!(
                 "developer service rejected request (HTTP {})",
                 status.as_u16()
@@ -321,7 +332,7 @@ fn print_json(value: &Value) -> Result<(), String> {
 pub fn cli_main(args: &[String]) -> Result<i32, String> {
     if args == ["--help"] || args == ["-h"] {
         println!(
-            "Usage: kiln-web-service ci --profile PATH --identity BLAKE3 COMMAND [OPTIONS]\n\nCommands:\n  submit --project ID --request-id ID --reference REF --revision COMMIT\n         [--dirty-repository PATH --include FILE ... --delete FILE ...]\n  review-submit --request-id ID --source-ref REF --title TITLE\n         [--description TEXT] [--expected-commit COMMIT] [--wip]\n         [--authorship undeclared|human|agent|mixed]\n         [--agent-harness TEXT [--agent-model TEXT]]\n  watch --run ID\n  logs --run ID [--follow]\n  cancel --run ID --request-id ID\n  retry --run ID --request-id ID\n\nProfile: config/web-developer.ncl exported to JSON; --identity pins its original bytes.\nOnly explicit dirty selections are uploaded; ignored paths and links are denied.\nReview submission resolves an admitted branch in the service's configured local repository.\nDeclared authorship is self-declared and unverified; it grants no authority.\nWatch/follow exits: success 0, failed 1, unknown 3, cancelled 130.\nMutations are sent once; reuse the exact request ID and arguments to reconcile a review submission."
+            "Usage: kiln-web-service ci --profile PATH --identity BLAKE3 COMMAND [OPTIONS]\n\nCommands:\n  submit --project ID --request-id ID --reference REF --revision COMMIT\n         [--dirty-repository PATH --include FILE ... --delete FILE ...]\n  review-submit --request-id ID --source-ref REF --title TITLE\n         [--description TEXT] [--expected-commit COMMIT] [--wip]\n         [--authorship undeclared|human|agent|mixed]\n         [--agent-harness TEXT [--agent-model TEXT]]\n  dispatch --runbook ID --target REPO@REF --request-id ID\n           [--param KEY=VALUE ...] [--output json|text]\n  watch --run ID\n  logs --run ID [--follow]\n  cancel --run ID --request-id ID\n  retry --run ID --request-id ID\n\nProfile: config/web-developer.ncl exported to JSON; --identity pins its original bytes.\nOnly explicit dirty selections are uploaded; ignored paths and links are denied.\nReview submission resolves an admitted branch in the service's configured local repository.\nDeclared authorship is self-declared and unverified; it grants no authority.\nWatch/follow exits: success 0, failed 1, unknown 3, cancelled 130.\nMutations are sent once; reuse the exact request ID and arguments to reconcile a review submission."
         );
         return Ok(0);
     }
@@ -337,7 +348,7 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
             (profile_path, identity, command.as_str(), arguments)
         }
         _ => return Err(
-            "usage: ci --profile PATH --identity BLAKE3 submit|review-submit|watch|logs|cancel|retry [options]"
+            "usage: ci --profile PATH --identity BLAKE3 submit|review-submit|dispatch|watch|logs|cancel|retry [options]"
                 .into(),
         ),
     };
@@ -372,6 +383,10 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
                     | "--stack"
                     | "--change-id-header"
             ),
+            "dispatch" => matches!(
+                key,
+                "--runbook" | "--target" | "--request-id" | "--param" | "--output"
+            ),
             "watch" => key == "--run",
             "logs" => matches!(key, "--run" | "--follow"),
             "cancel" | "retry" => matches!(key, "--run" | "--request-id"),
@@ -380,7 +395,9 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
         if !allowed {
             return Err("developer command or option invalid".into());
         }
-        if options.contains_key(key) && !matches!(key, "--include" | "--delete" | "--jj-change") {
+        if options.contains_key(key)
+            && !matches!(key, "--include" | "--delete" | "--jj-change" | "--param")
+        {
             return Err("developer duplicate option".into());
         }
         let value = if matches!(key, "--follow" | "--wip" | "--stack" | "--change-id-header") {
@@ -402,6 +419,32 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
             .ok_or_else(|| format!("developer required option {key} missing"))
     };
     let client = Client::new(profile)?;
+    if command == "dispatch" {
+        let (runbook, output, fallback_body) = dispatch_body(&options)?;
+        let body = if options.contains_key("--param") {
+            let param_kinds = client
+                .request(reqwest::Method::GET, "/api/runbooks", None)
+                .ok()
+                .and_then(|resp| extract_runbook_param_kinds(&resp, &runbook));
+            match param_kinds {
+                Some(kinds) => dispatch_body_with_schema(&options, Some(&kinds))?.2,
+                None => fallback_body,
+            }
+        } else {
+            fallback_body
+        };
+        let response = client.request(
+            reqwest::Method::POST,
+            &format!("/api/runbooks/{runbook}/dispatch"),
+            Some(&body),
+        )?;
+        if output == "text" {
+            print!("{}", format_dispatch_text(&response)?);
+        } else {
+            print_json(&response)?;
+        }
+        return Ok(0);
+    }
     if command == "review-submit" {
         let body = review_submit_body(&options)?;
         print_json(&client.request(
@@ -634,6 +677,186 @@ fn review_submit_body(options: &BTreeMap<&str, Vec<String>>) -> Result<Value, St
     }))
 }
 
+pub fn parse_dispatch_target(raw: &str) -> Result<(&str, &str), String> {
+    if raw.is_empty()
+        || raw.len() > 1280
+        || raw
+            .bytes()
+            .any(|b| b.is_ascii_whitespace() || b.is_ascii_control())
+    {
+        return Err("developer --target requires REPO@REF".into());
+    }
+    let Some((repo, reference)) = raw.split_once('@') else {
+        return Err("developer --target requires REPO@REF".into());
+    };
+    if repo.is_empty()
+        || repo.len() > 256
+        || reference.is_empty()
+        || reference.len() > 1024
+        || reference.contains('@')
+        || reference.starts_with('-')
+        || reference.contains("..")
+    {
+        return Err("developer --target requires REPO@REF".into());
+    }
+    Ok((repo, reference))
+}
+
+fn is_canonical_i64(raw: &str) -> bool {
+    let digits = raw.strip_prefix('-').unwrap_or(raw);
+    !digits.is_empty()
+        && digits.bytes().all(|b| b.is_ascii_digit())
+        && (digits == "0" || !digits.starts_with('0'))
+}
+
+pub fn extract_runbook_param_kinds(
+    list_response: &Value,
+    runbook_id: &str,
+) -> Option<BTreeMap<String, String>> {
+    if list_response
+        .get("schema")
+        .and_then(Value::as_str)
+        .is_some_and(|s| s != crate::runbooks::RUNBOOKS_VIEW_SCHEMA)
+    {
+        return None;
+    }
+    let runbooks = list_response.get("runbooks")?.as_array()?;
+    let runbook = runbooks
+        .iter()
+        .find(|rb| rb.get("id").and_then(Value::as_str) == Some(runbook_id))?;
+    let params = runbook.get("params")?.as_array()?;
+    let mut kinds = BTreeMap::new();
+    for param in params {
+        if let (Some(name), Some(kind)) = (
+            param.get("name").and_then(Value::as_str),
+            param.get("kind").and_then(Value::as_str),
+        ) {
+            kinds.insert(name.to_owned(), kind.to_owned());
+        }
+    }
+    Some(kinds)
+}
+
+pub fn parse_param_value(raw: &str) -> Value {
+    match raw {
+        "true" => Value::Bool(true),
+        "false" => Value::Bool(false),
+        _ if is_canonical_i64(raw) => match raw.parse::<i64>() {
+            Ok(n) => Value::Number(n.into()),
+            Err(_) => Value::String(raw.to_owned()),
+        },
+        _ => Value::String(raw.to_owned()),
+    }
+}
+
+pub fn parse_param_value_for_kind(raw: &str, kind: Option<&str>) -> Value {
+    match kind {
+        Some("bool") => match raw {
+            "true" => Value::Bool(true),
+            "false" => Value::Bool(false),
+            _ => Value::String(raw.to_owned()),
+        },
+        Some("integer") => {
+            if is_canonical_i64(raw)
+                && let Ok(n) = raw.parse::<i64>()
+            {
+                Value::Number(n.into())
+            } else {
+                Value::String(raw.to_owned())
+            }
+        }
+        Some("enum" | "relative_path") => Value::String(raw.to_owned()),
+        _ => parse_param_value(raw),
+    }
+}
+
+pub fn parse_dispatch_params(entries: &[String]) -> Result<serde_json::Map<String, Value>, String> {
+    parse_dispatch_params_with_schema(entries, None)
+}
+
+pub fn parse_dispatch_params_with_schema(
+    entries: &[String],
+    param_kinds: Option<&BTreeMap<String, String>>,
+) -> Result<serde_json::Map<String, Value>, String> {
+    let mut map = serde_json::Map::new();
+    for entry in entries {
+        let Some((key, raw_value)) = entry.split_once('=') else {
+            return Err("developer --param requires KEY=VALUE".into());
+        };
+        if !crate::runbooks::valid_param_name(key) {
+            return Err("developer --param key invalid".into());
+        }
+        if map.contains_key(key) {
+            return Err("developer duplicate --param key".into());
+        }
+        let kind = param_kinds
+            .and_then(|kinds| kinds.get(key))
+            .map(String::as_str);
+        map.insert(key.to_owned(), parse_param_value_for_kind(raw_value, kind));
+    }
+    Ok(map)
+}
+
+pub fn dispatch_body(
+    options: &BTreeMap<&str, Vec<String>>,
+) -> Result<(String, String, Value), String> {
+    dispatch_body_with_schema(options, None)
+}
+
+pub fn dispatch_body_with_schema(
+    options: &BTreeMap<&str, Vec<String>>,
+    param_kinds: Option<&BTreeMap<String, String>>,
+) -> Result<(String, String, Value), String> {
+    let first = |key| {
+        options
+            .get(key)
+            .and_then(|values| values.first())
+            .map(String::as_str)
+    };
+    let runbook = first("--runbook").ok_or("developer required option --runbook missing")?;
+    if !crate::runbooks::valid_runbook_id(runbook) {
+        return Err("developer runbook identity invalid".into());
+    }
+    let request_id =
+        first("--request-id").ok_or("developer required option --request-id missing")?;
+    if !crate::profile::identifier(request_id) {
+        return Err("developer request identity invalid".into());
+    }
+    let target = first("--target").ok_or("developer required option --target missing")?;
+    parse_dispatch_target(target)?;
+    let output = first("--output").unwrap_or("json");
+    if !matches!(output, "json" | "text") {
+        return Err("developer --output must be json or text".into());
+    }
+    let empty = Vec::new();
+    let params =
+        parse_dispatch_params_with_schema(options.get("--param").unwrap_or(&empty), param_kinds)?;
+    Ok((
+        runbook.to_owned(),
+        output.to_owned(),
+        json!({
+            "request_id": request_id,
+            "target": target,
+            "params": Value::Object(params),
+        }),
+    ))
+}
+
+pub fn format_dispatch_text(response: &Value) -> Result<String, String> {
+    let runbook_id = text(response, "runbook_id")?;
+    let run_id = text(response, "run_id")?;
+    let target = text(response, "target")?;
+    let source_revision = text(response, "source_revision")?;
+    let request_id = text(response, "request_id")?;
+    let replayed = response
+        .get("replayed")
+        .and_then(Value::as_bool)
+        .ok_or("developer response field replayed invalid")?;
+    Ok(format!(
+        "runbook_id: {runbook_id}\nrun_id: {run_id}\ntarget: {target}\nsource_revision: {source_revision}\nreplayed: {replayed}\nrequest_id: {request_id}\n"
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -759,5 +982,169 @@ mod tests {
         ] {
             assert!(parse(kind, harness, model).is_err(), "{kind:?} {harness:?}");
         }
+    }
+
+    #[test]
+    fn dispatch_body_parses_targets_typed_params_and_rejects_invalid_flags() {
+        let build = |pairs: &[(&'static str, &[&str])]| {
+            let options: BTreeMap<&str, Vec<String>> = pairs
+                .iter()
+                .map(|(key, values)| (*key, values.iter().map(|v| (*v).to_owned()).collect()))
+                .collect();
+            dispatch_body(&options)
+        };
+
+        let (runbook, output, body) = build(&[
+            ("--runbook", &["flake-update"]),
+            ("--target", &["onixresearch/kiln@refs/heads/main"]),
+            ("--request-id", &["req-1"]),
+            (
+                "--param",
+                &["dry=true", "count=10", "negative=-3", "path=crates/kiln"],
+            ),
+            ("--output", &["text"]),
+        ])
+        .unwrap_or_else(|e| unreachable!("{e}"));
+        assert_eq!(runbook, "flake-update");
+        assert_eq!(output, "text");
+        assert_eq!(
+            body,
+            json!({
+                "request_id": "req-1",
+                "target": "onixresearch/kiln@refs/heads/main",
+                "params": {
+                    "dry": true,
+                    "count": 10,
+                    "negative": -3,
+                    "path": "crates/kiln",
+                }
+            })
+        );
+
+        let text = format_dispatch_text(&json!({
+            "runbook_id": "flake-update",
+            "run_id": "web-run-123",
+            "target": "onixresearch/kiln@refs/heads/main",
+            "source_revision": "a".repeat(40),
+            "replayed": false,
+            "request_id": "req-1"
+        }))
+        .unwrap_or_else(|e| unreachable!("{e}"));
+        assert!(text.contains("runbook_id: flake-update"));
+        assert!(text.contains("run_id: web-run-123"));
+
+        for bad in [
+            build(&[("--target", &["repo@main"]), ("--request-id", &["r1"])]),
+            build(&[
+                ("--runbook", &["../bad"]),
+                ("--target", &["repo@main"]),
+                ("--request-id", &["r1"]),
+            ]),
+            build(&[
+                ("--runbook", &["flake-update"]),
+                ("--target", &["missing-at"]),
+                ("--request-id", &["r1"]),
+            ]),
+            build(&[
+                ("--runbook", &["flake-update"]),
+                ("--target", &["repo@main"]),
+                ("--request-id", &["r1"]),
+                ("--param", &["no_equals"]),
+            ]),
+            build(&[
+                ("--runbook", &["flake-update"]),
+                ("--target", &["repo@main"]),
+                ("--request-id", &["r1"]),
+                ("--param", &["a=1", "a=2"]),
+            ]),
+            build(&[
+                ("--runbook", &["flake-update"]),
+                ("--target", &["repo@main"]),
+                ("--request-id", &["r1"]),
+                ("--output", &["yaml"]),
+            ]),
+        ] {
+            assert!(bad.is_err());
+        }
+    }
+
+    #[test]
+    fn dispatch_body_with_schema_coerces_by_kind_and_enforces_target_bound() {
+        let max_ok = format!("{}@{}", "a".repeat(256), "b".repeat(1023));
+        assert_eq!(max_ok.len(), 1280);
+        assert!(parse_dispatch_target(&max_ok).is_ok());
+
+        let max_err = format!("{}@{}", "a".repeat(256), "b".repeat(1024));
+        assert_eq!(max_err.len(), 1281);
+        assert!(parse_dispatch_target(&max_err).is_err());
+
+        let list_payload = json!({
+            "schema": crate::runbooks::RUNBOOKS_VIEW_SCHEMA,
+            "configured": true,
+            "principal": "local:operator",
+            "runbooks": [{
+                "id": "edge-test",
+                "params": [
+                    { "name": "path", "kind": "relative_path" },
+                    { "name": "mode_num", "kind": "enum" },
+                    { "name": "flag", "kind": "bool" },
+                    { "name": "limit", "kind": "integer" }
+                ]
+            }]
+        });
+        let kinds = extract_runbook_param_kinds(&list_payload, "edge-test")
+            .unwrap_or_else(|| unreachable!("expected schema kinds"));
+        assert!(extract_runbook_param_kinds(&list_payload, "missing").is_none());
+
+        let options: BTreeMap<&str, Vec<String>> = [
+            ("--runbook", vec!["edge-test".into()]),
+            ("--target", vec!["onixresearch/kiln@refs/heads/main".into()]),
+            ("--request-id", vec!["req-schema".into()]),
+            (
+                "--param",
+                vec![
+                    "path=123".into(),
+                    "mode_num=true".into(),
+                    "flag=true".into(),
+                    "limit=-5".into(),
+                    "unknown=42".into(),
+                ],
+            ),
+        ]
+        .into_iter()
+        .collect();
+
+        let (_, _, body) = dispatch_body_with_schema(&options, Some(&kinds))
+            .unwrap_or_else(|e| unreachable!("{e}"));
+        assert_eq!(
+            body,
+            json!({
+                "request_id": "req-schema",
+                "target": "onixresearch/kiln@refs/heads/main",
+                "params": {
+                    "path": "123",
+                    "mode_num": "true",
+                    "flag": true,
+                    "limit": -5,
+                    "unknown": 42
+                }
+            })
+        );
+        assert_eq!(
+            parse_param_value_for_kind("01", Some("integer")),
+            json!("01")
+        );
+        assert_eq!(
+            parse_param_value_for_kind("123", Some("bool")),
+            json!("123")
+        );
+        assert_eq!(
+            parse_param_value_for_kind("false", Some("relative_path")),
+            json!("false")
+        );
+        assert_eq!(
+            parse_param_value_for_kind("123", Some("enum")),
+            json!("123")
+        );
     }
 }

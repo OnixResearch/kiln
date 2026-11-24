@@ -67,7 +67,7 @@ The sections below group the maintained documents by the question they answer.
 - [HTTP observation](http-observation.md): serves accepted views over bounded HTTPS; read-only.
 - [Iroh observation](iroh-observation.md): serves accepted views to enrolled iroh peers; read-only.
 - [Swarm claim mirror](swarm-news.md): optional renews-over-iroh claim and release mirror; articles coordinate, never authorize.
-- [HTTP API contract](http-api-contract.md): GET-only OpenAPI contract for runs, bindings and artifacts, validated against real responses; lockstep only.
+- [HTTP API contract](http-api-contract.md): bounded OpenAPI contract for runs, bindings, artifacts and reviewed runbook dispatch, validated against real responses; lockstep only.
 - [Operator dashboard](observation-dashboard.md): local terminal or offline HTML report; read only.
 - [Resource inventories](operator.md#agent-worker-compute-and-serving-observations): separate read-only definitions, instances, shared compute and serving observations; no dispatch authority.
 - [Inventory producer collection](inventory-producers.md): Lattice, compute allocation and Animus serving observations mapped into inventory v2 with explicit unknowns; read only, fixture-tested.

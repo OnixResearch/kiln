@@ -296,6 +296,7 @@ fn record(
         untrusted: None,
         implementation_verification: Some(provenance),
         preview_build: None,
+        runbook: None,
         state: State::default(),
     };
     record
@@ -479,11 +480,18 @@ fn verifier_unknown_failed_and_success_records_never_poll_retry_or_control_latti
         engine
             .poll()
             .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let operator = crate::access::Principal {
+            id: "system:operator".into(),
+            label: "Embedded operator".into(),
+            role: crate::engine::Role::Operator,
+            agent: None,
+        };
         let rerun = engine
             .rerun(
                 &id,
                 &serde_json::to_vec(&json!({"request_id":"rerun-verifier","mode":"exact"}))
                     .unwrap_or_else(|error| unreachable!("{error:?}")),
+                &operator,
             )
             .unwrap_or_else(|error| unreachable!("{error:?}"));
         assert_eq!(rerun.status, 409);

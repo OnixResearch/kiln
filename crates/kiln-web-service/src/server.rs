@@ -35,6 +35,8 @@ pub struct Options {
     pub preview_observations: Option<PathBuf>,
     /// Campaign control profile; requires `implementation_work`.
     pub campaign_controls: Option<PathBuf>,
+    /// Optional reviewed runbook registry and per-runbook grant policy.
+    pub runbooks: Option<PathBuf>,
     /// Runtime-only loopback fleet coordinator endpoint.
     pub fleet: Option<PathBuf>,
 }
@@ -100,6 +102,10 @@ pub fn check_with_options(path: &Path, options: &Options) -> Result<(), String> 
     let access_agents = access.agent_bindings();
     let _credentials = Credentials::load(&profile, access)?;
     let _automation = options.automation_profile()?;
+    if let Some(runbooks_path) = options.runbooks.as_deref() {
+        let runbooks = crate::runbooks::RunbookRegistry::load(runbooks_path)?;
+        runbooks.admit_for_service(&profile)?;
+    }
     let _cobs = options
         .cobs
         .as_deref()
@@ -189,6 +195,10 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
     let access_agents = access.agent_bindings();
     let credentials = Credentials::load(&profile, access)?;
     let automation = options.automation_profile()?;
+    if let Some(runbooks_path) = options.runbooks.as_deref() {
+        let runbooks = crate::runbooks::RunbookRegistry::load(runbooks_path)?;
+        runbooks.admit_for_service(&profile)?;
+    }
     let cache = options
         .cache
         .as_deref()
@@ -242,6 +252,9 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
     engine.configure_access_identity(&access_identity)?;
     if let Some(automation) = automation {
         engine.configure_automation(automation)?;
+    }
+    if let Some(runbooks_path) = options.runbooks.as_deref() {
+        engine.configure_runbooks_path(runbooks_path)?;
     }
     if let Some(cache) = cache {
         engine.install_cache(cache)?;
@@ -1035,6 +1048,10 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
             "/project.js" => (
                 "text/javascript; charset=utf-8",
                 include_bytes!("project.js"),
+            ),
+            "/runbooks.js" => (
+                "text/javascript; charset=utf-8",
+                include_bytes!("runbooks.js"),
             ),
             "/project.css" => ("text/css; charset=utf-8", include_bytes!("project.css")),
             // r[impl kiln.dashboard.source.navigation] Source page module, served like the project page.

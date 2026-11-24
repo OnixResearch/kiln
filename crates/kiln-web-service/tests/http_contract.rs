@@ -588,6 +588,77 @@ fn http_contract_real_responses_validate_schema() {
     assert_eq!(resp.status, 400);
     validate(&value(&resp), &schema_for(&openapi, "Error"), &components)
         .unwrap_or_else(|e| unreachable!("error schema: {e}"));
+
+    // runbooks listing & dispatch
+    let registry: kiln_web_service::runbooks::RunbookRegistry = serde_json::from_value(json!({
+        "schema": "kiln.runbook-registry.v1",
+        "runbooks": [{
+            "id": "contract-audit",
+            "display_name": "Contract Audit",
+            "description": "Read-only contract audit",
+            "mode": "read_only",
+            "lattice": {
+                "bundle_id": "contract-audit",
+                "bundle_identity": "b".repeat(64),
+                "workflow_name": "contract-audit",
+                "workflow_revision": "c".repeat(64),
+                "nodes": [{
+                    "id": "job",
+                    "kind": "test",
+                    "effect_class": "test",
+                    "adapter_kind": "local",
+                    "operation_identity": "a".repeat(64)
+                }],
+                "edges": []
+            },
+            "params": [{
+                "name": "strict",
+                "type": { "kind": "bool" },
+                "required": false,
+                "default": true,
+                "bindings": [{ "node": "job", "shell_env": "LATTICE_PARAM_STRICT" }]
+            }],
+            "allowed_targets": [{
+                "repository": "onixresearch/kiln",
+                "project_id": "fixture",
+                "references": ["refs/heads/main"],
+                "allow_commit_sha": false
+            }]
+        }],
+        "grants": []
+    }))
+    .unwrap_or_else(|e| unreachable!("runbook registry fixture: {e}"));
+    engine
+        .configure_runbooks(registry)
+        .unwrap_or_else(|e| unreachable!("configure runbooks: {e}"));
+
+    let resp = get(&mut engine, "/api/runbooks", Role::Operator);
+    assert_eq!(resp.status, 200);
+    validate(
+        &value(&resp),
+        &schema_for(&openapi, "RunbookList"),
+        &components,
+    )
+    .unwrap_or_else(|e| unreachable!("runbook list schema: {e}"));
+
+    let resp = call(
+        &mut engine,
+        "POST",
+        "/api/runbooks/contract-audit/dispatch",
+        json!({
+            "request_id": "contract-rb-1",
+            "target": "onixresearch/kiln@refs/heads/main",
+            "params": { "strict": true }
+        }),
+        Role::Operator,
+    );
+    assert!(resp.status == 201 || resp.status == 202);
+    validate(
+        &value(&resp),
+        &schema_for(&openapi, "RunbookDispatchResponse"),
+        &components,
+    )
+    .unwrap_or_else(|e| unreachable!("runbook dispatch schema: {e}"));
 }
 
 #[test]

@@ -128,10 +128,16 @@ impl Engine {
             )?;
             if write
                 && response.status < 400
-                && target == "/api/runs"
+                && (target == "/api/runs"
+                    || (target.starts_with("/api/runbooks/") && target.ends_with("/dispatch")))
                 && let Some(id) = serde_json::from_slice::<serde_json::Value>(&response.body)
                     .ok()
-                    .and_then(|v| v.get("id").and_then(|id| id.as_str()).map(str::to_owned))
+                    .and_then(|v| {
+                        v.get("run_id")
+                            .or_else(|| v.get("id"))
+                            .and_then(|id| id.as_str())
+                            .map(str::to_owned)
+                    })
                 && self.state.runs.contains_key(&id)
             {
                 if let Some(audit) = self.state.audit.last_mut() {
