@@ -530,6 +530,22 @@ fn validate_restored_runs(
         } else if !run.selected_nodes.is_empty() {
             return Err("stored retry selection has no parent".into());
         }
+        if let Some(fanout_id) = &run.fanout_run_id {
+            if run.runbook.is_none() {
+                return Err("stored fanout child missing runbook binding".into());
+            }
+            let fanout = state
+                .fanouts
+                .get(fanout_id)
+                .ok_or("stored fanout parent missing")?;
+            if !fanout
+                .children
+                .iter()
+                .any(|c| c.run_id.as_deref() == Some(id.as_str()) && c.project_id == run.project_id)
+            {
+                return Err("stored fanout child linkage conflict".into());
+            }
+        }
     }
     Ok(())
 }
@@ -539,12 +555,34 @@ fn validate(state: &DurableState, b: &ServiceBounds) -> Result<(), String> {
         || state.enrolled.len() > b.max_projects
         || state.requests.len() > b.max_requests
         || state.audit.len() > b.max_requests.saturating_mul(4).max(64)
+        || state.fanouts.len() > kiln_core::implementation::MAX_FANOUT_RUNS
         || state
             .runs
             .values()
             .any(|r| r.events.len() > b.max_events_per_run || r.artifacts.len() > b.max_artifacts)
     {
         return Err("durable retention bound exceeded".into());
+    }
+    for (id, fanout) in &state.fanouts {
+        if id != &fanout.id {
+            return Err("stored fanout identity mismatch".into());
+        }
+        fanout
+            .validate()
+            .map_err(|_| "stored fanout run rejected")?;
+        for child in &fanout.children {
+            if let Some(run_id) = &child.run_id {
+                let run = state
+                    .runs
+                    .get(run_id)
+                    .ok_or("stored fanout child run missing")?;
+                if run.fanout_run_id.as_deref() != Some(fanout.id.as_str())
+                    || run.project_id != child.project_id
+                {
+                    return Err("stored fanout child back-link conflict".into());
+                }
+            }
+        }
     }
     let mut total = 0usize;
     if state

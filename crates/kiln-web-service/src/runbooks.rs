@@ -51,6 +51,49 @@ pub struct RunbookRegistry {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct RunbookFanoutConfig {
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    #[serde(default = "default_one_u16")]
+    pub default_max_concurrency: u16,
+    #[serde(default = "default_max_concurrency_limit")]
+    pub max_concurrency_limit: u16,
+    #[serde(default = "default_budget_cap")]
+    pub default_budget_cap: u64,
+    #[serde(default = "default_max_budget_cap")]
+    pub max_budget_cap: u64,
+    #[serde(default = "default_max_targets")]
+    pub max_targets: usize,
+    #[serde(default)]
+    pub write_scopes: Vec<String>,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_one_u16() -> u16 {
+    1
+}
+
+fn default_max_concurrency_limit() -> u16 {
+    8
+}
+
+fn default_budget_cap() -> u64 {
+    16
+}
+
+fn default_max_budget_cap() -> u64 {
+    256
+}
+
+fn default_max_targets() -> usize {
+    kiln_core::implementation::MAX_FANOUT_TARGETS
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RunbookDefinition {
     pub id: String,
     pub display_name: String,
@@ -60,6 +103,8 @@ pub struct RunbookDefinition {
     #[serde(default)]
     pub params: Vec<ParamDeclaration>,
     pub allowed_targets: Vec<RunbookTarget>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fanout: Option<RunbookFanoutConfig>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -193,6 +238,8 @@ pub struct RunbookSummaryView {
     pub lattice_workflow_revision: String,
     pub params: Vec<RunbookParamView>,
     pub allowed_targets: Vec<RunbookTargetView>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fanout: Option<RunbookFanoutConfig>,
     pub can_dispatch: bool,
     pub dispatch_refusal: Option<&'static str>,
 }
@@ -279,6 +326,14 @@ pub fn valid_param_env_key(key: &str) -> bool {
         && suffix
             .bytes()
             .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_')
+}
+
+pub fn valid_write_scope_path(path: &str) -> bool {
+    path == "."
+        || (!path.is_empty()
+            && path.len() <= 256
+            && path.bytes().all(|b| b.is_ascii_graphic())
+            && kiln_core::paths::canonical(path))
 }
 
 pub fn valid_relative_path(path: &str) -> bool {
@@ -583,6 +638,38 @@ impl RunbookRegistry {
                     }
                 }
             }
+            if let Some(fanout) = &runbook.fanout {
+                if fanout.default_max_concurrency == 0
+                    || fanout.default_max_concurrency > fanout.max_concurrency_limit
+                    || fanout.max_concurrency_limit
+                        > kiln_core::implementation::MAX_FANOUT_CONCURRENCY
+                {
+                    return Err("runbook fanout concurrency bounds invalid".into());
+                }
+                if fanout.default_budget_cap == 0
+                    || fanout.default_budget_cap > fanout.max_budget_cap
+                    || fanout.max_budget_cap > kiln_core::implementation::MAX_FANOUT_BUDGET_UNITS
+                {
+                    return Err("runbook fanout budget bounds invalid".into());
+                }
+                if fanout.max_targets == 0
+                    || fanout.max_targets > kiln_core::implementation::MAX_FANOUT_TARGETS
+                {
+                    return Err("runbook fanout max_targets bound invalid".into());
+                }
+                if fanout.write_scopes.len() > 32 {
+                    return Err("runbook fanout write_scopes exceeds bound".into());
+                }
+                if runbook.mode == RunbookMode::ReadOnly && !fanout.write_scopes.is_empty() {
+                    return Err("read_only runbook cannot declare fanout write_scopes".into());
+                }
+                let mut seen_scopes = BTreeSet::new();
+                for scope in &fanout.write_scopes {
+                    if !valid_write_scope_path(scope) || !seen_scopes.insert(scope.as_str()) {
+                        return Err("runbook fanout write_scope invalid or duplicated".into());
+                    }
+                }
+            }
         }
 
         let mut principals = BTreeSet::new();
@@ -637,6 +724,21 @@ impl RunbookRegistry {
                         "runbook {} lattice workflow graph does not match project {}",
                         runbook.id, project.id
                     ));
+                }
+                if runbook.mode == RunbookMode::Mutating
+                    && let Some(fanout) = &runbook.fanout
+                    && target.repository.contains('/')
+                {
+                    for scope_path in &fanout.write_scopes {
+                        kiln_core::fleet::parse_scope(&target.repository, scope_path).map_err(
+                            |_| {
+                                format!(
+                                    "runbook {} write_scope {scope_path} invalid for {}",
+                                    runbook.id, target.repository
+                                )
+                            },
+                        )?;
+                    }
                 }
             }
         }
@@ -706,6 +808,7 @@ impl RunbookRegistry {
                             allow_commit_sha: t.allow_commit_sha,
                         })
                         .collect(),
+                    fanout: rb.fanout.clone(),
                     can_dispatch,
                     dispatch_refusal,
                 }
@@ -1020,6 +1123,7 @@ mod tests {
                         references: vec!["refs/heads/main".into()],
                         allow_commit_sha: false,
                     }],
+                    fanout: None,
                 },
                 RunbookDefinition {
                     id: "flake-update".into(),
@@ -1047,6 +1151,7 @@ mod tests {
                         references: vec!["refs/heads/main".into()],
                         allow_commit_sha: true,
                     }],
+                    fanout: None,
                 },
             ],
             grants: vec![RunbookGrant {

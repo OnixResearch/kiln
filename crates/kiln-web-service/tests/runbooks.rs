@@ -324,6 +324,7 @@ fn registry(allow_commit_sha: bool) -> RunbookRegistry {
                     references: vec!["refs/heads/main".into()],
                     allow_commit_sha,
                 }],
+                fanout: None,
             },
             RunbookDefinition {
                 id: "flake-update".into(),
@@ -354,6 +355,7 @@ fn registry(allow_commit_sha: bool) -> RunbookRegistry {
                     references: vec!["refs/heads/main".into()],
                     allow_commit_sha,
                 }],
+                fanout: None,
             },
         ],
         grants: vec![RunbookGrant {

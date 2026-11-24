@@ -297,6 +297,7 @@ fn record(
         implementation_verification: Some(provenance),
         preview_build: None,
         runbook: None,
+        fanout_run_id: None,
         state: State::default(),
     };
     record

@@ -659,6 +659,100 @@ fn http_contract_real_responses_validate_schema() {
         &components,
     )
     .unwrap_or_else(|e| unreachable!("runbook dispatch schema: {e}"));
+
+    // fan-out dispatch, list, inspect, pause, continue, cancel
+    let fanout_resp = call(
+        &mut engine,
+        "POST",
+        "/api/runbooks/contract-audit/fanout",
+        json!({
+            "request_id": "contract-fo-1",
+            "targets": ["onixresearch/kiln@refs/heads/main"],
+            "params": { "strict": true },
+            "max_concurrency": 1,
+            "budget_cap": 1
+        }),
+        Role::Operator,
+    );
+    assert!(fanout_resp.status == 201 || fanout_resp.status == 202);
+    let fanout_val = value(&fanout_resp);
+    validate(
+        &fanout_val,
+        &schema_for(&openapi, "FanoutDispatchResponse"),
+        &components,
+    )
+    .unwrap_or_else(|e| unreachable!("fanout dispatch schema: {e}"));
+    let fanout_id = fanout_val
+        .get("fanout_id")
+        .and_then(Value::as_str)
+        .unwrap_or_else(|| unreachable!("fanout_id"));
+
+    let fanout_list = get(&mut engine, "/api/runbooks/fanouts", Role::Viewer);
+    assert_eq!(fanout_list.status, 200);
+    validate(
+        &value(&fanout_list),
+        &schema_for(&openapi, "FanoutPage"),
+        &components,
+    )
+    .unwrap_or_else(|e| unreachable!("fanout page schema: {e}"));
+
+    let fanout_get = get(
+        &mut engine,
+        &format!("/api/runbooks/fanouts/{fanout_id}"),
+        Role::Viewer,
+    );
+    assert_eq!(fanout_get.status, 200);
+    validate(
+        &value(&fanout_get),
+        &schema_for(&openapi, "FanoutView"),
+        &components,
+    )
+    .unwrap_or_else(|e| unreachable!("fanout view schema: {e}"));
+
+    let pause_resp = call(
+        &mut engine,
+        "POST",
+        &format!("/api/runbooks/fanouts/{fanout_id}/pause"),
+        json!({ "request_id": "contract-fo-pause" }),
+        Role::Operator,
+    );
+    assert_eq!(pause_resp.status, 200);
+    validate(
+        &value(&pause_resp),
+        &schema_for(&openapi, "FanoutControlResponse"),
+        &components,
+    )
+    .unwrap_or_else(|e| unreachable!("fanout pause schema: {e}"));
+
+    let cont_resp = call(
+        &mut engine,
+        "POST",
+        &format!("/api/runbooks/fanouts/{fanout_id}/continue"),
+        json!({ "request_id": "contract-fo-cont" }),
+        Role::Operator,
+    );
+    assert_eq!(cont_resp.status, 200);
+    validate(
+        &value(&cont_resp),
+        &schema_for(&openapi, "FanoutControlResponse"),
+        &components,
+    )
+    .unwrap_or_else(|e| unreachable!("fanout continue schema: {e}"));
+
+    let cancel_resp = call(
+        &mut engine,
+        "POST",
+        &format!("/api/runbooks/fanouts/{fanout_id}/cancel"),
+        json!({ "request_id": "contract-fo-cancel" }),
+        Role::Operator,
+    );
+    assert_eq!(cancel_resp.status, 200);
+    validate(
+        &value(&cancel_resp),
+        &schema_for(&openapi, "FanoutControlResponse"),
+        &components,
+    )
+    .unwrap_or_else(|e| unreachable!("fanout cancel schema: {e}"));
 }
 
 #[test]

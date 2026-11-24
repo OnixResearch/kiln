@@ -627,7 +627,7 @@
     revision.title = text(run.source_revision);
     addFactTiles($("run-facts"), [["Source revision", revision], ["Created", when(run.created_at_ms)], ["Started", ui.runInstantElement(run, "started_at_ms")], ["Completed", ui.runInstantElement(run, "completed_at_ms")], ["Duration", ui.runDurationElement(run)]]);
     const affected = ui.affectedSummary(run.affected);
-    addFacts($("run-exact-facts"), [["Run ID", run.id], ["Project", run.project_id], ["Repository", run.repository], ["Source revision", run.source_revision], ["Canonical tree", run.canonical_tree], ["Run revision", run.revision], ["Attempt", run.attempt_id], ["Sequence", run.sequence], ["Parent run", run.parent_run_id], ["Created", timestamp(run.created_at_ms)], ["Started", timestamp(run.started_at_ms)], ["Completed", timestamp(run.completed_at_ms)], ...(affected?.identity ? [["Affected-set BLAKE3", affected.identity]] : [])]);
+    addFacts($("run-exact-facts"), [["Run ID", run.id], ["Project", run.project_id], ["Repository", run.repository], ["Source revision", run.source_revision], ["Canonical tree", run.canonical_tree], ["Run revision", run.revision], ["Attempt", run.attempt_id], ["Sequence", run.sequence], ["Parent run", run.parent_run_id], ...(run.fanout_run_id ? [["Fan-out parent", workspaceLink({ page: "runbooks", runbook: run.runbook?.runbook_id || "", fanout: run.fanout_run_id }, run.fanout_run_id)]] : []), ["Created", timestamp(run.created_at_ms)], ["Started", timestamp(run.started_at_ms)], ["Completed", timestamp(run.completed_at_ms)], ...(affected?.identity ? [["Affected-set BLAKE3", affected.identity]] : [])]);
     renderWhy(affected);
     renderUntrusted(run);
     $("execution-identity").textContent = text(run.execution);
@@ -1328,6 +1328,7 @@
       worker_q: (params.get("worker_q") || "").slice(0, 256), worker_status: Object.hasOwn(window.KilnWorkers.statuses, params.get("worker_status")) ? params.get("worker_status") : "", worker: params.get("worker") || "",
       worker_campaign: params.get("worker_campaign") || "",
       runbook: (params.get("runbook") || "").slice(0, 128),
+      fanout: (params.get("fanout") || "").slice(0, 128),
       // r[impl kiln.cairn.workspace.scenario.reload] The selected Cairn change, its open unit, register view and filters are bound to the URL.
       cairn_repository: (params.get("cairn_repository") || "").slice(0, 64), cairn_change: (params.get("cairn_change") || "").slice(0, 1024), cairn_q: (params.get("cairn_q") || "").slice(0, 256),
       cairn_unit: (params.get("cairn_unit") || "").slice(0, 2048), cairn_lane: (params.get("cairn_lane") || "").slice(0, 32),
@@ -1961,6 +1962,7 @@
         route,
         canOperate: canOperate(),
         principal: state.principal,
+        enrolledProjects: state.projects.enrolled,
         runLink,
         isCurrent: () => state.route === route && !!state.session,
       });

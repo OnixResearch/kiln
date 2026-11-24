@@ -10,6 +10,7 @@ pub mod code_review;
 pub mod developer;
 pub mod engine;
 pub mod execution;
+pub mod fanouts;
 pub mod feeds;
 pub mod fleet;
 pub mod implementation_campaign;

@@ -2196,3 +2196,206 @@ test("KilnRunbooks stale submit finally does not clear newer generation busy sta
 
   rb.clear();
 });
+
+test("KilnRunbooks fan-out helpers expand enrolled globs, validate inputs, and map child outcomes", () => {
+  const rb = context.window.KilnRunbooks;
+  assert.deepEqual(plain(rb.normalizeRoute({ runbook: "security-audit", fanout: "rb-fanout-abc_1" })), {
+    runbook: "security-audit",
+    fanout: "rb-fanout-abc_1",
+  });
+  assert.deepEqual(plain(rb.normalizeRoute({ runbook: "security-audit", fanout: "../bad" })), {
+    runbook: "security-audit",
+    fanout: "",
+  });
+
+  const explicit = rb.parseExplicitTargets("onixresearch/kiln@refs/heads/main\nonixresearch/lattice@refs/heads/main");
+  assert.equal(explicit.errors.length, 0);
+  assert.equal(explicit.targets.length, 2);
+
+  const badGlobInExplicit = rb.parseExplicitTargets("onixresearch/*@refs/heads/main");
+  assert.equal(badGlobInExplicit.errors.length, 1);
+
+  const sampleRb = {
+    params: [{ name: "strict", kind: "bool", required: false, default: true }],
+    allowed_targets: [
+      { repository: "onixresearch/kiln", project_id: "kiln-audit", references: ["refs/heads/main"] },
+      { repository: "onixresearch/lattice", project_id: "lattice-audit", references: ["refs/heads/main"] },
+      { repository: "other/repo", project_id: "other-audit", references: ["refs/heads/main"] },
+    ],
+    fanout: {
+      enabled: true,
+      default_max_concurrency: 2,
+      max_concurrency_limit: 4,
+      default_budget_cap: 8,
+      max_budget_cap: 16,
+      max_targets: 10,
+      write_scopes: [],
+    },
+  };
+
+  const preview = rb.matchEnrolledTargets(
+    sampleRb,
+    [{ id: "kiln-audit" }],
+    "onixresearch/*@refs/heads/main",
+  );
+  assert.equal(preview.error, "");
+  assert.equal(preview.matched.length, 1);
+  assert.equal(preview.matched[0].project_id, "kiln-audit");
+  assert.equal(preview.excludedUnenrolled.length, 1);
+  assert.equal(preview.excludedUnenrolled[0].project_id, "lattice-audit");
+
+  const validFo = rb.validateFanoutInputs(sampleRb, {
+    targetMode: "glob",
+    targetGlob: "onixresearch/*@refs/heads/main",
+    maxConcurrency: "2",
+    budgetCap: "4",
+    claimPolicy: "serialize",
+    params: { strict: "true" },
+    requestId: "ui-fo-req-1",
+  });
+  assert.equal(validFo.ok, true);
+  assert.deepEqual(plain(validFo.payload), {
+    request_id: "ui-fo-req-1",
+    targets: [],
+    target_globs: ["onixresearch/*@refs/heads/main"],
+    params: { strict: true },
+    max_concurrency: 2,
+    budget_cap: 4,
+    claim_policy: "serialize",
+  });
+
+  const overCap = rb.validateFanoutInputs(sampleRb, {
+    targetMode: "explicit",
+    targetsText: "onixresearch/kiln@refs/heads/main",
+    maxConcurrency: "99",
+    budgetCap: "0",
+    params: {},
+    requestId: "ui-fo-req-2",
+  });
+  assert.equal(overCap.ok, false);
+  assert.equal(overCap.errors.length, 2);
+
+  assert.deepEqual(plain(rb.fanoutOutcomeStatus("unknown")), { status: "unknown", label: "Unknown" });
+  assert.deepEqual(plain(rb.fanoutOutcomeStatus("skipped")), { status: "cancelled", label: "Skipped" });
+  assert.deepEqual(plain(rb.fanoutOutcomeStatus("failure")), { status: "failure", label: "Failure" });
+  assert.deepEqual(plain(rb.fanoutOutcomeStatus("success")), { status: "success", label: "Success" });
+});
+
+test("KilnRunbooks fan-out inspector renders ledger, cancel confirmation gate, and 503 retry", async () => {
+  const doc = { createElement: (tag) => new CairnNode(tag) };
+  const ctxObj = {
+    window: { KilnUi: ui },
+    document: doc,
+    TextEncoder,
+    crypto: webcrypto,
+  };
+  vm.runInNewContext(asset("runbooks.js"), ctxObj);
+  const rb = ctxObj.window.KilnRunbooks;
+
+  const fanoutDoc = {
+    id: "rb-fanout-123",
+    ordinal: 5,
+    runbook_id: "security-audit",
+    mode: "read_only",
+    principal: "local:operator",
+    request_id: "req-fo-1",
+    target_selectors: ["onixresearch/*@refs/heads/main"],
+    claim_policy: "refuse",
+    admission: "open",
+    phase: "active",
+    stop_reason: null,
+    max_concurrency: 2,
+    active_children: 1,
+    budget_cap: 3,
+    budget_drawn: 2,
+    budget_remaining: 1,
+    unit_cost: 1,
+    admitted_runs: 2,
+    controls: { pause: true, continue: false, cancel: true },
+    counts: { total: 4, pending: 0, active: 1, success: 1, failure: 0, unknown: 1, skipped: 1 },
+    children: [
+      { index: 0, project_id: "p0", repository: "onixresearch/a", target: "onixresearch/a@refs/heads/main", resolved_reference: "refs/heads/main", source_revision: "a".repeat(40), write_scope: null, status: "success", run_id: "web-run-0", outcome_detail: "success", reason: null },
+      { index: 1, project_id: "p1", repository: "onixresearch/b", target: "onixresearch/b@refs/heads/main", resolved_reference: "refs/heads/main", source_revision: "b".repeat(40), write_scope: null, status: "unknown", run_id: "web-run-1", outcome_detail: "unknown", reason: "provider_unknown" },
+      { index: 2, project_id: "p2", repository: "onixresearch/c", target: "onixresearch/c@refs/heads/main", resolved_reference: "refs/heads/main", source_revision: "c".repeat(40), write_scope: null, status: "active", run_id: "web-run-2", outcome_detail: null, reason: null },
+      { index: 3, project_id: "p3", repository: "onixresearch/d", target: "onixresearch/d@refs/heads/main", resolved_reference: "refs/heads/main", source_revision: "d".repeat(40), write_scope: null, status: "skipped", run_id: null, outcome_detail: null, reason: "fanout_budget_exhausted" },
+    ],
+  };
+
+  const controlCalls = [];
+  let pauseAttempts = 0;
+
+  const findById = (node, id) => {
+    if (!node) return null;
+    if (node.id === id) return node;
+    for (const child of node.children || []) {
+      const hit = findById(child, id);
+      if (hit) return hit;
+    }
+    return null;
+  };
+
+  const ctx = {
+    route: { page: "runbooks", runbook: "security-audit", fanout: "rb-fanout-123" },
+    canOperate: true,
+    principal: { id: "local:operator", role: "operator" },
+    enrolledProjects: [{ id: "p0" }],
+    navigate() {},
+    notice() {},
+    runLink(runId, label) {
+      const a = new CairnNode("a");
+      a.href = `?page=runs&run=${runId}&view=pipeline`;
+      a.textContent = label;
+      return a;
+    },
+    isCurrent: () => true,
+    async api(path, opts) {
+      if (path === "/api/runbooks") {
+        return { schema: "kiln.web-runbooks-view.v1", configured: true, principal: "local:operator", runbooks: [{ id: "security-audit", display_name: "Security Audit", mode: "read_only", allowed_targets: [], params: [], can_dispatch: true }] };
+      }
+      if (path === "/api/runbooks/fanouts") {
+        return { schema: "kiln.runbook-fanouts-view.v1", fanouts: [fanoutDoc], next_cursor: null, total: 1, bounded: true };
+      }
+      if (path === "/api/runbooks/fanouts/rb-fanout-123") {
+        return fanoutDoc;
+      }
+      if (path === "/api/runbooks/fanouts/rb-fanout-123/pause") {
+        controlCalls.push(opts.body.request_id);
+        pauseAttempts += 1;
+        if (pauseAttempts === 1) throw { status: 503, message: "transient" };
+        return { schema: "kiln.runbook-fanout-control-result.v1", request_id: opts.body.request_id, replayed: true, action: "pause", fanout_id: "rb-fanout-123", fanout: { ...fanoutDoc, admission: "paused", phase: "paused" } };
+      }
+      throw new Error(`unexpected ${path}`);
+    },
+  };
+
+  const root = new CairnNode("div");
+  await rb.load(root, ctx);
+  assert.match(root.textContent, /1 \/ 2/);
+  assert.match(root.textContent, /2 \/ 3/);
+  assert.match(root.textContent, /1 passed · 0 failed · 1 unknown · 1 skipped/);
+  assert.match(root.textContent, /fanout_budget_exhausted/);
+  assert.match(root.textContent, /provider_unknown/);
+
+  const cancelBtn = findById(root, "fanout-cancel-btn");
+  const cancelConfirm = findById(root, "fanout-cancel-confirm");
+  assert.equal(cancelBtn.disabled, true);
+  cancelConfirm.checked = true;
+  cancelConfirm.listeners.get("change")[0]();
+  assert.equal(cancelBtn.disabled, false);
+
+  // First pause fails with 503 -> retains exact request_id and reveals Retry button.
+  const pauseBtn = findById(root, "fanout-pause-btn");
+  pauseBtn.listeners.get("click")[0]();
+  await new Promise((r) => setTimeout(r, 10));
+  const retryBtn = findById(root, "fanout-control-retry");
+  const reqInput = findById(root, "fanout-control-request-id");
+  assert.equal(retryBtn.hidden, false);
+  assert.ok(reqInput.value);
+  const retainedId = reqInput.value;
+
+  retryBtn.listeners.get("click")[0]();
+  await new Promise((r) => setTimeout(r, 10));
+  assert.deepEqual(controlCalls, [retainedId, retainedId]);
+
+  rb.clear();
+});

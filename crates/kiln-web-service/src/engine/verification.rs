@@ -503,6 +503,7 @@ impl Engine {
                 implementation_verification: Some(provenance),
                 preview_build: None,
                 runbook: None,
+                fanout_run_id: None,
             };
             let mut total_bytes = self
                 .state

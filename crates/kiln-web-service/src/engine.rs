@@ -13,6 +13,8 @@ mod artifacts;
 mod automation;
 mod cache;
 mod dashboard;
+mod fanouts;
+pub use fanouts::FleetClaimsSnapshot;
 mod logs;
 pub(crate) mod model;
 mod queue;
@@ -79,6 +81,7 @@ pub struct Engine {
     /// Raw dedicated feed capability token, used only to render operator-facing
     /// subscription links and Atom self links.
     feeds_token: Option<zeroize::Zeroizing<String>>,
+    fleet_claims: FleetClaimsSnapshot,
     _lock: storage::StateLock,
 }
 
@@ -191,6 +194,7 @@ impl Engine {
             automation_affected: None,
             pending_untrusted: None,
             feeds_token,
+            fleet_claims: FleetClaimsSnapshot::Unconfigured,
             _lock: lock,
         })
     }
@@ -220,7 +224,10 @@ impl Engine {
         for id in ids {
             self.refresh(&id)?;
         }
+        self.sync_fanouts()?;
+        self.advance_fanouts()?;
         self.dispatch_queued()?;
+        self.sync_fanouts()?;
         let failed: Vec<String> = self
             .state
             .runs

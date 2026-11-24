@@ -31,7 +31,7 @@ impl Engine {
         Ok(())
     }
 
-    fn current_runbooks(&self) -> Result<Option<RunbookRegistry>, String> {
+    pub(super) fn current_runbooks(&self) -> Result<Option<RunbookRegistry>, String> {
         if let Some(path) = &self.runbooks_path {
             let registry = RunbookRegistry::load(path)?;
             registry.admit_for_service(&self.profile)?;
@@ -40,7 +40,7 @@ impl Engine {
         Ok(self.runbook_profile.clone())
     }
 
-    fn authorize_runbook_principal(
+    pub(super) fn authorize_runbook_principal(
         &self,
         id: &str,
         principal: &Principal,
@@ -307,7 +307,10 @@ pub(super) fn replay_response_with_flag(mut value: serde_json::Value) -> serde_j
     value
 }
 
-fn target_allows_reference(target_rule: &RunbookTarget, raw_ref: &str) -> Option<String> {
+pub(super) fn target_allows_reference(
+    target_rule: &RunbookTarget,
+    raw_ref: &str,
+) -> Option<String> {
     target_rule
         .references
         .iter()
@@ -320,7 +323,7 @@ fn target_allows_reference(target_rule: &RunbookTarget, raw_ref: &str) -> Option
         })
 }
 
-fn resolve_sha_target_source(
+pub(super) fn resolve_sha_target_source(
     project: &ProjectProfile,
     target_rule: &RunbookTarget,
     raw_ref: &str,

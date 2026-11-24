@@ -5321,6 +5321,38 @@ request ID. After a lost response, **Retry the same request** resends that ID,
 so the owner returns the recorded outcome instead of applying the command
 twice. A 409 reports that nothing was applied and reloads the current state.
 
+### Runbooks and parent fan-out runs
+
+Reviewed runbooks are defined via `config/runbook-registry.ncl` and passed to
+`kiln-web-service serve --runbooks PATH`. Each runbook may declare an optional
+`fanout` policy (`default_max_concurrency`, `max_concurrency_limit`,
+`default_budget_cap`, `max_budget_cap`, `max_targets`, and `write_scopes`);
+`read_only` runbooks must declare an empty `write_scopes` list.
+
+Operators can dispatch a parent fan-out run from destination `1.5` (Runbooks),
+`POST /api/runbooks/{id}/fanout`, or `kiln-web-service ci fanout`:
+
+- **Enrolled-project target expansion**: explicit target lists (`REPO@REF` or
+  project/repo selectors) and globs (`target_globs`) resolve strictly against
+  enrolled projects intersected with `allowed_targets`. Unenrolled or unallowed
+  targets are refused before admission, and exact commit revisions are frozen
+  per child at expansion time.
+- **Bounded concurrency and budget caps**: admission never exceeds
+  `max_concurrency` active children and stops once the parent `budget_cap` is
+  drawn, marking remaining pending children `skipped` with recorded reason
+  `fanout_budget_exhausted`.
+- **Partial-failure isolation**: one child's failure or `Unknown` outcome
+  releases its concurrency slot without cancelling or blocking siblings and
+  never triggers blind retry.
+- **Admission-only controls**: `pause`, `continue`, and `cancel` require an
+  explicit `request_id` (replayed -> `replayed: true`, conflict -> `409`),
+  re-check runbook authorization and definition parity on `continue`, and stop
+  or resume future child admission only without claiming to stop
+  already-running child runs.
+- **Fleet claim overlap**: when `--fleet` is configured, mutating fan-outs check
+  `<owner>/<repo> <path>` scopes against live fleet claims (`refuse`, `skip`, or
+  `serialize`) and serialize overlapping internal mutating runs.
+
 ### Cairn changes
 
 <!-- r[related kiln.cairn.workspace] -->

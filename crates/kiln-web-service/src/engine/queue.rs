@@ -372,12 +372,9 @@ impl Engine {
     // required CI for the exact revision.
     // r[impl kiln.dashboard.complete.reruns] r[impl kiln.web.retry_failed]
     pub(super) fn auto_retry_failed(&mut self, id: &str) -> Result<(), String> {
-        if self
-            .state
-            .runs
-            .get(id)
-            .is_some_and(|run| run.is_engine_owned_execution() || run.runbook.is_some())
-        {
+        if self.state.runs.get(id).is_some_and(|run| {
+            run.is_engine_owned_execution() || run.runbook.is_some() || run.fanout_run_id.is_some()
+        }) {
             return Ok(());
         }
         let Some(project) = self
@@ -634,6 +631,7 @@ impl Engine {
             implementation_verification: None,
             preview_build: None,
             runbook,
+            fanout_run_id: None,
             state: State::default(),
         };
         self.attach_untrusted(&mut record)?;
@@ -651,6 +649,88 @@ impl Engine {
         let status = if run.waiting() { 202 } else { 201 };
         let body = build_response(run)?;
         self.finish_request(request_id, status, body)
+    }
+
+    pub(super) fn enqueue_fanout_child(
+        &mut self,
+        project: &ProjectProfile,
+        fanout_id: &str,
+        child_index: u16,
+        source: SourceResolution,
+        binding: crate::runbooks::RunbookRunBinding,
+    ) -> Result<String, String> {
+        if self.state.runs.len() >= self.profile.bounds.max_runs {
+            return Err("run_retention".into());
+        }
+        let pipeline = identity(&project.workflow)?;
+        let scope = crate::monorepo::run_scope(project)?;
+        let affected = crate::monorepo::manual_affected(project)?;
+        let run_identity = identity(&(
+            "kiln.fanout-child-run.v1",
+            &self.profile.service_id,
+            fanout_id,
+            child_index,
+            &source,
+            &pipeline,
+            &project.id,
+            &scope.as_ref().map(|s| &s.identity),
+            &binding,
+        ))?;
+        let id = format!("web-run-{}", run_identity.as_str());
+        let context = WorkflowSourceContext {
+            provider: Alias::new("git").map_err(|_| "git alias invalid")?,
+            repository: source.repository.clone(),
+            revision: ExternalRef::new("git", "revision", source.exact_revision.native_id.as_str())
+                .map_err(|_| "source revision invalid")?,
+        };
+        let plan = workflow_plan(project, &run_identity, &pipeline, Some(context))?;
+        project.admit_execution_plan(&plan, self.profile.bounds.max_runs)?;
+        let mut record = RunRecord {
+            id: id.clone(),
+            ordinal: self.state.version,
+            project_id: project.id.clone(),
+            pipeline_identity: pipeline,
+            source,
+            requested_reference: Some(binding.target.clone()),
+            requested_pull_request: None,
+            requested_trigger: None,
+            dirty_snapshot: None,
+            affected,
+            scope,
+            step_telemetry: Vec::new(),
+            plan: plan.clone(),
+            events: Vec::new(),
+            event_recorded_at_ms: Vec::new(),
+            phase: "queued".into(),
+            observation: None,
+            error_code: None,
+            superseded_by: None,
+            superseded_revision: None,
+            artifacts: Vec::new(),
+            logs: Vec::new(),
+            created_at_ms: Some(host_time_ms()?),
+            started_at_ms: None,
+            completed_at_ms: None,
+            parent_run_id: None,
+            auto_retry: None,
+            selected_nodes: Vec::new(),
+            node_timing: BTreeMap::new(),
+            reports: Vec::new(),
+            untrusted: None,
+            implementation_verification: None,
+            preview_build: None,
+            runbook: Some(binding),
+            fanout_run_id: Some(fanout_id.to_owned()),
+            state: State::default(),
+        };
+        record.apply(Command::StartRun {
+            run_id: RunId::new(id.clone()).map_err(|_| "run identity invalid")?,
+            attempt_id: plan.attempt_id.clone(),
+            provider_profile: plan.provider_profile.clone(),
+            effect_id: plan.effect_id.clone(),
+        })?;
+        self.state.runs.insert(id.clone(), record);
+        Ok(id)
     }
     pub(super) fn dispatch_queued(&mut self) -> Result<(), String> {
         let mut busy: BTreeSet<_> = self

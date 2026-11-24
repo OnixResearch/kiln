@@ -1107,17 +1107,22 @@
       ],
       "stylesheets": [],
       "api": [
-        "/api/runbooks"
+        "/api/runbooks",
+        "/api/runbooks/fanouts"
       ],
       "url_state": [
-        "runbook"
+        "runbook",
+        "fanout"
       ],
       "states": [
         "loading",
         "empty",
         "error",
         "denied",
-        "queued"
+        "queued",
+        "running",
+        "failed",
+        "unknown"
       ]
     }
   ]

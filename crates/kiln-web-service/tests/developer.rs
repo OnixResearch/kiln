@@ -747,3 +747,195 @@ fn ci_retry_surfaces_server_rejection_codes() {
         assert!(stderr.contains("runbook_mode_changed"), "stderr: {stderr}");
     }
 }
+
+#[test]
+fn ci_fanout_and_controls_wire_http_routes_and_watch_exit_codes() {
+    let root = checked(tempfile::tempdir());
+    let (addr, captured, stop, handle) = spawn_tls_stub(|method, path, body| {
+        if method == "GET" && path == "/api/runbooks" {
+            return StubResponse {
+                status: 200,
+                body: json!({
+                    "schema": "kiln.web-runbooks-view.v1",
+                    "configured": true,
+                    "principal": "local:operator",
+                    "runbooks": [{
+                        "id": "security-audit",
+                        "params": [
+                            { "name": "profile", "kind": "enum", "required": true, "bindings": [] }
+                        ]
+                    }]
+                }),
+            };
+        }
+        if method == "POST" && path == "/api/runbooks/security-audit/fanout" {
+            let req_id = body
+                .and_then(|v| v.get("request_id"))
+                .and_then(Value::as_str)
+                .unwrap_or("req");
+            return StubResponse {
+                status: 202,
+                body: json!({
+                    "schema": "kiln.runbook-fanout-result.v1",
+                    "request_id": req_id,
+                    "replayed": false,
+                    "fanout_id": "rb-fanout-1",
+                    "fanout": {
+                        "id": "rb-fanout-1",
+                        "runbook_id": "security-audit",
+                        "admission": "open",
+                        "phase": "active",
+                        "max_concurrency": 2,
+                        "budget_drawn": 1,
+                        "budget_cap": 3,
+                        "counts": { "total": 2, "pending": 1, "active": 1, "success": 0, "failure": 0, "unknown": 0, "skipped": 0 }
+                    }
+                }),
+            };
+        }
+        if method == "GET" && path == "/api/runbooks/fanouts?runbook_id=security-audit&limit=10" {
+            return StubResponse {
+                status: 200,
+                body: json!({
+                    "schema": "kiln.runbook-fanouts-view.v1",
+                    "fanouts": [],
+                    "next_cursor": null,
+                    "total": 0,
+                    "bounded": true
+                }),
+            };
+        }
+        if method == "GET" && path == "/api/runbooks/fanouts/rb-fanout-1" {
+            return StubResponse {
+                status: 200,
+                body: json!({
+                    "id": "rb-fanout-1",
+                    "runbook_id": "security-audit",
+                    "admission": "open",
+                    "phase": "completed",
+                    "max_concurrency": 2,
+                    "budget_drawn": 2,
+                    "budget_cap": 3,
+                    "counts": { "total": 2, "pending": 0, "active": 0, "success": 1, "failure": 0, "unknown": 1, "skipped": 0 }
+                }),
+            };
+        }
+        if method == "POST" && path == "/api/runbooks/fanouts/rb-fanout-1/pause" {
+            return StubResponse {
+                status: 200,
+                body: json!({
+                    "schema": "kiln.runbook-fanout-control-result.v1",
+                    "request_id": "pause-cli",
+                    "replayed": false,
+                    "action": "pause",
+                    "fanout_id": "rb-fanout-1",
+                    "fanout": { "id": "rb-fanout-1", "admission": "paused", "phase": "paused" }
+                }),
+            };
+        }
+        StubResponse {
+            status: 404,
+            body: json!({"code": "not_found", "message": "unexpected"}),
+        }
+    });
+    let (profile_path, identity) = write_cli_profile(root.path(), addr.port());
+
+    let fo_out = checked(
+        Command::new(env!("CARGO_BIN_EXE_kiln-web-service"))
+            .args([
+                "ci",
+                "--profile",
+                &profile_path.to_string_lossy(),
+                "--identity",
+                &identity,
+                "fanout",
+                "--runbook",
+                "security-audit",
+                "--request-id",
+                "cli-fo-1",
+                "--target-glob",
+                "onixresearch/*@refs/heads/main",
+                "--param",
+                "profile=123",
+                "--max-concurrency",
+                "2",
+                "--budget-cap",
+                "3",
+                "--claim-policy",
+                "skip",
+                "--output",
+                "text",
+            ])
+            .output(),
+    );
+    assert!(
+        fo_out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&fo_out.stderr)
+    );
+    let stdout_text = String::from_utf8_lossy(&fo_out.stdout);
+    assert!(stdout_text.contains("fanout_id: rb-fanout-1"));
+
+    let list_out = checked(
+        Command::new(env!("CARGO_BIN_EXE_kiln-web-service"))
+            .args([
+                "ci",
+                "--profile",
+                &profile_path.to_string_lossy(),
+                "--identity",
+                &identity,
+                "fanout-list",
+                "--runbook",
+                "security-audit",
+                "--limit",
+                "10",
+            ])
+            .output(),
+    );
+    assert!(list_out.status.success());
+
+    // fanout-watch exits 3 when unknown > 0 && failure == 0.
+    let watch_out = checked(
+        Command::new(env!("CARGO_BIN_EXE_kiln-web-service"))
+            .args([
+                "ci",
+                "--profile",
+                &profile_path.to_string_lossy(),
+                "--identity",
+                &identity,
+                "fanout-watch",
+                "--fanout",
+                "rb-fanout-1",
+            ])
+            .output(),
+    );
+    assert_eq!(watch_out.status.code(), Some(3));
+
+    let pause_out = checked(
+        Command::new(env!("CARGO_BIN_EXE_kiln-web-service"))
+            .args([
+                "ci",
+                "--profile",
+                &profile_path.to_string_lossy(),
+                "--identity",
+                &identity,
+                "fanout-pause",
+                "--fanout",
+                "rb-fanout-1",
+                "--request-id",
+                "pause-cli",
+            ])
+            .output(),
+    );
+    assert!(pause_out.status.success());
+
+    stop.store(true, Ordering::Release);
+    let _ = handle.join();
+
+    let requests = checked(captured.lock()).clone();
+    assert!(requests.iter().any(|(m, p, b)| {
+        m == "POST"
+            && p == "/api/runbooks/security-audit/fanout"
+            && b.as_ref().and_then(|v| v.pointer("/params/profile")) == Some(&json!("123"))
+    }));
+}

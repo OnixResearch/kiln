@@ -49,6 +49,15 @@
           allow_commit_sha = false,
         },
       ],
+      fanout = {
+        enabled = true,
+        default_max_concurrency = 2,
+        max_concurrency_limit = 8,
+        default_budget_cap = 10,
+        max_budget_cap = 50,
+        max_targets = 32,
+        write_scopes = [],
+      },
     },
     {
       id = "flake-update",
@@ -108,6 +117,15 @@
           allow_commit_sha = true,
         },
       ],
+      fanout = {
+        enabled = true,
+        default_max_concurrency = 1,
+        max_concurrency_limit = 4,
+        default_budget_cap = 8,
+        max_budget_cap = 32,
+        max_targets = 16,
+        write_scopes = ["flake.lock", "flake.nix"],
+      },
     },
   ],
   grants = [

@@ -29,6 +29,8 @@ pub struct DurableState {
     pub snapshots: BTreeMap<String, crate::snapshot::SnapshotRecord>,
     #[serde(default, skip_serializing_if = "crate::feeds::FeedsState::is_empty")]
     pub feeds: crate::feeds::FeedsState,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub fanouts: BTreeMap<String, kiln_core::implementation::FanOutRun>,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -37,6 +39,8 @@ pub enum RequestKind {
     Start,
     Control,
     RunbookDispatch,
+    FanoutDispatch,
+    FanoutControl,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -208,6 +212,9 @@ pub struct RunRecord {
     /// Reviewed runbook metadata and parameter bindings for runbook-dispatched runs.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub runbook: Option<crate::runbooks::RunbookRunBinding>,
+    /// Parent fan-out run ID when this run was admitted by a fan-out parent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fanout_run_id: Option<String>,
     #[serde(skip)]
     pub state: State,
 }
@@ -268,6 +275,8 @@ pub struct RunView {
     pub untrusted: Option<kiln_core::untrusted::UntrustedSummary>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub runbook: Option<crate::runbooks::RunbookRunBinding>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fanout_run_id: Option<String>,
 }
 impl RunRecord {
     pub(super) fn is_independent_verification(&self) -> bool {
@@ -482,6 +491,7 @@ impl RunRecord {
                 .as_ref()
                 .map(kiln_core::untrusted::UntrustedGate::summary),
             runbook: self.runbook.clone(),
+            fanout_run_id: self.fanout_run_id.clone(),
             log_bounds: LogBounds {
                 maximum_chunk_bytes: self.plan.bounds.max_log_read_bytes,
                 maximum_total_bytes: self.plan.bounds.max_total_log_bytes,

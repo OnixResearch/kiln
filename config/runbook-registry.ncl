@@ -142,6 +142,37 @@ let is_int = fun value =>
   std.is_number value && std.number.floor value == value
 in
 
+let IntBetween = fun minimum maximum =>
+  std.contract.from_predicate (fun value =>
+    is_int value && value >= minimum && value <= maximum
+  )
+in
+
+let WriteScopePath =
+  std.contract.from_predicate (fun value =>
+    value == "."
+    || (
+      std.is_string value
+      && std.string.length value > 0
+      && std.string.length value <= 256
+      && !(std.string.is_match "^/|/$|//" value)
+      && !(std.string.is_match "(^|/)\\.\\.($|/)" value)
+      && !(std.string.is_match "[\\x00-\\x20\\x7f]" value)
+    )
+  )
+in
+
+let FanoutConfig = {
+  enabled | Bool | default = true,
+  default_max_concurrency | IntBetween 1 32 | default = 1,
+  max_concurrency_limit | IntBetween 1 32 | default = 8,
+  default_budget_cap | IntBetween 1 10000 | default = 16,
+  max_budget_cap | IntBetween 1 10000 | default = 256,
+  max_targets | IntBetween 1 64 | default = 64,
+  write_scopes | Array WriteScopePath | Between 0 32 | Unique | default = [],
+}
+in
+
 let is_valid_relative_path = fun max_bytes value =>
   std.is_string value
   && std.string.length value > 0
@@ -299,6 +330,19 @@ let valid_runbook_relations = fun runbook =>
   && unique binding_keys
   && unique target_repos
   && unique target_projects
+  && (
+    if std.record.has_field "fanout" runbook then
+      runbook.fanout.default_max_concurrency <= runbook.fanout.max_concurrency_limit
+      && runbook.fanout.default_budget_cap <= runbook.fanout.max_budget_cap
+      && (
+        if runbook.mode == "read_only" then
+          runbook.fanout.write_scopes == []
+        else
+          true
+      )
+    else
+      true
+  )
 in
 
 let RunbookDefinition = {
@@ -309,6 +353,7 @@ let RunbookDefinition = {
   lattice | LatticeSpec,
   params | Array ParamDeclaration | Between 0 16 | default = [],
   allowed_targets | Array AllowedTarget | Between 1 64,
+  fanout | FanoutConfig | optional,
 }
 in
 

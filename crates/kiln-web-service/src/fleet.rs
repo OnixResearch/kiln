@@ -73,6 +73,11 @@ pub(crate) struct Reply {
     pub(crate) body: Vec<u8>,
 }
 
+#[derive(Deserialize)]
+struct ClaimsEnvelope {
+    claims: Vec<kiln_core::fleet::FleetClaim>,
+}
+
 pub(crate) enum EventFrame {
     Snapshot { version: String, data: Vec<u8> },
     Heartbeat,
@@ -133,6 +138,15 @@ impl Client {
             return Err(());
         }
         serde_json::from_slice(&reply.body).map_err(|_| ())
+    }
+
+    pub(crate) fn live_claims(&self) -> Result<Vec<kiln_core::fleet::FleetClaim>, ()> {
+        let reply = self.call("GET", "/v1/claims", None)?;
+        if !(200..300).contains(&reply.status) {
+            return Err(());
+        }
+        let envelope: ClaimsEnvelope = serde_json::from_slice(&reply.body).map_err(|_| ())?;
+        Ok(envelope.claims)
     }
 
     fn version(&self) -> Result<String, ()> {

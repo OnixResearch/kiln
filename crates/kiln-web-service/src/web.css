@@ -46,8 +46,9 @@ details[open] > summary > .disclosure-chevron { transform: rotate(180deg); }
 :is(.about-view, .nav-disclosure) > summary > .disclosure-chevron { transform: rotate(-90deg); }
 :is(.about-view, .nav-disclosure)[open] > summary > .disclosure-chevron { transform: none; }
 input:not([type="checkbox"]), select { display: block; width: 100%; min-height: var(--control-height); padding: .45rem .7rem; border: 1px solid var(--input-border); border-radius: var(--radius); background: var(--secondary); color: var(--foreground); font-size: var(--text-sm); transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease; }
-input:not([type="checkbox"]):hover, select:hover { border-color: var(--foreground); box-shadow: inset 0 0 0 1px var(--foreground); }
-input:not([type="checkbox"]):focus-visible, select:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+.form-field textarea { display: block; width: 100%; min-height: 5.5rem; padding: .45rem .7rem; border: 1px solid var(--input-border); border-radius: var(--radius); background: var(--secondary); color: var(--foreground); font: var(--text-sm) var(--mono); resize: vertical; transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease; }
+.form-field textarea:hover, input:not([type="checkbox"]):hover, select:hover { border-color: var(--foreground); box-shadow: inset 0 0 0 1px var(--foreground); }
+.form-field textarea:focus-visible, input:not([type="checkbox"]):focus-visible, select:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
 select { padding-right: 2rem; }
 input::placeholder { color: var(--muted-foreground); opacity: 1; }
 input:disabled, select:disabled { background: var(--muted); color: var(--muted-foreground); cursor: not-allowed; opacity: 1; box-shadow: none; }

@@ -40,6 +40,16 @@
           }
         },
         "description": "Requested resource not found"
+      },
+      "ServiceUnavailable": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Provider or coordinator operation is unavailable or ambiguous"
       }
     },
     "schemas": {
@@ -109,6 +119,442 @@
           "phase",
           "outcome",
           "log_bounds"
+        ],
+        "type": "object"
+      },
+      "FanoutChildView": {
+        "additionalProperties": false,
+        "properties": {
+          "admitted_at_ms": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "completed_at_ms": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "index": {
+            "type": "integer"
+          },
+          "outcome_detail": {
+            "nullable": true,
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "reason": {
+            "nullable": true,
+            "type": "string"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "resolved_reference": {
+            "type": "string"
+          },
+          "run_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "source_revision": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "active",
+              "success",
+              "failure",
+              "unknown",
+              "skipped"
+            ],
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "write_scope": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "project_id",
+          "repository",
+          "target",
+          "resolved_reference",
+          "source_revision",
+          "write_scope",
+          "status",
+          "run_id",
+          "outcome_detail",
+          "reason",
+          "admitted_at_ms",
+          "completed_at_ms"
+        ],
+        "type": "object"
+      },
+      "FanoutControlRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "type": "object"
+      },
+      "FanoutControlResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "fanout": {
+            "$ref": "#/components/schemas/FanoutView"
+          },
+          "fanout_id": {
+            "type": "string"
+          },
+          "replayed": {
+            "type": "boolean"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "schema": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema",
+          "request_id",
+          "replayed",
+          "action",
+          "fanout_id",
+          "fanout"
+        ],
+        "type": "object"
+      },
+      "FanoutControls": {
+        "additionalProperties": false,
+        "properties": {
+          "cancel": {
+            "type": "boolean"
+          },
+          "continue": {
+            "type": "boolean"
+          },
+          "pause": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "pause",
+          "continue",
+          "cancel"
+        ],
+        "type": "object"
+      },
+      "FanoutCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "type": "integer"
+          },
+          "failure": {
+            "type": "integer"
+          },
+          "pending": {
+            "type": "integer"
+          },
+          "skipped": {
+            "type": "integer"
+          },
+          "success": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "unknown": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "pending",
+          "active",
+          "success",
+          "failure",
+          "unknown",
+          "skipped"
+        ],
+        "type": "object"
+      },
+      "FanoutDispatchRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "budget_cap": {
+            "type": "integer"
+          },
+          "claim_policy": {
+            "enum": [
+              "refuse",
+              "skip",
+              "serialize"
+            ],
+            "type": "string"
+          },
+          "max_concurrency": {
+            "type": "integer"
+          },
+          "params": {
+            "type": "object"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "scope_path": {
+            "type": "string"
+          },
+          "target_globs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16,
+            "type": "array"
+          },
+          "targets": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "type": "object"
+      },
+      "FanoutDispatchResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "fanout": {
+            "$ref": "#/components/schemas/FanoutView"
+          },
+          "fanout_id": {
+            "type": "string"
+          },
+          "replayed": {
+            "type": "boolean"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "schema": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema",
+          "request_id",
+          "replayed",
+          "fanout_id",
+          "fanout"
+        ],
+        "type": "object"
+      },
+      "FanoutPage": {
+        "additionalProperties": false,
+        "properties": {
+          "bounded": {
+            "type": "boolean"
+          },
+          "fanouts": {
+            "items": {
+              "$ref": "#/components/schemas/FanoutView"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "next_cursor": {
+            "nullable": true,
+            "type": "string"
+          },
+          "schema": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "schema",
+          "fanouts",
+          "total",
+          "bounded"
+        ],
+        "type": "object"
+      },
+      "FanoutView": {
+        "additionalProperties": true,
+        "properties": {
+          "active_children": {
+            "type": "integer"
+          },
+          "admission": {
+            "enum": [
+              "open",
+              "paused",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "admitted_runs": {
+            "type": "integer"
+          },
+          "budget_cap": {
+            "type": "integer"
+          },
+          "budget_drawn": {
+            "type": "integer"
+          },
+          "budget_remaining": {
+            "type": "integer"
+          },
+          "children": {
+            "items": {
+              "$ref": "#/components/schemas/FanoutChildView"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "claim_policy": {
+            "enum": [
+              "refuse",
+              "skip",
+              "serialize"
+            ],
+            "type": "string"
+          },
+          "completed_at_ms": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "controls": {
+            "$ref": "#/components/schemas/FanoutControls"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/FanoutCounts"
+          },
+          "created_at_ms": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lattice_bundle_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "lattice_bundle_identity": {
+            "type": "string"
+          },
+          "lattice_workflow_name": {
+            "type": "string"
+          },
+          "lattice_workflow_revision": {
+            "type": "string"
+          },
+          "max_concurrency": {
+            "type": "integer"
+          },
+          "mode": {
+            "enum": [
+              "read_only",
+              "mutating"
+            ],
+            "type": "string"
+          },
+          "ordinal": {
+            "type": "integer"
+          },
+          "params": {
+            "type": "object"
+          },
+          "params_identity": {
+            "type": "string"
+          },
+          "phase": {
+            "enum": [
+              "active",
+              "paused",
+              "completed",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "principal": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "runbook_id": {
+            "type": "string"
+          },
+          "stop_reason": {
+            "nullable": true,
+            "type": "string"
+          },
+          "target_selectors": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "unit_cost": {
+            "type": "integer"
+          },
+          "updated_at_ms": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "ordinal",
+          "runbook_id",
+          "mode",
+          "principal",
+          "request_id",
+          "target_selectors",
+          "claim_policy",
+          "admission",
+          "phase",
+          "max_concurrency",
+          "active_children",
+          "budget_cap",
+          "budget_drawn",
+          "budget_remaining",
+          "unit_cost",
+          "admitted_runs",
+          "lattice_bundle_identity",
+          "lattice_workflow_name",
+          "lattice_workflow_revision",
+          "params_identity",
+          "params",
+          "controls",
+          "counts",
+          "children",
+          "created_at_ms",
+          "updated_at_ms"
         ],
         "type": "object"
       },
@@ -218,6 +664,10 @@
       "RunView": {
         "additionalProperties": true,
         "properties": {
+          "fanout_run_id": {
+            "nullable": true,
+            "type": "string"
+          },
           "id": {
             "type": "string"
           },
@@ -350,6 +800,46 @@
         ],
         "type": "object"
       },
+      "RunbookFanoutConfig": {
+        "additionalProperties": false,
+        "properties": {
+          "default_budget_cap": {
+            "type": "integer"
+          },
+          "default_max_concurrency": {
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "max_budget_cap": {
+            "type": "integer"
+          },
+          "max_concurrency_limit": {
+            "type": "integer"
+          },
+          "max_targets": {
+            "type": "integer"
+          },
+          "write_scopes": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "type": "array"
+          }
+        },
+        "required": [
+          "enabled",
+          "default_max_concurrency",
+          "max_concurrency_limit",
+          "default_budget_cap",
+          "max_budget_cap",
+          "max_targets",
+          "write_scopes"
+        ],
+        "type": "object"
+      },
       "RunbookList": {
         "additionalProperties": false,
         "properties": {
@@ -473,6 +963,9 @@
           },
           "display_name": {
             "type": "string"
+          },
+          "fanout": {
+            "$ref": "#/components/schemas/RunbookFanoutConfig"
           },
           "id": {
             "type": "string"
@@ -612,6 +1105,277 @@
         "summary": "List reviewed runbooks and principal dispatch eligibility"
       }
     },
+    "/api/runbooks/fanouts": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "runbook_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "admission",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FanoutPage"
+                }
+              }
+            },
+            "description": "Paginated fan-out parent runs"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List reviewed runbook fan-out parent runs"
+      }
+    },
+    "/api/runbooks/fanouts/{fanout_id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fanout_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FanoutView"
+                }
+              }
+            },
+            "description": "Fan-out parent run summary and child outcome ledger"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Inspect a fan-out parent run and per-child outcome ledger"
+      }
+    },
+    "/api/runbooks/fanouts/{fanout_id}/cancel": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fanout_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FanoutControlRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FanoutControlResponse"
+                }
+              }
+            },
+            "description": "Cancel further fan-out child admission"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Cancel further fan-out child admission"
+      }
+    },
+    "/api/runbooks/fanouts/{fanout_id}/continue": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fanout_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FanoutControlRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FanoutControlResponse"
+                }
+              }
+            },
+            "description": "Resume fan-out child admission"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Resume fan-out child admission"
+      }
+    },
+    "/api/runbooks/fanouts/{fanout_id}/pause": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fanout_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FanoutControlRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FanoutControlResponse"
+                }
+              }
+            },
+            "description": "Pause further fan-out child admission"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Pause further fan-out child admission"
+      }
+    },
     "/api/runbooks/{id}/dispatch": {
       "post": {
         "parameters": [
@@ -674,6 +1438,73 @@
           }
         ],
         "summary": "Dispatch a reviewed runbook with idempotency, target resolution, and typed parameters"
+      }
+    },
+    "/api/runbooks/{id}/fanout": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FanoutDispatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FanoutDispatchResponse"
+                }
+              }
+            },
+            "description": "Completed or terminal fan-out run"
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FanoutDispatchResponse"
+                }
+              }
+            },
+            "description": "Active or pending fan-out run"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Dispatch a bounded parent fan-out run for a reviewed runbook"
       }
     },
     "/api/runs": {

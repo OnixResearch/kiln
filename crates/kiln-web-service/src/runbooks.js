@@ -1,13 +1,17 @@
-// Runbook dispatch console view: lists reviewed runbooks, validates typed
-// parameters and allowed targets, and submits audited dispatches that create
-// ordinary source-bound Kiln runs.
+// Runbook dispatch & parent fan-out console view: lists reviewed runbooks,
+// validates typed parameters and allowed targets (single or enrolled-project
+// fan-out), submits audited dispatches, and inspects parent fan-out runs with
+// concurrency/budget caps, per-child outcome ledgers, and admission-only
+// pause/continue/cancel controls.
 (() => {
   "use strict";
 
   const RUNBOOK_ID_MAX = 64;
+  const FANOUT_ID_RE = /^[A-Za-z0-9._-]{1,128}$/;
   const REQUEST_ID_RE = /^[A-Za-z0-9._-]{1,128}$/;
   const RELATIVE_PATH_RE = /^[A-Za-z0-9._/-]+$/;
   const INT_RE = /^-?(?:0|[1-9][0-9]*)$/;
+  const MAX_FANOUT_TARGETS = 64;
 
   let generation = 0;
   let busy = false;
@@ -29,11 +33,15 @@
   function normalizeRoute(route) {
     const raw = typeof route?.runbook === "string" ? route.runbook : "";
     const trimmed = raw.trim();
-    return {
-      runbook: trimmed.length <= RUNBOOK_ID_MAX && /^[a-z][a-z0-9-]{0,63}$/.test(trimmed)
-        ? trimmed
-        : "",
-    };
+    const runbook = trimmed.length <= RUNBOOK_ID_MAX && /^[a-z][a-z0-9-]{0,63}$/.test(trimmed)
+      ? trimmed
+      : "";
+    if (!isRecord(route) || !Object.hasOwn(route, "fanout")) {
+      return { runbook };
+    }
+    const rawFanout = typeof route.fanout === "string" ? route.fanout.trim() : "";
+    const fanout = FANOUT_ID_RE.test(rawFanout) ? rawFanout : "";
+    return { runbook, fanout };
   }
 
   function parseTarget(raw) {
@@ -56,6 +64,176 @@
       return { error: "Target repository or reference is outside allowed bounds." };
     }
     return { repository, reference, raw };
+  }
+
+  function validTargetGlob(pattern) {
+    if (typeof pattern !== "string" || !pattern || pattern.length > 256) return false;
+    for (let i = 0; i < pattern.length; i += 1) {
+      const code = pattern.charCodeAt(i);
+      if (code <= 0x20 || code >= 0x7f) return false;
+    }
+    if (pattern.includes("@") || pattern.includes("\\") || pattern.includes("[") || pattern.includes("]") || pattern.includes("{") || pattern.includes("}")) {
+      return false;
+    }
+    const parts = pattern.split("/");
+    return parts.every((part) => part.length > 0 && part !== "." && part !== ".." && (!part.includes("**") || part === "**"));
+  }
+
+  function segmentMatches(pattern, value) {
+    let pi = 0;
+    let vi = 0;
+    let starPi = -1;
+    let starVi = 0;
+    while (vi < value.length) {
+      if (pi < pattern.length && (pattern[pi] === "?" || pattern[pi] === value[vi])) {
+        pi += 1;
+        vi += 1;
+      } else if (pi < pattern.length && pattern[pi] === "*") {
+        starPi = pi;
+        starVi = vi;
+        pi += 1;
+      } else if (starPi !== -1) {
+        pi = starPi + 1;
+        starVi += 1;
+        vi = starVi;
+      } else {
+        return false;
+      }
+    }
+    while (pi < pattern.length && pattern[pi] === "*") pi += 1;
+    return pi === pattern.length;
+  }
+
+  function pathMatches(pattern, path) {
+    const patParts = pattern.split("/");
+    const valParts = path.split("/");
+    let pi = 0;
+    let vi = 0;
+    let starPi = -1;
+    let starVi = 0;
+    while (vi < valParts.length) {
+      if (pi < patParts.length && patParts[pi] === "**") {
+        starPi = pi;
+        starVi = vi;
+        pi += 1;
+      } else if (pi < patParts.length && segmentMatches(patParts[pi], valParts[vi])) {
+        pi += 1;
+        vi += 1;
+      } else if (starPi !== -1) {
+        pi = starPi + 1;
+        starVi += 1;
+        vi = starVi;
+      } else {
+        return false;
+      }
+    }
+    while (pi < patParts.length && patParts[pi] === "**") pi += 1;
+    return pi === patParts.length;
+  }
+
+  function globMatches(pattern, repository, projectId) {
+    if (!validTargetGlob(pattern)) return false;
+    if (pattern.includes("/")) {
+      return pathMatches(pattern.toLowerCase(), text(repository).toLowerCase());
+    }
+    return pathMatches(pattern, text(projectId));
+  }
+
+  function parseExplicitTargets(raw, maxTargets = MAX_FANOUT_TARGETS) {
+    const textVal = typeof raw === "string" ? raw : "";
+    const items = textVal
+      .split(/[\n,]+/)
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+    if (!items.length) {
+      return { targets: [], errors: ["Enter at least one target (REPO@REF or project selector)."] };
+    }
+    if (items.length > maxTargets) {
+      return { targets: [], errors: [`At most ${maxTargets} targets are allowed.`] };
+    }
+    const errors = [];
+    const seen = new Set();
+    const targets = [];
+    for (const item of items) {
+      if (item.includes("*") || item.includes("?")) {
+        errors.push(`Wildcard target '${item}' must be entered in Enrolled-project glob mode.`);
+        continue;
+      }
+      if (item.includes("@")) {
+        const parsed = parseTarget(item);
+        if (parsed.error) {
+          errors.push(`${item}: ${parsed.error}`);
+          continue;
+        }
+      } else {
+        let bad = item.length > 256;
+        for (let i = 0; i < item.length && !bad; i += 1) {
+          const code = item.charCodeAt(i);
+          if (code <= 0x20 || code === 0x7f) bad = true;
+        }
+        if (bad) {
+          errors.push(`Target '${item}' contains whitespace, control characters, or exceeds 256 bytes.`);
+          continue;
+        }
+      }
+      if (seen.has(item)) {
+        errors.push(`Duplicate target '${item}'.`);
+        continue;
+      }
+      seen.add(item);
+      targets.push(item);
+    }
+    return { targets, errors };
+  }
+
+  function matchEnrolledTargets(runbook, enrolledProjects, rawGlob) {
+    const input = typeof rawGlob === "string" ? rawGlob.trim() : "";
+    if (!input) {
+      return { matched: [], excludedUnenrolled: [], error: "Enter a target glob pattern (e.g. onixresearch/*)." };
+    }
+    for (let i = 0; i < input.length; i += 1) {
+      const code = input.charCodeAt(i);
+      if (code <= 0x20 || code === 0x7f) {
+        return { matched: [], excludedUnenrolled: [], error: "Target glob must not contain whitespace or control characters." };
+      }
+    }
+    let pattern = input;
+    let refSpec = "";
+    const at = input.indexOf("@");
+    if (at !== -1) {
+      pattern = input.slice(0, at);
+      refSpec = input.slice(at + 1);
+      if (!pattern || !refSpec || refSpec.includes("@") || refSpec.startsWith("-") || refSpec.includes("..") || /^[0-9a-f]{40}$/.test(refSpec)) {
+        return { matched: [], excludedUnenrolled: [], error: "Glob @REF suffix is invalid or specifies a raw commit SHA." };
+      }
+    }
+    if (!validTargetGlob(pattern)) {
+      return { matched: [], excludedUnenrolled: [], error: "Target glob pattern is invalid." };
+    }
+    const enrolledIds = new Set(
+      (Array.isArray(enrolledProjects) ? enrolledProjects : [])
+        .map((p) => (typeof p === "string" ? p : text(p?.id)))
+        .filter(Boolean),
+    );
+    const allowed = Array.isArray(runbook?.allowed_targets) ? runbook.allowed_targets : [];
+    const matched = [];
+    const excludedUnenrolled = [];
+    for (const target of allowed) {
+      if (!globMatches(pattern, target?.repository, target?.project_id)) continue;
+      if (enrolledIds.has(text(target?.project_id))) {
+        matched.push({
+          project_id: text(target.project_id),
+          repository: text(target.repository),
+          ref: refSpec || (Array.isArray(target.references) && target.references[0]) || "",
+        });
+      } else {
+        excludedUnenrolled.push({
+          project_id: text(target?.project_id),
+          repository: text(target?.repository),
+        });
+      }
+    }
+    return { matched, excludedUnenrolled, error: "" };
   }
 
   function validRelativePath(value, maxBytes) {
@@ -129,6 +307,13 @@
     return { params, errors };
   }
 
+  function makeRequestId(prefix) {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return `${prefix}-${crypto.randomUUID()}`;
+    }
+    return `${prefix}-${Date.now()}`;
+  }
+
   function validateInputs(runbook, input) {
     const errors = [];
     const targetResult = parseTarget(input?.target);
@@ -141,10 +326,8 @@
       if (!REQUEST_ID_RE.test(requestId)) {
         errors.push("Request ID must use 1-128 ASCII letters, digits, '.', '_', or '-'.");
       }
-    } else if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-      requestId = `ui-rb-${crypto.randomUUID()}`;
     } else {
-      requestId = `ui-rb-${Date.now()}`;
+      requestId = makeRequestId("ui-rb");
     }
     return {
       ok: errors.length === 0,
@@ -155,6 +338,108 @@
         params: paramResult.params,
       },
     };
+  }
+
+  function validateFanoutInputs(runbook, input) {
+    const errors = [];
+    const cfg = isRecord(runbook?.fanout) ? runbook.fanout : null;
+    const maxTargets = Number.isSafeInteger(cfg?.max_targets) ? cfg.max_targets : MAX_FANOUT_TARGETS;
+    const maxConcLimit = Number.isSafeInteger(cfg?.max_concurrency_limit) ? cfg.max_concurrency_limit : 32;
+    const maxBudgetLimit = Number.isSafeInteger(cfg?.max_budget_cap) ? cfg.max_budget_cap : 10000;
+
+    const targetMode = input?.targetMode === "glob" ? "glob" : "explicit";
+    let targets = [];
+    let targetGlobs = [];
+    if (targetMode === "explicit") {
+      const parsed = parseExplicitTargets(input?.targetsText, maxTargets);
+      targets = parsed.targets;
+      errors.push(...parsed.errors);
+    } else {
+      const rawGlob = typeof input?.targetGlob === "string" ? input.targetGlob.trim() : "";
+      if (!rawGlob) {
+        errors.push("Enter a target glob pattern.");
+      } else {
+        const [pat, rawRef] = rawGlob.split("@");
+        if (!validTargetGlob(pat) || (rawGlob.includes("@") && (!rawRef || rawGlob.indexOf("@", rawGlob.indexOf("@") + 1) !== -1 || rawRef.startsWith("-") || rawRef.includes("..") || /^[0-9a-f]{40}$/.test(rawRef)))) {
+          errors.push("Target glob must be GLOB or GLOB@REF (not a raw SHA).");
+        } else {
+          targetGlobs = [rawGlob];
+        }
+      }
+    }
+
+    const concRaw = String(input?.maxConcurrency ?? "").trim();
+    const maxConcurrency = Number(concRaw);
+    if (!INT_RE.test(concRaw) || !Number.isSafeInteger(maxConcurrency) || maxConcurrency < 1 || maxConcurrency > maxConcLimit) {
+      errors.push(`Max concurrency must be an integer between 1 and ${maxConcLimit}.`);
+    }
+
+    const budgetRaw = String(input?.budgetCap ?? "").trim();
+    const budgetCap = Number(budgetRaw);
+    if (!INT_RE.test(budgetRaw) || !Number.isSafeInteger(budgetCap) || budgetCap < 1 || budgetCap > maxBudgetLimit) {
+      errors.push(`Budget cap must be an integer between 1 and ${maxBudgetLimit}.`);
+    }
+
+    const claimPolicy = ["refuse", "skip", "serialize"].includes(input?.claimPolicy) ? input.claimPolicy : "refuse";
+    const scopePath = typeof input?.scopePath === "string" ? input.scopePath.trim() : "";
+
+    const paramResult = coerceParams(runbook?.params, input?.params);
+    errors.push(...paramResult.errors);
+
+    const rawRequestId = typeof input?.requestId === "string" ? input.requestId.trim() : "";
+    let requestId = rawRequestId;
+    if (requestId) {
+      if (!REQUEST_ID_RE.test(requestId)) {
+        errors.push("Request ID must use 1-128 ASCII letters, digits, '.', '_', or '-'.");
+      }
+    } else {
+      requestId = makeRequestId("ui-fo");
+    }
+
+    const payload = {
+      request_id: requestId,
+      targets,
+      target_globs: targetGlobs,
+      params: paramResult.params,
+      max_concurrency: maxConcurrency,
+      budget_cap: budgetCap,
+      claim_policy: claimPolicy,
+    };
+    if (scopePath) payload.scope_path = scopePath;
+
+    return {
+      ok: errors.length === 0,
+      errors,
+      payload,
+    };
+  }
+
+  function fanoutOutcomeStatus(status) {
+    switch (status) {
+      case "pending":
+        return { status: "queued", label: "Pending" };
+      case "active":
+        return { status: "running", label: "Active" };
+      case "success":
+        return { status: "success", label: "Success" };
+      case "failure":
+        return { status: "failure", label: "Failure" };
+      case "unknown":
+        return { status: "unknown", label: "Unknown" };
+      case "skipped":
+        return { status: "cancelled", label: "Skipped" };
+      default:
+        return { status: "unknown", label: text(status) || "Unknown" };
+    }
+  }
+
+  function renderStatusPill(status, label) {
+    const pill = element("span", undefined, "status-pill");
+    pill.dataset.status = status;
+    pill.setAttribute("role", "img");
+    pill.setAttribute("aria-label", `Status: ${label}`);
+    pill.append(element("span", label, "status-pill-label"));
+    return pill;
   }
 
   function classifyError(error) {
@@ -181,22 +466,29 @@
       return {
         kind: "not_found",
         retryable: false,
-        title: "Runbook or project not found",
+        title: "Runbook or fan-out not found",
         message,
       };
     }
     if (status === 409) {
+      const title = code === "fleet_claim_conflict"
+        ? "Fleet claim conflict"
+        : code === "project_not_enrolled"
+          ? "Project not enrolled"
+          : "Request or state conflict";
       return {
         kind: "conflict",
         retryable: false,
-        title: "Request ID conflict",
-        message: `${message} Reuse the same request ID only with identical target, parameters, and principal.`,
+        title,
+        message: code === "request_id_conflict"
+          ? `${message} Reuse the same request ID only with identical target, parameters, and principal.`
+          : message,
       };
     }
     if (status === 503 || error?.name === "TimeoutError" || error?.name === "TypeError") {
       return {
         kind: "unknown",
-        retryable: false,
+        retryable: true,
         title: "Outcome unknown",
         message: "Do not blindly retry; inspect Runs or reuse the exact request ID and inputs to reconcile.",
       };
@@ -234,9 +526,9 @@
     list.append(row);
   }
 
-  function buildParamField(decl) {
+  function buildParamField(decl, idPrefix = "runbook-param") {
     const wrap = element("div", undefined, "form-field");
-    const id = `runbook-param-${decl.name}`;
+    const id = `${idPrefix}-${decl.name}`;
     const labelText = decl.required ? `${decl.name} (required)` : decl.name;
     const label = element("label", labelText);
     label.htmlFor = id;
@@ -308,41 +600,66 @@
     return { wrap, input, name: decl.name };
   }
 
-  function renderRunbookList(registerPanel, runbooks, selectedId, ctx) {
+  function renderRunbookList(registerPanel, runbooks, fanouts, selectedRunbookId, selectedFanoutId, ctx) {
     const heading = element("div", undefined, "section-heading");
     heading.append(element("h2", "Reviewed runbooks"));
     registerPanel.append(heading);
     if (!runbooks.length) {
       registerPanel.append(emptyState("No runbooks configured", "This service was started without --runbooks or defines no runbooks."));
-      return;
-    }
-    const list = element("div", undefined, "view-stack");
-    for (const rb of runbooks) {
-      const link = element("a", undefined, "run-choice");
-      link.href = `?page=runbooks&runbook=${encodeURIComponent(rb.id)}`;
-      if (rb.id === selectedId) link.setAttribute("aria-current", "true");
-      link.addEventListener("click", (event) => {
-        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
-        event.preventDefault();
-        ctx.navigate({ page: "runbooks", runbook: rb.id });
-      });
+    } else {
+      const list = element("div", undefined, "view-stack");
+      for (const rb of runbooks) {
+        const link = element("a", undefined, "run-choice");
+        link.href = `?page=runbooks&runbook=${encodeURIComponent(rb.id)}`;
+        if (rb.id === selectedRunbookId && !selectedFanoutId) link.setAttribute("aria-current", "true");
+        link.addEventListener("click", (event) => {
+          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+          event.preventDefault();
+          ctx.navigate({ page: "runbooks", runbook: rb.id, fanout: "" });
+        });
 
-      const titleRow = element("div", undefined, "cluster");
-      titleRow.append(element("strong", rb.display_name || rb.id), element("code", rb.id, "mono small"));
-      const badges = element("div", undefined, "badges");
-      const modeBadge = element("span", rb.mode === "mutating" ? "Mutating" : "Read-only", "state-badge");
-      if (rb.mode === "mutating") modeBadge.dataset.tone = "warning";
-      badges.append(modeBadge);
-      if (typeof rb.can_dispatch === "boolean") {
-        const grantBadge = element("span", rb.can_dispatch ? "Dispatch allowed" : "Grant required", "state-badge");
-        if (!rb.can_dispatch) grantBadge.dataset.tone = "warning";
-        badges.append(grantBadge);
+        const titleRow = element("div", undefined, "cluster");
+        titleRow.append(element("strong", rb.display_name || rb.id), element("code", rb.id, "mono small"));
+        const badges = element("div", undefined, "badges");
+        const modeBadge = element("span", rb.mode === "mutating" ? "Mutating" : "Read-only", "state-badge");
+        if (rb.mode === "mutating") modeBadge.dataset.tone = "warning";
+        badges.append(modeBadge);
+        if (typeof rb.can_dispatch === "boolean") {
+          const grantBadge = element("span", rb.can_dispatch ? "Dispatch allowed" : "Grant required", "state-badge");
+          if (!rb.can_dispatch) grantBadge.dataset.tone = "warning";
+          badges.append(grantBadge);
+        }
+        link.append(titleRow, badges);
+        if (rb.description) link.append(element("p", rb.description, "small"));
+        list.append(link);
       }
-      link.append(titleRow, badges);
-      if (rb.description) link.append(element("p", rb.description, "small"));
-      list.append(link);
+      registerPanel.append(list);
     }
-    registerPanel.append(list);
+
+    if (Array.isArray(fanouts) && fanouts.length) {
+      const foHeading = element("div", undefined, "section-heading");
+      foHeading.append(element("h2", "Fan-out runs"));
+      registerPanel.append(foHeading);
+      const foList = element("div", undefined, "view-stack");
+      for (const fo of fanouts) {
+        const link = element("a", undefined, "run-choice");
+        link.href = `?page=runbooks&runbook=${encodeURIComponent(fo.runbook_id)}&fanout=${encodeURIComponent(fo.id)}`;
+        if (fo.id === selectedFanoutId) link.setAttribute("aria-current", "true");
+        link.addEventListener("click", (event) => {
+          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+          event.preventDefault();
+          ctx.navigate({ page: "runbooks", runbook: fo.runbook_id, fanout: fo.id });
+        });
+        const row = element("div", undefined, "cluster");
+        row.append(element("strong", fo.runbook_id), element("code", fo.id, "mono small"));
+        const c = fo.counts || {};
+        const tally = `${c.success || 0}S/${c.failure || 0}F/${c.unknown || 0}U/${c.skipped || 0}Sk`;
+        const meta = element("p", `${fo.phase || fo.admission} · ${tally} · budget ${fo.budget_drawn ?? 0}/${fo.budget_cap ?? 0}`, "small");
+        link.append(row, meta);
+        foList.append(link);
+      }
+      registerPanel.append(foList);
+    }
   }
 
   function renderDispatchPanel(detailPanel, runbook, ctx, currentGen) {
@@ -364,9 +681,29 @@
     const about = element("details", undefined, "about-view");
     about.append(
       element("summary", "Dispatch boundary"),
-      element("p", "Typed parameters and allowed repository targets are re-validated by the server. Mutating runbooks require an explicit, non-expired principal grant. Dispatch creates an ordinary Kiln CI run.", "small"),
+      element("p", "Typed parameters and allowed repository targets are re-validated by the server. Mutating runbooks require an explicit, non-expired principal grant. Dispatch creates ordinary Kiln CI runs.", "small"),
     );
     detailPanel.append(about);
+
+    const fanoutEnabled = runbook.fanout?.enabled !== false;
+    let modeSwitch = null;
+    let singleBtn = null;
+    let fanoutBtn = null;
+    if (fanoutEnabled) {
+      modeSwitch = element("div", undefined, "segmented");
+      modeSwitch.setAttribute("role", "group");
+      modeSwitch.setAttribute("aria-label", "Dispatch mode");
+      singleBtn = element("button", "Single target");
+      singleBtn.type = "button";
+      singleBtn.id = "runbook-mode-single";
+      singleBtn.setAttribute("aria-pressed", "true");
+      fanoutBtn = element("button", "Fan-out across targets");
+      fanoutBtn.type = "button";
+      fanoutBtn.id = "runbook-mode-fanout";
+      fanoutBtn.setAttribute("aria-pressed", "false");
+      modeSwitch.append(singleBtn, fanoutBtn);
+      detailPanel.append(modeSwitch);
+    }
 
     const form = element("form", undefined, "view-stack");
     form.id = "runbook-dispatch-form";
@@ -395,7 +732,7 @@
 
     const paramControls = [];
     for (const decl of runbook.params || []) {
-      const field = buildParamField(decl);
+      const field = buildParamField(decl, "runbook-param");
       paramControls.push(field);
       form.append(field.wrap);
     }
@@ -450,9 +787,9 @@
         rawParams[control.name] = control.input.value;
       }
       const checked = validateInputs(runbook, {
-        target: targetInput.value.trim(),
+        target: (targetInput.value || "").trim(),
         params: rawParams,
-        requestId: reqInput.value,
+        requestId: reqInput.value || "",
       });
       if (!checked.ok) {
         errorBox.textContent = checked.errors.join(" ");
@@ -503,6 +840,518 @@
     });
 
     detailPanel.append(form, errorBox, resultBox);
+
+    if (fanoutEnabled) {
+      const fanoutForm = renderFanoutForm(runbook, ctx, currentGen, permitted);
+      fanoutForm.hidden = true;
+      detailPanel.append(fanoutForm);
+
+      singleBtn.addEventListener("click", () => {
+        singleBtn.setAttribute("aria-pressed", "true");
+        fanoutBtn.setAttribute("aria-pressed", "false");
+        form.hidden = false;
+        errorBox.hidden = true;
+        resultBox.hidden = true;
+        fanoutForm.hidden = true;
+      });
+      fanoutBtn.addEventListener("click", () => {
+        singleBtn.setAttribute("aria-pressed", "false");
+        fanoutBtn.setAttribute("aria-pressed", "true");
+        form.hidden = true;
+        errorBox.hidden = true;
+        resultBox.hidden = true;
+        fanoutForm.hidden = false;
+      });
+    }
+  }
+
+  function renderFanoutForm(runbook, ctx, currentGen, permitted) {
+    const wrap = element("div", undefined, "view-stack");
+    wrap.id = "runbook-fanout-panel";
+    const fanoutForm = element("form", undefined, "view-stack");
+    fanoutForm.id = "runbook-fanout-form";
+
+    let targetMode = "explicit";
+    const targetModeGroup = element("div", undefined, "segmented");
+    const explicitModeBtn = element("button", "Explicit targets");
+    explicitModeBtn.type = "button";
+    explicitModeBtn.id = "runbook-fanout-mode-explicit";
+    explicitModeBtn.setAttribute("aria-pressed", "true");
+    const globModeBtn = element("button", "Enrolled-project glob");
+    globModeBtn.type = "button";
+    globModeBtn.id = "runbook-fanout-mode-glob";
+    globModeBtn.setAttribute("aria-pressed", "false");
+    targetModeGroup.append(explicitModeBtn, globModeBtn);
+    fanoutForm.append(targetModeGroup);
+
+    const explicitWrap = element("div", undefined, "form-field");
+    const explicitLabel = element("label", "Targets (one REPO@REF or project per line)");
+    explicitLabel.htmlFor = "runbook-fanout-targets";
+    const explicitInput = document.createElement("textarea");
+    explicitInput.id = "runbook-fanout-targets";
+    explicitInput.placeholder = targetChoices(runbook).join("\n") || "onixresearch/kiln@refs/heads/main";
+    explicitWrap.append(explicitLabel, explicitInput);
+
+    const globWrap = element("div", undefined, "form-field");
+    globWrap.hidden = true;
+    const globLabel = element("label", "Enrolled-project glob (GLOB or GLOB@REF)");
+    globLabel.htmlFor = "runbook-fanout-glob";
+    const globInput = document.createElement("input");
+    globInput.id = "runbook-fanout-glob";
+    globInput.type = "text";
+    globInput.autocomplete = "off";
+    globInput.placeholder = "onixresearch/*@refs/heads/main";
+    const previewBox = element("div", undefined, "small");
+    previewBox.id = "runbook-fanout-preview";
+    const updatePreview = () => {
+      const res = matchEnrolledTargets(runbook, ctx.enrolledProjects, globInput.value);
+      if (res.error) {
+        previewBox.textContent = res.error;
+      } else {
+        const parts = [`Preview matched ${res.matched.length} enrolled allowed target(s)`];
+        if (res.matched.length) {
+          parts.push(`(${res.matched.map((m) => m.project_id).join(", ")})`);
+        }
+        if (res.excludedUnenrolled.length) {
+          parts.push(`· excluded ${res.excludedUnenrolled.length} unenrolled target(s)`);
+        }
+        parts.push("— server re-validates enrollment, exact commit SHAs, and fleet claim scopes.");
+        previewBox.textContent = parts.join(" ");
+      }
+    };
+    globInput.addEventListener("input", updatePreview);
+    globWrap.append(globLabel, globInput, previewBox);
+
+    explicitModeBtn.addEventListener("click", () => {
+      targetMode = "explicit";
+      explicitModeBtn.setAttribute("aria-pressed", "true");
+      globModeBtn.setAttribute("aria-pressed", "false");
+      explicitWrap.hidden = false;
+      globWrap.hidden = true;
+    });
+    globModeBtn.addEventListener("click", () => {
+      targetMode = "glob";
+      explicitModeBtn.setAttribute("aria-pressed", "false");
+      globModeBtn.setAttribute("aria-pressed", "true");
+      explicitWrap.hidden = true;
+      globWrap.hidden = false;
+      updatePreview();
+    });
+    fanoutForm.append(explicitWrap, globWrap);
+
+    const cfg = isRecord(runbook.fanout) ? runbook.fanout : {};
+    const concWrap = element("div", undefined, "form-field");
+    const concLabel = element("label", "Max concurrency");
+    concLabel.htmlFor = "runbook-fanout-concurrency";
+    const concInput = document.createElement("input");
+    concInput.id = "runbook-fanout-concurrency";
+    concInput.type = "number";
+    concInput.min = "1";
+    concInput.max = String(cfg.max_concurrency_limit || 32);
+    concInput.value = String(cfg.default_max_concurrency || 1);
+    concWrap.append(concLabel, concInput);
+
+    const budgetWrap = element("div", undefined, "form-field");
+    const budgetLabel = element("label", "Parent budget cap (runs)");
+    budgetLabel.htmlFor = "runbook-fanout-budget";
+    const budgetInput = document.createElement("input");
+    budgetInput.id = "runbook-fanout-budget";
+    budgetInput.type = "number";
+    budgetInput.min = "1";
+    budgetInput.max = String(cfg.max_budget_cap || 10000);
+    budgetInput.value = String(cfg.default_budget_cap || 16);
+    budgetWrap.append(budgetLabel, budgetInput);
+
+    const policyWrap = element("div", undefined, "form-field");
+    const policyLabel = element("label", "Fleet claim overlap policy");
+    policyLabel.htmlFor = "runbook-fanout-claim-policy";
+    const policySelect = document.createElement("select");
+    policySelect.id = "runbook-fanout-claim-policy";
+    for (const [val, label] of [
+      ["refuse", "Refuse on conflict (409)"],
+      ["skip", "Skip conflicting targets"],
+      ["serialize", "Serialize until claim clears"],
+    ]) {
+      const opt = element("option", label);
+      opt.value = val;
+      policySelect.append(opt);
+    }
+    policyWrap.append(policyLabel, policySelect);
+
+    const scopeWrap = element("div", undefined, "form-field");
+    const scopeLabel = element("label", "Write scope path override (optional)");
+    scopeLabel.htmlFor = "runbook-fanout-scope-path";
+    const scopeInput = document.createElement("input");
+    scopeInput.id = "runbook-fanout-scope-path";
+    scopeInput.type = "text";
+    scopeInput.autocomplete = "off";
+    scopeInput.placeholder = "Narrow subpath within project scope (e.g. flake.lock)";
+    scopeWrap.append(scopeLabel, scopeInput);
+
+    fanoutForm.append(concWrap, budgetWrap, policyWrap, scopeWrap);
+
+    const fanoutParams = [];
+    for (const decl of runbook.params || []) {
+      const field = buildParamField(decl, "runbook-fanout-param");
+      fanoutParams.push(field);
+      fanoutForm.append(field.wrap);
+    }
+
+    const reqWrap = element("div", undefined, "form-field");
+    const reqLabel = element("label", "Request ID (optional)");
+    reqLabel.htmlFor = "runbook-fanout-request-id";
+    const reqInput = document.createElement("input");
+    reqInput.id = "runbook-fanout-request-id";
+    reqInput.type = "text";
+    reqInput.maxLength = 128;
+    reqInput.autocomplete = "off";
+    reqInput.placeholder = "Leave blank to generate a unique ID";
+    reqWrap.append(reqLabel, reqInput);
+    fanoutForm.append(reqWrap);
+
+    const submitRow = element("div", undefined, "cluster");
+    const submitBtn = element("button", "Dispatch fan-out", "primary");
+    submitBtn.id = "runbook-fanout-submit";
+    submitBtn.type = "submit";
+    submitBtn.dataset.operate = "";
+    submitBtn.disabled = !permitted || busy;
+    submitRow.append(submitBtn);
+    fanoutForm.append(submitRow);
+
+    const errorBox = element("div", undefined, "warning");
+    errorBox.id = "runbook-fanout-error";
+    errorBox.setAttribute("role", "alert");
+    errorBox.hidden = true;
+
+    const resultBox = element("section", undefined, "panel");
+    resultBox.id = "runbook-fanout-result";
+    resultBox.hidden = true;
+
+    fanoutForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (busy || !permitted) return;
+      errorBox.hidden = true;
+      errorBox.replaceChildren();
+      resultBox.hidden = true;
+      resultBox.replaceChildren();
+
+      const rawParams = {};
+      for (const control of fanoutParams) {
+        rawParams[control.name] = control.input.value;
+      }
+      const checked = validateFanoutInputs(runbook, {
+        targetMode,
+        targetsText: explicitInput.value,
+        targetGlob: globInput.value,
+        maxConcurrency: concInput.value,
+        budgetCap: budgetInput.value,
+        claimPolicy: policySelect.value,
+        scopePath: scopeInput.value,
+        params: rawParams,
+        requestId: reqInput.value,
+      });
+      if (!checked.ok) {
+        errorBox.textContent = checked.errors.join(" ");
+        errorBox.hidden = false;
+        ctx.notice?.(errorBox.textContent, "warning");
+        return;
+      }
+
+      busy = true;
+      submitBtn.disabled = true;
+      try {
+        const result = await ctx.api(`/api/runbooks/${encodeURIComponent(runbook.id)}/fanout`, {
+          method: "POST",
+          body: checked.payload,
+        });
+        if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
+        const fanoutId = text(result?.fanout_id) || text(result?.fanout?.id);
+        const title = result?.replayed ? "Fan-out dispatch replayed" : "Fan-out run started";
+        resultBox.append(element("h3", title));
+        const resFacts = element("dl", undefined, "facts");
+        appendFact(resFacts, "Fan-out ID", fanoutId || "Not recorded");
+        appendFact(resFacts, "Request ID", text(result?.request_id) || checked.payload.request_id);
+        appendFact(resFacts, "Targets", String(result?.fanout?.counts?.total ?? 0));
+        appendFact(resFacts, "Replayed", result?.replayed ? "true" : "false");
+        resultBox.append(resFacts);
+        if (fanoutId) {
+          const inspectLink = element("a", `Inspect fan-out ${fanoutId}`, "row-link");
+          inspectLink.href = `?page=runbooks&runbook=${encodeURIComponent(runbook.id)}&fanout=${encodeURIComponent(fanoutId)}`;
+          inspectLink.addEventListener("click", (e) => {
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+            e.preventDefault();
+            ctx.navigate({ page: "runbooks", runbook: runbook.id, fanout: fanoutId });
+          });
+          resultBox.append(inspectLink);
+        }
+        resultBox.hidden = false;
+        ctx.notice?.(`${title}: ${fanoutId}`, "success");
+      } catch (err) {
+        if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
+        const classified = classifyError(err);
+        errorBox.textContent = `${classified.title}: ${classified.message}`;
+        errorBox.hidden = false;
+        if (classified.retryable) reqInput.value = checked.payload.request_id;
+        ctx.notice?.(errorBox.textContent, "warning");
+      } finally {
+        if (generation === currentGen) {
+          busy = false;
+          submitBtn.disabled = !permitted;
+        }
+      }
+    });
+
+    wrap.append(fanoutForm, errorBox, resultBox);
+    return wrap;
+  }
+
+  async function renderFanoutInspector(detailPanel, fanoutId, ctx, currentGen) {
+    let fanout;
+    try {
+      fanout = await ctx.api(`/api/runbooks/fanouts/${encodeURIComponent(fanoutId)}`);
+    } catch (err) {
+      if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
+      if (err?.status === 404) {
+        const missing = element("p", `Fan-out run not found: ${fanoutId}. No other fan-out run was substituted.`, "warning");
+        missing.setAttribute("role", "alert");
+        detailPanel.replaceChildren(missing);
+        return;
+      }
+      const classified = classifyError(err);
+      const warn = element("p", `${classified.title}: ${classified.message}`, "warning");
+      warn.setAttribute("role", "alert");
+      detailPanel.replaceChildren(warn);
+      return;
+    }
+    if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
+    if (!isRecord(fanout) || !Array.isArray(fanout.children)) {
+      detailPanel.replaceChildren(element("p", "Fan-out response was invalid.", "warning"));
+      return;
+    }
+
+    const header = element("div", undefined, "section-heading");
+    header.append(element("h2", `Fan-out ${fanout.id}`));
+    const badges = element("div", undefined, "badges");
+    const phaseLabel = text(fanout.phase) || "active";
+    const phaseStatus = phaseLabel === "completed" ? "success" : phaseLabel === "cancelled" ? "cancelled" : phaseLabel === "paused" ? "queued" : "running";
+    badges.append(renderStatusPill(phaseStatus, phaseLabel));
+    const admBadge = element("span", `Admission: ${text(fanout.admission)}`, "state-badge");
+    if (fanout.admission !== "open") admBadge.dataset.tone = "warning";
+    badges.append(admBadge);
+    header.append(badges);
+    detailPanel.append(header);
+
+    const counts = fanout.counts || {};
+    const tiles = element("div", undefined, "fact-grid");
+    const addTile = (label, value) => {
+      const tile = element("div", undefined, "fact");
+      tile.append(element("dt", label), element("dd", value));
+      tiles.append(tile);
+    };
+    addTile("Concurrency", `${fanout.active_children ?? 0} / ${fanout.max_concurrency ?? 1}`);
+    addTile("Budget", `${fanout.budget_drawn ?? 0} / ${fanout.budget_cap ?? 0}`);
+    addTile(
+      "Outcomes",
+      `${counts.success ?? 0} passed · ${counts.failure ?? 0} failed · ${counts.unknown ?? 0} unknown · ${counts.skipped ?? 0} skipped`,
+    );
+    addTile("Runbook", text(fanout.runbook_id));
+    detailPanel.append(tiles);
+
+    if (fanout.stop_reason) {
+      const stopBanner = element("p", `Stop reason: ${fanout.stop_reason}`, "warning");
+      stopBanner.id = "fanout-stop-reason";
+      detailPanel.append(stopBanner);
+    }
+
+    const about = element("details", undefined, "about-view");
+    about.append(
+      element("summary", "Isolation and admission boundary"),
+      element(
+        "p",
+        "Partial-failure isolation: one child's failure or Unknown outcome never cancels or blocks siblings and never triggers automatic retry. Pause and cancel stop future child admission only; already-running children continue until observed terminal.",
+        "small",
+      ),
+    );
+    detailPanel.append(about);
+
+    const controls = isRecord(fanout.controls) ? fanout.controls : {};
+    if (ctx.canOperate && (controls.pause || controls.continue || controls.cancel)) {
+      const controlSection = element("section", undefined, "view-stack");
+      controlSection.id = "fanout-controls";
+      const reqWrap = element("div", undefined, "form-field");
+      const reqLabel = element("label", "Control request ID (optional)");
+      reqLabel.htmlFor = "fanout-control-request-id";
+      const reqInput = document.createElement("input");
+      reqInput.id = "fanout-control-request-id";
+      reqInput.type = "text";
+      reqInput.maxLength = 128;
+      reqInput.autocomplete = "off";
+      reqInput.placeholder = "Leave blank to generate a unique ID";
+      reqWrap.append(reqLabel, reqInput);
+      controlSection.append(reqWrap);
+
+      const btnRow = element("div", undefined, "control-bar");
+      const controlErr = element("div", undefined, "warning");
+      controlErr.id = "fanout-control-error";
+      controlErr.setAttribute("role", "alert");
+      controlErr.hidden = true;
+
+      let pendingRetry = null;
+      const retryBtn = element("button", "Retry the same request");
+      retryBtn.type = "button";
+      retryBtn.id = "fanout-control-retry";
+      retryBtn.hidden = true;
+
+      const sendControl = async (action, explicitRequestId) => {
+        if (busy) return;
+        controlErr.hidden = true;
+        retryBtn.hidden = true;
+        const requestId = explicitRequestId || (reqInput.value || "").trim() || makeRequestId("ui-foc");
+        if (!REQUEST_ID_RE.test(requestId)) {
+          controlErr.textContent = "Control request ID is invalid.";
+          controlErr.hidden = false;
+          return;
+        }
+        busy = true;
+        try {
+          const resp = await ctx.api(`/api/runbooks/fanouts/${encodeURIComponent(fanout.id)}/${action}`, {
+            method: "POST",
+            body: { request_id: requestId },
+          });
+          if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
+          ctx.notice?.(resp?.replayed ? `Fan-out ${action} replayed.` : `Fan-out ${action} applied.`, "success");
+          await load(detailPanel.parentElement?.parentElement || detailPanel, ctx);
+        } catch (err) {
+          if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
+          const classified = classifyError(err);
+          controlErr.textContent = `${classified.title}: ${classified.message}`;
+          controlErr.hidden = false;
+          if (classified.retryable) {
+            reqInput.value = requestId;
+            pendingRetry = { action, requestId };
+            retryBtn.hidden = false;
+          } else if (err?.status === 409) {
+            await renderFanoutInspector(detailPanel, fanoutId, ctx, currentGen);
+          }
+        } finally {
+          if (generation === currentGen) busy = false;
+        }
+      };
+
+      retryBtn.addEventListener("click", () => {
+        if (pendingRetry) void sendControl(pendingRetry.action, pendingRetry.requestId);
+      });
+
+      if (controls.pause) {
+        const pauseBtn = element("button", "Pause admission");
+        pauseBtn.type = "button";
+        pauseBtn.id = "fanout-pause-btn";
+        pauseBtn.addEventListener("click", () => void sendControl("pause"));
+        btnRow.append(pauseBtn);
+      }
+      if (controls.continue) {
+        const contBtn = element("button", "Continue admission", "primary");
+        contBtn.type = "button";
+        contBtn.id = "fanout-continue-btn";
+        contBtn.addEventListener("click", () => void sendControl("continue"));
+        btnRow.append(contBtn);
+      }
+      if (controls.cancel) {
+        const confirmLabel = element("label", undefined, "cluster");
+        const confirmBox = document.createElement("input");
+        confirmBox.type = "checkbox";
+        confirmBox.id = "fanout-cancel-confirm";
+        confirmLabel.append(confirmBox, element("span", "I understand cancelling stops future child admission permanently and does not stop already-running child runs."));
+        controlSection.append(confirmLabel);
+
+        const cancelBtn = element("button", "Cancel fan-out", "danger");
+        cancelBtn.type = "button";
+        cancelBtn.id = "fanout-cancel-btn";
+        cancelBtn.disabled = true;
+        confirmBox.addEventListener("change", () => {
+          cancelBtn.disabled = !confirmBox.checked;
+        });
+        cancelBtn.addEventListener("click", () => {
+          if (confirmBox.checked) void sendControl("cancel");
+        });
+        btnRow.append(cancelBtn);
+      }
+      btnRow.append(retryBtn);
+      controlSection.append(btnRow, controlErr);
+      detailPanel.append(controlSection);
+    }
+
+    let filterStatus = "all";
+    const filterGroup = element("div", undefined, "segmented");
+    filterGroup.id = "fanout-ledger-filters";
+    const filterButtons = [];
+    const tableWrap = element("div", undefined, "data-table-wrap");
+    const table = element("table", undefined, "data-table data-table-stack");
+    table.id = "fanout-children-table";
+    const thead = document.createElement("thead");
+    const headRow = document.createElement("tr");
+    for (const col of ["Target", "Revision", "Status", "Reason / Scope", "Child Run"]) {
+      headRow.append(element("th", col));
+    }
+    thead.append(headRow);
+    const tbody = document.createElement("tbody");
+    table.append(thead, tbody);
+    tableWrap.append(table);
+
+    const renderRows = () => {
+      tbody.replaceChildren();
+      const filtered = fanout.children.filter((c) => filterStatus === "all" || c.status === filterStatus);
+      for (const child of filtered) {
+        const tr = document.createElement("tr");
+        const targetCell = element("td", text(child.target), "mono");
+        const rev = text(child.source_revision);
+        const revCell = element("td", rev ? rev.slice(0, 12) : "", "mono");
+        if (rev) revCell.title = rev;
+        const { status, label } = fanoutOutcomeStatus(child.status);
+        const statusCell = document.createElement("td");
+        statusCell.append(renderStatusPill(status, label));
+        const reasonParts = [];
+        if (child.reason) reasonParts.push(child.reason);
+        if (child.write_scope) reasonParts.push(child.write_scope);
+        const reasonCell = element("td", reasonParts.join(" · ") || "—", "small");
+        const runCell = document.createElement("td");
+        if (child.run_id) {
+          if (typeof ctx.runLink === "function") {
+            runCell.append(ctx.runLink(child.run_id, child.run_id));
+          } else {
+            const link = element("a", child.run_id, "row-link");
+            link.href = `?page=runs&run=${encodeURIComponent(child.run_id)}&view=pipeline`;
+            runCell.append(link);
+          }
+        } else {
+          runCell.textContent = "Not admitted";
+        }
+        tr.append(targetCell, revCell, statusCell, reasonCell, runCell);
+        tbody.append(tr);
+      }
+    };
+
+    for (const [key, label] of [
+      ["all", "All"],
+      ["failure", "Failed"],
+      ["unknown", "Unknown"],
+      ["skipped", "Skipped"],
+      ["active", "Active"],
+      ["success", "Passed"],
+    ]) {
+      const btn = element("button", label);
+      btn.type = "button";
+      btn.setAttribute("aria-pressed", key === "all" ? "true" : "false");
+      btn.addEventListener("click", () => {
+        filterStatus = key;
+        for (const other of filterButtons) other.setAttribute("aria-pressed", String(other === btn));
+        renderRows();
+      });
+      filterButtons.push(btn);
+      filterGroup.append(btn);
+    }
+    renderRows();
+    detailPanel.append(filterGroup, tableWrap);
   }
 
   async function load(root, ctx) {
@@ -525,12 +1374,33 @@
       root.replaceChildren(element("p", "Runbooks response was invalid.", "warning"));
       return;
     }
+
+    let fanouts = [];
+    try {
+      const fanoutList = await ctx.api("/api/runbooks/fanouts");
+      if (isRecord(fanoutList) && Array.isArray(fanoutList.fanouts)) {
+        fanouts = fanoutList.fanouts;
+      }
+    } catch {
+      fanouts = [];
+    }
+    if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
+
     const runbooks = response.runbooks;
-    const { runbook: selectedId } = normalizeRoute(ctx.route);
+    const normalized = normalizeRoute(ctx.route);
+    const selectedId = normalized.runbook;
+    const selectedFanoutId = normalized.fanout || "";
     const grid = element("div", undefined, "workspace-grid");
     const left = element("section", undefined, "panel view-stack");
     const right = element("section", undefined, "panel view-stack");
-    renderRunbookList(left, runbooks, selectedId, ctx);
+    renderRunbookList(left, runbooks, fanouts, selectedId, selectedFanoutId, ctx);
+
+    if (selectedFanoutId) {
+      grid.append(left, right);
+      root.replaceChildren(grid);
+      await renderFanoutInspector(right, selectedFanoutId, ctx, currentGen);
+      return;
+    }
 
     if (!runbooks.length) {
       right.append(emptyState("No runbooks available", "Configure --runbooks on the service to expose reviewed runbooks."));
@@ -561,8 +1431,14 @@
     clear,
     normalizeRoute,
     parseTarget,
+    validTargetGlob,
+    globMatches,
+    parseExplicitTargets,
+    matchEnrolledTargets,
     coerceParams,
     validateInputs,
+    validateFanoutInputs,
+    fanoutOutcomeStatus,
     classifyError,
   });
 })();

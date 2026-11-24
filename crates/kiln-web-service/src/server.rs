@@ -304,13 +304,21 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
         let failed_ref = &poll_failed;
         let engine_ref = &engine;
         let review_ref = &code_review;
+        let fleet_ref = fleet.as_ref();
         let polling = scope.spawn(move || {
             while !stop_ref.load(Ordering::Acquire) {
                 let result = (|| -> Result<(), ()> {
                     let now = crate::engine::host_time_ms().map_err(|_| ())?;
                     let now = i64::try_from(now).map_err(|_| ())?;
+                    let fleet_snapshot = fleet_ref.map(|client| match client.live_claims() {
+                        Ok(claims) => crate::engine::FleetClaimsSnapshot::Available(claims),
+                        Err(()) => crate::engine::FleetClaimsSnapshot::Unavailable,
+                    });
                     let notifications = {
                         let mut engine = engine_ref.lock().map_err(|_| ())?;
+                        if let Some(snapshot) = fleet_snapshot {
+                            engine.set_fleet_claims_snapshot(snapshot);
+                        }
                         let notifications = engine.poll().map_err(|_| ())?;
                         review_ref.advance_queue(&mut engine, now).map_err(|_| ())?;
                         notifications
@@ -996,10 +1004,27 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
                 principal.role,
             );
         }
+        let fleet_snapshot = if request.method == "POST"
+            && path.starts_with("/api/runbooks/")
+            && (path.ends_with("/fanout")
+                || (path.starts_with("/api/runbooks/fanouts/") && path.ends_with("/continue")))
+        {
+            context.fleet.map(|client| match client.live_claims() {
+                Ok(claims) => crate::engine::FleetClaimsSnapshot::Available(claims),
+                Err(()) => crate::engine::FleetClaimsSnapshot::Unavailable,
+            })
+        } else {
+            None
+        };
         match context.engine.lock() {
-            Ok(mut engine) => engine
-                .api_as(&request.method, &request.target, &request.body, &principal)
-                .unwrap_or_else(|_| error_response(503, "service_unavailable")),
+            Ok(mut engine) => {
+                if let Some(snapshot) = fleet_snapshot {
+                    engine.set_fleet_claims_snapshot(snapshot);
+                }
+                engine
+                    .api_as(&request.method, &request.target, &request.body, &principal)
+                    .unwrap_or_else(|_| error_response(503, "service_unavailable"))
+            }
             Err(_) => error_response(503, "service_unavailable"),
         }
     } else if request.method == "GET" {

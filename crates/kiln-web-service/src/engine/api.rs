@@ -145,7 +145,12 @@ impl Engine {
                 return error(409, "request_id_conflict").map(Some);
             }
             if let Some(response) = &prior.response {
-                if prior.kind == RequestKind::RunbookDispatch {
+                if matches!(
+                    prior.kind,
+                    RequestKind::RunbookDispatch
+                        | RequestKind::FanoutDispatch
+                        | RequestKind::FanoutControl
+                ) {
                     return json_response(
                         prior.status,
                         super::runbooks::replay_response_with_flag(response.clone()),
@@ -191,6 +196,13 @@ impl Engine {
                         .find(|p| p.id == prior.resource)
                         .ok_or("reserved project missing")?;
                     return json_response(200, project_view(project, true)?).map(Some);
+                }
+                RequestKind::FanoutDispatch | RequestKind::FanoutControl => {
+                    if let Some(response) =
+                        self.replay_fanout_fallback(key, prior.kind, &prior.resource)?
+                    {
+                        return Ok(Some(response));
+                    }
                 }
                 RequestKind::Control => {}
             }
@@ -350,6 +362,42 @@ impl Engine {
         }
         if method == "GET" && path == "/api/runbooks" && params.is_empty() {
             return self.list_runbooks(principal);
+        }
+        if method == "GET" && path == "/api/runbooks/fanouts" {
+            return self.list_fanouts(&params);
+        }
+        if method == "GET"
+            && params.is_empty()
+            && let Some(fanout_id) = path.strip_prefix("/api/runbooks/fanouts/")
+            && !fanout_id.contains('/')
+            && !fanout_id.is_empty()
+        {
+            return self.get_fanout(fanout_id);
+        }
+        if method == "POST"
+            && params.is_empty()
+            && let Some(rest) = path.strip_prefix("/api/runbooks/fanouts/")
+            && let Some((fanout_id, raw_action)) = rest.split_once('/')
+            && !fanout_id.is_empty()
+            && !fanout_id.contains('/')
+            && let Some(action) = match raw_action {
+                "pause" => Some("pause"),
+                "continue" => Some("continue"),
+                "cancel" => Some("cancel"),
+                _ => None,
+            }
+        {
+            return self.control_fanout(fanout_id, action, body, principal);
+        }
+        if method == "POST"
+            && params.is_empty()
+            && let Some(runbook_id) = path
+                .strip_prefix("/api/runbooks/")
+                .and_then(|rest| rest.strip_suffix("/fanout"))
+            && !runbook_id.contains('/')
+            && !runbook_id.is_empty()
+        {
+            return self.dispatch_fanout(runbook_id, body, principal);
         }
         if method == "POST"
             && params.is_empty()

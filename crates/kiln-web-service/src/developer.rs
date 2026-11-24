@@ -198,6 +198,32 @@ impl Client {
             self.pause(deadline)?;
         }
     }
+    fn watch_fanout(&self, id: &str) -> Result<i32, String> {
+        let deadline = Instant::now() + Duration::from_millis(self.profile.watch_timeout_ms);
+        let mut previous = None;
+        loop {
+            let fanout = self.request(
+                reqwest::Method::GET,
+                &format!("/api/runbooks/fanouts/{id}"),
+                None,
+            )?;
+            let phase = text(&fanout, "phase")?.to_owned();
+            let admission = text(&fanout, "admission")?.to_owned();
+            let counts = fanout
+                .get("counts")
+                .cloned()
+                .ok_or("developer response field counts invalid")?;
+            let state = (phase.clone(), admission.clone(), counts.clone());
+            if previous.as_ref() != Some(&state) {
+                print_json(&fanout)?;
+                previous = Some(state);
+            }
+            if let Some(code) = fanout_exit(&phase, &admission, &counts)? {
+                return Ok(code);
+            }
+            self.pause(deadline)?;
+        }
+    }
     fn pause(&self, deadline: Instant) -> Result<(), String> {
         let remaining = deadline.saturating_duration_since(Instant::now());
         if remaining.is_zero() {
@@ -332,7 +358,7 @@ fn print_json(value: &Value) -> Result<(), String> {
 pub fn cli_main(args: &[String]) -> Result<i32, String> {
     if args == ["--help"] || args == ["-h"] {
         println!(
-            "Usage: kiln-web-service ci --profile PATH --identity BLAKE3 COMMAND [OPTIONS]\n\nCommands:\n  submit --project ID --request-id ID --reference REF --revision COMMIT\n         [--dirty-repository PATH --include FILE ... --delete FILE ...]\n  review-submit --request-id ID --source-ref REF --title TITLE\n         [--description TEXT] [--expected-commit COMMIT] [--wip]\n         [--authorship undeclared|human|agent|mixed]\n         [--agent-harness TEXT [--agent-model TEXT]]\n  dispatch --runbook ID --target REPO@REF --request-id ID\n           [--param KEY=VALUE ...] [--output json|text]\n  watch --run ID\n  logs --run ID [--follow]\n  cancel --run ID --request-id ID\n  retry --run ID --request-id ID\n\nProfile: config/web-developer.ncl exported to JSON; --identity pins its original bytes.\nOnly explicit dirty selections are uploaded; ignored paths and links are denied.\nReview submission resolves an admitted branch in the service's configured local repository.\nDeclared authorship is self-declared and unverified; it grants no authority.\nWatch/follow exits: success 0, failed 1, unknown 3, cancelled 130.\nMutations are sent once; reuse the exact request ID and arguments to reconcile a review submission."
+            "Usage: kiln-web-service ci --profile PATH --identity BLAKE3 COMMAND [OPTIONS]\n\nCommands:\n  submit --project ID --request-id ID --reference REF --revision COMMIT\n         [--dirty-repository PATH --include FILE ... --delete FILE ...]\n  review-submit --request-id ID --source-ref REF --title TITLE\n         [--description TEXT] [--expected-commit COMMIT] [--wip]\n         [--authorship undeclared|human|agent|mixed]\n         [--agent-harness TEXT [--agent-model TEXT]]\n  dispatch --runbook ID --target REPO@REF --request-id ID\n           [--param KEY=VALUE ...] [--output json|text]\n  fanout --runbook ID --request-id ID [--target SPEC ...] [--target-glob GLOB ...]\n         [--param KEY=VALUE ...] [--max-concurrency N] [--budget-cap N]\n         [--claim-policy refuse|skip|serialize] [--scope-path PATH] [--output json|text]\n  fanout-list [--runbook ID] [--admission open|paused|cancelled] [--limit N] [--cursor TOKEN] [--order asc|desc]\n  fanout-status --fanout ID [--output json|text]\n  fanout-watch --fanout ID\n  fanout-pause --fanout ID --request-id ID\n  fanout-continue --fanout ID --request-id ID\n  fanout-cancel --fanout ID --request-id ID\n  watch --run ID\n  logs --run ID [--follow]\n  cancel --run ID --request-id ID\n  retry --run ID --request-id ID\n\nProfile: config/web-developer.ncl exported to JSON; --identity pins its original bytes.\nOnly explicit dirty selections are uploaded; ignored paths and links are denied.\nReview submission resolves an admitted branch in the service's configured local repository.\nDeclared authorship is self-declared and unverified; it grants no authority.\nWatch/follow exits: success 0, failed 1, unknown 3, cancelled 130.\nMutations are sent once; reuse the exact request ID and arguments to reconcile a review submission."
         );
         return Ok(0);
     }
@@ -348,7 +374,7 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
             (profile_path, identity, command.as_str(), arguments)
         }
         _ => return Err(
-            "usage: ci --profile PATH --identity BLAKE3 submit|review-submit|dispatch|watch|logs|cancel|retry [options]"
+            "usage: ci --profile PATH --identity BLAKE3 submit|review-submit|dispatch|fanout|fanout-list|fanout-status|fanout-watch|fanout-pause|fanout-continue|fanout-cancel|watch|logs|cancel|retry [options]"
                 .into(),
         ),
     };
@@ -387,6 +413,28 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
                 key,
                 "--runbook" | "--target" | "--request-id" | "--param" | "--output"
             ),
+            "fanout" => matches!(
+                key,
+                "--runbook"
+                    | "--request-id"
+                    | "--target"
+                    | "--target-glob"
+                    | "--param"
+                    | "--max-concurrency"
+                    | "--budget-cap"
+                    | "--claim-policy"
+                    | "--scope-path"
+                    | "--output"
+            ),
+            "fanout-list" => matches!(
+                key,
+                "--runbook" | "--admission" | "--limit" | "--cursor" | "--order"
+            ),
+            "fanout-status" => matches!(key, "--fanout" | "--output"),
+            "fanout-watch" => key == "--fanout",
+            "fanout-pause" | "fanout-continue" | "fanout-cancel" => {
+                matches!(key, "--fanout" | "--request-id")
+            }
             "watch" => key == "--run",
             "logs" => matches!(key, "--run" | "--follow"),
             "cancel" | "retry" => matches!(key, "--run" | "--request-id"),
@@ -396,7 +444,10 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
             return Err("developer command or option invalid".into());
         }
         if options.contains_key(key)
-            && !matches!(key, "--include" | "--delete" | "--jj-change" | "--param")
+            && !matches!(
+                key,
+                "--include" | "--delete" | "--jj-change" | "--param" | "--target" | "--target-glob"
+            )
         {
             return Err("developer duplicate option".into());
         }
@@ -444,6 +495,85 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
             print_json(&response)?;
         }
         return Ok(0);
+    }
+    if command == "fanout" {
+        let (runbook, output, fallback_body) = fanout_body_with_schema(&options, None)?;
+        let body = if options.contains_key("--param") {
+            let param_kinds = client
+                .request(reqwest::Method::GET, "/api/runbooks", None)
+                .ok()
+                .and_then(|resp| extract_runbook_param_kinds(&resp, &runbook));
+            match param_kinds {
+                Some(kinds) => fanout_body_with_schema(&options, Some(&kinds))?.2,
+                None => fallback_body,
+            }
+        } else {
+            fallback_body
+        };
+        let response = client.request(
+            reqwest::Method::POST,
+            &format!("/api/runbooks/{runbook}/fanout"),
+            Some(&body),
+        )?;
+        if output == "text" {
+            print!("{}", format_fanout_text(&response)?);
+        } else {
+            print_json(&response)?;
+        }
+        return Ok(0);
+    }
+    if command == "fanout-list" {
+        let path = fanout_list_path(&options)?;
+        print_json(&client.request(reqwest::Method::GET, &path, None)?)?;
+        return Ok(0);
+    }
+    if matches!(
+        command,
+        "fanout-status" | "fanout-watch" | "fanout-pause" | "fanout-continue" | "fanout-cancel"
+    ) {
+        let fanout_id = required("--fanout")?;
+        if !crate::fanouts::valid_fanout_id(fanout_id) {
+            return Err("developer fanout identity invalid".into());
+        }
+        return match command {
+            "fanout-status" => {
+                let output = options
+                    .get("--output")
+                    .and_then(|v| v.first())
+                    .map(String::as_str)
+                    .unwrap_or("json");
+                if !matches!(output, "json" | "text") {
+                    return Err("developer --output must be json or text".into());
+                }
+                let response = client.request(
+                    reqwest::Method::GET,
+                    &format!("/api/runbooks/fanouts/{fanout_id}"),
+                    None,
+                )?;
+                if output == "text" {
+                    print!("{}", format_fanout_view_text(&response)?);
+                } else {
+                    print_json(&response)?;
+                }
+                Ok(0)
+            }
+            "fanout-watch" => client.watch_fanout(fanout_id),
+            "fanout-pause" | "fanout-continue" | "fanout-cancel" => {
+                let action = command.strip_prefix("fanout-").unwrap_or("cancel");
+                let request_id = required("--request-id")?;
+                if !crate::profile::identifier(request_id) {
+                    return Err("developer request identity invalid".into());
+                }
+                let response = client.request(
+                    reqwest::Method::POST,
+                    &format!("/api/runbooks/fanouts/{fanout_id}/{action}"),
+                    Some(&json!({ "request_id": request_id })),
+                )?;
+                print_json(&response)?;
+                Ok(0)
+            }
+            _ => Err("developer command invalid".into()),
+        };
     }
     if command == "review-submit" {
         let body = review_submit_body(&options)?;
@@ -854,6 +984,200 @@ pub fn format_dispatch_text(response: &Value) -> Result<String, String> {
         .ok_or("developer response field replayed invalid")?;
     Ok(format!(
         "runbook_id: {runbook_id}\nrun_id: {run_id}\ntarget: {target}\nsource_revision: {source_revision}\nreplayed: {replayed}\nrequest_id: {request_id}\n"
+    ))
+}
+
+pub fn fanout_exit(phase: &str, admission: &str, counts: &Value) -> Result<Option<i32>, String> {
+    let pending = counts
+        .get("pending")
+        .and_then(Value::as_u64)
+        .ok_or("developer response field counts.pending invalid")?;
+    let active = counts
+        .get("active")
+        .and_then(Value::as_u64)
+        .ok_or("developer response field counts.active invalid")?;
+    if !matches!(phase, "completed" | "cancelled") || pending > 0 || active > 0 {
+        return Ok(None);
+    }
+    let failure = counts
+        .get("failure")
+        .and_then(Value::as_u64)
+        .ok_or("developer response field counts.failure invalid")?;
+    let unknown = counts
+        .get("unknown")
+        .and_then(Value::as_u64)
+        .ok_or("developer response field counts.unknown invalid")?;
+    let skipped = counts
+        .get("skipped")
+        .and_then(Value::as_u64)
+        .ok_or("developer response field counts.skipped invalid")?;
+    if failure == 0 && unknown == 0 && skipped == 0 {
+        Ok(Some(0))
+    } else if unknown > 0 && failure == 0 {
+        Ok(Some(3))
+    } else if admission == "cancelled" && failure == 0 && unknown == 0 {
+        Ok(Some(130))
+    } else {
+        Ok(Some(1))
+    }
+}
+
+pub fn fanout_body_with_schema(
+    options: &BTreeMap<&str, Vec<String>>,
+    param_kinds: Option<&BTreeMap<String, String>>,
+) -> Result<(String, String, Value), String> {
+    let first = |key| {
+        options
+            .get(key)
+            .and_then(|values| values.first())
+            .map(String::as_str)
+    };
+    let runbook = first("--runbook").ok_or("developer required option --runbook missing")?;
+    if !crate::runbooks::valid_runbook_id(runbook) {
+        return Err("developer runbook identity invalid".into());
+    }
+    let request_id =
+        first("--request-id").ok_or("developer required option --request-id missing")?;
+    if !crate::profile::identifier(request_id) {
+        return Err("developer request identity invalid".into());
+    }
+    let targets = options.get("--target").cloned().unwrap_or_default();
+    let target_globs = options.get("--target-glob").cloned().unwrap_or_default();
+    if targets.is_empty() && target_globs.is_empty() {
+        return Err("developer required --target or --target-glob missing".into());
+    }
+    let output = first("--output").unwrap_or("json");
+    if !matches!(output, "json" | "text") {
+        return Err("developer --output must be json or text".into());
+    }
+    let empty = Vec::new();
+    let params =
+        parse_dispatch_params_with_schema(options.get("--param").unwrap_or(&empty), param_kinds)?;
+    let mut body = serde_json::Map::new();
+    body.insert("request_id".into(), json!(request_id));
+    if !targets.is_empty() {
+        body.insert("targets".into(), json!(targets));
+    }
+    if !target_globs.is_empty() {
+        body.insert("target_globs".into(), json!(target_globs));
+    }
+    body.insert("params".into(), Value::Object(params));
+    if let Some(raw_conc) = first("--max-concurrency") {
+        let parsed = raw_conc
+            .parse::<u16>()
+            .map_err(|_| "developer --max-concurrency invalid".to_owned())?;
+        if parsed == 0 {
+            return Err("developer --max-concurrency invalid".into());
+        }
+        body.insert("max_concurrency".into(), json!(parsed));
+    }
+    if let Some(raw_budget) = first("--budget-cap") {
+        let parsed = raw_budget
+            .parse::<u64>()
+            .map_err(|_| "developer --budget-cap invalid".to_owned())?;
+        if parsed == 0 {
+            return Err("developer --budget-cap invalid".into());
+        }
+        body.insert("budget_cap".into(), json!(parsed));
+    }
+    if let Some(policy) = first("--claim-policy") {
+        if !matches!(policy, "refuse" | "skip" | "serialize") {
+            return Err("developer --claim-policy must be refuse, skip, or serialize".into());
+        }
+        body.insert("claim_policy".into(), json!(policy));
+    }
+    if let Some(scope_path) = first("--scope-path") {
+        if !crate::runbooks::valid_write_scope_path(scope_path) {
+            return Err("developer --scope-path invalid".into());
+        }
+        body.insert("scope_path".into(), json!(scope_path));
+    }
+    Ok((runbook.to_owned(), output.to_owned(), Value::Object(body)))
+}
+
+pub fn fanout_list_path(options: &BTreeMap<&str, Vec<String>>) -> Result<String, String> {
+    let first = |key| {
+        options
+            .get(key)
+            .and_then(|values| values.first())
+            .map(String::as_str)
+    };
+    let mut query = Vec::new();
+    if let Some(runbook) = first("--runbook") {
+        if !crate::runbooks::valid_runbook_id(runbook) {
+            return Err("developer runbook identity invalid".into());
+        }
+        query.push(format!("runbook_id={runbook}"));
+    }
+    if let Some(admission) = first("--admission") {
+        if !matches!(admission, "open" | "paused" | "cancelled") {
+            return Err("developer --admission must be open, paused, or cancelled".into());
+        }
+        query.push(format!("admission={admission}"));
+    }
+    if let Some(limit) = first("--limit") {
+        let parsed = limit
+            .parse::<usize>()
+            .map_err(|_| "developer --limit invalid".to_owned())?;
+        if !(1..=100).contains(&parsed) {
+            return Err("developer --limit must be 1..=100".into());
+        }
+        query.push(format!("limit={parsed}"));
+    }
+    if let Some(cursor) = first("--cursor") {
+        if cursor.is_empty() || cursor.len() > 4096 || cursor.bytes().any(|b| b.is_ascii_control())
+        {
+            return Err("developer --cursor invalid".into());
+        }
+        query.push(format!("cursor={cursor}"));
+    }
+    if let Some(order) = first("--order") {
+        if !matches!(order, "asc" | "desc") {
+            return Err("developer --order must be asc or desc".into());
+        }
+        query.push(format!("order={order}"));
+    }
+    if query.is_empty() {
+        Ok("/api/runbooks/fanouts".to_owned())
+    } else {
+        Ok(format!("/api/runbooks/fanouts?{}", query.join("&")))
+    }
+}
+
+pub fn format_fanout_text(response: &Value) -> Result<String, String> {
+    let fanout_id = text(response, "fanout_id")?;
+    let request_id = text(response, "request_id")?;
+    let replayed = response
+        .get("replayed")
+        .and_then(Value::as_bool)
+        .ok_or("developer response field replayed invalid")?;
+    let fanout = response
+        .get("fanout")
+        .ok_or("developer response field fanout invalid")?;
+    let body = format_fanout_view_text(fanout)?;
+    Ok(format!(
+        "fanout_id: {fanout_id}\nreplayed: {replayed}\nrequest_id: {request_id}\n{body}"
+    ))
+}
+
+pub fn format_fanout_view_text(fanout: &Value) -> Result<String, String> {
+    let id = text(fanout, "id")?;
+    let runbook_id = text(fanout, "runbook_id")?;
+    let admission = text(fanout, "admission")?;
+    let phase = text(fanout, "phase")?;
+    let max_concurrency = number(fanout, "max_concurrency")?;
+    let budget_drawn = number(fanout, "budget_drawn")?;
+    let budget_cap = number(fanout, "budget_cap")?;
+    let counts = fanout
+        .get("counts")
+        .ok_or("developer response field counts invalid")?;
+    let total = number(counts, "total")?;
+    let success = number(counts, "success")?;
+    let failure = number(counts, "failure")?;
+    let unknown = number(counts, "unknown")?;
+    let skipped = number(counts, "skipped")?;
+    Ok(format!(
+        "id: {id}\nrunbook_id: {runbook_id}\nadmission: {admission}\nphase: {phase}\nmax_concurrency: {max_concurrency}\nbudget: {budget_drawn}/{budget_cap}\ncounts: total={total} success={success} failure={failure} unknown={unknown} skipped={skipped}\n"
     ))
 }
 
