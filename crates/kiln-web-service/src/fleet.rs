@@ -146,6 +146,10 @@ impl Client {
             return Err(());
         }
         let envelope: ClaimsEnvelope = serde_json::from_slice(&reply.body).map_err(|_| ())?;
+        for claim in &envelope.claims {
+            claim.scope.validate().map_err(|_| ())?;
+            claim.holder.validate().map_err(|_| ())?;
+        }
         Ok(envelope.claims)
     }
 
@@ -583,5 +587,110 @@ mod tests {
         profile.max_response_bytes = 1_048_576;
         profile.schema = "kiln.web-fleet.v2".into();
         assert!(profile.admit().is_err());
+    }
+
+    #[test]
+    fn live_claims_rejects_uncanonical_and_malformed_claim_scopes() {
+        use kiln_core::fleet::{
+            ClaimState, FleetAgent, FleetClaim, FleetScope, FleetTarget, MirrorStatus, ScopePath,
+            parse_scope_text,
+        };
+        use kiln_core::types::ContentId;
+
+        let make_claim = |scope: FleetScope| FleetClaim {
+            identity: ContentId::from_blake3_hex("f".repeat(64))
+                .unwrap_or_else(|e| unreachable!("{e:?}")),
+            scope,
+            holder: FleetAgent {
+                tool: "codex".into(),
+                host: "aspen3".into(),
+                session: "s-claim".into(),
+            },
+            purpose: "test".into(),
+            fence: 1,
+            granted_ms: 1_000,
+            expires_ms: 600_000,
+            state: ClaimState::Open,
+            attempt: None,
+            claim_mirror: MirrorStatus::Posted { message_id: None },
+            release_mirror: MirrorStatus::Pending,
+        };
+
+        let cases = [
+            // 1. Non-lowercase repository -> rejected
+            (
+                make_claim(FleetScope {
+                    target: FleetTarget::Repository("OnixResearch/Kiln".into()),
+                    path: ScopePath::Whole,
+                }),
+                false,
+            ),
+            // 2. Unnormalized path -> rejected
+            (
+                make_claim(FleetScope {
+                    target: FleetTarget::Repository("onixresearch/kiln".into()),
+                    path: ScopePath::Path("./crates/".into()),
+                }),
+                false,
+            ),
+            // 3. Traversal path -> rejected
+            (
+                make_claim(FleetScope {
+                    target: FleetTarget::Repository("onixresearch/kiln".into()),
+                    path: ScopePath::Path("crates/../secret".into()),
+                }),
+                false,
+            ),
+            // 4. Canonical claim -> accepted
+            (
+                make_claim(
+                    parse_scope_text("OnixResearch/Kiln .")
+                        .unwrap_or_else(|e| unreachable!("{e:?}")),
+                ),
+                true,
+            ),
+        ];
+
+        for (claim, expect_ok) in cases {
+            let body = serde_json::to_string(&json!({ "claims": [claim] }))
+                .unwrap_or_else(|e| unreachable!("{e:?}"));
+            let listener =
+                TcpListener::bind("127.0.0.1:0").unwrap_or_else(|_| unreachable!("listener"));
+            let address = listener
+                .local_addr()
+                .unwrap_or_else(|_| unreachable!("address"));
+            let server = std::thread::spawn(move || {
+                let (stream, _) = listener.accept().unwrap_or_else(|_| unreachable!("accept"));
+                let mut reader =
+                    BufReader::new(stream.try_clone().unwrap_or_else(|_| unreachable!("clone")));
+                loop {
+                    let mut line = String::new();
+                    reader
+                        .read_line(&mut line)
+                        .unwrap_or_else(|_| unreachable!("header"));
+                    if line == "\r\n" || line.is_empty() {
+                        break;
+                    }
+                }
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+                stream
+                    .try_clone()
+                    .unwrap_or_else(|_| unreachable!("response"))
+                    .write_all(response.as_bytes())
+                    .unwrap_or_else(|_| unreachable!("write"));
+            });
+            let client = Client::new(&profile(address)).unwrap_or_else(|_| unreachable!("client"));
+            let res = client.live_claims();
+            server.join().unwrap_or_else(|_| unreachable!("server"));
+            if expect_ok {
+                let claims = res.unwrap_or_else(|()| unreachable!("canonical claim should pass"));
+                assert_eq!(claims.len(), 1);
+            } else {
+                assert!(res.is_err(), "non-canonical claim scope must fail closed");
+            }
+        }
     }
 }

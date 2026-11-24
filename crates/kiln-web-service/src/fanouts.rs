@@ -259,12 +259,19 @@ pub(crate) fn expand_fanout_children(
     let max_targets = runbook
         .fanout
         .as_ref()
-        .map_or(MAX_FANOUT_TARGETS, |config| config.max_targets);
+        .map_or(MAX_FANOUT_TARGETS, |config| config.max_targets)
+        .min(MAX_FANOUT_TARGETS);
     if targets.len() > max_targets {
         return Err((400, "fanout_targets_bound"));
     }
     if target_globs.len() > MAX_FANOUT_GLOBS {
         return Err((400, "fanout_glob_invalid"));
+    }
+    if targets.len().saturating_add(target_globs.len()) > max_targets {
+        return Err((400, "fanout_targets_bound"));
+    }
+    if runbook.mode == RunbookMode::ReadOnly && scope_path.is_some() {
+        return Err((400, "fanout_scope_invalid"));
     }
 
     let mut selectors = Vec::with_capacity(targets.len() + target_globs.len());
@@ -504,14 +511,22 @@ fn derive_write_scope(
     }
 
     if let Some(fanout) = &runbook.fanout
-        && fanout.write_scopes.len() == 1
-        && let Some(single) = fanout.write_scopes.first()
+        && !fanout.write_scopes.is_empty()
     {
-        let declared_scope = parse_scope(&target_rule.repository, single)
-            .map_err(|_| (400, "fanout_scope_invalid"))?;
-        if contains_scope(&project_scope, &declared_scope) {
-            return Ok(declared_scope);
+        if fanout.write_scopes.len() == 1
+            && let Some(single) = fanout.write_scopes.first()
+        {
+            let declared_scope = parse_scope(&target_rule.repository, single)
+                .map_err(|_| (400, "fanout_scope_invalid"))?;
+            if contains_scope(&project_scope, &declared_scope) {
+                return Ok(declared_scope);
+            }
+            if contains_scope(&declared_scope, &project_scope) {
+                return Ok(project_scope);
+            }
+            return Err((400, "fanout_scope_widening"));
         }
+        return Err((400, "fanout_scope_required"));
     }
     Ok(project_scope)
 }

@@ -311,6 +311,7 @@
     projectDescriptions();
     renderProjects();
     renderRunList();
+    if (state.route?.page === "runbooks") window.KilnRunbooks?.refreshEnrolledProjects?.();
   }
 
   // r[impl kiln.web.runs_table] Service filters, cursor paging and URL selection stay authoritative;
@@ -1962,7 +1963,7 @@
         route,
         canOperate: canOperate(),
         principal: state.principal,
-        enrolledProjects: state.projects.enrolled,
+        getEnrolledProjects: () => state.projects.enrolled,
         runLink,
         isCurrent: () => state.route === route && !!state.session,
       });

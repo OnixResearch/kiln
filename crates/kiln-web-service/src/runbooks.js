@@ -15,6 +15,7 @@
 
   let generation = 0;
   let busy = false;
+  let refreshPreview = null;
 
   const ui = () => window.KilnUi;
   const element = (tag, value, className) => {
@@ -25,6 +26,8 @@
   };
   const isRecord = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
   const text = (value) => typeof value === "string" ? value : "";
+  const currentEnrolledProjects = (ctx) =>
+    typeof ctx?.getEnrolledProjects === "function" ? ctx.getEnrolledProjects() : ctx?.enrolledProjects;
   const utf8Length = (value) => {
     if (ui()?.utf8Bytes) return ui().utf8Bytes(value);
     return new TextEncoder().encode(String(value)).length;
@@ -904,7 +907,7 @@
     const previewBox = element("div", undefined, "small");
     previewBox.id = "runbook-fanout-preview";
     const updatePreview = () => {
-      const res = matchEnrolledTargets(runbook, ctx.enrolledProjects, globInput.value);
+      const res = matchEnrolledTargets(runbook, currentEnrolledProjects(ctx), globInput.value);
       if (res.error) {
         previewBox.textContent = res.error;
       } else {
@@ -920,6 +923,7 @@
       }
     };
     globInput.addEventListener("input", updatePreview);
+    refreshPreview = updatePreview;
     globWrap.append(globLabel, globInput, previewBox);
 
     explicitModeBtn.addEventListener("click", () => {
@@ -1105,7 +1109,7 @@
     return wrap;
   }
 
-  async function renderFanoutInspector(detailPanel, fanoutId, ctx, currentGen) {
+  async function renderFanoutInspector(detailPanel, fanoutId, ctx, currentGen, initialError = "") {
     let fanout;
     try {
       fanout = await ctx.api(`/api/runbooks/fanouts/${encodeURIComponent(fanoutId)}`);
@@ -1129,6 +1133,7 @@
       return;
     }
 
+    detailPanel.replaceChildren();
     const header = element("div", undefined, "section-heading");
     header.append(element("h2", `Fan-out ${fanout.id}`));
     const badges = element("div", undefined, "badges");
@@ -1174,6 +1179,16 @@
     );
     detailPanel.append(about);
 
+    const controlErr = element("div", undefined, "warning");
+    controlErr.id = "fanout-control-error";
+    controlErr.setAttribute("role", "alert");
+    if (initialError) {
+      controlErr.textContent = initialError;
+      controlErr.hidden = false;
+    } else {
+      controlErr.hidden = true;
+    }
+
     const controls = isRecord(fanout.controls) ? fanout.controls : {};
     if (ctx.canOperate && (controls.pause || controls.continue || controls.cancel)) {
       const controlSection = element("section", undefined, "view-stack");
@@ -1191,12 +1206,12 @@
       controlSection.append(reqWrap);
 
       const btnRow = element("div", undefined, "control-bar");
-      const controlErr = element("div", undefined, "warning");
-      controlErr.id = "fanout-control-error";
-      controlErr.setAttribute("role", "alert");
-      controlErr.hidden = true;
-
       let pendingRetry = null;
+      let lastRetryableControl = null;
+      reqInput.addEventListener("input", () => {
+        lastRetryableControl = null;
+      });
+
       const retryBtn = element("button", "Retry the same request");
       retryBtn.type = "button";
       retryBtn.id = "fanout-control-retry";
@@ -1205,8 +1220,23 @@
       const sendControl = async (action, explicitRequestId) => {
         if (busy) return;
         controlErr.hidden = true;
+        controlErr.textContent = "";
         retryBtn.hidden = true;
-        const requestId = explicitRequestId || (reqInput.value || "").trim() || makeRequestId("ui-foc");
+        pendingRetry = null;
+
+        const rawInput = (reqInput.value || "").trim();
+        const crossActionReuse = Boolean(
+          !explicitRequestId &&
+            lastRetryableControl &&
+            rawInput === lastRetryableControl.requestId &&
+            (lastRetryableControl.fanoutId !== fanout.id || lastRetryableControl.action !== action),
+        );
+        if (crossActionReuse) {
+          reqInput.value = "";
+          lastRetryableControl = null;
+        }
+        const effectiveInput = crossActionReuse ? "" : rawInput;
+        const requestId = explicitRequestId || effectiveInput || makeRequestId("ui-foc");
         if (!REQUEST_ID_RE.test(requestId)) {
           controlErr.textContent = "Control request ID is invalid.";
           controlErr.hidden = false;
@@ -1219,19 +1249,29 @@
             body: { request_id: requestId },
           });
           if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
+          lastRetryableControl = null;
           ctx.notice?.(resp?.replayed ? `Fan-out ${action} replayed.` : `Fan-out ${action} applied.`, "success");
           await load(detailPanel.parentElement?.parentElement || detailPanel, ctx);
         } catch (err) {
           if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
           const classified = classifyError(err);
-          controlErr.textContent = `${classified.title}: ${classified.message}`;
-          controlErr.hidden = false;
+          const message = `${classified.title}: ${classified.message}`;
           if (classified.retryable) {
+            controlErr.textContent = message;
+            controlErr.hidden = false;
+            pendingRetry = { fanoutId: fanout.id, action, requestId };
+            lastRetryableControl = pendingRetry;
             reqInput.value = requestId;
-            pendingRetry = { action, requestId };
+            retryBtn.title = `Retry ${action} with request ID ${requestId}`;
             retryBtn.hidden = false;
           } else if (err?.status === 409) {
-            await renderFanoutInspector(detailPanel, fanoutId, ctx, currentGen);
+            lastRetryableControl = null;
+            ctx.notice?.(message, "warning");
+            await renderFanoutInspector(detailPanel, fanoutId, ctx, currentGen, message);
+          } else {
+            lastRetryableControl = null;
+            controlErr.textContent = message;
+            controlErr.hidden = false;
           }
         } finally {
           if (generation === currentGen) busy = false;
@@ -1239,7 +1279,9 @@
       };
 
       retryBtn.addEventListener("click", () => {
-        if (pendingRetry) void sendControl(pendingRetry.action, pendingRetry.requestId);
+        if (pendingRetry && pendingRetry.fanoutId === fanout.id) {
+          void sendControl(pendingRetry.action, pendingRetry.requestId);
+        }
       });
 
       if (controls.pause) {
@@ -1279,6 +1321,8 @@
       btnRow.append(retryBtn);
       controlSection.append(btnRow, controlErr);
       detailPanel.append(controlSection);
+    } else if (initialError) {
+      detailPanel.append(controlErr);
     }
 
     let filterStatus = "all";
@@ -1357,6 +1401,7 @@
   async function load(root, ctx) {
     const currentGen = ++generation;
     busy = false;
+    refreshPreview = null;
     root.replaceChildren(element("p", "Loading reviewed runbooks…", "small"));
     let response;
     try {
@@ -1424,11 +1469,13 @@
   function clear() {
     generation += 1;
     busy = false;
+    refreshPreview = null;
   }
 
   window.KilnRunbooks = Object.freeze({
     load,
     clear,
+    refreshEnrolledProjects: () => { refreshPreview?.(); },
     normalizeRoute,
     parseTarget,
     validTargetGlob,

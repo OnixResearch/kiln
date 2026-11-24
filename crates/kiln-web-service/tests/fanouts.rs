@@ -1382,3 +1382,468 @@ fn internal_monorepo_sibling_scopes_serialize_when_overlapping_and_run_concurren
     ));
     assert_eq!(root_after.pointer("/counts/active"), Some(&json!(1)));
 }
+
+#[test]
+fn combined_targets_and_globs_over_bound_returns_400_not_503() {
+    let specs = [
+        ProjectSpec {
+            id: "p0",
+            repo_slug: "onixresearch/p0",
+            scope_root: None,
+        },
+        ProjectSpec {
+            id: "p1",
+            repo_slug: "onixresearch/p1",
+            scope_root: None,
+        },
+    ];
+    let (_root, profile, _paths, _revs) = multi_fixture(&specs);
+    let (mut engine, _backends) = open_engine_with_backends(profile);
+    let mut reg = build_registry(&specs);
+    if let Some(ro_rb) = reg.runbooks.get_mut(0)
+        && let Some(fo) = ro_rb.fanout.as_mut()
+    {
+        fo.max_targets = 32;
+    }
+    if let Some(mut_rb) = reg.runbooks.get_mut(1)
+        && let Some(fo) = mut_rb.fanout.as_mut()
+    {
+        fo.max_targets = 64;
+    }
+    engine
+        .configure_runbooks(reg)
+        .unwrap_or_else(|e| unreachable!("{e}"));
+    let op = operator("op:granted");
+    enroll(&mut engine, &["p0", "p1"], &op);
+
+    // 25 explicit targets + 10 globs = 35 > max_targets (32) -> 400 fanout_targets_bound (not 503).
+    let resp_32 = post(
+        &mut engine,
+        "/api/runbooks/ro-audit/fanout",
+        json!({
+            "request_id": "bound-35",
+            "targets": vec!["p0"; 25],
+            "target_globs": vec!["onixresearch/*"; 10]
+        }),
+        &op,
+    );
+    assert_eq!(resp_32.status, 400);
+    assert_eq!(
+        json_body(&resp_32).get("code"),
+        Some(&json!("fanout_targets_bound"))
+    );
+
+    // 55 explicit targets + 10 globs = 65 > max_targets (64) -> 400 fanout_targets_bound (not 503).
+    let resp_64 = post(
+        &mut engine,
+        "/api/runbooks/mut-update/fanout",
+        json!({
+            "request_id": "bound-65",
+            "targets": vec!["p0"; 55],
+            "target_globs": vec!["onixresearch/*"; 10]
+        }),
+        &op,
+    );
+    assert_eq!(resp_64.status, 400);
+    assert_eq!(
+        json_body(&resp_64).get("code"),
+        Some(&json!("fanout_targets_bound"))
+    );
+
+    // 17 globs (> MAX_FANOUT_GLOBS = 16) with max_targets = 32 still returns 400 fanout_glob_invalid.
+    let resp_glob = post(
+        &mut engine,
+        "/api/runbooks/ro-audit/fanout",
+        json!({
+            "request_id": "bound-globs",
+            "targets": [],
+            "target_globs": vec!["onixresearch/*"; 17]
+        }),
+        &op,
+    );
+    assert_eq!(resp_glob.status, 400);
+    assert_eq!(
+        json_body(&resp_glob).get("code"),
+        Some(&json!("fanout_glob_invalid"))
+    );
+}
+
+#[test]
+fn derive_write_scope_enforces_write_scopes_and_rejects_readonly_scope_path() {
+    let specs = [
+        ProjectSpec {
+            id: "kiln-core",
+            repo_slug: "onixresearch/kiln",
+            scope_root: Some("crates/kiln-core"),
+        },
+        ProjectSpec {
+            id: "kiln-root",
+            repo_slug: "onixresearch/kiln",
+            scope_root: None,
+        },
+    ];
+    let (_root, profile, _paths, _revs) = multi_fixture(&specs);
+    let (mut engine, _backends) = open_engine_with_backends(profile);
+    let mut reg = build_registry(&specs);
+    // Keep only kiln-core in ro-audit and mut-update (unique repository per runbook),
+    // and add mut-docs-core, mut-docs-root, mut-multi-root.
+    if let Some(ro_rb) = reg.runbooks.get_mut(0) {
+        ro_rb
+            .allowed_targets
+            .retain(|t| t.project_id == "kiln-core");
+    }
+    if let Some(mut_rb) = reg.runbooks.get_mut(1) {
+        mut_rb
+            .allowed_targets
+            .retain(|t| t.project_id == "kiln-core");
+    }
+    let nodes = reg
+        .runbooks
+        .get(1)
+        .map(|rb| rb.lattice.nodes.clone())
+        .unwrap_or_default();
+    let make_mut_rb = |id: &str, project_id: &str, write_scopes: Vec<&str>| RunbookDefinition {
+        id: id.into(),
+        display_name: id.into(),
+        description: id.into(),
+        mode: RunbookMode::Mutating,
+        lattice: RunbookLattice {
+            bundle_id: Some(id.into()),
+            bundle_identity: "d".repeat(64),
+            workflow_name: id.into(),
+            workflow_revision: "e".repeat(64),
+            nodes: nodes.clone(),
+            edges: vec![],
+        },
+        params: vec![],
+        allowed_targets: vec![RunbookTarget {
+            repository: "onixresearch/kiln".into(),
+            project_id: project_id.into(),
+            references: vec!["refs/heads/main".into()],
+            allow_commit_sha: false,
+        }],
+        fanout: Some(RunbookFanoutConfig {
+            enabled: true,
+            default_max_concurrency: 1,
+            max_concurrency_limit: 4,
+            default_budget_cap: 4,
+            max_budget_cap: 16,
+            max_targets: 8,
+            write_scopes: write_scopes.into_iter().map(String::from).collect(),
+        }),
+    };
+    reg.runbooks
+        .push(make_mut_rb("mut-docs-core", "kiln-core", vec!["docs"]));
+    reg.runbooks
+        .push(make_mut_rb("mut-docs-root", "kiln-root", vec!["docs"]));
+    reg.runbooks.push(make_mut_rb(
+        "mut-multi-root",
+        "kiln-root",
+        vec!["docs", "README.md"],
+    ));
+    if let Some(grant) = reg.grants.get_mut(0) {
+        grant.runbooks.extend([
+            "mut-docs-core".into(),
+            "mut-docs-root".into(),
+            "mut-multi-root".into(),
+        ]);
+    }
+    engine
+        .configure_runbooks(reg)
+        .unwrap_or_else(|e| unreachable!("{e}"));
+    let op = operator("op:granted");
+    enroll(&mut engine, &["kiln-core", "kiln-root"], &op);
+
+    // 1. ReadOnly runbook with scope_path -> 400 fanout_scope_invalid.
+    let ro_scope = post(
+        &mut engine,
+        "/api/runbooks/ro-audit/fanout",
+        json!({
+            "request_id": "ro-scope",
+            "targets": ["kiln-core"],
+            "scope_path": "docs"
+        }),
+        &op,
+    );
+    assert_eq!(ro_scope.status, 400);
+    assert_eq!(
+        json_body(&ro_scope).get("code"),
+        Some(&json!("fanout_scope_invalid"))
+    );
+
+    // 2. Single disjoint write_scope ("docs") on scoped project ("crates/kiln-core") with omitted scope_path -> 400 fanout_scope_widening.
+    let disjoint = post(
+        &mut engine,
+        "/api/runbooks/mut-docs-core/fanout",
+        json!({
+            "request_id": "mut-disjoint",
+            "targets": ["kiln-core"]
+        }),
+        &op,
+    );
+    assert_eq!(disjoint.status, 400);
+    assert_eq!(
+        json_body(&disjoint).get("code"),
+        Some(&json!("fanout_scope_widening"))
+    );
+
+    // 3. Single write_scope ("docs") on unscoped project (".") with omitted scope_path -> narrows to "onixresearch/kiln docs".
+    let narrowed = post(
+        &mut engine,
+        "/api/runbooks/mut-docs-root/fanout",
+        json!({
+            "request_id": "mut-narrowed",
+            "targets": ["kiln-root"]
+        }),
+        &op,
+    );
+    assert_eq!(narrowed.status, 202);
+    assert_eq!(
+        json_body(&narrowed).pointer("/fanout/children/0/write_scope"),
+        Some(&json!("onixresearch/kiln docs"))
+    );
+
+    // 4. Multi-entry write_scopes (["docs", "README.md"]) with omitted scope_path -> 400 fanout_scope_required;
+    //    with explicit scope_path: "docs" -> 202 with "onixresearch/kiln docs".
+    let multi_missing = post(
+        &mut engine,
+        "/api/runbooks/mut-multi-root/fanout",
+        json!({
+            "request_id": "mut-multi-missing",
+            "targets": ["kiln-root"]
+        }),
+        &op,
+    );
+    assert_eq!(multi_missing.status, 400);
+    assert_eq!(
+        json_body(&multi_missing).get("code"),
+        Some(&json!("fanout_scope_required"))
+    );
+    let multi_explicit = post(
+        &mut engine,
+        "/api/runbooks/mut-multi-root/fanout",
+        json!({
+            "request_id": "mut-multi-explicit",
+            "targets": ["kiln-root"],
+            "scope_path": "docs"
+        }),
+        &op,
+    );
+    assert_eq!(multi_explicit.status, 202);
+    assert_eq!(
+        json_body(&multi_explicit).pointer("/fanout/children/0/write_scope"),
+        Some(&json!("onixresearch/kiln docs"))
+    );
+
+    // 5. Existing mut-update (write_scopes: ["."]) on scoped project ("crates/kiln-core") with omitted scope_path
+    //    preserves project_scope ("onixresearch/kiln crates/kiln-core").
+    let whole_on_core = post(
+        &mut engine,
+        "/api/runbooks/mut-update/fanout",
+        json!({
+            "request_id": "mut-whole-core",
+            "targets": ["kiln-core"]
+        }),
+        &op,
+    );
+    assert_eq!(whole_on_core.status, 202);
+    assert_eq!(
+        json_body(&whole_on_core).pointer("/fanout/children/0/write_scope"),
+        Some(&json!("onixresearch/kiln crates/kiln-core"))
+    );
+}
+
+#[test]
+fn continue_rejects_disabled_fanout_and_removed_pending_targets() {
+    let specs = [
+        ProjectSpec {
+            id: "p0",
+            repo_slug: "onixresearch/p0",
+            scope_root: None,
+        },
+        ProjectSpec {
+            id: "p1",
+            repo_slug: "onixresearch/p1",
+            scope_root: None,
+        },
+        ProjectSpec {
+            id: "p2",
+            repo_slug: "onixresearch/p2",
+            scope_root: None,
+        },
+    ];
+    let (root, profile, _paths, revs) = multi_fixture(&specs);
+    let runbooks_path = root.path().join("runbooks.json");
+    let mut reg = build_registry(&specs);
+    let write_reg = |reg: &RunbookRegistry| {
+        std::fs::write(
+            &runbooks_path,
+            serde_json::to_vec(reg).unwrap_or_else(|e| unreachable!("{e:?}")),
+        )
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+    };
+    write_reg(&reg);
+
+    let (mut engine, backends) = open_engine_with_backends(profile);
+    engine
+        .configure_runbooks_path(&runbooks_path)
+        .unwrap_or_else(|e| unreachable!("{e}"));
+    let op = operator("op:granted");
+    enroll(&mut engine, &["p0", "p1", "p2"], &op);
+
+    let rev_p2 = revs
+        .get("p2")
+        .unwrap_or_else(|| unreachable!("p2 rev"))
+        .clone();
+    let dispatch = post(
+        &mut engine,
+        "/api/runbooks/mut-update/fanout",
+        json!({
+            "request_id": "cont-drift-dispatch",
+            "targets": [
+                "onixresearch/p0@refs/heads/main",
+                "onixresearch/p1@refs/heads/main",
+                format!("onixresearch/p2@{rev_p2}")
+            ],
+            "max_concurrency": 1,
+            "budget_cap": 3
+        }),
+        &op,
+    );
+    assert_eq!(dispatch.status, 202);
+    let fanout_id = json_body(&dispatch)
+        .get("fanout_id")
+        .and_then(Value::as_str)
+        .unwrap_or_else(|| unreachable!("fanout_id"))
+        .to_owned();
+
+    let paused = post(
+        &mut engine,
+        &format!("/api/runbooks/fanouts/{fanout_id}/pause"),
+        json!({ "request_id": "cont-drift-pause" }),
+        &op,
+    );
+    assert_eq!(paused.status, 200);
+    if let Some(b) = backends.get("p0") {
+        b.lock().mode = PortMode::Success;
+    }
+    engine.poll().unwrap_or_else(|e| unreachable!("{e}"));
+
+    // 1. Disable fanout on disk -> continue returns 409 fanout_disabled.
+    if let Some(mut_rb) = reg.runbooks.get_mut(1)
+        && let Some(fo) = mut_rb.fanout.as_mut()
+    {
+        fo.enabled = false;
+    }
+    write_reg(&reg);
+    let dis_resp = post(
+        &mut engine,
+        &format!("/api/runbooks/fanouts/{fanout_id}/continue"),
+        json!({ "request_id": "cont-disabled" }),
+        &op,
+    );
+    assert_eq!(dis_resp.status, 409);
+    assert_eq!(
+        json_body(&dis_resp).get("code"),
+        Some(&json!("fanout_disabled"))
+    );
+    if let Some(mut_rb) = reg.runbooks.get_mut(1)
+        && let Some(fo) = mut_rb.fanout.as_mut()
+    {
+        fo.enabled = true;
+    }
+    write_reg(&reg);
+
+    // 2. Remove pending target p1 from allowed_targets -> 409 runbook_target_not_allowed, p1 not admitted.
+    let saved_targets = reg
+        .runbooks
+        .get(1)
+        .map(|rb| rb.allowed_targets.clone())
+        .unwrap_or_default();
+    if let Some(mut_rb) = reg.runbooks.get_mut(1) {
+        mut_rb.allowed_targets.retain(|t| t.project_id != "p1");
+    }
+    write_reg(&reg);
+    let rm_resp = post(
+        &mut engine,
+        &format!("/api/runbooks/fanouts/{fanout_id}/continue"),
+        json!({ "request_id": "cont-rm-target" }),
+        &op,
+    );
+    assert_eq!(rm_resp.status, 409);
+    assert_eq!(
+        json_body(&rm_resp).get("code"),
+        Some(&json!("runbook_target_not_allowed"))
+    );
+    assert_eq!(backends.get("p1").map(|b| b.lock().dispatches), Some(0));
+    if let Some(mut_rb) = reg.runbooks.get_mut(1) {
+        mut_rb.allowed_targets = saved_targets;
+    }
+    write_reg(&reg);
+
+    // 3. Disallow commit SHA on pending target p2 -> 409 runbook_target_not_allowed.
+    if let Some(mut_rb) = reg.runbooks.get_mut(1)
+        && let Some(p2_rule) = mut_rb
+            .allowed_targets
+            .iter_mut()
+            .find(|t| t.project_id == "p2")
+    {
+        p2_rule.allow_commit_sha = false;
+    }
+    write_reg(&reg);
+    let sha_resp = post(
+        &mut engine,
+        &format!("/api/runbooks/fanouts/{fanout_id}/continue"),
+        json!({ "request_id": "cont-no-sha" }),
+        &op,
+    );
+    assert_eq!(sha_resp.status, 409);
+    assert_eq!(
+        json_body(&sha_resp).get("code"),
+        Some(&json!("runbook_target_not_allowed"))
+    );
+    if let Some(mut_rb) = reg.runbooks.get_mut(1)
+        && let Some(p2_rule) = mut_rb
+            .allowed_targets
+            .iter_mut()
+            .find(|t| t.project_id == "p2")
+    {
+        p2_rule.allow_commit_sha = true;
+    }
+    write_reg(&reg);
+
+    // 4. Narrow write_scopes from ["."] to ["docs"] -> 409 runbook_definition_changed.
+    if let Some(mut_rb) = reg.runbooks.get_mut(1)
+        && let Some(fo) = mut_rb.fanout.as_mut()
+    {
+        fo.write_scopes = vec!["docs".into()];
+    }
+    write_reg(&reg);
+    let scope_resp = post(
+        &mut engine,
+        &format!("/api/runbooks/fanouts/{fanout_id}/continue"),
+        json!({ "request_id": "cont-narrow-scope" }),
+        &op,
+    );
+    assert_eq!(scope_resp.status, 409);
+    assert_eq!(
+        json_body(&scope_resp).get("code"),
+        Some(&json!("runbook_definition_changed"))
+    );
+    if let Some(mut_rb) = reg.runbooks.get_mut(1)
+        && let Some(fo) = mut_rb.fanout.as_mut()
+    {
+        fo.write_scopes = vec![".".into()];
+    }
+    write_reg(&reg);
+
+    // 5. Restoring valid registry allows continue to succeed and admit p1.
+    let ok_resp = post(
+        &mut engine,
+        &format!("/api/runbooks/fanouts/{fanout_id}/continue"),
+        json!({ "request_id": "cont-restored" }),
+        &op,
+    );
+    assert_eq!(ok_resp.status, 200);
+    assert_eq!(backends.get("p1").map(|b| b.lock().dispatches), Some(1));
+}

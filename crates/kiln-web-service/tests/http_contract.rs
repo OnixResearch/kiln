@@ -623,7 +623,16 @@ fn http_contract_real_responses_validate_schema() {
                 "project_id": "fixture",
                 "references": ["refs/heads/main"],
                 "allow_commit_sha": false
-            }]
+            }],
+            "fanout": {
+                "enabled": true,
+                "default_max_concurrency": 1,
+                "max_concurrency_limit": 2,
+                "default_budget_cap": 2,
+                "max_budget_cap": 4,
+                "max_targets": 4,
+                "write_scopes": []
+            }
         }],
         "grants": []
     }))

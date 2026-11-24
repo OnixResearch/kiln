@@ -2399,3 +2399,558 @@ test("KilnRunbooks fan-out inspector renders ledger, cancel confirmation gate, a
 
   rb.clear();
 });
+
+test("KilnRunbooks 409 control conflict replaces inspector DOM cleanly without duplicating IDs and preserves banner", async () => {
+  const doc = { createElement: (tag) => new CairnNode(tag) };
+  const ctxObj = {
+    window: { KilnUi: ui },
+    document: doc,
+    TextEncoder,
+    crypto: webcrypto,
+  };
+  vm.runInNewContext(asset("runbooks.js"), ctxObj);
+  const rb = ctxObj.window.KilnRunbooks;
+
+  const countById = (node, id) => {
+    if (!node) return 0;
+    let total = node.id === id ? 1 : 0;
+    for (const child of node.children || []) {
+      total += countById(child, id);
+    }
+    return total;
+  };
+  const findById = (node, id) => {
+    if (!node) return null;
+    if (node.id === id) return node;
+    for (const child of node.children || []) {
+      const hit = findById(child, id);
+      if (hit) return hit;
+    }
+    return null;
+  };
+
+  const baseFanout = {
+    id: "rb-fanout-123",
+    ordinal: 5,
+    runbook_id: "security-audit",
+    mode: "read_only",
+    principal: "local:operator",
+    request_id: "req-fo-1",
+    target_selectors: ["onixresearch/*@refs/heads/main"],
+    claim_policy: "refuse",
+    admission: "open",
+    phase: "active",
+    stop_reason: null,
+    max_concurrency: 2,
+    active_children: 1,
+    budget_cap: 3,
+    budget_drawn: 1,
+    budget_remaining: 2,
+    unit_cost: 1,
+    admitted_runs: 1,
+    controls: { pause: true, continue: false, cancel: true },
+    counts: { total: 2, pending: 1, active: 1, success: 0, failure: 0, unknown: 0, skipped: 0 },
+    children: [
+      { index: 0, project_id: "p0", repository: "onixresearch/a", target: "onixresearch/a@refs/heads/main", resolved_reference: "refs/heads/main", source_revision: "a".repeat(40), write_scope: null, status: "active", run_id: "web-run-0", outcome_detail: null, reason: null },
+      { index: 1, project_id: "p1", repository: "onixresearch/b", target: "onixresearch/b@refs/heads/main", resolved_reference: "refs/heads/main", source_revision: "b".repeat(40), write_scope: null, status: "pending", run_id: null, outcome_detail: null, reason: null },
+    ],
+  };
+
+  // Case 1: 409 transition to completed (controls closed).
+  let currentDoc = structuredClone(baseFanout);
+  const notices = [];
+  const ctx = {
+    route: { page: "runbooks", runbook: "security-audit", fanout: "rb-fanout-123" },
+    canOperate: true,
+    principal: { id: "local:operator", role: "operator" },
+    enrolledProjects: [{ id: "p0" }, { id: "p1" }],
+    navigate() {},
+    notice(msg, kind) { notices.push({ msg, kind }); },
+    isCurrent: () => true,
+    async api(path, opts) {
+      if (path === "/api/runbooks") {
+        return { schema: "kiln.web-runbooks-view.v1", configured: true, principal: "local:operator", runbooks: [{ id: "security-audit", display_name: "Security Audit", mode: "read_only", allowed_targets: [], params: [], can_dispatch: true }] };
+      }
+      if (path === "/api/runbooks/fanouts") {
+        return { schema: "kiln.runbook-fanouts-view.v1", fanouts: [currentDoc], next_cursor: null, total: 1, bounded: true };
+      }
+      if (path === "/api/runbooks/fanouts/rb-fanout-123") {
+        return currentDoc;
+      }
+      if (path === "/api/runbooks/fanouts/rb-fanout-123/pause") {
+        currentDoc = { ...currentDoc, admission: "closed", phase: "completed", controls: { pause: false, continue: false, cancel: false } };
+        throw { status: 409, code: "fanout_completed", message: "Completed fan-out run cannot be paused" };
+      }
+      if (path === "/api/runbooks/fanouts/rb-fanout-123/continue") {
+        return { schema: "kiln.runbook-fanout-control-result.v1", request_id: opts.body.request_id, replayed: false, action: "continue", fanout_id: "rb-fanout-123", fanout: { ...currentDoc, admission: "open", phase: "active" } };
+      }
+      throw new Error(`unexpected ${path}`);
+    },
+  };
+
+  const root = new CairnNode("div");
+  await rb.load(root, ctx);
+  assert.equal(countById(root, "fanout-controls"), 1);
+  assert.equal(countById(root, "fanout-children-table"), 1);
+
+  findById(root, "fanout-pause-btn").listeners.get("click")[0]();
+  await new Promise((r) => setTimeout(r, 20));
+  assert.equal(countById(root, "fanout-controls"), 0);
+  assert.equal(countById(root, "fanout-children-table"), 1);
+  assert.equal(countById(root, "fanout-control-error"), 1);
+  const completedErr = findById(root, "fanout-control-error");
+  assert.equal(completedErr.hidden, false);
+  assert.match(completedErr.textContent, /Completed fan-out run cannot be paused/);
+
+  // Case 2: 409 transition to paused (controls retained, no DOM duplication).
+  let contCalls = 0;
+  currentDoc = structuredClone(baseFanout);
+  const ctx2 = {
+    ...ctx,
+    async api(path, opts) {
+      if (path === "/api/runbooks/fanouts/rb-fanout-123/pause") {
+        currentDoc = { ...currentDoc, admission: "paused", phase: "paused", controls: { pause: false, continue: true, cancel: true } };
+        throw { status: 409, code: "fanout_paused", message: "Fan-out run is already paused" };
+      }
+      if (path === "/api/runbooks/fanouts/rb-fanout-123/continue") {
+        contCalls += 1;
+      }
+      return ctx.api(path, opts);
+    },
+  };
+  await rb.load(root, ctx2);
+  findById(root, "fanout-pause-btn").listeners.get("click")[0]();
+  await new Promise((r) => setTimeout(r, 20));
+  assert.equal(countById(root, "fanout-controls"), 1);
+  assert.equal(countById(root, "fanout-children-table"), 1);
+  assert.equal(countById(root, "fanout-pause-btn"), 0);
+  assert.equal(countById(root, "fanout-continue-btn"), 1);
+  const pausedErr = findById(root, "fanout-control-error");
+  assert.equal(pausedErr.hidden, false);
+  assert.match(pausedErr.textContent, /Request or state conflict/);
+
+  // Clicking continue on refreshed DOM dispatches cleanly (busy reset in finally).
+  findById(root, "fanout-continue-btn").listeners.get("click")[0]();
+  await new Promise((r) => setTimeout(r, 20));
+  assert.equal(contCalls, 1);
+
+  rb.clear();
+});
+
+test("KilnRunbooks scopes 503 request_id retention by action so cancel/continue do not reuse pause ID", async () => {
+  const doc = { createElement: (tag) => new CairnNode(tag) };
+  const ctxObj = {
+    window: { KilnUi: ui },
+    document: doc,
+    TextEncoder,
+    crypto: webcrypto,
+  };
+  vm.runInNewContext(asset("runbooks.js"), ctxObj);
+  const rb = ctxObj.window.KilnRunbooks;
+
+  const findById = (node, id) => {
+    if (!node) return null;
+    if (node.id === id) return node;
+    for (const child of node.children || []) {
+      const hit = findById(child, id);
+      if (hit) return hit;
+    }
+    return null;
+  };
+
+  const fanoutDoc = {
+    id: "rb-fanout-123",
+    ordinal: 5,
+    runbook_id: "security-audit",
+    mode: "read_only",
+    principal: "local:operator",
+    request_id: "req-fo-1",
+    target_selectors: ["onixresearch/*@refs/heads/main"],
+    claim_policy: "refuse",
+    admission: "open",
+    phase: "active",
+    stop_reason: null,
+    max_concurrency: 2,
+    active_children: 1,
+    budget_cap: 3,
+    budget_drawn: 1,
+    budget_remaining: 2,
+    unit_cost: 1,
+    admitted_runs: 1,
+    controls: { pause: true, continue: true, cancel: true },
+    counts: { total: 2, pending: 1, active: 1, success: 0, failure: 0, unknown: 0, skipped: 0 },
+    children: [],
+  };
+
+  const calls = [];
+  const ctx = {
+    route: { page: "runbooks", runbook: "security-audit", fanout: "rb-fanout-123" },
+    canOperate: true,
+    principal: { id: "local:operator", role: "operator" },
+    enrolledProjects: [],
+    navigate() {},
+    notice() {},
+    isCurrent: () => true,
+    async api(path, opts) {
+      if (path === "/api/runbooks") {
+        return { schema: "kiln.web-runbooks-view.v1", configured: true, principal: "local:operator", runbooks: [{ id: "security-audit", display_name: "Security Audit", mode: "read_only", allowed_targets: [], params: [], can_dispatch: true }] };
+      }
+      if (path === "/api/runbooks/fanouts") {
+        return { schema: "kiln.runbook-fanouts-view.v1", fanouts: [fanoutDoc], next_cursor: null, total: 1, bounded: true };
+      }
+      if (path === "/api/runbooks/fanouts/rb-fanout-123") {
+        return fanoutDoc;
+      }
+      if (path.endsWith("/pause")) {
+        calls.push({ action: "pause", request_id: opts.body.request_id });
+        throw { status: 503, message: "transient" };
+      }
+      if (path.endsWith("/cancel")) {
+        calls.push({ action: "cancel", request_id: opts.body.request_id });
+        return { schema: "kiln.runbook-fanout-control-result.v1", request_id: opts.body.request_id, replayed: false, action: "cancel", fanout_id: "rb-fanout-123", fanout: fanoutDoc };
+      }
+      if (path.endsWith("/continue")) {
+        calls.push({ action: "continue", request_id: opts.body.request_id });
+        return { schema: "kiln.runbook-fanout-control-result.v1", request_id: opts.body.request_id, replayed: false, action: "continue", fanout_id: "rb-fanout-123", fanout: fanoutDoc };
+      }
+      throw new Error(`unexpected ${path}`);
+    },
+  };
+
+  const root = new CairnNode("div");
+  await rb.load(root, ctx);
+
+  // 1. Pause fails 503 -> retry sends exact same pauseReqId -> cancel sends fresh cancelReqId !== pauseReqId.
+  findById(root, "fanout-pause-btn").listeners.get("click")[0]();
+  await new Promise((r) => setTimeout(r, 15));
+  const reqInput = findById(root, "fanout-control-request-id");
+  const retryBtn = findById(root, "fanout-control-retry");
+  const pauseReqId = reqInput.value;
+  assert.ok(pauseReqId);
+  assert.equal(retryBtn.hidden, false);
+
+  retryBtn.listeners.get("click")[0]();
+  await new Promise((r) => setTimeout(r, 15));
+  assert.equal(calls[0].request_id, pauseReqId);
+  assert.equal(calls[1].request_id, pauseReqId);
+
+  const confirmBox = findById(root, "fanout-cancel-confirm");
+  confirmBox.checked = true;
+  confirmBox.listeners.get("change")[0]();
+  findById(root, "fanout-cancel-btn").listeners.get("click")[0]();
+  await new Promise((r) => setTimeout(r, 15));
+  assert.equal(calls[2].action, "cancel");
+  assert.notEqual(calls[2].request_id, pauseReqId);
+
+  // 2. Manual pause ID fails 503 -> clicking continue without editing input sends fresh ID !== "manual-pause-1".
+  await rb.load(root, ctx);
+  findById(root, "fanout-control-request-id").value = "manual-pause-1";
+  findById(root, "fanout-pause-btn").listeners.get("click")[0]();
+  await new Promise((r) => setTimeout(r, 15));
+  assert.equal(calls[3].action, "pause");
+  assert.equal(calls[3].request_id, "manual-pause-1");
+
+  findById(root, "fanout-continue-btn").listeners.get("click")[0]();
+  await new Promise((r) => setTimeout(r, 15));
+  assert.equal(calls[4].action, "continue");
+  assert.notEqual(calls[4].request_id, "manual-pause-1");
+
+  // 3. Pause 503 -> operator explicitly enters "explicit-cancel-99" + input event -> cancel uses "explicit-cancel-99".
+  await rb.load(root, ctx);
+  findById(root, "fanout-pause-btn").listeners.get("click")[0]();
+  await new Promise((r) => setTimeout(r, 15));
+  const reqInput3 = findById(root, "fanout-control-request-id");
+  reqInput3.value = "explicit-cancel-99";
+  for (const fn of reqInput3.listeners.get("input") || []) fn();
+  const confirm3 = findById(root, "fanout-cancel-confirm");
+  confirm3.checked = true;
+  confirm3.listeners.get("change")[0]();
+  findById(root, "fanout-cancel-btn").listeners.get("click")[0]();
+  await new Promise((r) => setTimeout(r, 15));
+  assert.equal(calls[6].action, "cancel");
+  assert.equal(calls[6].request_id, "explicit-cancel-99");
+
+  rb.clear();
+});
+
+test("KilnRunbooks getEnrolledProjects and web.js refreshAll update preview when /api/projects resolves late", async () => {
+  // Part 1: Unit test on KilnRunbooks getEnrolledProjects + refreshEnrolledProjects.
+  {
+    const doc = { createElement: (tag) => new CairnNode(tag) };
+    const ctxObj = {
+      window: { KilnUi: ui },
+      document: doc,
+      TextEncoder,
+      crypto: webcrypto,
+    };
+    vm.runInNewContext(asset("runbooks.js"), ctxObj);
+    const rb = ctxObj.window.KilnRunbooks;
+    const findById = (node, id) => {
+      if (!node) return null;
+      if (node.id === id) return node;
+      for (const child of node.children || []) {
+        const hit = findById(child, id);
+        if (hit) return hit;
+      }
+      return null;
+    };
+
+    let enrolled = [];
+    const root = new CairnNode("div");
+    await rb.load(root, {
+      route: { page: "runbooks", runbook: "rb-mut" },
+      canOperate: true,
+      principal: { id: "local:operator", role: "operator" },
+      getEnrolledProjects: () => enrolled,
+      navigate() {},
+      notice() {},
+      isCurrent: () => true,
+      async api(path) {
+        if (path === "/api/runbooks") {
+          return {
+            schema: "kiln.web-runbooks-view.v1",
+            configured: true,
+            principal: "local:operator",
+            runbooks: [{
+              id: "rb-mut",
+              display_name: "Mutating RB",
+              mode: "mutating",
+              allowed_targets: [{ repository: "onixresearch/kiln", project_id: "kiln-audit", references: ["refs/heads/main"], allow_commit_sha: false }],
+              params: [],
+              can_dispatch: true,
+              fanout: { enabled: true, default_max_concurrency: 1, max_concurrency_limit: 4, default_budget_cap: 4, max_budget_cap: 16, max_targets: 8, write_scopes: ["."] },
+            }],
+          };
+        }
+        if (path === "/api/runbooks/fanouts") {
+          return { schema: "kiln.runbook-fanouts-view.v1", fanouts: [], next_cursor: null, total: 0, bounded: true };
+        }
+        throw new Error(`unexpected ${path}`);
+      },
+    });
+    findById(root, "runbook-mode-fanout").listeners.get("click")[0]();
+    findById(root, "runbook-fanout-mode-glob").listeners.get("click")[0]();
+    const globInput = findById(root, "runbook-fanout-glob");
+    globInput.value = "onixresearch/*@refs/heads/main";
+    for (const fn of globInput.listeners.get("input") || []) fn();
+    assert.match(findById(root, "runbook-fanout-preview").textContent, /Preview matched 0 enrolled allowed target\(s\)/);
+
+    enrolled = [{ id: "kiln-audit" }];
+    rb.refreshEnrolledProjects();
+    assert.match(findById(root, "runbook-fanout-preview").textContent, /Preview matched 1 enrolled allowed target\(s\).*kiln-audit/);
+    rb.clear();
+  }
+
+  // Part 2: Integration test on web.js + runbooks.js during refreshAll() with delayed /api/projects.
+  class WebNode extends CairnNode {
+    constructor(tag, id = "") {
+      super(tag);
+      this.id = id;
+      this.value = "";
+      this.disabled = false;
+      this.checked = false;
+      this.required = false;
+      this.open = false;
+      this.tabIndex = 0;
+      this.className = "";
+      this.scrollTop = 0;
+      this.scrollHeight = 0;
+      const self = this;
+      this.classList = {
+        add(...names) {
+          const set = new Set((self.className || "").split(/\s+/).filter(Boolean));
+          for (const n of names) set.add(n);
+          self.className = [...set].join(" ");
+        },
+        remove(...names) {
+          const rm = new Set(names);
+          self.className = (self.className || "").split(/\s+/).filter((x) => x && !rm.has(x)).join(" ");
+        },
+        toggle(name, force) {
+          const has = self.classList.contains(name);
+          const want = force === undefined ? !has : Boolean(force);
+          if (want) self.classList.add(name);
+          else self.classList.remove(name);
+          return want;
+        },
+        contains(name) {
+          return (self.className || "").split(/\s+/).includes(name);
+        },
+      };
+    }
+    get options() { return this.children; }
+    toggleAttribute(name, force) {
+      const has = this.attributes.has(name);
+      const want = force === undefined ? !has : Boolean(force);
+      if (want) this.setAttribute(name, "");
+      else this.removeAttribute(name);
+      return want;
+    }
+    showModal() { this.open = true; }
+    close() { this.open = false; }
+    getClientRects() { return []; }
+    focus() {}
+    scrollIntoView() {}
+  }
+
+  const nodes = new Map();
+  const nodeFor = (id) => {
+    if (!nodes.has(id)) nodes.set(id, new WebNode("div", id));
+    return nodes.get(id);
+  };
+  const docEl = new WebNode("html");
+  const bodyEl = new WebNode("body");
+  const webDoc = {
+    documentElement: docEl,
+    body: bodyEl,
+    activeElement: null,
+    title: "",
+    createElement: (tag) => Object.assign(new WebNode(tag), { ownerDocument: webDoc }),
+    createTextNode: (t) => Object.assign(new WebNode("#text"), { text: t, ownerDocument: webDoc }),
+    getElementById: (id) => nodeFor(id),
+    querySelectorAll: () => [],
+    querySelector: () => new WebNode("div"),
+    addEventListener() {},
+  };
+
+  let deferProjects = false;
+  let resolveProjects = null;
+  let projectsPayload = { available: [], enrolled: [] };
+
+  const mockResponse = (bodyText, contentType = "application/json") => {
+    const bytes = new TextEncoder().encode(bodyText);
+    let read = false;
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: (name) => (String(name).toLowerCase() === "content-type" ? contentType : null) },
+      body: {
+        getReader: () => ({
+          read: async () => {
+            if (read) return { done: true, value: undefined };
+            read = true;
+            return { done: false, value: bytes };
+          },
+          cancel: async () => {},
+          releaseLock() {},
+        }),
+      },
+    };
+  };
+
+  const webFetch = async (url) => {
+    const u = String(url);
+    if (u === "/api/session") {
+      return mockResponse(JSON.stringify({
+        principal: { id: "local:operator", label: "Operator", role: "operator" },
+        permissions: { read: true, operate: true },
+      }));
+    }
+    if (u === "/api/projects") {
+      if (deferProjects) {
+        const data = await new Promise((resolve) => { resolveProjects = resolve; });
+        return mockResponse(JSON.stringify(data));
+      }
+      return mockResponse(JSON.stringify(projectsPayload));
+    }
+    if (u.startsWith("/api/live")) {
+      return mockResponse(": heartbeat\n\n", "text/event-stream");
+    }
+    if (u.startsWith("/api/runs")) {
+      return mockResponse(JSON.stringify({ runs: [], next_cursor: null, total: 0 }));
+    }
+    if (u === "/api/runbooks") {
+      return mockResponse(JSON.stringify({
+        schema: "kiln.web-runbooks-view.v1",
+        configured: true,
+        principal: "local:operator",
+        runbooks: [{
+          id: "rb-mut",
+          display_name: "Mutating RB",
+          mode: "mutating",
+          allowed_targets: [{ repository: "onixresearch/kiln", project_id: "kiln-mut", references: ["refs/heads/main"], allow_commit_sha: false }],
+          params: [],
+          can_dispatch: true,
+          fanout: { enabled: true, default_max_concurrency: 1, max_concurrency_limit: 4, default_budget_cap: 4, max_budget_cap: 16, max_targets: 8, write_scopes: ["."] },
+        }],
+      }));
+    }
+    if (u.startsWith("/api/runbooks/fanouts")) {
+      return mockResponse(JSON.stringify({ schema: "kiln.runbook-fanouts-view.v1", fanouts: [], next_cursor: null, total: 0, bounded: true }));
+    }
+    return mockResponse("{}");
+  };
+
+  const findById = (node, id) => {
+    if (!node) return null;
+    if (node.id === id) return node;
+    for (const child of node.children || []) {
+      const hit = findById(child, id);
+      if (hit) return hit;
+    }
+    return null;
+  };
+
+  const webWindow = {
+    matchMedia: () => ({ matches: false, addEventListener() {} }),
+    addEventListener() {},
+    dispatchEvent() {},
+    scrollTo() {},
+  };
+  const webCtx = {
+    window: webWindow,
+    document: webDoc,
+    Node: WebNode,
+    Element: WebNode,
+    HTMLElement: WebNode,
+    Event,
+    URL,
+    DOMException,
+    AbortController,
+    URLSearchParams,
+    TextEncoder,
+    TextDecoder,
+    Intl,
+    crypto: webcrypto,
+    location: { search: "?page=runbooks&runbook=rb-mut", hash: "", pathname: "/" },
+    history: { pushState() {}, replaceState() {} },
+    fetch: webFetch,
+    setTimeout,
+    clearTimeout,
+    setInterval,
+    clearInterval,
+  };
+  webWindow.window = webWindow;
+
+  vm.runInNewContext(asset("icons.js"), webCtx);
+  vm.runInNewContext(asset("ui.js"), webCtx);
+  vm.runInNewContext(asset("workers.js"), webCtx);
+  vm.runInNewContext(asset("runbooks.js"), webCtx);
+  vm.runInNewContext(asset("web.js"), webCtx);
+
+  try {
+    await new Promise((r) => setTimeout(r, 30));
+    // Now delay /api/projects while /api/runbooks resolves immediately during refreshAll().
+    deferProjects = true;
+    nodeFor("refresh-all").listeners.get("click")[0]();
+    await new Promise((r) => setTimeout(r, 30));
+
+    const runbooksRoot = nodeFor("runbooks-content");
+    findById(runbooksRoot, "runbook-mode-fanout").listeners.get("click")[0]();
+    findById(runbooksRoot, "runbook-fanout-mode-glob").listeners.get("click")[0]();
+    const globInput = findById(runbooksRoot, "runbook-fanout-glob");
+    globInput.value = "onixresearch/*@refs/heads/main";
+    for (const fn of globInput.listeners.get("input") || []) fn();
+    assert.match(findById(runbooksRoot, "runbook-fanout-preview").textContent, /Preview matched 0 enrolled allowed target\(s\)/);
+
+    resolveProjects({
+      available: [],
+      enrolled: [{ id: "kiln-mut", label: "Kiln", repository: "onixresearch/kiln", reference: "refs/heads/main", pipeline_identity: "p" }],
+    });
+    await new Promise((r) => setTimeout(r, 30));
+    assert.match(findById(runbooksRoot, "runbook-fanout-preview").textContent, /Preview matched 1 enrolled allowed target\(s\).*kiln-mut/);
+  } finally {
+    nodeFor("logout").listeners.get("click")[0]();
+    webWindow.KilnRunbooks?.clear?.();
+  }
+});

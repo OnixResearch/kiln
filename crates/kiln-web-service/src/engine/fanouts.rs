@@ -459,6 +459,13 @@ impl Engine {
         }
 
         if action == "continue" {
+            if runbook
+                .fanout
+                .as_ref()
+                .is_some_and(|config| !config.enabled)
+            {
+                return error(409, "fanout_disabled");
+            }
             if fanout_mode(runbook.mode) != existing.mode {
                 return error(409, "runbook_mode_changed");
             }
@@ -476,6 +483,55 @@ impl Engine {
                 || resolved.env_bindings != existing.env_bindings
             {
                 return error(409, "runbook_definition_changed");
+            }
+            for child in existing
+                .children
+                .iter()
+                .filter(|c| c.status == FanoutChildStatus::Pending)
+            {
+                let Some(target_rule) = runbook.allowed_targets.iter().find(|rule| {
+                    rule.project_id == child.project_id
+                        && rule.repository.eq_ignore_ascii_case(&child.repository)
+                }) else {
+                    return error(409, "runbook_target_not_allowed");
+                };
+                if crate::runbooks::is_hex40(&child.resolved_reference) {
+                    if !target_rule.allow_commit_sha {
+                        return error(409, "runbook_target_not_allowed");
+                    }
+                    let Some(project) =
+                        crate::runbooks::match_project(&self.profile, &child.project_id)
+                    else {
+                        return error(409, "runbook_target_not_allowed");
+                    };
+                    if let Err((status, code)) =
+                        resolve_sha_target_source(project, target_rule, &child.resolved_reference)
+                    {
+                        return if status == 503 {
+                            error(503, code)
+                        } else {
+                            error(409, "runbook_target_not_allowed")
+                        };
+                    }
+                } else if target_allows_reference(target_rule, &child.resolved_reference).is_none()
+                {
+                    return error(409, "runbook_target_not_allowed");
+                }
+                if existing.mode == FanoutMode::Mutating
+                    && let Some(cfg) = &runbook.fanout
+                    && !cfg.write_scopes.is_empty()
+                {
+                    let Some(scope) = &child.write_scope else {
+                        return error(409, "runbook_definition_changed");
+                    };
+                    let still_allowed = cfg.write_scopes.iter().any(|declared| {
+                        parse_scope(&child.repository, declared)
+                            .is_ok_and(|ds| kiln_core::fleet::contains_scope(&ds, scope))
+                    });
+                    if !still_allowed {
+                        return error(409, "runbook_definition_changed");
+                    }
+                }
             }
             if existing.mode == FanoutMode::Mutating
                 && matches!(self.fleet_claims, FleetClaimsSnapshot::Unavailable)

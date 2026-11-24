@@ -155,9 +155,10 @@ let WriteScopePath =
       std.is_string value
       && std.string.length value > 0
       && std.string.length value <= 256
+      && std.string.is_match "^[\\x21-\\x7e]+$" value
+      && !(std.string.is_match "\\\\" value)
       && !(std.string.is_match "^/|/$|//" value)
-      && !(std.string.is_match "(^|/)\\.\\.($|/)" value)
-      && !(std.string.is_match "[\\x00-\\x20\\x7f]" value)
+      && !(std.string.is_match "(^|/)\\.\\.?($|/)" value)
     )
   )
 in
