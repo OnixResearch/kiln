@@ -15,6 +15,7 @@ pub mod client;
 pub mod config;
 pub mod dispatch;
 pub mod exec;
+pub mod hold;
 pub mod http;
 pub mod identity;
 pub mod log;

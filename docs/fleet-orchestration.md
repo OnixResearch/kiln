@@ -109,6 +109,7 @@ kiln-fleet run --config FLEET.json
 kiln-fleet check-config --config FLEET.json
 kiln-fleet mcp [--server URL] [--tool NAME]
 kiln-fleet claim --scope '<target> <path>' --tool T --session S --purpose TEXT [--lease-minutes N]
+kiln-fleet hold --scope '<target> <path>' --tool T --session S --purpose TEXT [--lease-minutes N] [--server URL] -- <command> [args...]
 kiln-fleet renew --claim ID --fence N [--lease-minutes N]
 kiln-fleet release --claim ID --fence N [--note TEXT]
 kiln-fleet claims | work | attempts | decisions
@@ -119,7 +120,7 @@ kiln-fleet answer --decision ID --text TEXT
 kiln-fleet cancel --attempt ID --reason TEXT
 ```
 
-Client commands default `--server` from `KILN_FLEET_SERVER`. They exit 0 with JSON on stdout, 1 for a refusal with JSON on stderr, and 2 for usage errors. `check-config` validates the document only, not the paths it names. `status` prints counts as JSON by default, or one Waybar/tmux line. `watch` renders a bounded ANSI dashboard from repeated live reads and stops after `--iterations` if given. While watching, line commands `renew ID FENCE [MINUTES]`, `release ID FENCE [NOTE]`, `answer ID TEXT`, `cancel ID REASON` and `quit` call the same API; the next render shows the result.
+Client commands default `--server` from `KILN_FLEET_SERVER`. They exit 0 with JSON on stdout, 1 for a refusal with JSON on stderr, and 2 for usage errors. `hold` acquires an `attempt: None` claim with a 15-minute default lease (`1..=1440` minutes), runs `<command> [args...]` with inherited stdio and environment in its own process group, renews at `<= 1/3` of the lease while tracking the current `fence` and explicit `lease_minutes`, and releases the claim when the command finishes. If the claim conflicts or already exists for the same holder at start (any outcome other than a fresh `201` granted claim), `hold` prints the refusal JSON on stderr, starts nothing, and exits `1`. If a renewal is refused (`4xx`: stale fence, expired, released or swept), `hold` terminates the child process group and exits `1` without releasing. If the coordinator is unreachable during renewal (`5xx` or transport failure), `hold` logs a warning and keeps the child running while retrying until `expires_ms`, then terminates the child process group and exits `1` without releasing once the lease deadline passes. `hold` exit codes: `0` or the wrapped command's exit code (`128 + signal` if the child exits on a signal), `1` on refusal/conflict/expired-unreachable, `2` on usage error, `130` on `SIGINT`, and `143` on `SIGTERM` (after bounded child teardown and release). `check-config` validates the document only, not the paths it names. `status` prints counts as JSON by default, or one Waybar/tmux line. `watch` renders a bounded ANSI dashboard from repeated live reads and stops after `--iterations` if given. While watching, line commands `renew ID FENCE [MINUTES]`, `release ID FENCE [NOTE]`, `answer ID TEXT`, `cancel ID REASON` and `quit` call the same API; the next render shows the result.
 
 The API serves one request per connection. Each connection and the dispatch thread open their own connection to the implementation store, whose methods are single SQLite transactions, and no store connection is held while a child process runs.
 

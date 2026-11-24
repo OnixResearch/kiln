@@ -1392,3 +1392,1378 @@ fn attempts_and_metrics_expose_session_observation_age() -> TestResult {
     assert!(ui_html.contains("observation_stale"));
     Ok(())
 }
+
+#[derive(Clone, Debug)]
+struct RecordedHoldRequest {
+    at_ms: u64,
+    method: String,
+    path: String,
+    body: Option<Value>,
+}
+
+struct FakeHoldClock {
+    now_ms: Arc<std::sync::atomic::AtomicU64>,
+    sleeps: Arc<std::sync::atomic::AtomicU64>,
+}
+
+impl FakeHoldClock {
+    fn new(t0: u64) -> Self {
+        Self {
+            now_ms: Arc::new(std::sync::atomic::AtomicU64::new(t0)),
+            sleeps: Arc::new(std::sync::atomic::AtomicU64::new(0)),
+        }
+    }
+
+    fn handle(&self) -> Self {
+        Self {
+            now_ms: Arc::clone(&self.now_ms),
+            sleeps: Arc::clone(&self.sleeps),
+        }
+    }
+
+    fn wait_sleep_advance(&self) -> TestResult {
+        let baseline = self.sleeps.load(std::sync::atomic::Ordering::SeqCst);
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        while std::time::Instant::now() < deadline {
+            if self.sleeps.load(std::sync::atomic::Ordering::SeqCst) > baseline {
+                return Ok(());
+            }
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        Err("timed out waiting for hold loop sleep tick".into())
+    }
+}
+
+impl kiln_fleet::hold::HoldClock for FakeHoldClock {
+    fn now_ms(&self) -> u64 {
+        self.now_ms.load(std::sync::atomic::Ordering::SeqCst)
+    }
+
+    fn sleep_ms(&self, _ms: u64) {
+        self.sleeps
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ProxyMode {
+    Forward,
+    DropConnection,
+    Return503,
+    AdvanceClockOnRenew503(u64),
+    AdvanceClockOnRenewDrop(u64),
+}
+
+type RecordedRequests = Arc<std::sync::Mutex<Vec<RecordedHoldRequest>>>;
+
+fn spawn_recording_proxy(
+    service: Arc<Service>,
+    clock_ms: Arc<std::sync::atomic::AtomicU64>,
+    mode: Arc<std::sync::Mutex<ProxyMode>>,
+) -> TestResult<(String, RecordedRequests, Arc<std::sync::atomic::AtomicBool>)> {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
+    listener.set_nonblocking(true)?;
+    let addr = listener.local_addr()?;
+    let log = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let log_thread = Arc::clone(&log);
+    let stop_thread = Arc::clone(&stop);
+    std::thread::spawn(move || {
+        while !stop_thread.load(std::sync::atomic::Ordering::SeqCst) {
+            match listener.accept() {
+                Ok((mut stream, _)) => {
+                    let _ = stream.set_read_timeout(Some(std::time::Duration::from_secs(2)));
+                    let _ = stream.set_write_timeout(Some(std::time::Duration::from_secs(2)));
+                    let current_mode = mode
+                        .lock()
+                        .map(|guard| *guard)
+                        .unwrap_or(ProxyMode::Forward);
+                    if current_mode == ProxyMode::DropConnection {
+                        drop(stream);
+                        continue;
+                    }
+                    let Ok(req) = kiln_fleet::http::read_request(&mut stream) else {
+                        continue;
+                    };
+                    let body = if req.body.is_empty() {
+                        None
+                    } else {
+                        serde_json::from_slice::<Value>(&req.body).ok()
+                    };
+                    let mut now_ms = clock_ms.load(std::sync::atomic::Ordering::SeqCst);
+                    if req.path.ends_with("/renew") {
+                        match current_mode {
+                            ProxyMode::AdvanceClockOnRenew503(advanced_ms)
+                            | ProxyMode::AdvanceClockOnRenewDrop(advanced_ms) => {
+                                clock_ms.store(advanced_ms, std::sync::atomic::Ordering::SeqCst);
+                                now_ms = advanced_ms;
+                            }
+                            ProxyMode::Forward
+                            | ProxyMode::DropConnection
+                            | ProxyMode::Return503 => {}
+                        }
+                    }
+                    if let Ok(mut guard) = log_thread.lock() {
+                        guard.push(RecordedHoldRequest {
+                            at_ms: now_ms,
+                            method: req.method.clone(),
+                            path: req.path.clone(),
+                            body,
+                        });
+                    }
+                    match current_mode {
+                        ProxyMode::AdvanceClockOnRenewDrop(_) if req.path.ends_with("/renew") => {
+                            drop(stream);
+                        }
+                        ProxyMode::Return503 | ProxyMode::AdvanceClockOnRenew503(_) => {
+                            let response =
+                                Response::error(503, "fleet_unavailable", "proxy simulated 503");
+                            let _ = kiln_fleet::http::write_response(&mut stream, &response);
+                        }
+                        ProxyMode::Forward
+                        | ProxyMode::DropConnection
+                        | ProxyMode::AdvanceClockOnRenewDrop(_) => {
+                            let response = service.route(COORDINATOR, &req, now_ms);
+                            let _ = kiln_fleet::http::write_response(&mut stream, &response);
+                        }
+                    }
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                    std::thread::sleep(std::time::Duration::from_millis(5));
+                }
+                Err(_) => break,
+            }
+        }
+    });
+    Ok((format!("http://{addr}"), log, stop))
+}
+
+fn wait_for_recorded<F>(
+    log: &Arc<std::sync::Mutex<Vec<RecordedHoldRequest>>>,
+    predicate: F,
+) -> TestResult
+where
+    F: Fn(&[RecordedHoldRequest]) -> bool,
+{
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while std::time::Instant::now() < deadline {
+        if let Ok(guard) = log.lock()
+            && predicate(&guard)
+        {
+            return Ok(());
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    Err("timed out waiting for recorded hold request".into())
+}
+
+fn wait_for_path(path: &Path) -> TestResult {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while std::time::Instant::now() < deadline {
+        if path.exists() {
+            return Ok(());
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    Err(format!("timed out waiting for {}", path.display()).into())
+}
+
+fn wait_for_pid_file(path: &Path) -> TestResult<i32> {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while std::time::Instant::now() < deadline {
+        if let Ok(text) = std::fs::read_to_string(path)
+            && !text.trim().is_empty()
+        {
+            return Ok(text.trim().parse::<i32>()?);
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    Err(format!("timed out waiting for pid file {}", path.display()).into())
+}
+
+fn assert_pid_dead(raw_pid: i32) -> TestResult {
+    let pid = nix::unistd::Pid::from_raw(raw_pid);
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+    while std::time::Instant::now() < deadline {
+        if matches!(
+            nix::sys::signal::kill(pid, None),
+            Err(nix::errno::Errno::ESRCH)
+        ) {
+            return Ok(());
+        }
+        std::thread::sleep(std::time::Duration::from_millis(15));
+    }
+    Err(format!("process {raw_pid} is still alive").into())
+}
+
+#[test]
+fn hold_fake_clock_renews_within_one_third_lease_and_tracks_fence() -> TestResult {
+    use kiln_core::fleet::{ClaimEffect, ClaimState, MirrorStatus};
+    use kiln_fleet::hold::{HoldSpec, run_with};
+
+    // Part A: real loopback Service + FakeHoldClock with 3-minute lease (renew <= 60_000 ms).
+    let fixture = fixture()?;
+    let directory = tempfile::tempdir()?;
+    let stop_file = directory.path().join("stop-part-a");
+    let t0: u64 = 10_000_000_000;
+    let fake_clock = FakeHoldClock::new(t0);
+    let mode = Arc::new(std::sync::Mutex::new(ProxyMode::Forward));
+    let (url, recorded, stop_proxy) = spawn_recording_proxy(
+        Arc::clone(&fixture.service),
+        Arc::clone(&fake_clock.now_ms),
+        mode,
+    )?;
+
+    let client = ApiClient::new(&url)?;
+    let spec = HoldSpec {
+        scope: "OnixResearch/kiln crates/kiln-fleet".to_owned(),
+        tool: "codex".to_owned(),
+        session: "fake-clock-renew".to_owned(),
+        purpose: "verify 1/3 lease renewal".to_owned(),
+        lease_minutes: 3,
+        command: vec![
+            "/bin/sh".to_owned(),
+            "-c".to_owned(),
+            "while [ ! -f \"$1\" ]; do sleep 0.02; done".to_owned(),
+            "_".to_owned(),
+            stop_file.to_string_lossy().into_owned(),
+        ],
+    };
+    let clock_thread = fake_clock.handle();
+    let hold_handle = std::thread::spawn(move || {
+        let signals = kiln_fleet::hold::HoldSignals::new();
+        run_with(&client, &spec, &clock_thread, &signals)
+    });
+
+    wait_for_recorded(&recorded, |reqs| {
+        reqs.iter()
+            .any(|req| req.method == "POST" && req.path == "/v1/claims")
+    })?;
+    fake_clock.wait_sleep_advance()?;
+
+    let state = fixture.service.store.open_coordinator()?.fleet_state()?;
+    let claim = state
+        .claims
+        .claims
+        .values()
+        .next()
+        .ok_or("missing claim")?
+        .clone();
+    assert_eq!(claim.attempt, None);
+    assert_eq!(claim.expires_ms, t0 + 180_000);
+    let initial_fence = claim.fence;
+
+    // Advance fake clock to exactly 1/3 of 3 minutes (60_000 ms).
+    fake_clock
+        .now_ms
+        .store(t0 + 60_000, std::sync::atomic::Ordering::SeqCst);
+    wait_for_recorded(&recorded, |reqs| {
+        reqs.iter()
+            .filter(|req| req.path.ends_with("/renew"))
+            .count()
+            >= 1
+    })?;
+    fake_clock.wait_sleep_advance()?;
+
+    // Advance another 60_000 ms for a second renewal.
+    fake_clock
+        .now_ms
+        .store(t0 + 120_000, std::sync::atomic::Ordering::SeqCst);
+    wait_for_recorded(&recorded, |reqs| {
+        reqs.iter()
+            .filter(|req| req.path.ends_with("/renew"))
+            .count()
+            >= 2
+    })?;
+    fake_clock.wait_sleep_advance()?;
+
+    std::fs::write(&stop_file, b"done")?;
+    let exit_code = hold_handle.join().map_err(|_| "hold thread panicked")?;
+    assert_eq!(exit_code, 0);
+    stop_proxy.store(true, std::sync::atomic::Ordering::SeqCst);
+
+    let reqs = recorded.lock().map_err(|_| "lock poisoned")?.clone();
+    let renews: Vec<_> = reqs
+        .iter()
+        .filter(|req| req.path.ends_with("/renew"))
+        .collect();
+    assert!(renews.len() >= 2);
+    let renew1 = renews.first().ok_or("missing renew 1")?;
+    assert!(renew1.at_ms <= t0 + 60_000);
+    assert_eq!(
+        renew1
+            .body
+            .as_ref()
+            .and_then(|body| body.get("lease_minutes")),
+        Some(&json!(3))
+    );
+    assert_eq!(
+        renew1.body.as_ref().and_then(|body| body.get("fence")),
+        Some(&json!(initial_fence))
+    );
+    let releases: Vec<_> = reqs
+        .iter()
+        .filter(|req| req.path.ends_with("/release"))
+        .collect();
+    assert_eq!(releases.len(), 1);
+    assert_eq!(
+        releases
+            .first()
+            .and_then(|req| req.body.as_ref())
+            .and_then(|body| body.get("note")),
+        Some(&json!("exit 0"))
+    );
+
+    let mut store = fixture.service.store.open_coordinator()?;
+    let final_state = store.fleet_state()?;
+    let final_claim = final_state
+        .claims
+        .claims
+        .get(&claim.identity)
+        .ok_or("missing final claim")?;
+    assert!(matches!(
+        &final_claim.state,
+        ClaimState::Released { note, .. } if note == "exit 0"
+    ));
+    assert_eq!(final_claim.release_mirror, MirrorStatus::Pending);
+    let pending = store.fleet_pending_mirror(COORDINATOR)?;
+    assert_eq!(
+        pending
+            .iter()
+            .filter(|effect| matches!(effect, ClaimEffect::PostRelease { identity, .. } if identity == &claim.identity))
+            .count(),
+        1
+    );
+
+    // Part B: scripted fence-bumping coordinator (fence 1 -> 2 -> 3) verifies hold
+    // tracks each updated fence returned by grant and renew.
+    let stop_file_b = directory.path().join("stop-part-b");
+    let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
+    listener.set_nonblocking(true)?;
+    let scripted_addr = listener.local_addr()?;
+    let scripted_stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let scripted_stop_thread = Arc::clone(&scripted_stop);
+    let scripted_log = Arc::new(std::sync::Mutex::new(Vec::<(String, Option<u64>)>::new()));
+    let scripted_log_thread = Arc::clone(&scripted_log);
+    let claim_id = "a".repeat(64);
+    let claim_id_thread = claim_id.clone();
+
+    std::thread::spawn(move || {
+        let mut renew_count: u64 = 0;
+        while !scripted_stop_thread.load(std::sync::atomic::Ordering::SeqCst) {
+            match listener.accept() {
+                Ok((mut stream, _)) => {
+                    let Ok(req) = kiln_fleet::http::read_request(&mut stream) else {
+                        continue;
+                    };
+                    let body = serde_json::from_slice::<Value>(&req.body).ok();
+                    let sent_fence = body
+                        .as_ref()
+                        .and_then(|v| v.get("fence"))
+                        .and_then(Value::as_u64);
+                    let response = if req.path == "/v1/claims" {
+                        Response::new(
+                            201,
+                            json!({
+                                "outcome": "granted",
+                                "claim": {
+                                    "identity": claim_id_thread,
+                                    "fence": 1,
+                                    "granted_ms": t0,
+                                    "expires_ms": t0 + 180_000,
+                                }
+                            }),
+                        )
+                    } else if req.path.ends_with("/renew") {
+                        renew_count += 1;
+                        let next_fence = renew_count + 1;
+                        Response::new(
+                            200,
+                            json!({
+                                "outcome": "renewed",
+                                "claim": {
+                                    "identity": claim_id_thread,
+                                    "fence": next_fence,
+                                    "expires_ms": t0 + (renew_count + 3) * 60_000,
+                                }
+                            }),
+                        )
+                    } else {
+                        Response::new(200, json!({ "outcome": "released" }))
+                    };
+                    let _ = kiln_fleet::http::write_response(&mut stream, &response);
+                    if let Ok(mut guard) = scripted_log_thread.lock() {
+                        guard.push((req.path.clone(), sent_fence));
+                    }
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                    std::thread::sleep(std::time::Duration::from_millis(5));
+                }
+                Err(_) => break,
+            }
+        }
+    });
+
+    let clock_b = FakeHoldClock::new(t0);
+    let client_b = ApiClient::new(&format!("http://{scripted_addr}"))?;
+    let spec_b = HoldSpec {
+        scope: "OnixResearch/kiln docs".to_owned(),
+        tool: "codex".to_owned(),
+        session: "fence-bump".to_owned(),
+        purpose: "track bumped fence".to_owned(),
+        lease_minutes: 3,
+        command: vec![
+            "/bin/sh".to_owned(),
+            "-c".to_owned(),
+            "while [ ! -f \"$1\" ]; do sleep 0.02; done".to_owned(),
+            "_".to_owned(),
+            stop_file_b.to_string_lossy().into_owned(),
+        ],
+    };
+    let clock_b_thread = clock_b.handle();
+    let handle_b = std::thread::spawn(move || {
+        let signals = kiln_fleet::hold::HoldSignals::new();
+        run_with(&client_b, &spec_b, &clock_b_thread, &signals)
+    });
+
+    let wait_scripted = |count: usize| -> TestResult {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        while std::time::Instant::now() < deadline {
+            if let Ok(guard) = scripted_log.lock()
+                && guard.len() >= count
+            {
+                return Ok(());
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        Err("timed out waiting for scripted request".into())
+    };
+    wait_scripted(1)?;
+    clock_b.wait_sleep_advance()?;
+    clock_b
+        .now_ms
+        .store(t0 + 60_000, std::sync::atomic::Ordering::SeqCst);
+    wait_scripted(2)?;
+    clock_b.wait_sleep_advance()?;
+    clock_b
+        .now_ms
+        .store(t0 + 120_000, std::sync::atomic::Ordering::SeqCst);
+    wait_scripted(3)?;
+    clock_b.wait_sleep_advance()?;
+    std::fs::write(&stop_file_b, b"done")?;
+    assert_eq!(handle_b.join().map_err(|_| "panic")?, 0);
+    scripted_stop.store(true, std::sync::atomic::Ordering::SeqCst);
+
+    let fences: Vec<_> = scripted_log.lock().map_err(|_| "lock poisoned")?.clone();
+    assert_eq!(
+        fences,
+        vec![
+            ("/v1/claims".to_owned(), None),
+            (format!("/v1/claims/{claim_id}/renew"), Some(1)),
+            (format!("/v1/claims/{claim_id}/renew"), Some(2)),
+            (format!("/v1/claims/{claim_id}/release"), Some(3)),
+        ]
+    );
+    Ok(())
+}
+
+#[test]
+fn hold_stale_fence_or_expired_renew_kills_child_and_exits_one_without_release() -> TestResult {
+    use kiln_core::fleet::ClaimState;
+    use kiln_fleet::hold::{HoldSpec, run_with};
+
+    // Case A: claim externally released before renew -> 409 stale -> kills child, exits 1, sends NO release.
+    {
+        let fixture = fixture()?;
+        let directory = tempfile::tempdir()?;
+        let marker = directory.path().join("ready-a");
+        let pid_file = directory.path().join("child-a.pid");
+        let t0: u64 = 10_000_000_000;
+        let fake_clock = FakeHoldClock::new(t0);
+        let mode = Arc::new(std::sync::Mutex::new(ProxyMode::Forward));
+        let (url, recorded, stop_proxy) = spawn_recording_proxy(
+            Arc::clone(&fixture.service),
+            Arc::clone(&fake_clock.now_ms),
+            mode,
+        )?;
+
+        let client = ApiClient::new(&url)?;
+        let spec = HoldSpec {
+            scope: "OnixResearch/kiln crates/kiln-fleet".to_owned(),
+            tool: "codex".to_owned(),
+            session: "stale-fence".to_owned(),
+            purpose: "stale fence stop".to_owned(),
+            lease_minutes: 3,
+            command: vec![
+                "/bin/sh".to_owned(),
+                "-c".to_owned(),
+                "echo $$ > \"$1\"; touch \"$2\"; sleep 60".to_owned(),
+                "_".to_owned(),
+                pid_file.to_string_lossy().into_owned(),
+                marker.to_string_lossy().into_owned(),
+            ],
+        };
+        let clock_thread = fake_clock.handle();
+        let handle = std::thread::spawn(move || {
+            let signals = kiln_fleet::hold::HoldSignals::new();
+            run_with(&client, &spec, &clock_thread, &signals)
+        });
+
+        wait_for_path(&marker)?;
+        let child_pid = wait_for_pid_file(&pid_file)?;
+        fake_clock.wait_sleep_advance()?;
+        let state = fixture.service.store.open_coordinator()?.fleet_state()?;
+        let claim = state
+            .claims
+            .claims
+            .values()
+            .next()
+            .ok_or("missing claim")?
+            .clone();
+
+        // Operator externally releases the claim, making hold's next renew 409 stale.
+        let external_release = fixture.service.route(
+            COORDINATOR,
+            &request(
+                "POST",
+                &format!("/v1/claims/{}/release", claim.identity.as_str()),
+                Some(json!({ "fence": claim.fence, "note": "operator revoked" })),
+            ),
+            t0 + 1_000,
+        );
+        assert_eq!(external_release.status, 200);
+
+        fake_clock
+            .now_ms
+            .store(t0 + 60_000, std::sync::atomic::Ordering::SeqCst);
+        let exit_code = handle.join().map_err(|_| "hold panicked")?;
+        stop_proxy.store(true, std::sync::atomic::Ordering::SeqCst);
+        assert_eq!(exit_code, 1);
+        assert_pid_dead(child_pid)?;
+
+        let reqs = recorded.lock().map_err(|_| "lock poisoned")?.clone();
+        assert_eq!(
+            reqs.iter().filter(|r| r.path.ends_with("/renew")).count(),
+            1
+        );
+        assert_eq!(
+            reqs.iter().filter(|r| r.path.ends_with("/release")).count(),
+            0
+        );
+        let final_state = fixture.service.store.open_coordinator()?.fleet_state()?;
+        let final_claim = final_state
+            .claims
+            .claims
+            .get(&claim.identity)
+            .ok_or("missing claim")?;
+        assert!(matches!(
+            &final_claim.state,
+            ClaimState::Released { note, .. } if note == "operator revoked"
+        ));
+    }
+
+    // Case B: claim lease expired on coordinator -> 409 expired on renew -> kills child, exits 1, no release.
+    {
+        let fixture = fixture()?;
+        let directory = tempfile::tempdir()?;
+        let marker = directory.path().join("ready-b");
+        let pid_file = directory.path().join("child-b.pid");
+        let t0: u64 = 10_000_000_000;
+        let fake_clock = FakeHoldClock::new(t0);
+        let mode = Arc::new(std::sync::Mutex::new(ProxyMode::Forward));
+        let (url, recorded, stop_proxy) = spawn_recording_proxy(
+            Arc::clone(&fixture.service),
+            Arc::clone(&fake_clock.now_ms),
+            mode,
+        )?;
+
+        let client = ApiClient::new(&url)?;
+        let spec = HoldSpec {
+            scope: "OnixResearch/kiln docs".to_owned(),
+            tool: "codex".to_owned(),
+            session: "expired-renew".to_owned(),
+            purpose: "expired renew stop".to_owned(),
+            lease_minutes: 3,
+            command: vec![
+                "/bin/sh".to_owned(),
+                "-c".to_owned(),
+                "echo $$ > \"$1\"; touch \"$2\"; sleep 60".to_owned(),
+                "_".to_owned(),
+                pid_file.to_string_lossy().into_owned(),
+                marker.to_string_lossy().into_owned(),
+            ],
+        };
+        let clock_thread = fake_clock.handle();
+        let handle = std::thread::spawn(move || {
+            let signals = kiln_fleet::hold::HoldSignals::new();
+            run_with(&client, &spec, &clock_thread, &signals)
+        });
+
+        wait_for_path(&marker)?;
+        let child_pid = wait_for_pid_file(&pid_file)?;
+        fake_clock.wait_sleep_advance()?;
+        // Jump past the 3-minute lease expiry (180_000 ms).
+        fake_clock
+            .now_ms
+            .store(t0 + 180_001, std::sync::atomic::Ordering::SeqCst);
+        let exit_code = handle.join().map_err(|_| "hold panicked")?;
+        stop_proxy.store(true, std::sync::atomic::Ordering::SeqCst);
+        assert_eq!(exit_code, 1);
+        assert_pid_dead(child_pid)?;
+
+        let reqs = recorded.lock().map_err(|_| "lock poisoned")?.clone();
+        assert_eq!(
+            reqs.iter().filter(|r| r.path.ends_with("/release")).count(),
+            0
+        );
+    }
+
+    Ok(())
+}
+
+#[test]
+fn hold_and_dispatched_attempt_claims_remain_independent() -> TestResult {
+    use kiln_core::fleet::{
+        AgentStatus, ClaimCommand, ClaimState, FleetAgent, Observation, Placement,
+        SessionWorkspace, parse_scope_text,
+    };
+    use kiln_core::implementation::{
+        AcceptanceObligation, IMPLEMENTATION_WORK_SCHEMA, INTERACTIVE_AGENT_EFFECT,
+        ImplementationWork, SourceRef, TerminalPolicy, WorkBudget, WorkSourceKind,
+    };
+    use kiln_core::types::{ContentId, ExternalRef};
+    use kiln_fleet::dispatch::Dispatcher;
+    use kiln_fleet::hold::{HoldSpec, run_with};
+    use std::collections::BTreeSet;
+
+    let directory = tempfile::tempdir()?;
+    let root = directory.path();
+    write_enrollment(root)?;
+    let state_dir = root.join("herdr-state");
+    std::fs::create_dir_all(&state_dir)?;
+    let herdr_script = executable(
+        "herdr-independence",
+        r#"#!/bin/sh
+state="$HOME"
+shift 2
+group="$1"; op="$2"; shift 2
+case "$group-$op" in
+  agent-list)
+    if [ -f "$state/live" ]; then
+      printf '{"id":"cli","result":{"type":"agent_list","agents":[{"agent":"omp","agent_status":"working","name":"kiln-omp-1","pane_id":"w1:p1","workspace_id":"w1"}]}}\n'
+    else
+      printf '{"id":"cli","result":{"type":"agent_list","agents":[]}}\n'
+    fi ;;
+  agent-get)
+    if [ -f "$state/live" ]; then
+      printf '{"id":"cli","result":{"type":"agent_info","agent":{"agent":"omp","agent_status":"working","name":"kiln-omp-1","pane_id":"w1:p1","workspace_id":"w1"}}}\n'
+    else
+      echo '{"id":"cli","error":{"code":"agent_not_found","message":"gone"}}' >&2; exit 1
+    fi ;;
+  workspace-close) printf '{"id":"cli","result":{"type":"ok"}}\n' ;;
+  *) printf '{"id":"cli","result":{"type":"ok"}}\n' ;;
+esac
+"#,
+    );
+    let find_program = |name: &str| -> TestResult<PathBuf> {
+        let path = std::env::var_os("PATH").ok_or("PATH is unset")?;
+        std::env::split_paths(&path)
+            .map(|dir| dir.join(name))
+            .find(|candidate| candidate.is_file())
+            .ok_or_else(|| format!("{name} not found on PATH").into())
+    };
+    let worktrees = root.join("worktrees");
+    let exports = root.join("exports");
+    let profiles = root.join("profiles");
+    let repo_checkout = root.join("checkout");
+    for dir in [&worktrees, &exports, &profiles, &repo_checkout] {
+        std::fs::create_dir_all(dir)?;
+    }
+
+    let inventory = json!({
+        "schema": "kiln.fleet-inventory.v1",
+        "executable": herdr_script,
+        "session": "kiln-indep",
+        "environment": { "home": state_dir, "path": "/bin:/usr/bin" },
+        "timeout_ms": 5_000,
+        "start_timeout_ms": 1_000,
+        "machines": [{
+            "label": COORDINATOR,
+            "worktree_root": worktrees,
+            "repositories": { common::REPOSITORY: repo_checkout },
+            "agents": [{ "kind": "omp", "slots": 1 }]
+        }]
+    });
+    std::fs::write(root.join("inventory.json"), serde_json::to_vec(&inventory)?)?;
+    std::fs::write(state_dir.join("live"), b"1")?;
+
+    let mut document = config(root, &FAKE_TAILSCALE);
+    if let Some(obj) = document.as_object_mut() {
+        obj.insert(
+            "capture".into(),
+            json!({
+                "git": find_program("git")?,
+                "tar": find_program("tar")?,
+                "export_root": exports,
+                "verification_profiles": profiles,
+                "repositories": {},
+            }),
+        );
+        obj.insert(
+            "dispatch".into(),
+            json!({ "enabled": true, "kinds": ["omp"] }),
+        );
+    }
+    let service = Arc::new(Service::new(FleetConfig::from_json(&serde_json::to_vec(
+        &document,
+    )?)?)?);
+    let mut dispatcher = Dispatcher::new(Arc::clone(&service))?;
+
+    let t0: u64 = 10_000_000_000;
+    let mut store = service.store.open_coordinator()?;
+    let work = ImplementationWork {
+        schema: IMPLEMENTATION_WORK_SCHEMA.to_owned(),
+        revision: 1,
+        actor: common::ACTOR.to_owned(),
+        repository: common::REPOSITORY.to_owned(),
+        project: "kiln".to_owned(),
+        base: Some(
+            ExternalRef::new("git", "commit", &"1".repeat(40))
+                .map_err(|error| format!("{error:?}"))?,
+        ),
+        title: "Independence test".to_owned(),
+        requested_outcome: "implement".to_owned(),
+        acceptance: vec![AcceptanceObligation {
+            id: "accepted".to_owned(),
+            statement: "verified".to_owned(),
+        }],
+        dependencies: Vec::new(),
+        permitted_paths: vec!["src".to_owned()],
+        permitted_effects: BTreeSet::from([
+            "write_source".to_owned(),
+            INTERACTIVE_AGENT_EFFECT.to_owned(),
+        ]),
+        verification_profile: ContentId::from_blake3_hex("9".repeat(64))
+            .map_err(|error| format!("{error:?}"))?,
+        budget: WorkBudget {
+            attempts: 2,
+            minutes_per_attempt: 60,
+        },
+        terminal_policy: TerminalPolicy::VerifiedPullRequest,
+        priority: 1,
+        aliases: vec![SourceRef {
+            kind: WorkSourceKind::GitHubIssue,
+            source: ExternalRef::new("github", "issue", "OnixResearch/kiln#104")
+                .map_err(|error| format!("{error:?}"))?,
+            native_id: "OnixResearch/kiln#104".to_owned(),
+            version: ContentId::from_blake3_hex("2".repeat(64))
+                .map_err(|error| format!("{error:?}"))?,
+        }],
+    };
+    store.admit(&work, None)?;
+    // Short 2-minute attempt lease so renewal is immediately due at t0 + 30_000.
+    let attempt = store.claim_next(t0, 120_000)?.ok_or("work not claimed")?;
+    let session = store.fleet_bind_session(
+        Placement {
+            attempt: attempt.identity.clone(),
+            fence: attempt.fence,
+            work: attempt.work_identity.clone(),
+            work_revision: attempt.work_revision,
+            machine: COORDINATOR.to_owned(),
+            kind: "omp".to_owned(),
+        },
+        t0,
+    )?;
+    store.fleet_observe(
+        &session.identity,
+        Observation::Started {
+            agent_name: "kiln-omp-1".to_owned(),
+            workspace: SessionWorkspace::new(
+                "w1",
+                "w1:p1",
+                "/tmp/wt",
+                "kiln/attempt",
+                &"a".repeat(40),
+            )
+            .map_err(|error| format!("{error:?}"))?,
+        },
+        t0,
+    )?;
+    store.fleet_observe(&session.identity, Observation::Prompted, t0)?;
+    store.fleet_observe(
+        &session.identity,
+        Observation::Status {
+            status: AgentStatus::Working,
+        },
+        t0,
+    )?;
+    store.fleet_claim(
+        ClaimCommand::Acquire {
+            scope: parse_scope_text("OnixResearch/kiln src")
+                .map_err(|error| format!("{error:?}"))?,
+            holder: FleetAgent {
+                tool: "kiln".to_owned(),
+                host: COORDINATOR.to_owned(),
+                session: session.identity.as_str().to_owned(),
+            },
+            purpose: "dispatched attempt".to_owned(),
+            lease_ms: 120_000,
+            attempt: Some(attempt.identity.clone()),
+        },
+        t0,
+        COORDINATOR,
+        &[],
+    )?;
+    drop(store);
+
+    // Run `hold` on a disjoint scope (`attempt: None`).
+    let stop_file = directory.path().join("stop-indep");
+    let fake_clock = FakeHoldClock::new(t0);
+    let mode = Arc::new(std::sync::Mutex::new(ProxyMode::Forward));
+    let (url, recorded, stop_proxy) =
+        spawn_recording_proxy(Arc::clone(&service), Arc::clone(&fake_clock.now_ms), mode)?;
+    let client = ApiClient::new(&url)?;
+    let spec = HoldSpec {
+        scope: "OnixResearch/kiln docs".to_owned(),
+        tool: "codex".to_owned(),
+        session: "hold-indep".to_owned(),
+        purpose: "independent held claim".to_owned(),
+        lease_minutes: 3,
+        command: vec![
+            "/bin/sh".to_owned(),
+            "-c".to_owned(),
+            "while [ ! -f \"$1\" ]; do sleep 0.02; done".to_owned(),
+            "_".to_owned(),
+            stop_file.to_string_lossy().into_owned(),
+        ],
+    };
+    let clock_thread = fake_clock.handle();
+    let hold_handle = std::thread::spawn(move || {
+        let signals = kiln_fleet::hold::HoldSignals::new();
+        run_with(&client, &spec, &clock_thread, &signals)
+    });
+
+    wait_for_recorded(&recorded, |reqs| {
+        reqs.iter().any(|r| r.path == "/v1/claims")
+    })?;
+    fake_clock.wait_sleep_advance()?;
+
+    let claims_before = service.store.open_coordinator()?.fleet_state()?.claims;
+    let attempt_claim_before = claims_before
+        .claims
+        .values()
+        .find(|c| c.attempt.as_ref() == Some(&attempt.identity))
+        .ok_or("missing attempt claim")?
+        .clone();
+    let held_claim_before = claims_before
+        .claims
+        .values()
+        .find(|c| c.attempt.is_none())
+        .ok_or("missing held claim")?
+        .clone();
+    assert_eq!(held_claim_before.expires_ms, t0 + 180_000);
+
+    // Tick dispatcher at t0 + 30_000: renews attempt claim, never touches held claim.
+    dispatcher.tick(t0 + 30_000)?;
+    let claims_after_tick = service.store.open_coordinator()?.fleet_state()?.claims;
+    let attempt_claim_after_tick = claims_after_tick
+        .claims
+        .get(&attempt_claim_before.identity)
+        .ok_or("missing attempt claim after tick")?;
+    let held_claim_after_tick = claims_after_tick
+        .claims
+        .get(&held_claim_before.identity)
+        .ok_or("missing held claim after tick")?;
+    assert!(attempt_claim_after_tick.expires_ms > attempt_claim_before.expires_ms);
+    assert_eq!(
+        held_claim_after_tick.expires_ms,
+        held_claim_before.expires_ms
+    );
+
+    // Advance hold clock so hold renews its own claim; attempt claim expires_ms stays unchanged.
+    fake_clock
+        .now_ms
+        .store(t0 + 60_000, std::sync::atomic::Ordering::SeqCst);
+    wait_for_recorded(&recorded, |reqs| {
+        reqs.iter().any(|r| r.path.ends_with("/renew"))
+    })?;
+    fake_clock.wait_sleep_advance()?;
+    let claims_after_hold_renew = service.store.open_coordinator()?.fleet_state()?.claims;
+    assert_eq!(
+        claims_after_hold_renew
+            .claims
+            .get(&attempt_claim_before.identity)
+            .ok_or("missing attempt claim")?
+            .expires_ms,
+        attempt_claim_after_tick.expires_ms
+    );
+    assert_eq!(
+        claims_after_hold_renew
+            .claims
+            .get(&held_claim_before.identity)
+            .ok_or("missing held claim")?
+            .expires_ms,
+        t0 + 60_000 + 180_000
+    );
+
+    // Remove agent so dispatcher stops the session -> releases ONLY attempt claim, NOT held claim.
+    std::fs::remove_file(state_dir.join("live"))?;
+    dispatcher.tick(t0 + 65_000)?;
+    let claims_after_stop = service.store.open_coordinator()?.fleet_state()?.claims;
+    assert!(matches!(
+        claims_after_stop
+            .claims
+            .get(&attempt_claim_before.identity)
+            .ok_or("missing attempt claim")?
+            .state,
+        ClaimState::Released { .. }
+    ));
+    assert_eq!(
+        claims_after_stop
+            .claims
+            .get(&held_claim_before.identity)
+            .ok_or("missing held claim")?
+            .state,
+        ClaimState::Open
+    );
+
+    std::fs::write(&stop_file, b"done")?;
+    assert_eq!(hold_handle.join().map_err(|_| "hold panicked")?, 0);
+    stop_proxy.store(true, std::sync::atomic::Ordering::SeqCst);
+
+    let final_claims = service.store.open_coordinator()?.fleet_state()?.claims;
+    assert!(matches!(
+        &final_claims
+            .claims
+            .get(&held_claim_before.identity)
+            .ok_or("missing held claim")?
+            .state,
+        ClaimState::Released { note, .. } if note == "exit 0"
+    ));
+    Ok(())
+}
+
+#[test]
+fn hold_unreachable_coordinator_keeps_running_and_warns_until_lease_expires() -> TestResult {
+    use kiln_core::fleet::ClaimState;
+    use kiln_fleet::hold::{HoldSpec, run_with};
+
+    // Subcase A: transient outage (DropConnection + 503) keeps child running and recovers before expires_ms.
+    {
+        let fixture = fixture()?;
+        let directory = tempfile::tempdir()?;
+        let stop_file = directory.path().join("stop-recover");
+        let t0: u64 = 10_000_000_000;
+        let fake_clock = FakeHoldClock::new(t0);
+        let mode = Arc::new(std::sync::Mutex::new(ProxyMode::Forward));
+        let (url, recorded, stop_proxy) = spawn_recording_proxy(
+            Arc::clone(&fixture.service),
+            Arc::clone(&fake_clock.now_ms),
+            Arc::clone(&mode),
+        )?;
+
+        let client = ApiClient::new(&url)?;
+        let spec = HoldSpec {
+            scope: "OnixResearch/kiln crates/kiln-fleet".to_owned(),
+            tool: "codex".to_owned(),
+            session: "unreachable-recover".to_owned(),
+            purpose: "transient partition".to_owned(),
+            lease_minutes: 3,
+            command: vec![
+                "/bin/sh".to_owned(),
+                "-c".to_owned(),
+                "while [ ! -f \"$1\" ]; do sleep 0.02; done".to_owned(),
+                "_".to_owned(),
+                stop_file.to_string_lossy().into_owned(),
+            ],
+        };
+        let clock_thread = fake_clock.handle();
+        let handle = std::thread::spawn(move || {
+            let signals = kiln_fleet::hold::HoldSignals::new();
+            run_with(&client, &spec, &clock_thread, &signals)
+        });
+
+        wait_for_recorded(&recorded, |reqs| {
+            reqs.iter().any(|r| r.path == "/v1/claims")
+        })?;
+        fake_clock.wait_sleep_advance()?;
+
+        // Simulate 503 from coordinator at 1/3 lease, then transport drop on retry.
+        if let Ok(mut guard) = mode.lock() {
+            *guard = ProxyMode::Return503;
+        }
+        fake_clock
+            .now_ms
+            .store(t0 + 60_000, std::sync::atomic::Ordering::SeqCst);
+        wait_for_recorded(&recorded, |reqs| {
+            reqs.iter().filter(|r| r.path.ends_with("/renew")).count() >= 1
+        })?;
+        fake_clock.wait_sleep_advance()?;
+        assert!(
+            !handle.is_finished(),
+            "child must keep running before expires_ms"
+        );
+
+        if let Ok(mut guard) = mode.lock() {
+            *guard = ProxyMode::DropConnection;
+        }
+        fake_clock
+            .now_ms
+            .store(t0 + 65_000, std::sync::atomic::Ordering::SeqCst);
+        // Two sleep ticks confirm hold tried DropConnection, warned, updated next_renew_ms, and stayed alive.
+        fake_clock.wait_sleep_advance()?;
+        fake_clock.wait_sleep_advance()?;
+        assert!(
+            !handle.is_finished(),
+            "child must keep running on transport error before expires_ms"
+        );
+
+        // Coordinator recovers before expires_ms (t0 + 180_000).
+        if let Ok(mut guard) = mode.lock() {
+            *guard = ProxyMode::Forward;
+        }
+        fake_clock
+            .now_ms
+            .store(t0 + 70_000, std::sync::atomic::Ordering::SeqCst);
+        wait_for_recorded(&recorded, |reqs| {
+            reqs.iter().filter(|r| r.path.ends_with("/renew")).count() >= 2
+        })?;
+        fake_clock.wait_sleep_advance()?;
+
+        std::fs::write(&stop_file, b"done")?;
+        let exit_code = handle.join().map_err(|_| "hold panicked")?;
+        stop_proxy.store(true, std::sync::atomic::Ordering::SeqCst);
+        assert_eq!(exit_code, 0);
+
+        let state = fixture.service.store.open_coordinator()?.fleet_state()?;
+        let claim = state
+            .claims
+            .claims
+            .values()
+            .next()
+            .ok_or("missing recovered claim")?;
+        assert!(matches!(
+            &claim.state,
+            ClaimState::Released { note, .. } if note == "exit 0"
+        ));
+    }
+
+    // Subcase B: coordinator remains unreachable past expires_ms -> kills child, exits 1, sends NO release.
+    {
+        let fixture = fixture()?;
+        let directory = tempfile::tempdir()?;
+        let marker = directory.path().join("ready-unreach");
+        let pid_file = directory.path().join("child-unreach.pid");
+        let t0: u64 = 10_000_000_000;
+        let fake_clock = FakeHoldClock::new(t0);
+        let mode = Arc::new(std::sync::Mutex::new(ProxyMode::Forward));
+        let (url, recorded, stop_proxy) = spawn_recording_proxy(
+            Arc::clone(&fixture.service),
+            Arc::clone(&fake_clock.now_ms),
+            Arc::clone(&mode),
+        )?;
+
+        let client = ApiClient::new(&url)?;
+        let spec = HoldSpec {
+            scope: "OnixResearch/kiln docs".to_owned(),
+            tool: "codex".to_owned(),
+            session: "unreachable-expire".to_owned(),
+            purpose: "prolonged partition".to_owned(),
+            lease_minutes: 3,
+            command: vec![
+                "/bin/sh".to_owned(),
+                "-c".to_owned(),
+                "echo $$ > \"$1\"; touch \"$2\"; sleep 60".to_owned(),
+                "_".to_owned(),
+                pid_file.to_string_lossy().into_owned(),
+                marker.to_string_lossy().into_owned(),
+            ],
+        };
+        let clock_thread = fake_clock.handle();
+        let handle = std::thread::spawn(move || {
+            let signals = kiln_fleet::hold::HoldSignals::new();
+            run_with(&client, &spec, &clock_thread, &signals)
+        });
+
+        wait_for_path(&marker)?;
+        let child_pid = wait_for_pid_file(&pid_file)?;
+        wait_for_recorded(&recorded, |reqs| {
+            reqs.iter().any(|r| r.path == "/v1/claims")
+        })?;
+        fake_clock.wait_sleep_advance()?;
+
+        // Shut down proxy listener completely so TCP connect fails with ConnectionRefused.
+        stop_proxy.store(true, std::sync::atomic::Ordering::SeqCst);
+        std::thread::sleep(std::time::Duration::from_millis(30));
+
+        // Before expires_ms (t0 + 60_000): warns and keeps running.
+        fake_clock
+            .now_ms
+            .store(t0 + 60_000, std::sync::atomic::Ordering::SeqCst);
+        fake_clock.wait_sleep_advance()?;
+        fake_clock.wait_sleep_advance()?;
+        assert!(
+            !handle.is_finished(),
+            "child must keep running before expires_ms"
+        );
+
+        // At expires_ms (t0 + 180_000): stops child, exits 1, sends no release.
+        fake_clock
+            .now_ms
+            .store(t0 + 180_000, std::sync::atomic::Ordering::SeqCst);
+        let exit_code = handle.join().map_err(|_| "hold panicked")?;
+        assert_eq!(exit_code, 1);
+        assert_pid_dead(child_pid)?;
+
+        let state = fixture.service.store.open_coordinator()?.fleet_state()?;
+        let claim = state
+            .claims
+            .claims
+            .values()
+            .next()
+            .ok_or("missing expired-unreachable claim")?;
+        assert_eq!(claim.state, ClaimState::Open);
+    }
+
+    Ok(())
+}
+
+#[test]
+fn hold_refuses_existing_same_holder_claim_without_collision_or_release() -> TestResult {
+    use kiln_core::fleet::ClaimState;
+    use kiln_fleet::hold::{HoldSpec, run_with};
+
+    let fixture = fixture()?;
+    let directory = tempfile::tempdir()?;
+    let ready = directory.path().join("ready");
+    let stop_file = directory.path().join("stop");
+    let sentinel = directory.path().join("duplicate-should-not-exist");
+    let t0: u64 = 10_000_000_000;
+    let fake_clock = FakeHoldClock::new(t0);
+    let mode = Arc::new(std::sync::Mutex::new(ProxyMode::Forward));
+    let (url, recorded, stop_proxy) = spawn_recording_proxy(
+        Arc::clone(&fixture.service),
+        Arc::clone(&fake_clock.now_ms),
+        mode,
+    )?;
+
+    let client_one = ApiClient::new(&url)?;
+    let spec_one = HoldSpec {
+        scope: "OnixResearch/kiln crates/kiln-fleet".to_owned(),
+        tool: "codex".to_owned(),
+        session: "same-session".to_owned(),
+        purpose: "primary holder".to_owned(),
+        lease_minutes: 3,
+        command: vec![
+            "/bin/sh".to_owned(),
+            "-c".to_owned(),
+            "touch \"$1\"; while [ ! -f \"$2\" ]; do sleep 0.02; done".to_owned(),
+            "_".to_owned(),
+            ready.to_string_lossy().into_owned(),
+            stop_file.to_string_lossy().into_owned(),
+        ],
+    };
+    let clock_one = fake_clock.handle();
+    let handle_one = std::thread::spawn(move || {
+        let signals = kiln_fleet::hold::HoldSignals::new();
+        run_with(&client_one, &spec_one, &clock_one, &signals)
+    });
+
+    wait_for_path(&ready)?;
+    wait_for_recorded(&recorded, |reqs| {
+        reqs.iter()
+            .any(|req| req.method == "POST" && req.path == "/v1/claims")
+    })?;
+    fake_clock.wait_sleep_advance()?;
+
+    let initial_state = fixture.service.store.open_coordinator()?.fleet_state()?;
+    assert_eq!(initial_state.claims.claims.len(), 1);
+    let claim_id = initial_state
+        .claims
+        .claims
+        .values()
+        .next()
+        .ok_or("missing primary claim")?
+        .identity
+        .clone();
+
+    let client_two = ApiClient::new(&url)?;
+    let spec_two = HoldSpec {
+        scope: "OnixResearch/kiln crates/kiln-fleet".to_owned(),
+        tool: "codex".to_owned(),
+        session: "same-session".to_owned(),
+        purpose: "duplicate holder".to_owned(),
+        lease_minutes: 3,
+        command: vec![
+            "/bin/sh".to_owned(),
+            "-c".to_owned(),
+            "touch \"$1\"".to_owned(),
+            "_".to_owned(),
+            sentinel.to_string_lossy().into_owned(),
+        ],
+    };
+    let signals_two = kiln_fleet::hold::HoldSignals::new();
+    let exit_two = run_with(&client_two, &spec_two, &fake_clock, &signals_two);
+    assert_eq!(exit_two, 1);
+    assert!(
+        !sentinel.exists(),
+        "second hold with same (scope, tool, session) must not spawn child"
+    );
+
+    let reqs_after_two = recorded.lock().map_err(|_| "lock poisoned")?.clone();
+    assert_eq!(
+        reqs_after_two
+            .iter()
+            .filter(|req| req.method == "POST" && req.path == "/v1/claims")
+            .count(),
+        2
+    );
+    assert_eq!(
+        reqs_after_two
+            .iter()
+            .filter(|req| req.path.ends_with("/release"))
+            .count(),
+        0
+    );
+    assert_eq!(
+        reqs_after_two
+            .iter()
+            .filter(|req| req.path.ends_with("/renew"))
+            .count(),
+        0
+    );
+
+    let state_during = fixture.service.store.open_coordinator()?.fleet_state()?;
+    assert_eq!(state_during.claims.claims.len(), 1);
+    assert_eq!(
+        state_during
+            .claims
+            .claims
+            .get(&claim_id)
+            .ok_or("missing primary claim after refusal")?
+            .state,
+        ClaimState::Open
+    );
+
+    // First hold continues renewing and releases cleanly on exit.
+    fake_clock
+        .now_ms
+        .store(t0 + 60_000, std::sync::atomic::Ordering::SeqCst);
+    wait_for_recorded(&recorded, |reqs| {
+        reqs.iter()
+            .filter(|req| req.path.ends_with("/renew"))
+            .count()
+            >= 1
+    })?;
+    fake_clock.wait_sleep_advance()?;
+
+    std::fs::write(&stop_file, b"done")?;
+    let exit_one = handle_one.join().map_err(|_| "hold one panicked")?;
+    stop_proxy.store(true, std::sync::atomic::Ordering::SeqCst);
+    assert_eq!(exit_one, 0);
+
+    let final_state = fixture.service.store.open_coordinator()?.fleet_state()?;
+    let final_claim = final_state
+        .claims
+        .claims
+        .get(&claim_id)
+        .ok_or("missing primary claim at end")?;
+    assert!(matches!(
+        &final_claim.state,
+        ClaimState::Released { note, .. } if note == "exit 0"
+    ));
+    Ok(())
+}
+
+#[test]
+fn hold_slow_renew_crossing_deadline_stops_child_without_second_renew() -> TestResult {
+    use kiln_core::fleet::ClaimState;
+    use kiln_fleet::hold::{HoldSpec, run_with};
+
+    for (label, renew_mode) in [
+        (
+            "delayed-503",
+            ProxyMode::AdvanceClockOnRenew503(10_000_065_000),
+        ),
+        (
+            "delayed-drop",
+            ProxyMode::AdvanceClockOnRenewDrop(10_000_065_000),
+        ),
+    ] {
+        let fixture = fixture()?;
+        let directory = tempfile::tempdir()?;
+        let marker = directory.path().join(format!("ready-{label}"));
+        let pid_file = directory.path().join(format!("child-{label}.pid"));
+        let t0: u64 = 10_000_000_000;
+        let fake_clock = FakeHoldClock::new(t0);
+        let mode = Arc::new(std::sync::Mutex::new(ProxyMode::Forward));
+        let (url, recorded, stop_proxy) = spawn_recording_proxy(
+            Arc::clone(&fixture.service),
+            Arc::clone(&fake_clock.now_ms),
+            Arc::clone(&mode),
+        )?;
+
+        let client = ApiClient::new(&url)?;
+        let spec = HoldSpec {
+            scope: "OnixResearch/kiln crates/kiln-fleet".to_owned(),
+            tool: "codex".to_owned(),
+            session: format!("slow-renew-{label}"),
+            purpose: "verify post-request clock re-sampling".to_owned(),
+            lease_minutes: 1,
+            command: vec![
+                "/bin/sh".to_owned(),
+                "-c".to_owned(),
+                "echo $$ > \"$1\"; touch \"$2\"; sleep 60".to_owned(),
+                "_".to_owned(),
+                pid_file.to_string_lossy().into_owned(),
+                marker.to_string_lossy().into_owned(),
+            ],
+        };
+        let clock_thread = fake_clock.handle();
+        let handle = std::thread::spawn(move || {
+            let signals = kiln_fleet::hold::HoldSignals::new();
+            run_with(&client, &spec, &clock_thread, &signals)
+        });
+
+        wait_for_path(&marker)?;
+        let child_pid = wait_for_pid_file(&pid_file)?;
+        wait_for_recorded(&recorded, |reqs| {
+            reqs.iter()
+                .any(|r| r.method == "POST" && r.path == "/v1/claims")
+        })?;
+        fake_clock.wait_sleep_advance()?;
+
+        // Arm the proxy to advance FakeHoldClock past lease_deadline_ms (t0 + 60_000)
+        // during the upcoming renew call, then trigger renew at t0 + 58_000.
+        if let Ok(mut guard) = mode.lock() {
+            *guard = renew_mode;
+        }
+        fake_clock
+            .now_ms
+            .store(t0 + 58_000, std::sync::atomic::Ordering::SeqCst);
+
+        let exit_code = handle.join().map_err(|_| "hold panicked")?;
+        stop_proxy.store(true, std::sync::atomic::Ordering::SeqCst);
+        assert_eq!(exit_code, 1, "{label}");
+        assert_pid_dead(child_pid)?;
+
+        let reqs = recorded.lock().map_err(|_| "lock poisoned")?.clone();
+        assert_eq!(
+            reqs.iter().filter(|r| r.path.ends_with("/renew")).count(),
+            1,
+            "{label}: must not issue a second renew after post-request clock passes lease_deadline_ms"
+        );
+        assert_eq!(
+            reqs.iter().filter(|r| r.path.ends_with("/release")).count(),
+            0,
+            "{label}: must not release after expired unreachable renew"
+        );
+
+        let state = fixture.service.store.open_coordinator()?.fleet_state()?;
+        let claim = state.claims.claims.values().next().ok_or("missing claim")?;
+        assert_eq!(claim.state, ClaimState::Open);
+    }
+
+    Ok(())
+}

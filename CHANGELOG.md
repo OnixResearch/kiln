@@ -163,6 +163,12 @@ entry describes the source tree prepared for the first tagged release.
   `/v1/metrics` exposes Prometheus gauges, and the MCP server exposes read-only
   `kiln-fleet://` resources. Commands still pass the fleet service's own
   authority checks. (route, profile, service, CLI and console tests)
+- Supervised fleet claim wrapper `kiln-fleet hold`: acquires an `attempt: None`
+  claim (15-minute default lease), runs a wrapped command in its own process
+  group while renewing at `<= 1/3` of the lease with fence tracking, releases on
+  exit or `SIGINT`/`SIGTERM` (`130`/`143`), terminates the child without release on
+  `4xx` renewal refusal, and warns while retrying until `expires_ms` when the
+  coordinator is unreachable. (#104; CLI and loopback service tests)
 
 **Sources**
 

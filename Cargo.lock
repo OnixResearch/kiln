@@ -3472,9 +3472,11 @@ dependencies = [
  "kiln-adapter-herdr",
  "kiln-adapter-swarm",
  "kiln-implementer",
+ "nix 0.30.1",
  "onix-kiln-core",
  "serde",
  "serde_json",
+ "signal-hook",
  "tempfile",
 ]
 

@@ -24,6 +24,7 @@ pub const USAGE: &str = "usage:
   kiln-fleet check-config --config FILE
   kiln-fleet mcp [--server URL] [--tool NAME]
   kiln-fleet claim --scope '<target> <path>' --tool T --session S --purpose TEXT [--lease-minutes N]
+  kiln-fleet hold --scope '<target> <path>' --tool T --session S --purpose TEXT [--lease-minutes N] [--server URL] -- <command> [args...]
   kiln-fleet renew --claim ID --fence N [--lease-minutes N]
   kiln-fleet release --claim ID --fence N [--note TEXT]
   kiln-fleet claims | work | attempts | decisions
@@ -103,6 +104,7 @@ pub fn main_with(arguments: &[String]) -> i32 {
             let path = format!("/v1/attempts/{}/cancel", identity(&flags, "--attempt")?);
             call(&flags, "POST", path, Some(body))
         }),
+        "hold" => hold_command(rest),
         "swarm" => swarm_command(rest),
         other => Err(Usage(format!("unknown command {other}"))),
     };
@@ -113,6 +115,51 @@ fn usage(message: &str) -> i32 {
     let mut stderr = std::io::stderr().lock();
     let _ = writeln!(stderr, "{}", json!({ "error": message, "usage": USAGE }));
     EXIT_USAGE
+}
+
+fn hold_command(arguments: &[String]) -> Result<i32, Usage> {
+    let Some(separator) = arguments.iter().position(|argument| argument == "--") else {
+        return Err(Usage("hold requires -- <command> [args...]".into()));
+    };
+    let flag_args = arguments
+        .get(..separator)
+        .ok_or_else(|| Usage("hold requires -- <command> [args...]".into()))?;
+    let command_args = arguments
+        .get(separator.saturating_add(1)..)
+        .ok_or_else(|| Usage("hold requires a command after --".into()))?;
+    if command_args.is_empty() {
+        return Err(Usage("hold requires a command after --".into()));
+    }
+    let flags = flags(
+        flag_args,
+        &["--scope", "--tool", "--session", "--purpose"],
+        &["--lease-minutes", "--server"],
+    )?;
+    let lease_minutes = if flags.contains_key("--lease-minutes") {
+        let minutes = number(&flags, "--lease-minutes")?;
+        if !(crate::hold::MIN_HOLD_LEASE_MINUTES..=crate::hold::MAX_HOLD_LEASE_MINUTES)
+            .contains(&minutes)
+        {
+            return Err(Usage(format!(
+                "--lease-minutes must be between {} and {}",
+                crate::hold::MIN_HOLD_LEASE_MINUTES,
+                crate::hold::MAX_HOLD_LEASE_MINUTES
+            )));
+        }
+        minutes
+    } else {
+        crate::hold::DEFAULT_HOLD_LEASE_MINUTES
+    };
+    let client = server(&flags)?;
+    let spec = crate::hold::HoldSpec {
+        scope: required(&flags, "--scope")?,
+        tool: required(&flags, "--tool")?,
+        session: required(&flags, "--session")?,
+        purpose: required(&flags, "--purpose")?,
+        lease_minutes,
+        command: command_args.to_vec(),
+    };
+    Ok(crate::hold::run(&client, &spec))
 }
 
 // r[impl kiln.fleet.swarm.surface]
