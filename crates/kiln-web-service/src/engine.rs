@@ -73,6 +73,7 @@ pub struct Engine {
     automation_profile: Option<crate::automation::AutomationProfile>,
     runbook_profile: Option<crate::runbooks::RunbookRegistry>,
     runbooks_path: Option<std::path::PathBuf>,
+    runbooks_dir: Option<std::path::PathBuf>,
     cache_store: Option<crate::cache::CacheStore>,
     worker_status: Option<worker_status::Store>,
     /// Affected decision handed from automation dispatch to the run it starts.
@@ -190,6 +191,7 @@ impl Engine {
             automation_profile: None,
             runbook_profile: None,
             runbooks_path: None,
+            runbooks_dir: None,
             cache_store: None,
             worker_status: None,
             automation_affected: None,

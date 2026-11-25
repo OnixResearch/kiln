@@ -365,6 +365,7 @@ fn build_registry(specs: &[ProjectSpec<'_>]) -> RunbookRegistry {
                 display_name: "RO Audit".into(),
                 description: "Read-only audit".into(),
                 mode: RunbookMode::ReadOnly,
+                approval_gate: kiln_web_service::runbooks::ApprovalGate::None,
                 lattice: RunbookLattice {
                     bundle_id: Some("ro-audit".into()),
                     bundle_identity: "b".repeat(64),
@@ -399,6 +400,7 @@ fn build_registry(specs: &[ProjectSpec<'_>]) -> RunbookRegistry {
                 display_name: "Mut Update".into(),
                 description: "Mutating update".into(),
                 mode: RunbookMode::Mutating,
+                approval_gate: kiln_web_service::runbooks::ApprovalGate::None,
                 lattice: RunbookLattice {
                     bundle_id: Some("mut-update".into()),
                     bundle_identity: "d".repeat(64),
@@ -1251,6 +1253,7 @@ fn internal_monorepo_sibling_scopes_serialize_when_overlapping_and_run_concurren
                 display_name: "Mut Core".into(),
                 description: "Mutating core".into(),
                 mode: RunbookMode::Mutating,
+                approval_gate: kiln_web_service::runbooks::ApprovalGate::None,
                 lattice: RunbookLattice {
                     bundle_id: None,
                     bundle_identity: "d".repeat(64),
@@ -1273,6 +1276,7 @@ fn internal_monorepo_sibling_scopes_serialize_when_overlapping_and_run_concurren
                 display_name: "Mut Web".into(),
                 description: "Mutating web".into(),
                 mode: RunbookMode::Mutating,
+                approval_gate: kiln_web_service::runbooks::ApprovalGate::None,
                 lattice: RunbookLattice {
                     bundle_id: None,
                     bundle_identity: "d".repeat(64),
@@ -1295,6 +1299,7 @@ fn internal_monorepo_sibling_scopes_serialize_when_overlapping_and_run_concurren
                 display_name: "Mut Root".into(),
                 description: "Mutating root".into(),
                 mode: RunbookMode::Mutating,
+                approval_gate: kiln_web_service::runbooks::ApprovalGate::None,
                 lattice: RunbookLattice {
                     bundle_id: None,
                     bundle_identity: "d".repeat(64),
@@ -1509,6 +1514,7 @@ fn derive_write_scope_enforces_write_scopes_and_rejects_readonly_scope_path() {
         display_name: id.into(),
         description: id.into(),
         mode: RunbookMode::Mutating,
+        approval_gate: kiln_web_service::runbooks::ApprovalGate::None,
         lattice: RunbookLattice {
             bundle_id: Some(id.into()),
             bundle_identity: "d".repeat(64),

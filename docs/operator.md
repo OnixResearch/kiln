@@ -5365,12 +5365,26 @@ twice. A 409 reports that nothing was applied and reloads the current state.
 ### Runbooks and parent fan-out runs
 
 Reviewed runbooks are defined via `config/runbook-registry.ncl` and passed to
-`kiln-web-service serve --runbooks PATH`. Each runbook may declare an optional
+`kiln-web-service serve --runbooks PATH` (with optional `--runbooks-dir DIR`
+to enforce fail-closed on-disk BLAKE3 verification of Lattice bundle manifests
+and assets before preview or dispatch). The four reviewed seed runbooks
+(`flake-update`, `security-audit`, `license-ci-scaffold`, and `release-cut`)
+live in the separated `runbooks/` directory in a `lattice#29`-ready operation
+pack (`runbooks/packs/kiln-seed-runbooks/`); see
+[`runbooks/MOVE_PLAN.md`](../runbooks/MOVE_PLAN.md) for the migration plan into
+a dedicated Lattice catalog repository. Each runbook may declare an optional
+`approval_gate` (`"none"` or `"kiln_publication"`; `read_only` runbooks must
+use `"none"` and empty `write_scopes`) and an optional
 `fanout` policy (`default_max_concurrency`, `max_concurrency_limit`,
 `default_budget_cap`, `max_budget_cap`, `max_targets`, and `write_scopes`);
 `read_only` runbooks must declare an empty `write_scopes` list.
 
-Operators can dispatch a parent fan-out run from destination `1.5` (Runbooks),
+Operators can preview effects, resolved target revisions, typed parameter
+bindings, approval gates, bundle pin verification, fleet claim overlaps, and
+budgets without mutating state via destination `1.5` (Runbooks),
+`POST /api/runbooks/{id}/preview`, or `kiln-web-service ci preview` (or
+`--dry-run` on `ci dispatch`/`ci fanout`). Operators can dispatch a parent
+fan-out run from destination `1.5` (Runbooks),
 `POST /api/runbooks/{id}/fanout`, or `kiln-web-service ci fanout`:
 
 - **Enrolled-project target expansion**: explicit target lists (`REPO@REF` or

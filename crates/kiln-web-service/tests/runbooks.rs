@@ -288,6 +288,7 @@ fn registry(allow_commit_sha: bool) -> RunbookRegistry {
                 display_name: "Security Audit".into(),
                 description: "Read-only audit".into(),
                 mode: RunbookMode::ReadOnly,
+                approval_gate: kiln_web_service::runbooks::ApprovalGate::None,
                 lattice: RunbookLattice {
                     bundle_id: Some("security-audit".into()),
                     bundle_identity: "b".repeat(64),
@@ -331,6 +332,7 @@ fn registry(allow_commit_sha: bool) -> RunbookRegistry {
                 display_name: "Flake Update".into(),
                 description: "Mutating flake update".into(),
                 mode: RunbookMode::Mutating,
+                approval_gate: kiln_web_service::runbooks::ApprovalGate::None,
                 lattice: RunbookLattice {
                     bundle_id: Some("flake-update".into()),
                     bundle_identity: "d".repeat(64),

@@ -650,6 +650,24 @@ fn http_contract_real_responses_validate_schema() {
     )
     .unwrap_or_else(|e| unreachable!("runbook list schema: {e}"));
 
+    let preview_resp = call(
+        &mut engine,
+        "POST",
+        "/api/runbooks/contract-audit/preview",
+        json!({
+            "target": "onixresearch/kiln@refs/heads/main",
+            "params": { "strict": true }
+        }),
+        Role::Operator,
+    );
+    assert_eq!(preview_resp.status, 200);
+    validate(
+        &value(&preview_resp),
+        &schema_for(&openapi, "RunbookPreviewResponse"),
+        &components,
+    )
+    .unwrap_or_else(|e| unreachable!("runbook preview schema: {e}"));
+
     let resp = call(
         &mut engine,
         "POST",

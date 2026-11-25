@@ -431,6 +431,16 @@ impl Engine {
             && params.is_empty()
             && let Some(runbook_id) = path
                 .strip_prefix("/api/runbooks/")
+                .and_then(|rest| rest.strip_suffix("/preview"))
+            && !runbook_id.contains('/')
+            && !runbook_id.is_empty()
+        {
+            return self.preview_runbook(runbook_id, body, principal);
+        }
+        if method == "POST"
+            && params.is_empty()
+            && let Some(runbook_id) = path
+                .strip_prefix("/api/runbooks/")
                 .and_then(|rest| rest.strip_suffix("/fanout"))
             && !runbook_id.contains('/')
             && !runbook_id.is_empty()

@@ -205,6 +205,9 @@ impl Engine {
             Ok(runbook) => runbook,
             Err(response) => return Ok(response),
         };
+        if let Err(response) = self.verify_configured_runbook_bundle(&runbook)? {
+            return Ok(response);
+        }
 
         let req: FanoutDispatchRequest = match serde_json::from_slice(body) {
             Ok(v) => v,
@@ -459,6 +462,9 @@ impl Engine {
         }
 
         if action == "continue" {
+            if let Err(response) = self.verify_configured_runbook_bundle(&runbook)? {
+                return Ok(response);
+            }
             if runbook
                 .fanout
                 .as_ref()
@@ -817,7 +823,12 @@ impl Engine {
                     continue;
                 };
 
-                let binding = build_child_runbook_binding(&snapshot, &child);
+                let approval_gate = self
+                    .runbook_profile
+                    .as_ref()
+                    .and_then(|reg| reg.find(&snapshot.runbook_id))
+                    .map_or(crate::runbooks::ApprovalGate::None, |rb| rb.approval_gate);
+                let binding = build_child_runbook_binding(&snapshot, &child, approval_gate);
                 let run_id = self.enqueue_fanout_child(
                     &project,
                     &fanout_id,
@@ -895,6 +906,7 @@ impl Engine {
 fn build_child_runbook_binding(
     fanout: &FanOutRun,
     child: &kiln_core::implementation::FanoutChild,
+    approval_gate: crate::runbooks::ApprovalGate,
 ) -> RunbookRunBinding {
     let mut source_env = BTreeMap::new();
     source_env.insert("LATTICE_SOURCE_PROVIDER".to_owned(), "git".to_owned());
@@ -921,6 +933,7 @@ fn build_child_runbook_binding(
             FanoutMode::ReadOnly => RunbookMode::ReadOnly,
             FanoutMode::Mutating => RunbookMode::Mutating,
         },
+        approval_gate,
         target: child.target.clone(),
         lattice_bundle_id: fanout.lattice_bundle_id.clone(),
         lattice_bundle_identity: fanout.lattice_bundle_identity.clone(),
@@ -941,7 +954,7 @@ fn conflict_scope(conflict: &ClaimConflict) -> &str {
     }
 }
 
-fn conflict_summary(conflict: &ClaimConflict) -> String {
+pub(super) fn conflict_summary(conflict: &ClaimConflict) -> String {
     match conflict {
         ClaimConflict::Claim { holder, scope, .. } => format!("{scope} ({holder})"),
         ClaimConflict::Attempt { attempt, scope } => {

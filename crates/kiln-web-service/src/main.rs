@@ -75,7 +75,7 @@ fn main() {
 
 fn usage() -> i32 {
     eprintln!(
-        "usage: kiln-web-service serve --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>] [--cache <path>] [--workers <path>] [--work <path>] [--code-review <path>] [--fleet <path>] [--runbooks <path>]\n       kiln-web-service check --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>] [--cache <path>] [--workers <path>] [--work <path>] [--code-review <path>] [--fleet <path>] [--runbooks <path>]\n       kiln-web-service proxy-auth --access <path>\n       kiln-web-service job --profile <path> --identity <blake3>\n       kiln-web-service heartbeat --profile <path> --identity <blake3>\n       kiln-web-service ci --profile <path> --identity <blake3> <submit|review-submit|dispatch|dispatch-list|dispatch-rollup|fanout|fanout-list|fanout-status|fanout-rollup|fanout-watch|fanout-pause|fanout-continue|fanout-cancel|watch|logs|cancel|retry> [arguments]\n       kiln-web-service reviewed-request --profile <path> --project <id> [--nodes <id,id,...>]\n       kiln-web-service extend-projects --previous-profile <path> --profile <path>
+        "usage: kiln-web-service serve --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>] [--cache <path>] [--workers <path>] [--work <path>] [--code-review <path>] [--fleet <path>] [--runbooks <path>] [--runbooks-dir <path>]\n       kiln-web-service check --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>] [--cache <path>] [--workers <path>] [--work <path>] [--code-review <path>] [--fleet <path>] [--runbooks <path>] [--runbooks-dir <path>]\n       kiln-web-service proxy-auth --access <path>\n       kiln-web-service job --profile <path> --identity <blake3>\n       kiln-web-service heartbeat --profile <path> --identity <blake3>\n       kiln-web-service ci --profile <path> --identity <blake3> <submit|review-submit|preview|dispatch|dispatch-list|dispatch-rollup|fanout|fanout-list|fanout-status|fanout-rollup|fanout-watch|fanout-pause|fanout-continue|fanout-cancel|watch|logs|cancel|retry> [arguments]\n       kiln-web-service reviewed-request --profile <path> --project <id> [--nodes <id,id,...>]\n       kiln-web-service extend-projects --previous-profile <path> --profile <path>
        kiln-web-service feed-token --path <absolute-new-path>"
     );
     eprintln!(
@@ -207,6 +207,7 @@ fn service(command: &str, mut arguments: impl Iterator<Item = String>) -> i32 {
             "--code-review" => &mut options.code_review,
             "--fleet" => &mut options.fleet,
             "--runbooks" => &mut options.runbooks,
+            "--runbooks-dir" => &mut options.runbooks_dir,
             _ => return usage(),
         };
         if slot.is_some() {

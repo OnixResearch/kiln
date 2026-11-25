@@ -37,6 +37,8 @@ pub struct Options {
     pub campaign_controls: Option<PathBuf>,
     /// Optional reviewed runbook registry and per-runbook grant policy.
     pub runbooks: Option<PathBuf>,
+    /// Optional on-disk Lattice runbook bundle catalog directory for BLAKE3 pin verification.
+    pub runbooks_dir: Option<PathBuf>,
     /// Runtime-only loopback fleet coordinator endpoint.
     pub fleet: Option<PathBuf>,
 }
@@ -105,6 +107,9 @@ pub fn check_with_options(path: &Path, options: &Options) -> Result<(), String> 
     if let Some(runbooks_path) = options.runbooks.as_deref() {
         let runbooks = crate::runbooks::RunbookRegistry::load(runbooks_path)?;
         runbooks.admit_for_service(&profile)?;
+        if let Some(runbooks_dir) = options.runbooks_dir.as_deref() {
+            crate::runbooks::bundle::verify_registry_bundles(runbooks_dir, &runbooks)?;
+        }
     }
     let _cobs = options
         .cobs
@@ -198,6 +203,9 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
     if let Some(runbooks_path) = options.runbooks.as_deref() {
         let runbooks = crate::runbooks::RunbookRegistry::load(runbooks_path)?;
         runbooks.admit_for_service(&profile)?;
+        if let Some(runbooks_dir) = options.runbooks_dir.as_deref() {
+            crate::runbooks::bundle::verify_registry_bundles(runbooks_dir, &runbooks)?;
+        }
     }
     let cache = options
         .cache
@@ -255,6 +263,9 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
     }
     if let Some(runbooks_path) = options.runbooks.as_deref() {
         engine.configure_runbooks_path(runbooks_path)?;
+    }
+    if let Some(runbooks_dir) = options.runbooks_dir.as_deref() {
+        engine.configure_runbooks_dir(runbooks_dir)?;
     }
     if let Some(cache) = cache {
         engine.install_cache(cache)?;
@@ -1021,6 +1032,7 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
         let fleet_snapshot = if request.method == "POST"
             && path.starts_with("/api/runbooks/")
             && (path.ends_with("/fanout")
+                || path.ends_with("/preview")
                 || (path.starts_with("/api/runbooks/fanouts/") && path.ends_with("/continue")))
         {
             context.fleet.map(|client| match client.live_claims() {

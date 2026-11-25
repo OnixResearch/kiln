@@ -52,6 +52,12 @@ let RunbookMode =
   )
 in
 
+let ApprovalGate =
+  std.contract.from_predicate (fun value =>
+    value == "none" || value == "kiln_publication"
+  )
+in
+
 let LatticeLabel =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -332,6 +338,12 @@ let valid_runbook_relations = fun runbook =>
   && unique target_repos
   && unique target_projects
   && (
+    if runbook.mode == "read_only" then
+      runbook.approval_gate == "none"
+    else
+      true
+  )
+  && (
     if std.record.has_field "fanout" runbook then
       runbook.fanout.default_max_concurrency <= runbook.fanout.max_concurrency_limit
       && runbook.fanout.default_budget_cap <= runbook.fanout.max_budget_cap
@@ -351,6 +363,7 @@ let RunbookDefinition = {
   display_name | DisplayText,
   description | DescriptionText,
   mode | RunbookMode,
+  approval_gate | ApprovalGate | default = "none",
   lattice | LatticeSpec,
   params | Array ParamDeclaration | Between 0 16 | default = [],
   allowed_targets | Array AllowedTarget | Between 1 64,

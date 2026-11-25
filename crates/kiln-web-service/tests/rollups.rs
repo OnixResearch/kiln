@@ -366,6 +366,7 @@ fn make_registry(
             display_name: "Audit Rollup".into(),
             description: "Read-only audit for roll-up tests".into(),
             mode: RunbookMode::ReadOnly,
+            approval_gate: kiln_web_service::runbooks::ApprovalGate::None,
             lattice: RunbookLattice {
                 bundle_id: Some("audit-rollup".into()),
                 bundle_identity: "b".repeat(64),

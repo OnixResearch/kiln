@@ -11,6 +11,7 @@ two-space indentation, trailing newline). The archived lifecycle change is
 
 - `GET /api/projects`
 - `GET /api/runbooks`
+- `POST /api/runbooks/{id}/preview`
 - `POST /api/runbooks/{id}/dispatch`
 - `GET /api/runbooks/dispatches`
 - `GET /api/runbooks/dispatches/{run_id}/rollup`
@@ -26,23 +27,35 @@ two-space indentation, trailing newline). The archived lifecycle change is
 - `GET /api/runs/{id}/execution-binding`
 - `GET /api/runs/{id}/artifacts`
 
-`POST /api/runbooks/{id}/dispatch` and `POST /api/runbooks/{id}/fanout` are
-idempotent on `request_id` (bound to runbook ID, principal ID, and request body;
-mismatch returns `409 request_id_conflict`, exact replay returns the original
-`201`/`202` status with `"replayed": true`) and require an explicit, non-expired
-principal grant for `mutating` runbooks (`403 runbook_grant_required`).
+`POST /api/runbooks/{id}/preview` requires `operator` (`403 operator_required` for
+`viewer`, `403 worker_scope` for `worker`), verifies on-disk bundle BLAKE3 pins
+when `--runbooks-dir` is configured (`409 runbook_bundle_drift` /
+`404 runbook_bundle_missing`), resolves targets/revisions, typed parameters,
+write scopes, fleet claim overlaps, and budgets without mutating durable state,
+reserving `request_id`, or dispatching to a `WorkflowPort`, and always emits
+`dry_run: true`, `grants_authority: false`, and `non_claims`.
 
-`POST /api/runbooks/fanouts/{fanout_id}/{pause,continue,cancel}` are similarly
-idempotent on `request_id` (bound to fan-out ID, control action, principal ID,
-and request body), enforce live `authorize_runbook_principal`, verify mode and
-definition parity on `continue` (`409 runbook_mode_changed` /
-`409 runbook_definition_changed`), and stop or resume future child admission
-without claiming to stop already-running children. Mutating fan-outs check live
-`<owner>/<repo> <path>` fleet claim overlap (`409 fleet_claim_conflict` for
-`refuse`, per-child `skipped` for `skip`, or deferred pending admission for
-`serialize`). Per-child outcomes preserve `pending`, `active`, `success`,
-`failure`, `unknown`, and `skipped` explicitly without cancelling siblings or
-retrying blindly.
+`POST /api/runbooks/{id}/dispatch` and `POST /api/runbooks/{id}/fanout` require
+`operator` (`403 operator_required` for `viewer`, `403 worker_scope` for
+`worker`), are idempotent on `request_id` (bound to runbook ID, principal ID,
+and request body; mismatch returns `409 request_id_conflict`, exact replay
+returns the original `201`/`202` status with `"replayed": true`), and require an
+explicit, non-expired principal grant for `mutating` runbooks (`403
+runbook_grant_required`).
+
+`POST /api/runbooks/fanouts/{fanout_id}/{pause,continue,cancel}` require
+`operator` (`403 operator_required` for `viewer`, `403 worker_scope` for
+`worker`), are similarly idempotent on `request_id` (bound to fan-out ID,
+control action, principal ID, and request body), enforce live
+`authorize_runbook_principal` (including an active grant for `mutating`
+runbooks, `403 runbook_grant_required`), verify mode and definition parity on
+`continue` (`409 runbook_mode_changed` / `409 runbook_definition_changed`), and
+stop or resume future child admission without claiming to stop already-running
+children. Mutating fan-outs check live `<owner>/<repo> <path>` fleet claim
+overlap (`409 fleet_claim_conflict` for `refuse`, per-child `skipped` for
+`skip`, or deferred pending admission for `serialize`). Per-child outcomes
+preserve `pending`, `active`, `success`, `failure`, `unknown`, and `skipped`
+explicitly without cancelling siblings or retrying blindly.
 
 ## Authentication and admission
 

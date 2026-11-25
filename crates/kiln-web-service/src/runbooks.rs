@@ -1,5 +1,7 @@
 //! Reviewed runbook registry, parameter validation, target resolution, and RBAC grants.
 
+#[path = "runbooks/bundle.rs"]
+pub mod bundle;
 #[path = "runbooks/secrets.rs"]
 mod secrets;
 
@@ -18,6 +20,7 @@ use crate::profile::{ProjectProfile, ServiceProfile};
 pub const RUNBOOK_REGISTRY_SCHEMA: &str = "kiln.runbook-registry.v1";
 pub const RUNBOOKS_VIEW_SCHEMA: &str = "kiln.web-runbooks-view.v1";
 pub const RUNBOOK_DISPATCH_RESULT_SCHEMA: &str = "kiln.runbook-dispatch-result.v1";
+pub const RUNBOOK_PREVIEW_SCHEMA: &str = "kiln.runbook-preview.v1";
 pub const PARAM_ENV_PREFIX: &str = "LATTICE_PARAM_";
 
 pub const MAX_PROFILE_BYTES: usize = 1_048_576;
@@ -40,6 +43,14 @@ pub const MAX_PARAM_ENV_VALUE_BYTES: usize = 256;
 pub enum RunbookMode {
     ReadOnly,
     Mutating,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ApprovalGate {
+    #[default]
+    None,
+    KilnPublication,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -158,6 +169,8 @@ pub struct RunbookDefinition {
     pub display_name: String,
     pub description: String,
     pub mode: RunbookMode,
+    #[serde(default)]
+    pub approval_gate: ApprovalGate,
     pub lattice: RunbookLattice,
     #[serde(default)]
     pub params: Vec<ParamDeclaration>,
@@ -256,6 +269,8 @@ pub struct RunbookGrant {
 pub struct RunbookRunBinding {
     pub runbook_id: String,
     pub mode: RunbookMode,
+    #[serde(default)]
+    pub approval_gate: ApprovalGate,
     pub target: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lattice_bundle_id: Option<String>,
@@ -291,6 +306,7 @@ pub struct RunbookSummaryView {
     pub display_name: String,
     pub description: String,
     pub mode: RunbookMode,
+    pub approval_gate: ApprovalGate,
     pub lattice_bundle_id: Option<String>,
     pub lattice_bundle_identity: String,
     pub lattice_workflow_name: String,
@@ -331,6 +347,7 @@ pub struct RunbookDispatchResponse {
     pub replayed: bool,
     pub runbook_id: String,
     pub mode: RunbookMode,
+    pub approval_gate: ApprovalGate,
     pub target: String,
     pub project_id: String,
     pub source_revision: String,
@@ -344,6 +361,88 @@ pub struct RunbookDispatchResponse {
     pub source_env: BTreeMap<String, String>,
     pub run_id: String,
     pub run: crate::engine::model::RunView,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RunbookPreviewRequest {
+    #[serde(default)]
+    pub target: Option<String>,
+    #[serde(default)]
+    pub targets: Vec<String>,
+    #[serde(default)]
+    pub target_globs: Vec<String>,
+    #[serde(default)]
+    pub params: BTreeMap<String, Value>,
+    #[serde(default)]
+    pub max_concurrency: Option<u16>,
+    #[serde(default)]
+    pub budget_cap: Option<u64>,
+    #[serde(default)]
+    pub claim_policy: Option<kiln_core::implementation::FanoutClaimPolicy>,
+    #[serde(default)]
+    pub scope_path: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct RunbookPreviewNode {
+    pub id: String,
+    pub kind: String,
+    pub effect_class: String,
+    pub adapter_kind: String,
+    pub operation_identity: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct RunbookPreviewEdge {
+    pub source: String,
+    pub target: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct RunbookPreviewTarget {
+    pub project_id: String,
+    pub repository: String,
+    pub target: String,
+    pub resolved_reference: String,
+    pub source_revision: String,
+    pub write_scopes: Vec<String>,
+    pub claim_conflict: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct RunbookPreviewBudget {
+    pub max_concurrency: u16,
+    pub budget_cap: u64,
+    pub unit_cost: u64,
+    pub estimated_units: u64,
+    pub within_budget: bool,
+    pub max_runs_available: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct RunbookPreviewResponse {
+    pub schema: &'static str,
+    pub dry_run: bool,
+    pub grants_authority: bool,
+    pub runbook_id: String,
+    pub mode: RunbookMode,
+    pub approval_gate: ApprovalGate,
+    pub can_dispatch: bool,
+    pub dispatch_refusal: Option<&'static str>,
+    pub bundle_pin_verified: bool,
+    pub bundle_id: Option<String>,
+    pub bundle_identity: String,
+    pub workflow_name: String,
+    pub workflow_revision: String,
+    pub nodes: Vec<RunbookPreviewNode>,
+    pub edges: Vec<RunbookPreviewEdge>,
+    pub params_identity: String,
+    pub params: BTreeMap<String, ParamValue>,
+    pub env_bindings: BTreeMap<String, BTreeMap<String, String>>,
+    pub targets: Vec<RunbookPreviewTarget>,
+    pub budget: RunbookPreviewBudget,
+    pub non_claims: Vec<&'static str>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -564,6 +663,10 @@ impl RunbookRegistry {
                 || !valid_description_text(&runbook.description)
             {
                 return Err("runbook registry display metadata invalid".into());
+            }
+            if runbook.mode == RunbookMode::ReadOnly && runbook.approval_gate != ApprovalGate::None
+            {
+                return Err("read_only runbook cannot declare approval_gate".into());
             }
             if let Some(bundle_id) = &runbook.lattice.bundle_id
                 && !valid_runbook_id(bundle_id)
@@ -940,6 +1043,7 @@ impl RunbookRegistry {
                     display_name: rb.display_name.clone(),
                     description: rb.description.clone(),
                     mode: rb.mode,
+                    approval_gate: rb.approval_gate,
                     lattice_bundle_id: rb.lattice.bundle_id.clone(),
                     lattice_bundle_identity: rb.lattice.bundle_identity.clone(),
                     lattice_workflow_name: rb.lattice.workflow_name.clone(),
@@ -1206,6 +1310,7 @@ mod tests {
                     display_name: "Security Audit".into(),
                     description: "Read-only audit".into(),
                     mode: RunbookMode::ReadOnly,
+                    approval_gate: ApprovalGate::None,
                     lattice: RunbookLattice {
                         bundle_id: Some("security-audit".into()),
                         bundle_identity: "a".repeat(64),
@@ -1277,6 +1382,7 @@ mod tests {
                     display_name: "Flake Update".into(),
                     description: "Mutating flake update".into(),
                     mode: RunbookMode::Mutating,
+                    approval_gate: ApprovalGate::KilnPublication,
                     lattice: RunbookLattice {
                         bundle_id: None,
                         bundle_identity: "1".repeat(64),

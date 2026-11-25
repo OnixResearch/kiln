@@ -3204,3 +3204,117 @@ test("KilnRunbooks #100 result roll-up UI renders dispatch and fanout roll-ups, 
   const prAnchors = collectByTag(sec, "a").filter((a) => String(a.href || "").includes("pull/100"));
   assert.equal(prAnchors.length, 0);
 });
+
+test("runbooks.js dry-run preview button calls /preview and renders effects, budgets, and approval gate", async () => {
+  const doc = { createElement: (tag) => new CairnNode(tag) };
+  const win = { KilnUi: ui };
+  const ctxObj = {
+    window: win,
+    document: doc,
+    URL,
+    TextEncoder,
+    crypto: webcrypto,
+    setTimeout,
+    clearTimeout,
+  };
+  win.window = win;
+  vm.runInNewContext(asset("runbooks.js"), ctxObj);
+  const rb = win.KilnRunbooks;
+  const findById = (node, id) => {
+    if (!node) return null;
+    if (node.id === id) return node;
+    for (const child of node.children || []) {
+      const hit = findById(child, id);
+      if (hit) return hit;
+    }
+    return null;
+  };
+
+  const calls = [];
+  const root = new CairnNode("div");
+  await rb.load(root, {
+    route: { page: "runbooks", runbook: "flake-update" },
+    canOperate: true,
+    principal: { id: "local:operator", role: "operator" },
+    enrolledProjects: [{ id: "kiln-flake-update" }],
+    navigate() {},
+    notice() {},
+    isCurrent: () => true,
+    async api(path, options) {
+      calls.push({ path, method: options?.method || "GET", body: options?.body || null });
+      if (path === "/api/runbooks") {
+        return {
+          schema: "kiln.web-runbooks-view.v1",
+          configured: true,
+          principal: "local:operator",
+          runbooks: [{
+            id: "flake-update",
+            display_name: "Flake Update",
+            mode: "mutating",
+            approval_gate: "kiln_publication",
+            lattice_bundle_id: "flake-update",
+            lattice_bundle_identity: "4".repeat(64),
+            lattice_workflow_name: "flake-update",
+            lattice_workflow_revision: "5".repeat(64),
+            params: [],
+            allowed_targets: [{ repository: "onixresearch/kiln", project_id: "kiln-flake-update", references: ["refs/heads/main"], allow_commit_sha: true }],
+            can_dispatch: true,
+            dispatch_refusal: null,
+          }],
+        };
+      }
+      if (path === "/api/runbooks/fanouts") {
+        return { schema: "kiln.runbook-fanouts-view.v1", fanouts: [], next_cursor: null, total: 0, bounded: true };
+      }
+      if (path.startsWith("/api/runbooks/dispatches?")) {
+        return { schema: "kiln.runbook-dispatches-view.v1", dispatches: [], next_cursor: null, total: 0, bounded: true };
+      }
+      if (path === "/api/runbooks/flake-update/preview") {
+        return {
+          schema: "kiln.runbook-preview.v1",
+          dry_run: true,
+          grants_authority: false,
+          runbook_id: "flake-update",
+          mode: "mutating",
+          approval_gate: "kiln_publication",
+          can_dispatch: true,
+          dispatch_refusal: null,
+          bundle_pin_verified: true,
+          bundle_id: "flake-update",
+          bundle_identity: "4".repeat(64),
+          workflow_name: "flake-update",
+          workflow_revision: "5".repeat(64),
+          nodes: [{ id: "update-flake", kind: "build", effect_class: "build", adapter_kind: "local", operation_identity: "9".repeat(64) }],
+          edges: [],
+          params_identity: "0".repeat(64),
+          params: {},
+          env_bindings: {},
+          targets: [{
+            project_id: "kiln-flake-update",
+            repository: "onixresearch/kiln",
+            target: "onixresearch/kiln@refs/heads/main",
+            resolved_reference: "refs/heads/main",
+            source_revision: "a".repeat(40),
+            write_scopes: ["onixresearch/kiln flake.lock"],
+            claim_conflict: null,
+          }],
+          budget: { max_concurrency: 1, budget_cap: 1, unit_cost: 1, estimated_units: 1, within_budget: true, max_runs_available: 64 },
+          non_claims: ["Dry-run preview grants no authority."],
+        };
+      }
+      throw new Error(`unexpected ${path}`);
+    },
+  });
+
+  const previewBtn = findById(root, "runbook-preview-btn");
+  assert.ok(previewBtn, "preview button rendered");
+  await previewBtn.listeners.get("click")[0]();
+
+  assert.ok(calls.some((c) => c.path === "/api/runbooks/flake-update/preview" && c.method === "POST"));
+  assert.ok(!calls.some((c) => c.path.endsWith("/dispatch")));
+  const previewBox = findById(root, "runbook-preview-result");
+  assert.equal(previewBox.hidden, false);
+  assert.match(previewBox.textContent, /kiln_publication/);
+  assert.match(previewBox.textContent, /onixresearch\/kiln flake\.lock/);
+  assert.match(previewBox.textContent, /verified/);
+});

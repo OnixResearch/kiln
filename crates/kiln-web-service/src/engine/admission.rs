@@ -109,8 +109,14 @@ impl Engine {
         }
         let write = !matches!(method, "GET" | "HEAD");
         if principal.role == Role::Viewer && write {
-            self.append_audit(method, target, Some(principal), "viewer_read_only", 403)?;
-            return error(403, "viewer_read_only");
+            let path = target.split('?').next().unwrap_or("");
+            let code = if path == "/api/runbooks" || path.starts_with("/api/runbooks/") {
+                "operator_required"
+            } else {
+                "viewer_read_only"
+            };
+            self.append_audit(method, target, Some(principal), code, 403)?;
+            return error(403, code);
         }
         if principal.id.is_empty()
             || principal.id.len() > 256

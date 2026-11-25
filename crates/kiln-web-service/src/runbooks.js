@@ -749,6 +749,7 @@
     const facts = element("dl", undefined, "facts");
     appendFact(facts, "Runbook ID", runbook.id);
     appendFact(facts, "Mode", runbook.mode === "mutating" ? "mutating" : "read_only");
+    appendFact(facts, "Approval gate", runbook.approval_gate === "kiln_publication" ? "kiln_publication" : "none");
     if (runbook.lattice_bundle_id) appendFact(facts, "Lattice bundle", runbook.lattice_bundle_id);
     appendFact(facts, "Bundle identity", runbook.lattice_bundle_identity || "Not recorded");
     appendFact(facts, "Workflow revision", runbook.lattice_workflow_revision || "Not recorded");
@@ -828,13 +829,17 @@
     form.append(reqWrap);
 
     const submitRow = element("div", undefined, "cluster");
+    const previewBtn = element("button", "Preview effects & budgets");
+    previewBtn.id = "runbook-preview-btn";
+    previewBtn.type = "button";
+    previewBtn.disabled = !ctx.canOperate || busy;
     const submitBtn = element("button", "Dispatch runbook", "primary");
     submitBtn.id = "runbook-dispatch-submit";
     submitBtn.type = "submit";
     submitBtn.dataset.operate = "";
     const permitted = ctx.canOperate && runbook.can_dispatch !== false;
     submitBtn.disabled = !permitted || busy;
-    submitRow.append(submitBtn);
+    submitRow.append(previewBtn, submitBtn);
     form.append(submitRow);
 
     if (!ctx.canOperate) {
@@ -848,9 +853,65 @@
     errorBox.setAttribute("role", "alert");
     errorBox.hidden = true;
 
+    const previewResultBox = element("section", undefined, "panel");
+    previewResultBox.id = "runbook-preview-result";
+    previewResultBox.hidden = true;
+
     const resultBox = element("section", undefined, "panel");
     resultBox.id = "runbook-dispatch-result";
     resultBox.hidden = true;
+
+    previewBtn.addEventListener("click", async () => {
+      if (busy || !ctx.canOperate) return;
+      errorBox.hidden = true;
+      errorBox.replaceChildren();
+      previewResultBox.hidden = true;
+      previewResultBox.replaceChildren();
+
+      const rawParams = {};
+      for (const control of paramControls) {
+        rawParams[control.name] = control.input.value;
+      }
+      const checked = validateInputs(runbook, {
+        target: (targetInput.value || "").trim(),
+        params: rawParams,
+        requestId: "preview",
+      });
+      if (!checked.ok) {
+        errorBox.textContent = checked.errors.join(" ");
+        errorBox.hidden = false;
+        ctx.notice?.(errorBox.textContent, "warning");
+        return;
+      }
+
+      busy = true;
+      previewBtn.disabled = true;
+      submitBtn.disabled = true;
+      try {
+        const preview = await ctx.api(`/api/runbooks/${encodeURIComponent(runbook.id)}/preview`, {
+          method: "POST",
+          body: {
+            target: checked.payload.target,
+            params: checked.payload.params,
+          },
+        });
+        if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
+        renderPreviewResult(previewResultBox, preview);
+        previewResultBox.hidden = false;
+      } catch (err) {
+        if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
+        const classified = classifyError(err);
+        errorBox.textContent = `${classified.title}: ${classified.message}`;
+        errorBox.hidden = false;
+        ctx.notice?.(errorBox.textContent, "warning");
+      } finally {
+        if (generation === currentGen) {
+          busy = false;
+          previewBtn.disabled = !ctx.canOperate;
+          submitBtn.disabled = !permitted;
+        }
+      }
+    });
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -927,7 +988,7 @@
       }
     });
 
-    detailPanel.append(form, errorBox, resultBox);
+    detailPanel.append(form, errorBox, previewResultBox, resultBox);
 
     if (fanoutEnabled) {
       const fanoutForm = renderFanoutForm(runbook, ctx, currentGen, permitted);
@@ -1099,12 +1160,16 @@
     fanoutForm.append(reqWrap);
 
     const submitRow = element("div", undefined, "cluster");
+    const fanoutPreviewBtn = element("button", "Preview fan-out effects & budgets");
+    fanoutPreviewBtn.id = "runbook-fanout-preview-btn";
+    fanoutPreviewBtn.type = "button";
+    fanoutPreviewBtn.disabled = !ctx.canOperate || busy;
     const submitBtn = element("button", "Dispatch fan-out", "primary");
     submitBtn.id = "runbook-fanout-submit";
     submitBtn.type = "submit";
     submitBtn.dataset.operate = "";
     submitBtn.disabled = !permitted || busy;
-    submitRow.append(submitBtn);
+    submitRow.append(fanoutPreviewBtn, submitBtn);
     fanoutForm.append(submitRow);
 
     const errorBox = element("div", undefined, "warning");
@@ -1112,9 +1177,78 @@
     errorBox.setAttribute("role", "alert");
     errorBox.hidden = true;
 
+    const fanoutPreviewResultBox = element("section", undefined, "panel");
+    fanoutPreviewResultBox.id = "runbook-fanout-preview-result";
+    fanoutPreviewResultBox.hidden = true;
+
     const resultBox = element("section", undefined, "panel");
     resultBox.id = "runbook-fanout-result";
     resultBox.hidden = true;
+
+    fanoutPreviewBtn.addEventListener("click", async () => {
+      if (busy || !ctx.canOperate) return;
+      errorBox.hidden = true;
+      errorBox.replaceChildren();
+      fanoutPreviewResultBox.hidden = true;
+      fanoutPreviewResultBox.replaceChildren();
+
+      const rawParams = {};
+      for (const control of fanoutParams) {
+        rawParams[control.name] = control.input.value;
+      }
+      const checked = validateFanoutInputs(runbook, {
+        targetMode,
+        targetsText: explicitInput.value,
+        targetGlob: globInput.value,
+        maxConcurrency: concInput.value,
+        budgetCap: budgetInput.value,
+        claimPolicy: policySelect.value,
+        scopePath: scopeInput.value,
+        params: rawParams,
+        requestId: "preview",
+      });
+      if (!checked.ok) {
+        errorBox.textContent = checked.errors.join(" ");
+        errorBox.hidden = false;
+        ctx.notice?.(errorBox.textContent, "warning");
+        return;
+      }
+
+      const previewBody = {
+        targets: checked.payload.targets,
+        target_globs: checked.payload.target_globs,
+        params: checked.payload.params,
+        max_concurrency: checked.payload.max_concurrency,
+        budget_cap: checked.payload.budget_cap,
+        claim_policy: checked.payload.claim_policy,
+      };
+      if (checked.payload.scope_path) previewBody.scope_path = checked.payload.scope_path;
+
+      busy = true;
+      fanoutPreviewBtn.disabled = true;
+      submitBtn.disabled = true;
+      try {
+        const preview = await ctx.api(`/api/runbooks/${encodeURIComponent(runbook.id)}/preview`, {
+          method: "POST",
+          body: previewBody,
+        });
+        if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
+        renderPreviewResult(fanoutPreviewResultBox, preview);
+        fanoutPreviewResultBox.hidden = false;
+      } catch (err) {
+        if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
+        const classified = classifyError(err);
+        errorBox.textContent = `${classified.title}: ${classified.message}`;
+        errorBox.hidden = false;
+        ctx.notice?.(errorBox.textContent, "warning");
+      } finally {
+        if (generation === currentGen) {
+          busy = false;
+          fanoutPreviewBtn.disabled = !ctx.canOperate;
+          submitBtn.disabled = !permitted;
+        }
+      }
+    });
 
     fanoutForm.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -1190,8 +1324,53 @@
       }
     });
 
-    wrap.append(fanoutForm, errorBox, resultBox);
+    wrap.append(fanoutForm, errorBox, fanoutPreviewResultBox, resultBox);
     return wrap;
+  }
+
+  function renderPreviewResult(container, preview) {
+    container.replaceChildren();
+    container.append(element("h3", "Dry-run preview (no dispatch performed)"));
+    const facts = element("dl", undefined, "facts");
+    appendFact(facts, "Mode", text(preview?.mode) || "read_only");
+    appendFact(facts, "Approval gate", text(preview?.approval_gate) || "none");
+    appendFact(
+      facts,
+      "Dispatch eligibility",
+      preview?.can_dispatch ? "allowed" : `refused (${text(preview?.dispatch_refusal) || "denied"})`,
+    );
+    appendFact(facts, "Bundle pin verified", preview?.bundle_pin_verified ? "verified" : "unconfigured");
+    appendFact(facts, "Bundle identity", text(preview?.bundle_identity) || "Not recorded");
+    appendFact(facts, "Workflow revision", text(preview?.workflow_revision) || "Not recorded");
+    const budget = isRecord(preview?.budget) ? preview.budget : {};
+    appendFact(
+      facts,
+      "Budget estimate",
+      `${budget.estimated_units ?? 0} / ${budget.budget_cap ?? 0} units (max concurrency ${budget.max_concurrency ?? 1})`,
+    );
+    const nodes = Array.isArray(preview?.nodes) ? preview.nodes : [];
+    appendFact(
+      facts,
+      "Workflow effects",
+      nodes.map((n) => `${text(n.id)} (${text(n.kind)}:${text(n.effect_class)})`).join(", ") || "None",
+    );
+    const targets = Array.isArray(preview?.targets) ? preview.targets : [];
+    for (const target of targets) {
+      const scopes = Array.isArray(target?.write_scopes) && target.write_scopes.length
+        ? target.write_scopes.join(", ")
+        : "read-only";
+      const conflict = target?.claim_conflict ? ` · conflict: ${target.claim_conflict}` : "";
+      appendFact(
+        facts,
+        `Target ${text(target?.target)}`,
+        `rev ${text(target?.source_revision).slice(0, 12)} · scopes: ${scopes}${conflict}`,
+      );
+    }
+    container.append(facts);
+    const claims = Array.isArray(preview?.non_claims) ? preview.non_claims : [];
+    if (claims.length) {
+      container.append(element("p", claims.join(" "), "boundary"));
+    }
   }
 
   function validHttpsUrl(raw) {
@@ -1964,5 +2143,6 @@
     verificationOutcomeStatus,
     validHttpsUrl,
     classifyError,
+    renderPreviewResult,
   });
 })();

@@ -1048,6 +1048,7 @@ fn runbook_bindings_inject_lattice_param_and_source_env_for_matching_node() {
     let rb = crate::runbooks::RunbookRunBinding {
         runbook_id: "security-audit".into(),
         mode: crate::runbooks::RunbookMode::ReadOnly,
+        approval_gate: crate::runbooks::ApprovalGate::None,
         target: "onixresearch/kiln@main".into(),
         lattice_bundle_id: Some("security-audit".into()),
         lattice_bundle_identity: "b".repeat(64),

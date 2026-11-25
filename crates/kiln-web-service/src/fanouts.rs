@@ -474,7 +474,7 @@ pub(crate) fn expand_fanout_children(
     Ok((selectors, children))
 }
 
-fn derive_write_scope(
+pub(crate) fn derive_write_scope(
     runbook: &RunbookDefinition,
     target_rule: &crate::runbooks::RunbookTarget,
     project: &ProjectProfile,

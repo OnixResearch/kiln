@@ -1458,6 +1458,13 @@
       "RunbookDispatchResponse": {
         "additionalProperties": false,
         "properties": {
+          "approval_gate": {
+            "enum": [
+              "none",
+              "kiln_publication"
+            ],
+            "type": "string"
+          },
           "env_bindings": {
             "type": "object"
           },
@@ -1801,6 +1808,284 @@
         ],
         "type": "object"
       },
+      "RunbookPreviewBudget": {
+        "additionalProperties": false,
+        "properties": {
+          "budget_cap": {
+            "type": "integer"
+          },
+          "estimated_units": {
+            "type": "integer"
+          },
+          "max_concurrency": {
+            "type": "integer"
+          },
+          "max_runs_available": {
+            "type": "integer"
+          },
+          "unit_cost": {
+            "type": "integer"
+          },
+          "within_budget": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "max_concurrency",
+          "budget_cap",
+          "unit_cost",
+          "estimated_units",
+          "within_budget",
+          "max_runs_available"
+        ],
+        "type": "object"
+      },
+      "RunbookPreviewEdge": {
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "target"
+        ],
+        "type": "object"
+      },
+      "RunbookPreviewNode": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter_kind": {
+            "type": "string"
+          },
+          "effect_class": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "operation_identity": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "effect_class",
+          "adapter_kind",
+          "operation_identity"
+        ],
+        "type": "object"
+      },
+      "RunbookPreviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "budget_cap": {
+            "type": "integer"
+          },
+          "claim_policy": {
+            "enum": [
+              "refuse",
+              "skip",
+              "serialize"
+            ],
+            "type": "string"
+          },
+          "max_concurrency": {
+            "type": "integer"
+          },
+          "params": {
+            "type": "object"
+          },
+          "scope_path": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "target_globs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16,
+            "type": "array"
+          },
+          "targets": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RunbookPreviewResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_gate": {
+            "enum": [
+              "none",
+              "kiln_publication"
+            ],
+            "type": "string"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/RunbookPreviewBudget"
+          },
+          "bundle_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "bundle_identity": {
+            "type": "string"
+          },
+          "bundle_pin_verified": {
+            "type": "boolean"
+          },
+          "can_dispatch": {
+            "type": "boolean"
+          },
+          "dispatch_refusal": {
+            "nullable": true,
+            "type": "string"
+          },
+          "dry_run": {
+            "type": "boolean"
+          },
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/RunbookPreviewEdge"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "env_bindings": {
+            "type": "object"
+          },
+          "grants_authority": {
+            "type": "boolean"
+          },
+          "mode": {
+            "enum": [
+              "read_only",
+              "mutating"
+            ],
+            "type": "string"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/RunbookPreviewNode"
+            },
+            "maxItems": 32,
+            "type": "array"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "type": "array"
+          },
+          "params": {
+            "type": "object"
+          },
+          "params_identity": {
+            "type": "string"
+          },
+          "runbook_id": {
+            "type": "string"
+          },
+          "schema": {
+            "type": "string"
+          },
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/RunbookPreviewTarget"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "workflow_name": {
+            "type": "string"
+          },
+          "workflow_revision": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema",
+          "dry_run",
+          "grants_authority",
+          "runbook_id",
+          "mode",
+          "approval_gate",
+          "can_dispatch",
+          "dispatch_refusal",
+          "bundle_pin_verified",
+          "bundle_id",
+          "bundle_identity",
+          "workflow_name",
+          "workflow_revision",
+          "nodes",
+          "edges",
+          "params_identity",
+          "params",
+          "env_bindings",
+          "targets",
+          "budget",
+          "non_claims"
+        ],
+        "type": "object"
+      },
+      "RunbookPreviewTarget": {
+        "additionalProperties": false,
+        "properties": {
+          "claim_conflict": {
+            "nullable": true,
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "resolved_reference": {
+            "type": "string"
+          },
+          "source_revision": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "write_scopes": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "type": "array"
+          }
+        },
+        "required": [
+          "project_id",
+          "repository",
+          "target",
+          "resolved_reference",
+          "source_revision",
+          "write_scopes",
+          "claim_conflict"
+        ],
+        "type": "object"
+      },
       "RunbookRollupPage": {
         "additionalProperties": false,
         "properties": {
@@ -1961,6 +2246,13 @@
             },
             "maxItems": 64,
             "type": "array"
+          },
+          "approval_gate": {
+            "enum": [
+              "none",
+              "kiln_publication"
+            ],
+            "type": "string"
           },
           "can_dispatch": {
             "type": "boolean"
@@ -2759,6 +3051,63 @@
           }
         ],
         "summary": "Dispatch a bounded parent fan-out run for a reviewed runbook"
+      }
+    },
+    "/api/runbooks/{id}/preview": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunbookPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunbookPreviewResponse"
+                }
+              }
+            },
+            "description": "Dry-run preview of runbook effects, bindings, and budgets without state mutation"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Dry-run preview of runbook effects, resolved targets, bindings, and budgets without dispatch"
       }
     },
     "/api/runs": {

@@ -418,6 +418,7 @@ fn github_label_and_comment_routing_dispatches_to_live_kiln_web_service() {
                 display_name: "Security Audit".into(),
                 description: "Read-only audit".into(),
                 mode: RunbookMode::ReadOnly,
+                approval_gate: kiln_web_service::runbooks::ApprovalGate::None,
                 lattice: RunbookLattice {
                     bundle_id: Some("security-audit".into()),
                     bundle_identity: "b".repeat(64),
@@ -452,6 +453,7 @@ fn github_label_and_comment_routing_dispatches_to_live_kiln_web_service() {
                 display_name: "Granted Mutating".into(),
                 description: "Mutating with grant".into(),
                 mode: RunbookMode::Mutating,
+                approval_gate: kiln_web_service::runbooks::ApprovalGate::None,
                 lattice: RunbookLattice {
                     bundle_id: Some("granted-mutating".into()),
                     bundle_identity: "d".repeat(64),
@@ -469,6 +471,7 @@ fn github_label_and_comment_routing_dispatches_to_live_kiln_web_service() {
                 display_name: "Ungranted Mutating".into(),
                 description: "Mutating without grant".into(),
                 mode: RunbookMode::Mutating,
+                approval_gate: kiln_web_service::runbooks::ApprovalGate::None,
                 lattice: RunbookLattice {
                     bundle_id: Some("ungranted-mutating".into()),
                     bundle_identity: "f".repeat(64),

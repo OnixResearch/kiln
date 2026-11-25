@@ -900,6 +900,49 @@ fn ci_fanout_and_controls_wire_http_routes_and_watch_exit_codes() {
                 }),
             };
         }
+        if method == "POST" && path == "/api/runbooks/security-audit/preview" {
+            return StubResponse {
+                status: 200,
+                body: json!({
+                    "schema": "kiln.runbook-preview.v1",
+                    "dry_run": true,
+                    "grants_authority": false,
+                    "runbook_id": "security-audit",
+                    "mode": "read_only",
+                    "approval_gate": "none",
+                    "can_dispatch": true,
+                    "dispatch_refusal": null,
+                    "bundle_pin_verified": true,
+                    "bundle_id": "security-audit",
+                    "bundle_identity": "a".repeat(64),
+                    "workflow_name": "security-audit",
+                    "workflow_revision": "b".repeat(64),
+                    "nodes": [],
+                    "edges": [],
+                    "params_identity": "c".repeat(64),
+                    "params": {},
+                    "env_bindings": {},
+                    "targets": [{
+                        "project_id": "kiln-audit",
+                        "repository": "onixresearch/kiln",
+                        "target": "onixresearch/kiln@refs/heads/main",
+                        "resolved_reference": "refs/heads/main",
+                        "source_revision": "d".repeat(40),
+                        "write_scopes": [],
+                        "claim_conflict": null
+                    }],
+                    "budget": {
+                        "max_concurrency": 1,
+                        "budget_cap": 1,
+                        "unit_cost": 1,
+                        "estimated_units": 1,
+                        "within_budget": true,
+                        "max_runs_available": 64
+                    },
+                    "non_claims": ["Dry-run preview performs zero state mutation."]
+                }),
+            };
+        }
         if method == "POST" && path == "/api/runbooks/fanouts/rb-fanout-1/pause" {
             return StubResponse {
                 status: 200,
@@ -1070,6 +1113,59 @@ fn ci_fanout_and_controls_wire_http_routes_and_watch_exit_codes() {
     assert!(fo_rollup_text.contains("subject: fanout rb-fanout-1"));
     assert!(fo_rollup_text.contains("https://github.com/onixresearch/kiln/pull/100 (open)"));
 
+    let prev_out = checked(
+        Command::new(env!("CARGO_BIN_EXE_kiln-web-service"))
+            .args([
+                "ci",
+                "--profile",
+                &profile_path.to_string_lossy(),
+                "--identity",
+                &identity,
+                "preview",
+                "--runbook",
+                "security-audit",
+                "--target",
+                "onixresearch/kiln@refs/heads/main",
+                "--output",
+                "text",
+            ])
+            .output(),
+    );
+    assert!(
+        prev_out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&prev_out.stderr)
+    );
+    let prev_text = String::from_utf8_lossy(&prev_out.stdout);
+    assert!(prev_text.contains("dry_run: true"));
+    assert!(prev_text.contains("grants_authority: false"));
+    assert!(prev_text.contains("bundle_pin_verified: true"));
+
+    let dry_disp_out = checked(
+        Command::new(env!("CARGO_BIN_EXE_kiln-web-service"))
+            .args([
+                "ci",
+                "--profile",
+                &profile_path.to_string_lossy(),
+                "--identity",
+                &identity,
+                "dispatch",
+                "--runbook",
+                "security-audit",
+                "--target",
+                "onixresearch/kiln@refs/heads/main",
+                "--dry-run",
+            ])
+            .output(),
+    );
+    assert!(
+        dry_disp_out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&dry_disp_out.stderr)
+    );
+    let dry_disp_json: Value = checked(serde_json::from_slice(&dry_disp_out.stdout));
+    assert_eq!(dry_disp_json.get("dry_run"), Some(&json!(true)));
+
     stop.store(true, Ordering::Release);
     let _ = handle.join();
 
@@ -1079,4 +1175,170 @@ fn ci_fanout_and_controls_wire_http_routes_and_watch_exit_codes() {
             && p == "/api/runbooks/security-audit/fanout"
             && b.as_ref().and_then(|v| v.pointer("/params/profile")) == Some(&json!("123"))
     }));
+    assert_eq!(
+        requests
+            .iter()
+            .filter(|(m, p, _)| m == "POST" && p == "/api/runbooks/security-audit/preview")
+            .count(),
+        2
+    );
+}
+
+#[test]
+fn ci_fanout_dry_run_single_target_uses_fanout_targets_body() {
+    let root = checked(tempfile::tempdir());
+    let (addr, captured, stop, handle) = spawn_tls_stub(|method, path, _| {
+        if method == "GET" && path == "/api/runbooks" {
+            return StubResponse {
+                status: 200,
+                body: json!({
+                    "schema": RUNBOOKS_VIEW_SCHEMA,
+                    "configured": true,
+                    "principal": "local:operator",
+                    "runbooks": [{ "id": "security-audit", "params": [] }]
+                }),
+            };
+        }
+        if method == "POST" && path == "/api/runbooks/security-audit/preview" {
+            return StubResponse {
+                status: 200,
+                body: json!({
+                    "schema": "kiln.runbook-preview.v1",
+                    "dry_run": true,
+                    "grants_authority": false,
+                    "runbook_id": "security-audit",
+                    "mode": "read_only",
+                    "approval_gate": "none",
+                    "can_dispatch": true,
+                    "dispatch_refusal": null,
+                    "bundle_pin_verified": true,
+                    "bundle_id": "security-audit",
+                    "bundle_identity": "a".repeat(64),
+                    "workflow_name": "security-audit",
+                    "workflow_revision": "b".repeat(64),
+                    "nodes": [],
+                    "edges": [],
+                    "params_identity": "c".repeat(64),
+                    "params": {},
+                    "env_bindings": {},
+                    "targets": [{
+                        "project_id": "kiln-audit",
+                        "repository": "onixresearch/kiln",
+                        "target": "onixresearch/kiln@refs/heads/main",
+                        "resolved_reference": "refs/heads/main",
+                        "source_revision": "d".repeat(40),
+                        "write_scopes": [],
+                        "claim_conflict": null
+                    }],
+                    "budget": {
+                        "max_concurrency": 2,
+                        "budget_cap": 16,
+                        "unit_cost": 1,
+                        "estimated_units": 1,
+                        "within_budget": true,
+                        "max_runs_available": 64
+                    },
+                    "non_claims": ["Dry-run preview performs zero state mutation."]
+                }),
+            };
+        }
+        StubResponse {
+            status: 404,
+            body: json!({"code": "not_found", "message": "unexpected"}),
+        }
+    });
+    let (profile_path, identity) = write_cli_profile(root.path(), addr.port());
+
+    let out_repo_ref = checked(
+        Command::new(env!("CARGO_BIN_EXE_kiln-web-service"))
+            .args([
+                "ci",
+                "--profile",
+                &profile_path.to_string_lossy(),
+                "--identity",
+                &identity,
+                "fanout",
+                "--runbook",
+                "security-audit",
+                "--target",
+                "onixresearch/kiln@refs/heads/main",
+                "--dry-run",
+            ])
+            .output(),
+    );
+    assert!(
+        out_repo_ref.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out_repo_ref.stderr)
+    );
+
+    let out_project = checked(
+        Command::new(env!("CARGO_BIN_EXE_kiln-web-service"))
+            .args([
+                "ci",
+                "--profile",
+                &profile_path.to_string_lossy(),
+                "--identity",
+                &identity,
+                "fanout",
+                "--runbook",
+                "security-audit",
+                "--target",
+                "kiln-audit",
+                "--dry-run",
+            ])
+            .output(),
+    );
+    assert!(
+        out_project.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out_project.stderr)
+    );
+
+    let out_dispatch = checked(
+        Command::new(env!("CARGO_BIN_EXE_kiln-web-service"))
+            .args([
+                "ci",
+                "--profile",
+                &profile_path.to_string_lossy(),
+                "--identity",
+                &identity,
+                "dispatch",
+                "--runbook",
+                "security-audit",
+                "--target",
+                "onixresearch/kiln@refs/heads/main",
+                "--dry-run",
+            ])
+            .output(),
+    );
+    assert!(
+        out_dispatch.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out_dispatch.stderr)
+    );
+
+    stop.store(true, Ordering::Release);
+    let _ = handle.join();
+
+    let posts: Vec<Value> = checked(captured.lock())
+        .iter()
+        .filter(|(m, p, _)| m == "POST" && p == "/api/runbooks/security-audit/preview")
+        .filter_map(|(_, _, body)| body.clone())
+        .collect();
+    let [p0, p1, p2] = posts.as_slice() else {
+        unreachable!("expected 3 preview posts, got {}", posts.len());
+    };
+    assert_eq!(p0.get("target"), None);
+    assert_eq!(
+        p0.get("targets"),
+        Some(&json!(["onixresearch/kiln@refs/heads/main"]))
+    );
+    assert_eq!(p1.get("target"), None);
+    assert_eq!(p1.get("targets"), Some(&json!(["kiln-audit"])));
+    assert_eq!(
+        p2.get("target"),
+        Some(&json!("onixresearch/kiln@refs/heads/main"))
+    );
+    assert_eq!(p2.get("targets"), None);
 }
