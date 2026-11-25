@@ -154,6 +154,13 @@ fn run() -> Result<(), ()> {
     if digest != reservation.plan {
         return fail("dispatch plan differs from the attempt reservation");
     }
+    let previous = match implementer.dispatch_requires_recovery(&attempt.identity) {
+        Ok(previous) => previous,
+        Err(error) => return fail(&error),
+    };
+    if let Err(error) = recovery_mode(&flags, previous) {
+        return fail(error);
+    }
     let request_binding = match implementer.bind_campaign_request(
         &work,
         &attempt.identity,
@@ -175,14 +182,9 @@ fn run() -> Result<(), ()> {
             Ok(exchange) => exchange,
             Err(error) => return fail(&format!("{error:?}")),
         };
-    let recover = flags
-        .get("--recover")
-        .is_some_and(|value| matches!(value.as_str(), "true" | "1"));
-    let recover = match implementer.dispatch_requires_recovery(&attempt.identity) {
-        Ok(previous) => recover || previous,
-        Err(error) => return fail(&error),
-    };
-    if !recover {
+    // A prior durable transport intent always selects recovery, including when
+    // the caller omitted --recover. Never turn a requested recovery into dispatch.
+    if !previous {
         let admission = match implementer.admission_snapshot() {
             Ok(value) => value,
             Err(error) => return fail(&error),
@@ -221,7 +223,7 @@ fn run() -> Result<(), ()> {
         wall_clock_ms(),
         &reservation.plan,
     ) {
-        Ok(previously_started) => recover || previously_started,
+        Ok(previously_started) => previous || previously_started,
         Err(error) => return fail(&error),
     };
     let accepted = if recover {
@@ -253,6 +255,34 @@ fn run() -> Result<(), ()> {
         accepted.execution_identity.as_str()
     );
     Ok(())
+}
+
+#[cfg(target_os = "linux")]
+fn recovery_mode(flags: &BTreeMap<String, String>, previous: bool) -> Result<bool, &'static str> {
+    if flags
+        .get("--recover")
+        .is_some_and(|value| matches!(value.as_str(), "true" | "1"))
+        && !previous
+    {
+        return Err("recovery requires prior persisted transport intent; no execution was started");
+    }
+    Ok(previous)
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn explicit_recovery_never_creates_a_transport_intent() {
+        let mut flags = BTreeMap::new();
+        flags.insert("--recover".into(), "true".into());
+        assert!(recovery_mode(&flags, false).is_err());
+        assert_eq!(recovery_mode(&flags, true), Ok(true));
+        flags.clear();
+        assert_eq!(recovery_mode(&flags, true), Ok(true));
+        assert_eq!(recovery_mode(&flags, false), Ok(false));
+    }
 }
 
 #[cfg(target_os = "linux")]

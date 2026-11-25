@@ -3754,6 +3754,7 @@ dependencies = [
  "kiln-implementer",
  "kiln-observe-core",
  "kiln-provider-api",
+ "lattice-workflow-contract",
  "lattice-workflow-transport",
  "libc",
  "nix 0.30.1",

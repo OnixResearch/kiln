@@ -1976,7 +1976,7 @@
     // page aborts its refresh cycle.
     if (route.page === "fleet") {
       if (!window.KilnFleet) { $("fleet-content").replaceChildren(element("p", "Fleet coordination is loading.", "small")); return; }
-      await window.KilnFleet.load($("fleet-content"), { api, stream: apiStream, navigate, route, isCurrent: () => state.route === route && !!state.session });
+      await window.KilnFleet.load($("fleet-content"), { api, stream: apiStream, navigate, runLink, canOperate, route, isCurrent: () => state.route === route && !!state.session });
     }
     if (route.page === "runs") await loadRunView();
   }

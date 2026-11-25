@@ -1,0 +1,29 @@
+/* Read-only Fleet queue and capacity view; shared panel and type tokens remain authoritative. */
+.fleet-capacity-page { display: grid; gap: var(--space-4); min-width: 0; container: fleet-capacity / inline-size; }
+.fleet-capacity-page > h2, .fleet-capacity-page > p, .fleet-capacity-panel > h2, .fleet-capacity-panel > p { margin: 0; }
+.fleet-capacity-panel { display: grid; gap: var(--space-3); min-width: 0; }
+.fleet-capacity-group { display: grid; gap: var(--space-2); min-width: 0; }
+.fleet-capacity-group h3 { margin: 0; font-size: var(--text-base); }
+.fleet-capacity-list { display: grid; gap: var(--space-2); padding: 0; margin: 0; list-style: none; }
+.fleet-capacity-work-row { display: grid; gap: var(--space-1); min-width: 0; padding: var(--space-3); border: 1px solid var(--border); background: var(--secondary); }
+.fleet-capacity-work-row > p { margin: 0; overflow-wrap: anywhere; }
+.fleet-capacity-work-row > code { overflow-wrap: anywhere; font-size: var(--text-xs); }
+.fleet-capacity-row-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); }
+.fleet-capacity-select { text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.fleet-capacity-reasons { display: grid; gap: var(--space-1); margin: 0; padding-left: var(--space-4); overflow-wrap: anywhere; }
+.fleet-capacity-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-1) var(--space-3); min-width: 0; margin: 0; }
+.fleet-capacity-facts dt { color: var(--muted-foreground); }
+.fleet-capacity-facts dd { margin: 0; overflow-wrap: anywhere; }
+.fleet-capacity-form { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-2); }
+.fleet-capacity-form label { display: grid; gap: var(--space-1); flex: 1 1 18rem; min-width: 0; }
+.fleet-capacity-form input { width: 100%; min-width: 0; }
+.fleet-capacity-form p { flex-basis: 100%; margin: 0; overflow-wrap: anywhere; }
+.fleet-capacity-explanation { display: grid; gap: var(--space-3); min-width: 0; }
+.fleet-capacity-explanation > details { min-width: 0; overflow-wrap: anywhere; }
+.fleet-capacity-explanation details p { overflow-wrap: anywhere; }
+.fleet-capacity-error, .fleet-capacity-warning { padding: var(--space-2) var(--space-3); border: 1px solid var(--border-emphasis); overflow-wrap: anywhere; }
+.fleet-capacity-error { color: var(--danger); }
+@container fleet-capacity (max-width: 32rem) {
+  .fleet-capacity-facts { grid-template-columns: minmax(0, 1fr); }
+  .fleet-capacity-form button { width: 100%; }
+}

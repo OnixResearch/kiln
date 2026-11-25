@@ -109,10 +109,13 @@
     const projection = validateCampaign(value);
     const page = element("div", undefined, "inventory-page campaign-projection");
     const header = element("header", undefined, "panel inventory-header");
+    const stages = new Map();
+    for (const member of projection.members) stages.set(member.stage, (stages.get(member.stage) || 0) + 1);
     header.append(element("h2", `Selected campaign · ${projection.campaign_id}`),
-      element("p", `Selection revision ${number(projection.selection_revision)} · store version ${number(projection.store_version)} · projection ${projection.identity}`, "inventory-reference"),
+      element("p", `Selection ${projection.selection_identity} · revision ${number(projection.selection_revision)} · store version ${number(projection.store_version)} · projection ${projection.identity}`, "inventory-reference"),
+      facts([["Selected members", projection.members.length], ["Observed members", projection.members.filter((member) => member.observed === true).length],
+        ["Observed stages of selected members", [...stages].map(([stage, count]) => `${stage}: ${count}`).join("; ") || "None supplied"]]),
       element("p", "Read-only admitted snapshot. A proposed next action is not a grant, reservation, dispatch, landing, or lifecycle authorization.", "small"));
-    page.append(header);
     const nodes = projection.members.map((member) => {
       const article = element("article", undefined, "inventory-row campaign-member");
       article.append(element("h4", `${member.change}${member.tasks.length ? ` · ${member.tasks.join(", ")}` : ""}`),
@@ -260,7 +263,7 @@
     panel.controlButtons = buttons;
     return panel;
   }
-  function renderDefinitions(value, send) {
+  function renderDefinitions(value, send, onSelect) {
     const listing = validateDefinitions(value);
     const buttons = [];
     const panel = element("section", undefined, "panel inventory-section campaign-definitions");
@@ -269,11 +272,11 @@
     if (!listing.definitions.length) panel.append(element("p", "No campaign definitions are configured for this service.", "small"));
     for (const definition of listing.definitions) {
       const article = element("article", undefined, "inventory-row campaign-definition");
-      const existing = definition.existing ? `Started at store version ${number(definition.existing.store_version)}; ${definition.existing.same_selection ? "same selection" : "a different selection"}` : "Not started";
+      const existing = definition.existing ? `Started at store version ${number(definition.existing.store_version)}; ${definition.existing.same_selection ? "same selection" : "a different selection"}; selected identity ${text(definition.existing.selection_identity)}` : "Not started";
       article.append(element("h4", `${definition.campaign_id} · revision ${number(definition.revision)}`),
         facts([["Definition identity", definition.definition_identity], ["Repository", definition.repository], ["Delivery route", definition.delivery_route],
           ["Completion goals this route offers", definition.offered_goals.join(", ")], ["Concurrency / outstanding decisions", `${number(definition.max_concurrency)} / ${number(definition.max_outstanding_decisions)}`],
-          ["Parent budget", definition.parent_budget_id], ["Agent definition", definition.agent_definition], ["Campaign", existing]]));
+          ["One writer per repository", definition.require_one_writer_per_repository], ["Parent budget", definition.parent_budget_id], ["Agent definition", definition.agent_definition], ["Campaign", existing]]));
       const members = element("ul", undefined, "inventory-blockers");
       for (const member of definition.members) {
         const required = (values) => values.length ? values.join(", ") : "none required";
@@ -285,6 +288,11 @@
         const start = controlButton("Start this exact selection"); buttons.push(start);
         start.addEventListener("click", () => send({ command: "start", definition_identity: definition.definition_identity }));
         article.append(start);
+      }
+      if (definition.existing && onSelect) {
+        const open = controlButton("Open existing campaign");
+        open.addEventListener("click", () => onSelect(definition.campaign_id));
+        article.append(open);
       }
       panel.append(article);
     }
@@ -448,6 +456,7 @@
     mounted?.replaceChildren(); mounted?.removeAttribute("aria-busy"); mounted = null; selectedWork = "";
     campaignMounted?.replaceChildren(); campaignMounted?.removeAttribute("aria-busy"); campaignMounted = null;
     definitionsMounted?.replaceChildren(); definitionsMounted?.removeAttribute("aria-busy"); definitionsMounted = null;
+    clearFleetCampaign();
   }
   async function load(root, ctx, work = selectedWork) {
     const current = ++generation; mounted = root; selectedWork = work;
@@ -511,5 +520,93 @@
       root.replaceChildren(panel);
     } finally { if (live()) root.removeAttribute("aria-busy"); }
   }
-  window.KilnInventory = Object.freeze({ validate, sourceBasis, refText, render, validateCampaign, renderCampaign, cairnLinks, validateInbox, validateDefinitions, renderControls, renderDefinitions, commandRunner, runnerUi, decisionAnswer, readInbox, controlsUnavailable, newRequestId, load, loadCampaign, loadDefinitions, clear, scopes: SCOPE });
+  let fleetCampaignGeneration = 0;
+  let fleetCampaignMounted = null;
+  function clearFleetCampaign() {
+    fleetCampaignGeneration += 1;
+    fleetCampaignMounted?.replaceChildren();
+    fleetCampaignMounted?.removeAttribute("aria-busy");
+    fleetCampaignMounted = null;
+  }
+  // Fleet composes the existing frozen previews, admitted projection and owner-guarded inbox.
+  // Each read fails independently; none of these surfaces implies provider authority.
+  async function loadFleetCampaign(root, ctx, campaignId = "", onSelect = () => {}) {
+    clearFleetCampaign();
+    const current = fleetCampaignGeneration;
+    fleetCampaignMounted = root;
+    const live = () => fleetCampaignGeneration === current && root.isConnected && ctx.isCurrent();
+    const definitionsRoot = element("div", undefined, "fleet-campaign-definitions");
+    const selectedRoot = element("div", undefined, "fleet-campaign-selected");
+    root.replaceChildren(definitionsRoot, selectedRoot);
+    let selectionGeneration = 0;
+    let chosenId = campaignId;
+    async function selected(id, notice = "") {
+      const selectedGeneration = ++selectionGeneration;
+      chosenId = id;
+      const selectedLive = () => live() && selectionGeneration === selectedGeneration;
+      if (!id) {
+        selectedRoot.replaceChildren(element("p", "Choose an existing campaign above to inspect its exact selection, progress and decision inbox.", "small"));
+        return;
+      }
+      if (typeof id !== "string" || !id.trim() || id.length > 256) {
+        selectedRoot.replaceChildren(element("p", "Invalid exact campaign selection; no controls are offered.", "small"));
+        return;
+      }
+      selectedRoot.replaceChildren(element("p", `Reading exact campaign ${id}…`, "small"));
+      selectedRoot.setAttribute("aria-busy", "true");
+      try {
+        const projection = validateCampaign(await ctx.api(`/api/implementation/campaigns?campaign=${encodeURIComponent(id)}`));
+        if (!selectedLive()) return;
+        if (projection.campaign_id !== id) throw new Error("The projection names a different campaign.");
+        const controlsRoot = element("div", undefined, "campaign-controls-root");
+        const refreshButton = controlButton("Refresh exact campaign");
+        refreshButton.addEventListener("click", () => { if (selectedLive()) { void selected(id); void definitions(); } });
+        selectedRoot.replaceChildren(renderCampaign(projection), cairnLinks(projection), refreshButton, controlsRoot);
+        try {
+          const inbox = await readInbox(ctx, id);
+          if (!selectedLive()) return;
+          if (inbox.campaign_identity !== projection.campaign_identity || inbox.store_version !== projection.store_version) {
+            controlsRoot.replaceChildren(element("p", "Campaign changed between the progress and inbox reads. Refresh the exact campaign before using controls.", "small"));
+            return;
+          }
+          const panel = {};
+          const refresh = (message) => { if (selectedLive()) { void selected(id, message); void definitions(); } };
+          const ui = runnerUi(panel, refresh, (_result, message) => refresh(message), notice);
+          const runner = commandRunner(ctx, ui);
+          panel.current = renderControls(inbox, (intent) => { if (selectedLive()) void runner.start(intent); });
+          controlsRoot.replaceChildren(panel.current, ui.status, ui.retry);
+        } catch (error) {
+          if (selectedLive() && error?.name !== "AbortError") controlsRoot.replaceChildren(controlsUnavailable(error, "Campaign controls"));
+        }
+      } catch (error) {
+        if (selectedLive() && error?.name !== "AbortError") selectedRoot.replaceChildren(element("p", `Exact campaign ${id} unavailable: ${text(error?.message)} No alternate campaign or control was substituted.`, "small"));
+      } finally { if (selectedLive()) selectedRoot.removeAttribute("aria-busy"); }
+    }
+    function select(id) {
+      if (!live()) return;
+      void selected(id);
+      onSelect(id);
+    }
+    let definitionsGeneration = 0;
+    async function definitions(notice = "") {
+      const readGeneration = ++definitionsGeneration;
+      const definitionsLive = () => live() && definitionsGeneration === readGeneration;
+      definitionsRoot.setAttribute("aria-busy", "true");
+      try {
+        const listing = validateDefinitions(await ctx.api("/api/implementation/campaign-definitions"));
+        if (!definitionsLive()) return;
+        const panel = {};
+        const ui = runnerUi(panel, (message) => { if (definitionsLive()) void definitions(message); }, (result) => {
+          if (definitionsLive()) { select(result.campaign_id); void definitions(); }
+        }, notice);
+        const runner = commandRunner(ctx, ui);
+        panel.current = renderDefinitions(listing, (intent) => { if (definitionsLive()) void runner.start(intent); }, select);
+        definitionsRoot.replaceChildren(panel.current, ui.status, ui.retry);
+      } catch (error) {
+        if (definitionsLive() && error?.name !== "AbortError") definitionsRoot.replaceChildren(controlsUnavailable(error, "Campaign definitions"));
+      } finally { if (definitionsLive()) definitionsRoot.removeAttribute("aria-busy"); }
+    }
+    await Promise.all([definitions(), selected(chosenId)]);
+  }
+  window.KilnInventory = Object.freeze({ validate, sourceBasis, refText, render, validateCampaign, renderCampaign, cairnLinks, validateInbox, validateDefinitions, renderControls, renderDefinitions, commandRunner, runnerUi, decisionAnswer, readInbox, controlsUnavailable, newRequestId, load, loadCampaign, loadDefinitions, loadFleetCampaign, clearFleetCampaign, clear, scopes: SCOPE });
 })();

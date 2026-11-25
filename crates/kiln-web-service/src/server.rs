@@ -35,6 +35,10 @@ pub struct Options {
     pub preview_observations: Option<PathBuf>,
     /// Campaign control profile; requires `implementation_work`.
     pub campaign_controls: Option<PathBuf>,
+    /// Optional owner profile for original Lattice recovery; requires `implementation_work`.
+    pub dispatch_recovery: Option<PathBuf>,
+    /// Optional immutable native inspection profile for one frozen Lattice attempt.
+    pub native_runtime_evidence: Option<PathBuf>,
     /// Runtime-only loopback fleet coordinator endpoint.
     pub fleet: Option<PathBuf>,
 }
@@ -77,6 +81,27 @@ impl Options {
             })
             .transpose()
     }
+    fn recovery_config(&self) -> Result<Option<crate::dispatch_recovery::RecoveryConfig>, String> {
+        if self.dispatch_recovery.is_some() && self.implementation_work.is_none() {
+            return Err("dispatch recovery requires implementation work".to_owned());
+        }
+        self.dispatch_recovery
+            .as_deref()
+            .map(crate::dispatch_recovery::RecoveryConfig::load)
+            .transpose()
+    }
+    fn native_runtime_config(
+        &self,
+    ) -> Result<Option<crate::runtime_evidence::RuntimeEvidenceProfile>, String> {
+        let Some(path) = self.native_runtime_evidence.as_deref() else {
+            return Ok(None);
+        };
+        let profile = crate::runtime_evidence::RuntimeEvidenceProfile::load(path)?;
+        if self.implementation_work.as_deref() != Some(profile.implementation_database.as_path()) {
+            return Err("native runtime evidence requires the same implementation database".to_owned());
+        }
+        Ok(Some(profile))
+    }
 }
 
 #[path = "server/admission.rs"]
@@ -96,6 +121,8 @@ pub fn check_with_options(path: &Path, options: &Options) -> Result<(), String> 
     let profile = ServiceProfile::load(path)?;
     options.observation_inputs()?;
     let _controls = options.campaign_controls()?;
+    let _recovery = options.recovery_config()?;
+    let _native_runtime = options.native_runtime_config()?;
     let access = options.access_profile()?;
     let access_agents = access.agent_bindings();
     let _credentials = Credentials::load(&profile, access)?;
@@ -184,6 +211,8 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
     let profile = ServiceProfile::load(path)?;
     options.observation_inputs()?;
     let campaign_controls = options.campaign_controls()?;
+    let dispatch_recovery = options.recovery_config()?;
+    let native_runtime = options.native_runtime_config()?;
     let access = options.access_profile()?;
     let access_identity = access.identity()?;
     let access_agents = access.agent_bindings();
@@ -278,6 +307,8 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
         inventory: options.inventory.as_deref(),
         implementation_work: options.implementation_work.as_deref(),
         campaign_controls: campaign_controls.as_ref(),
+        dispatch_recovery: dispatch_recovery.as_ref(),
+        native_runtime_evidence: native_runtime.as_ref(),
         fleet: fleet.as_ref(),
         stop: &stop,
     };
@@ -508,8 +539,70 @@ struct Context<'a> {
     inventory: Option<&'a Path>,
     implementation_work: Option<&'a Path>,
     campaign_controls: Option<&'a crate::campaign_controls::Controls>,
+    dispatch_recovery: Option<&'a crate::dispatch_recovery::RecoveryConfig>,
+    native_runtime_evidence: Option<&'a crate::runtime_evidence::RuntimeEvidenceProfile>,
     fleet: Option<&'a crate::fleet::Client>,
     stop: &'a AtomicBool,
+}
+
+type ExactRuntimeQuery = (
+    kiln_core::types::ContentId,
+    u64,
+    kiln_core::types::ContentId,
+);
+
+fn native_runtime_query(target: &str) -> Option<ExactRuntimeQuery> {
+    let query = target.strip_prefix("/api/implementation/runtime-evidence?attempt=")?;
+    let (attempt, rest) = query.split_once("&fence=")?;
+    let (fence, work) = rest.split_once("&work=")?;
+    let identity = |value: &str| {
+        if value.len() != blake3::OUT_LEN * 2
+            || !value
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        {
+            return None;
+        }
+        kiln_core::types::ContentId::from_blake3_hex(value).ok()
+    };
+    if fence.starts_with('0') || !fence.bytes().all(|byte| byte.is_ascii_digit()) {
+        return None;
+    }
+    Some((identity(attempt)?, fence.parse().ok()?, identity(work)?))
+}
+
+fn native_runtime_response(
+    request: &Request,
+    profile: Option<&crate::runtime_evidence::RuntimeEvidenceProfile>,
+    principal: &Principal,
+) -> ApiResponse {
+    const MAX_NATIVE_EVIDENCE_BYTES: usize = 64 * 1024;
+    if principal.role != crate::engine::Role::Operator {
+        return error_response(403, "native_runtime_evidence_forbidden");
+    }
+    if request.method != "GET" || !request.body.is_empty() {
+        return error_response(405, "native_runtime_evidence_read_only");
+    }
+    let Some((attempt, fence, work)) = native_runtime_query(&request.target) else {
+        return error_response(400, "native_runtime_evidence_query_invalid");
+    };
+    let Some(profile) = profile else {
+        return error_response(503, "native_runtime_evidence_not_configured");
+    };
+    let Ok(observation) = crate::runtime_evidence::read_lattice(profile, &work, &attempt, fence)
+    else {
+        return error_response(503, "native_runtime_evidence_unavailable");
+    };
+    match serde_json::to_vec(&observation) {
+        Ok(body) if body.len() <= MAX_NATIVE_EVIDENCE_BYTES => ApiResponse {
+            status: 200,
+            content_type: "application/json",
+            body,
+            download_name: None,
+            headers: Vec::new(),
+        },
+        _ => error_response(503, "native_runtime_evidence_response_invalid"),
+    }
 }
 
 fn tls_config(profile: &ServiceProfile) -> Result<Arc<ServerConfig>, String> {
@@ -857,6 +950,20 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
                 principal.role,
             );
         }
+        if path == crate::dispatch_recovery::ROUTE {
+            return crate::dispatch_recovery::response(
+                context.implementation_work,
+                context.dispatch_recovery,
+                &request.method,
+                &request.target,
+                principal.role,
+                &principal.id,
+                &request.body,
+            );
+        }
+        if path == "/api/implementation/runtime-evidence" {
+            return native_runtime_response(&request, context.native_runtime_evidence, &principal);
+        }
         if crate::campaign_controls::ROUTES.contains(&path) {
             return campaign_control_response(&request, context, &principal);
         }
@@ -1041,6 +1148,18 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
             "/cairn.css" => ("text/css; charset=utf-8", include_bytes!("cairn.css")),
             "/fleet.js" => ("text/javascript; charset=utf-8", include_bytes!("fleet.js")),
             "/fleet.css" => ("text/css; charset=utf-8", include_bytes!("fleet.css")),
+            "/fleet-runtime.js" => (
+                "text/javascript; charset=utf-8",
+                include_bytes!("fleet-runtime.js"),
+            ),
+            "/fleet-capacity.js" => (
+                "text/javascript; charset=utf-8",
+                include_bytes!("fleet-capacity.js"),
+            ),
+            "/fleet-capacity.css" => (
+                "text/css; charset=utf-8",
+                include_bytes!("fleet-capacity.css"),
+            ),
             "/inventory.js" => (
                 "text/javascript; charset=utf-8",
                 include_bytes!("inventory.js"),

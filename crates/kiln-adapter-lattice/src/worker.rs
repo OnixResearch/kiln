@@ -13,6 +13,8 @@ use std::path::{Path, PathBuf};
 
 #[path = "worker_metrics.rs"]
 mod metrics;
+#[path = "worker_inspect.rs"]
+pub mod inspect;
 
 const MAX_OMP_OBSERVATION_BYTES: u64 = 16 * 1024;
 

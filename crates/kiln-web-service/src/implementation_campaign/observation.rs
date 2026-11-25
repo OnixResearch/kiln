@@ -706,25 +706,11 @@ pub(super) fn bind_stage_request(
             "native request source or protected acceptance differs from canonical work".into(),
         );
     }
-    let omp = request
-        .get_mut("omp")
-        .and_then(Value::as_object_mut)
-        .ok_or("native Lattice request lacks its typed OMP profile")?;
-    for key in [
-        "revision",
-        "executable_blake3",
-        "base_identity",
-        "model",
-        "prompt",
-    ] {
-        if !omp.contains_key(key) {
-            return Err(format!("native OMP profile lacks supported field {key}"));
-        }
-    }
-    let prompt = omp
+    let harness = native_prompt_profile(request)?;
+    let prompt = harness
         .get("prompt")
         .and_then(Value::as_str)
-        .ok_or("native OMP profile prompt is not text")?;
+        .ok_or("native harness profile prompt is not text")?;
     let change_projection = snapshot
         .implementation_ready
         .get("changes")
@@ -770,8 +756,31 @@ pub(super) fn bind_stage_request(
     if bound_prompt.len() > 1_048_576 {
         return Err("native Cairn stage prompt exceeds the admitted request bound".into());
     }
-    omp.insert("prompt".into(), Value::String(bound_prompt));
+    harness.insert("prompt".into(), Value::String(bound_prompt));
     Ok(())
+}
+
+fn native_prompt_profile(request: &mut Value) -> Result<&mut serde_json::Map<String, Value>, String> {
+    let selected = match (
+        request.get("omp").is_some_and(|value| !value.is_null()),
+        request.get("animus_implementation").is_some_and(|value| !value.is_null()),
+    ) {
+        (true, false) => "omp",
+        (false, true) => "animus_implementation",
+        _ => return Err("native request requires exactly one implementation harness".into()),
+    };
+    let profile = request
+        .get_mut(selected)
+        .and_then(Value::as_object_mut)
+        .ok_or("native Lattice request lacks its typed harness profile")?;
+    if selected == "omp" {
+        for key in ["revision", "executable_blake3", "base_identity", "model", "prompt"] {
+            if !profile.contains_key(key) {
+                return Err(format!("native OMP profile lacks supported field {key}"));
+            }
+        }
+    }
+    Ok(profile)
 }
 
 fn artifact_work(
@@ -1485,9 +1494,18 @@ fn hash(bytes: &[u8]) -> Result<ContentId, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{native_dependencies, native_ordered_unit, parse_source};
+    use super::{native_dependencies, native_ordered_unit, native_prompt_profile, parse_source};
     use kiln_core::implementation::WorkSourceKind;
     use serde_json::json;
+
+    #[test]
+    fn native_prompt_binding_refuses_ambiguous_harness_authoring() {
+        let mut seed = json!({"animus_implementation":{"prompt":"base"}});
+        native_prompt_profile(&mut seed).unwrap().insert("prompt".into(), json!("bound"));
+        assert_eq!(seed.pointer("/animus_implementation/prompt"), Some(&json!("bound")));
+        seed["omp"] = json!({"prompt":"second route"});
+        assert!(native_prompt_profile(&mut seed).is_err());
+    }
 
     #[test]
     fn task_and_artifact_source_identities_do_not_masquerade() {

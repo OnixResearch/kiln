@@ -1666,3 +1666,301 @@ test("session pointers render as inert, untrusted historical context only", () =
   assert.match(next.textContent, /new-selected-revision/);
   assert.doesNotMatch(next.textContent, /old-selected-revision|old-commit|kiln-pointer-id/);
 });
+
+// r[verify kiln.fleet.console_snapshot.scenario.transitions]
+// r[verify kiln.fleet.console_drilldown.scenario.intersection]
+test("Fleet filters survive snapshots alongside drafts and independent stream feedback", async () => {
+  const page = cairnPage();
+  Object.assign(page.document, { addEventListener() {}, removeEventListener() {} });
+  const timers = [];
+  Object.assign(page, { Node: CairnNode, AbortController, TextDecoder, DOMException,
+    setTimeout(callback, delay) { if (delay === 1000) timers.push(callback); return 0; }, clearTimeout() {} });
+  page.window.KilnUi = { timeElement: () => new CairnNode("time") };
+  vm.runInNewContext(asset("fleet.js"), page);
+  const fleet = page.window.KilnFleet;
+  const root = new CairnNode("div");
+  let stream;
+  const requests = [];
+  const context = {
+    isCurrent: () => true,
+    stream(path) {
+      requests.push(path);
+      return new ReadableStream({ start(controller) { stream = controller; } });
+    },
+    api(path, options) {
+      if (path === "/api/implementation/cairn") return cairnIndex();
+      assert.equal(path, `/api/fleet/decisions/${"d".repeat(64)}/answer`);
+      assert.equal(options.body.text, "Draft answer");
+      throw new Error("Fixture refused answer");
+    },
+  };
+  const send = async (frame) => {
+    stream.enqueue(new TextEncoder().encode(`${frame}\n\n`));
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+  const snapshot = {
+    version: "a".repeat(64), health: { api: "v1", machine: "fixture", version: "1" },
+    claims: { claims: [] }, work: { ready_unclaimed: 7, ranked: [], blocked: [] },
+    attempts: { attempts: [["executing", "alpha"], ["executing", "beta"], ["terminal", "alpha"], ["future_state", null]].map(([state, machine], i) => ({ attempt: String(i).repeat(64), state, session: machine ? { machine } : null })) },
+    decisions: { decisions: [{ identity: "d".repeat(64), question: "Proceed?" }] },
+  };
+  const snapshotFrame = () => `event: snapshot\ndata: ${JSON.stringify(snapshot)}`;
+  const status = () => root.querySelector(".fleet-connection").dataset.state;
+  const stamp = () => root.querySelector(".fleet-status time").dateTime;
+  try {
+    fleet.load(root, context);
+    assert.match(root.textContent, /No snapshot received/);
+    assert.ok(root.querySelector(".fleet-mix").hidden);
+    await send(snapshotFrame());
+    assert.equal(status(), "live");
+    assert.deepEqual(root.querySelectorAll(".fleet-mix-list")[0].querySelectorAll("meter").map(({ value, max }) => [value, max]), [[2, 4], [1, 4], [1, 4]]);
+    assert.deepEqual(root.querySelectorAll(".fleet-metrics dd").map((node) => node.textContent), ["0", "7", "4", "1"]);
+    const button = (name) => root.querySelectorAll("button").find((node) => node.textContent.trim().startsWith(name));
+    const click = (name) => button(name).listeners.get("click")[0]();
+    const listedRows = () => root.querySelectorAll("tbody tr").filter((row) => row.querySelectorAll("td").some((cell) => cell.dataset.label === "Session"));
+    click("No machine recorded");
+    assert.match(root.textContent, /Showing 1 of 4/);
+    click("No machine recorded");
+    click("Executing");
+    click("alpha");
+    assert.match(root.textContent, /Showing 1 of 4/);
+    assert.match(listedRows()[0].textContent, /000000000000/);
+    assert.equal(button("Executing").querySelector("meter").value, 2);
+    assert.equal(button("alpha").querySelector("meter").value, 2);
+    assert.equal(requests.length, 1);
+    const observed = stamp();
+    await send(": heartbeat");
+    assert.equal(stamp(), observed);
+    const input = root.querySelector(".fleet-answer input");
+    input.value = "Draft answer";
+    root.querySelector(".fleet-answer").listeners.get("submit")[0]({ preventDefault() {} });
+    snapshot.version = "b".repeat(64);
+    snapshot.work.ready_unclaimed = 8;
+    snapshot.attempts.attempts = snapshot.attempts.attempts.filter((attempt) => attempt.session?.machine !== "alpha");
+    await send(snapshotFrame());
+    assert.equal(button("alpha").getAttribute("aria-pressed"), "true");
+    assert.equal(button("alpha").querySelector("meter").value, 0);
+    assert.match(root.textContent, /Showing 0 of 2 listed attempts/);
+    assert.match(root.textContent, /No matching attempts/);
+    click("Clear filters");
+    assert.equal(button("alpha"), undefined);
+    assert.match(root.textContent, /Showing 2 of 2 listed attempts/);
+    assert.equal(requests.length, 1);
+    assert.equal(root.querySelector(".fleet-answer input"), input);
+    assert.match(root.textContent, /Fixture refused answer/);
+    await send(": unavailable");
+    assert.equal(status(), "stale");
+    assert.match(root.textContent, /Proceed\?/);
+    assert.equal(input.value, "Draft answer");
+    assert.match(root.textContent, /The coordinator did not answer/);
+    assert.equal(timers.length, 1);
+    timers.pop()();
+    assert.equal(requests.at(-1), `/api/fleet/events?after=${snapshot.version}`);
+    await send(": heartbeat");
+    assert.equal(status(), "live");
+    assert.ok(root.querySelectorAll(".fleet-banner")[0].hidden);
+    assert.match(root.textContent, /Fixture refused answer/);
+  } finally {
+    fleet.clear();
+    try { stream.close(); } catch { /* stream already closed */ }
+  }
+});
+
+// r[verify kiln.fleet.cairn_progress.scenario.refresh]
+// r[verify kiln.fleet.cairn_workers.scenario.attribution]
+// r[verify kiln.fleet.cairn_execution_context.scenario.evidence]
+test("Fleet refreshes exact Cairn changes without coordinator events and retains stale rows", async () => {
+  const page = cairnPage();
+  Object.assign(page.document, { addEventListener() {}, removeEventListener() {}, visibilityState: "visible" });
+  let refresh;
+  Object.assign(page, { Node: CairnNode, AbortController, TextDecoder, setTimeout(callback, delay) { if (delay === 15_000) refresh = callback; }, clearTimeout() {} });
+  vm.runInNewContext(asset("fleet.js"), page);
+  const fleet = page.window.KilnFleet;
+  const root = new CairnNode("div");
+  const index = cairnIndex("same-name", "same-name");
+  index.snapshot = { work_recorded: true, attempts_recorded: true };
+  const [first, second] = index.changes;
+  first.lane = "in_progress";
+  first.lanes.in_progress = 1;
+  first.active_attempts = 1;
+  const attempt = "1".repeat(64), unbound = "2".repeat(64);
+  first.active_assignments = [{ attempt, fence: 2, worker: { source: "lattice", id: "worker-alpha" },
+    dispatch_profile: "lattice-implementation", harness: "omp-jsonl", requested_model: "model-a",
+    model_services: [{ source: "serving", id: "replica-a" }], model_services_truncated: true }, { attempt: unbound, fence: 3 }];
+  second.repository_identity = "b".repeat(64);
+  second.lanes.awaiting = 1;
+  const reads = [];
+  let events;
+  const waitTurn = () => new Promise((resolve) => setImmediate(resolve));
+  try {
+    fleet.load(root, { isCurrent: () => true, stream: () => new ReadableStream({ start(controller) { events = controller; } }),
+      api(path, { controller }) {
+        assert.equal(path, "/api/implementation/cairn");
+        return new Promise((resolve, reject) => reads.push({ resolve, reject, controller }));
+      },
+    });
+    reads[0].resolve(index);
+    await waitTurn();
+    const panel = root.querySelector(".fleet-cairn-register");
+    assert.match(panel.textContent, /In progress 1/);
+    assert.match(panel.textContent, /1 active attempts/);
+    assert.match(panel.textContent, /Dispatch binding · lattice\/worker-alpha/);
+    assert.match(panel.textContent, /Worker not recorded/);
+    assert.match(panel.textContent, /Requested model artifact · model-a/);
+    assert.match(panel.textContent, /Bound model services · serving\/replica-a · more not listed/);
+    assert.match(panel.textContent, /Planned harness · omp-jsonl/);
+    assert.match(panel.textContent, /Machine not observed/);
+    assert.match(panel.textContent, /Swarm \/ subagents not observed/);
+    const fleetEvent = {
+      version: "a".repeat(64), health: { api: "v1", machine: "fixture", version: "1" },
+      claims: { claims: [] }, work: { ready_unclaimed: 0, ranked: [], blocked: [] }, decisions: { decisions: [] },
+      attempts: { attempts: [{ attempt, fence: 2, session: { machine: "right-host", kind: "omp", state: { state: "working" } } }, { attempt: unbound, fence: 4, session: { machine: "wrong-fence-host" } }] },
+    };
+    events.enqueue(new TextEncoder().encode(`event: snapshot\ndata: ${JSON.stringify(fleetEvent)}\n\n`));
+    await waitTurn();
+    assert.match(panel.textContent, /Fleet session · right-host · Working/);
+    assert.match(panel.textContent, /Observed agent kind · omp/);
+    assert.match(panel.textContent, /Requested model artifact · model-a/);
+    assert.match(panel.textContent, /Swarm \/ subagents not observed/);
+    assert.doesNotMatch(panel.textContent, /wrong-fence-host/);
+    assert.match(panel.textContent, /Worker not recorded/);
+    assert.deepEqual(new Set(panel.querySelectorAll("a").map((node) => new URLSearchParams(node.href).get("cairn_repository"))), new Set([first.repository_identity, second.repository_identity]));
+    refresh();
+    first.lane = "verified";
+    first.lanes.in_progress = 0;
+    first.lanes.verified = 1;
+    index.truncated = true;
+    reads[1].resolve(index);
+    await waitTurn();
+    assert.match(panel.textContent, /Verified 1/);
+    assert.match(root.textContent, /Partial index/);
+    refresh();
+    reads[2].reject(new Error("fixture unavailable"));
+    await waitTurn();
+    assert.match(root.textContent, /Stale · last Cairn snapshot shown/);
+    assert.match(panel.textContent, /Verified 1/);
+    refresh();
+    fleet.clear();
+    assert.equal(reads[3].controller.signal.aborted, true);
+    first.lane = "recorded";
+    reads[3].resolve(index);
+    await waitTurn();
+    assert.doesNotMatch(panel.textContent, /Lifecycle recorded/);
+  } finally {
+    fleet.clear();
+    events?.close();
+  }
+});
+
+// r[verify kiln.fleet.operator_plane.scenario.stuck]
+test("Fleet operator inspector refuses crossed recovery evidence and links the exact verification logs", async () => {
+  const page = cairnPage();
+  Object.assign(page.document, { addEventListener() {}, removeEventListener() {}, visibilityState: "visible" });
+  Object.assign(page, { Node: CairnNode, AbortController, setTimeout() {}, clearTimeout() {} });
+  page.confirm = () => true;
+  page.window.KilnUi = { timeElement: () => new CairnNode("time") };
+  vm.runInNewContext(asset("fleet.js"), page);
+  const root = page.document.createElement("div");
+  const index = cairnIndex("stuck");
+  Object.assign(index.changes[0], { lane: "attention", blockers: 1, first_blocker: { condition: "dispatch_recovery", subject: "execute" } });
+  const detail = cairnDetail("stuck");
+  const identity = "a".repeat(64), work = "b".repeat(64);
+  detail.units[0].attempts = [{ identity, work_identity: work, fence: 7, ordinal: 1, phase: "failed", unknown_outcome: "unreconciled", dispatch: "transport_started",
+    verification: { run_id: "verified-run", checks: [{ name: "acceptance", outcome: "fail" }], success: false } }];
+  let crossed = true;
+  let lineageFence = 7;
+  const digest = "c".repeat(64);
+  let command;
+  const requested = [];
+  const settle = () => new Promise((resolve) => setImmediate(resolve));
+  const button = (title) => root.querySelectorAll("button").find((node) => node.textContent.trim() === title);
+  try {
+    page.window.KilnFleet.load(root, { isCurrent: () => true, stream: () => new Promise(() => {}),
+      async api(path, options) {
+        requested.push(path);
+        if (path === "/api/implementation/cairn") return index;
+        if (path === `/api/implementation/cairn/detail?repository=${CAIRN_REPOSITORY}&change=stuck`) return detail;
+        if (path === `/api/implementation/dispatch-recovery?attempt=${identity}&fence=7`) {
+          if (options.method === "POST") {
+            command = options.body;
+            return { schema: "kiln.dispatch-recovery-result.v1", attempt: identity, fence: 7, work_identity: work, outcome: "accepted", workflow: { provider_namespace: "lattice", native_id: "original-execution" } };
+          }
+          return { schema: "kiln.dispatch-recovery-observation.v1", attempt: identity, fence: crossed ? 8 : 7, work_identity: work,
+            recovery_status: "retained_transport_intent", can_recover: true, request_binding: { request_digest: digest },
+            planned_graph: { nodes: [{ id: "build", kind: "agent" }, { id: "check", kind: "verification" }], edges: [{ source: "build", target: "check" }] } };
+        }
+        if (path === `/api/implementation/runtime-evidence?attempt=${identity}&fence=7&work=${work}`) return {
+          schema: "kiln.native-runtime-evidence.v1", attempt_identity: identity, fence: 7, work_identity: work, request_identity: digest,
+          worker: { schema: "lattice.worker-instance-observation.v3", attempt_id: identity, fence: 7, work_id: work, incarnation: digest, profile_revision: work, lifecycle: { state: "terminal_observed" } },
+          agent_lineage: { state: "recorded", receipt: {
+            schema: "animus.implementation-child-lineage.v1", work_identity: work, attempt_identity: identity,
+            fence: lineageFence, request_identity: digest, worker_incarnation: digest, profile_revision: work,
+            root_id: "root-fixture", coverage: "partial", edges: [{ parent_id: "root-fixture", child_id: "child-fixture", state: "completed" }],
+          } },
+          model_requests: { state: "serving_owner", usage_complete: false, services: [
+            { service: "service-fixture", expected_model: "model-fixture", requests: [
+              { request_id: "request-a", class: "completed", deployment_id: "deployment-fixture", deployment_generation: 4, replica: "replica-fixture", evidence: "fixture" },
+              { request_id: "request-b", class: "dispatch_unconfirmed", deployment_id: "deployment-fixture" },
+            ] },
+          ] },
+        };
+        throw new Error(`Unexpected read ${path}`);
+      },
+    });
+    await settle();
+    assert.match(root.querySelector(".fleet-attention-list").textContent, /Unknown dispatch outcome/);
+    button("Inspect attempts").listeners.get("click")[0]();
+    await settle();
+    assert.match(root.textContent, /acceptance · Fail/);
+    const logs = root.querySelectorAll("a").find((node) => node.textContent.trim() === "Open exact verification logs");
+    assert.equal(new URLSearchParams(logs.href).get("run"), "verified-run");
+    assert.equal(new URLSearchParams(logs.href).get("view"), "logs");
+    await button("Read recovery evidence").listeners.get("click")[0]();
+    assert.match(root.textContent, /Crossed recovery evidence refused/);
+    assert.equal(button("Reconcile original dispatch…").hidden, true);
+    crossed = false;
+    await button("Read recovery evidence").listeners.get("click")[0]();
+    assert.match(root.textContent, /Retained transport intent/);
+    assert.match(root.textContent, /Planned Lattice graph \(not live state\)/);
+    assert.match(root.textContent, /check · Verification · depends on build/);
+    assert.equal(button("Reconcile original dispatch…").hidden, false);
+    await button("Reconcile original dispatch…").listeners.get("click")[0]();
+    assert.deepEqual(plain(command), { request_digest: digest });
+    assert.match(root.textContent, /Original execution recovered · lattice · original-execution/);
+    assert.equal(button("Reconcile original dispatch…").hidden, true);
+    await button("Inspect native worker").listeners.get("click")[0]();
+    assert.match(root.textContent, new RegExp(`Incarnation ${digest}`));
+    assert.match(root.textContent, /Parent root-fixture · Partial coverage/);
+    assert.match(root.textContent, /Child child-fixture · Completed/);
+    assert.match(root.textContent, /Response model matched model-fixture/);
+    assert.match(root.textContent, /Admission replica replica-fixture · Fixture/);
+    assert.match(root.textContent, /Provider usage coverage is incomplete/);
+    assert.equal(root.textContent.match(/Response model matched/g).length, 1);
+    lineageFence = 8;
+    await button("Inspect native worker").listeners.get("click")[0]();
+    assert.match(root.textContent, /Crossed agent lineage refused/);
+    assert.doesNotMatch(root.textContent, /Child child-fixture/);
+    assert.deepEqual(requested.filter((path) => path.startsWith("/api/implementation/dispatch-recovery?")),
+      Array(3).fill(`/api/implementation/dispatch-recovery?attempt=${identity}&fence=7`));
+  } finally { page.window.KilnFleet.clear(); }
+});
+
+test("Fleet runtime does not attribute a crossed fence, expired device, or synthetic worker", () => {
+  const page = cairnPage();
+  vm.runInNewContext(asset("fleet-runtime.js"), page);
+  const { observation } = page.window.KilnFleetRuntime;
+  const attempt = { attempt: "a".repeat(64), work: "b".repeat(64), fence: 7 };
+  const ref = (id) => ({ source: "runtime", id });
+  const meta = (id) => ({ reference: ref(id), unknown_fields: [], valid_until_ms: 100 });
+  const worker = { meta: meta("worker"), attempt: attempt.attempt, fence: 7, incarnation: "generation-1", execution: ref("cpu"), pinned_revision: "rev-1", lifecycle: "executing" };
+  const device = { meta: meta("cpu"), host: "machine-a" };
+  const projection = { sources: [{ source: "runtime", state: "current", valid_until_ms: 100 }], facts: [worker, device].map((row) => ({ reference: row.meta.reference, state: "current" })),
+    snapshot: { synthetic: false, workers: [worker], compute: [device], admissions: [], models: [] }, attempt_explanations: [] };
+  assert.equal(observation(projection, attempt, 95).machine, "machine-a");
+  assert.equal(observation(projection, { ...attempt, fence: 8 }, 95).worker, null);
+  assert.equal(observation(projection, { ...attempt, session: { machine: "machine-b" } }, 95).machine, null);
+  device.meta.valid_until_ms = 95;
+  assert.equal(observation(projection, attempt, 95).machine, null);
+  projection.snapshot.synthetic = true;
+  assert.equal(observation(projection, attempt, 95).worker, null);
+});
