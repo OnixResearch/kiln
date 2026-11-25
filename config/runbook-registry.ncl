@@ -358,6 +358,58 @@ let RunbookDefinition = {
 }
 in
 
+let NotificationId =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 100
+    && std.string.is_match "^[A-Za-z0-9_.-]+$" value
+  )
+in
+
+let Host =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 253
+    && !(std.string.is_match "[:?#\\\\]" value)
+    && std.string.is_match "^[A-Za-z0-9.-]+$" value
+  )
+in
+
+let NotificationPath =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 2048
+    && std.string.is_match "^/" value
+    && !(std.string.is_match "[?#\\\\\\x00-\\x20\\x7f]" value)
+    && !(std.string.is_match "^//" value)
+  )
+in
+
+let NotificationEntry = {
+  id | NotificationId,
+  enabled | Bool,
+  runbooks | Array RunbookId | Between 0 64 | Unique | default = [],
+  on_success | Bool,
+  on_failure | Bool,
+  on_unknown | Bool | default = true,
+  host | Host,
+  port | IntBetween 1 65535,
+  path | NotificationPath,
+  addresses | Array String | Between 1 16,
+  bearer_secret_file | c.Nullable c.AbsolutePath,
+  ca_certificate_file | c.Nullable c.AbsolutePath,
+  allow_loopback | Bool,
+  allow_private | Bool,
+  timeout_ms | IntBetween 1 30000,
+  max_request_bytes | IntBetween 1 1048576,
+  max_response_bytes | IntBetween 1 1048576,
+  max_resolver_candidates | IntBetween 1 16,
+}
+in
+
 let Grant = {
   principal | PrincipalId,
   runbooks | Array RunbookId | Between 1 64 | Unique,
@@ -369,14 +421,23 @@ let RegistryRelations =
   std.contract.from_predicate (fun registry =>
     let runbook_ids = std.array.map (fun runbook => runbook.id) registry.runbooks in
     let grant_principals = std.array.map (fun grant => grant.principal) registry.grants in
+    let notification_ids = std.array.map (fun n => n.id) registry.notifications in
     unique runbook_ids
     && unique grant_principals
+    && unique notification_ids
     && std.array.all valid_runbook_relations registry.runbooks
     && std.array.all
       (fun grant =>
         std.array.all (fun id => std.array.elem id runbook_ids) grant.runbooks
       )
       registry.grants
+    && std.array.all
+      (fun n =>
+        std.array.length n.addresses >= 1
+        && std.array.length n.addresses <= n.max_resolver_candidates
+        && std.array.all (fun id => std.array.elem id runbook_ids) n.runbooks
+      )
+      registry.notifications
   )
 in
 
@@ -386,11 +447,17 @@ fun input =>
       | {
         runbooks | Array RunbookDefinition | Between 1 64,
         grants | Array Grant | Between 0 128 | default = [],
+        notifications | Array NotificationEntry | Between 0 32 | default = [],
       }
       | RegistryRelations
   in
-  {
+  let base = {
     schema = "kiln.runbook-registry.v1",
     runbooks = admitted.runbooks,
     grants = admitted.grants,
   }
+  in
+  if admitted.notifications == [] then
+    base
+  else
+    base & { notifications = admitted.notifications }

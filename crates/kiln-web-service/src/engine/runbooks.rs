@@ -20,6 +20,7 @@ impl Engine {
     pub fn configure_runbooks(&mut self, registry: RunbookRegistry) -> Result<(), String> {
         registry.admit_for_service(&self.profile)?;
         self.runbook_profile = Some(registry);
+        self.recover_stale_summary_notifications()?;
         Ok(())
     }
 
@@ -28,6 +29,7 @@ impl Engine {
         registry.admit_for_service(&self.profile)?;
         self.runbooks_path = Some(path.to_path_buf());
         self.runbook_profile = Some(registry);
+        self.recover_stale_summary_notifications()?;
         Ok(())
     }
 

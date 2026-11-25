@@ -5394,6 +5394,40 @@ Operators can dispatch a parent fan-out run from destination `1.5` (Runbooks),
   `<owner>/<repo> <path>` scopes against live fleet claims (`refuse`, `skip`, or
   `serialize`) and serialize overlapping internal mutating runs.
 
+### Runbook result roll-ups
+
+Kiln retains read-only result roll-ups across standalone runbook dispatches and
+parent fan-out runs (`GET /api/runbooks/dispatches`,
+`GET /api/runbooks/dispatches/{run_id}/rollup`, and
+`GET /api/runbooks/fanouts/{fanout_id}/rollup`, plus `kiln-web-service ci`
+`dispatch-list`, `dispatch-rollup`, and `fanout-rollup`). Destination `1.5`
+(Runbooks) renders roll-ups both from **Recent dispatches** / **Inspect result
+roll-up** and inside the fan-out inspector (`#fanout-rollup-section`) with
+bounded cursor pagination (`rollup_cursor`):
+
+- **Explicit outcomes**: per-target exact `source_revision` and canonical run
+  `Outcome` preserve `Outcome::Unknown` and `Skipped` explicitly and never
+  collapse a parent fan-out into a single fabricated pass/fail outcome.
+- **Explicit receipt states**: Patchgate review receipts
+  (`kiln.patchgate.review.v1` `ReportKind::Review` uploads) and verification
+  receipts (run-bound `Gate`, `Provenance`, `Junit`, `Cobertura`, `Lcov`
+  reports, independent verification runs, and read-only `--implementation-work`
+  records) explicitly show `present`, `missing`, `unrun`, or `unavailable`
+  (`missing`/`unreadable`). Missing or unrun receipts are never treated as
+  passing, and `grants_authority` is always `false`.
+- **Validated PR and stack links**: observed pull request and stack URLs from
+  `ImplementationObservation` (`PublicationRecord`) and run-bound report
+  evidence are validated strictly as `https://` URLs with no embedded userinfo
+  alongside their observed state (`open`, `closed`, `merged`, `draft`,
+  `unknown`, `unobserved`) and claim no landing or CI acceptance.
+- **Idempotent summary notifications**: `config/runbook-registry.ncl` may
+  declare optional `notifications` webhook receivers (`kiln.runbook-summary-notification.v1`)
+  delivered at most once per `(registration_id, subject_kind, subject_id)`
+  completion (including `Unknown` when `on_unknown` is enabled). Reservations
+  left `"reserved"` across a restart transition to `"ambiguous"` without
+  retrying, and payloads omit `params`, `env_bindings`, `source_env`,
+  credentials, and raw logs.
+
 ### Cairn changes
 
 <!-- r[related kiln.cairn.workspace] -->

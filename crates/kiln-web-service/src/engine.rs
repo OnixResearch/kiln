@@ -21,6 +21,7 @@ mod queue;
 mod registry;
 pub use registry::extend_projects;
 mod reports;
+mod rollups;
 mod runbooks;
 pub use automation::{NotificationCompletion, NotificationWork};
 mod snapshots;
@@ -179,7 +180,7 @@ impl Engine {
             .transpose()?
             .map(zeroize::Zeroizing::new);
         let (store, state, lock) = storage::Store::open(&profile)?;
-        Ok(Self {
+        let mut engine = Self {
             profile,
             store,
             state,
@@ -196,7 +197,9 @@ impl Engine {
             feeds_token,
             fleet_claims: FleetClaimsSnapshot::Unconfigured,
             _lock: lock,
-        })
+        };
+        engine.recover_stale_summary_notifications()?;
+        Ok(engine)
     }
     fn persist(&mut self) -> Result<(), String> {
         self.state.version = self
@@ -245,7 +248,9 @@ impl Engine {
         for id in failed {
             self.auto_retry_failed(&id)?;
         }
-        self.tick_automation()
+        let mut notifications = self.tick_automation()?;
+        notifications.extend(self.tick_runbook_summary_notifications()?);
+        Ok(notifications)
     }
     // r[impl kiln.web.lifecycle]
     fn refresh(&mut self, id: &str) -> Result<(), String> {

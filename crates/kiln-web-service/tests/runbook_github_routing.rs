@@ -487,6 +487,7 @@ fn github_label_and_comment_routing_dispatches_to_live_kiln_web_service() {
             runbooks: vec!["granted-mutating".into()],
             not_after_ms: None,
         }],
+        notifications: Vec::new(),
     };
     let runbooks_path = root.path().join("runbooks.json");
     checked(fs::write(

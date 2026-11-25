@@ -425,6 +425,7 @@ fn build_registry(specs: &[ProjectSpec<'_>]) -> RunbookRegistry {
             runbooks: vec!["mut-update".into()],
             not_after_ms: None,
         }],
+        notifications: Vec::new(),
     }
 }
 
@@ -1317,6 +1318,7 @@ fn internal_monorepo_sibling_scopes_serialize_when_overlapping_and_run_concurren
             runbooks: vec!["mut-core".into(), "mut-web".into(), "mut-root".into()],
             not_after_ms: None,
         }],
+        notifications: Vec::new(),
     };
     engine
         .configure_runbooks(reg)

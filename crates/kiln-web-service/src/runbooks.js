@@ -39,12 +39,28 @@
     const runbook = trimmed.length <= RUNBOOK_ID_MAX && /^[a-z][a-z0-9-]{0,63}$/.test(trimmed)
       ? trimmed
       : "";
-    if (!isRecord(route) || !Object.hasOwn(route, "fanout")) {
+    if (!isRecord(route)) {
       return { runbook };
     }
-    const rawFanout = typeof route.fanout === "string" ? route.fanout.trim() : "";
-    const fanout = FANOUT_ID_RE.test(rawFanout) ? rawFanout : "";
-    return { runbook, fanout };
+    const out = { runbook };
+    if (Object.hasOwn(route, "fanout")) {
+      const rawFanout = typeof route.fanout === "string" ? route.fanout.trim() : "";
+      out.fanout = FANOUT_ID_RE.test(rawFanout) ? rawFanout : "";
+    }
+    if (Object.hasOwn(route, "dispatch")) {
+      const rawDispatch = typeof route.dispatch === "string" ? route.dispatch.trim() : "";
+      out.dispatch = FANOUT_ID_RE.test(rawDispatch) ? rawDispatch : "";
+    }
+    if (Object.hasOwn(route, "rollup_cursor")) {
+      const rawCursor = typeof route.rollup_cursor === "string" ? route.rollup_cursor.trim() : "";
+      let safe = rawCursor.length <= 512;
+      for (let i = 0; i < rawCursor.length && safe; i += 1) {
+        const code = rawCursor.charCodeAt(i);
+        if (code < 0x20 || code === 0x7f) safe = false;
+      }
+      out.rollup_cursor = safe ? rawCursor : "";
+    }
+    return out;
   }
 
   function parseTarget(raw) {
@@ -436,6 +452,39 @@
     }
   }
 
+  function verificationOutcomeStatus(outcome) {
+    const raw = text(outcome);
+    if (!raw) {
+      return { status: "unknown", label: "Recorded (no outcome)" };
+    }
+    switch (raw) {
+      case "Verified":
+        return { status: "success", label: "Verified" };
+      case "Success":
+        return { status: "success", label: "Passed" };
+      case "Failure":
+      case "Rejected":
+        return { status: "failure", label: raw };
+      case "Incomplete":
+      case "Unknown":
+        return { status: "unknown", label: raw };
+      case "DomainFailure":
+      case "Denied":
+      case "ProviderError":
+      case "TimedOut":
+      case "Cancelled":
+      case "Pending":
+        return ui()?.outcomeStatus
+          ? ui().outcomeStatus(raw, "")
+          : {
+              status: raw === "Cancelled" ? "cancelled" : raw === "Pending" ? "queued" : "failure",
+              label: raw,
+            };
+      default:
+        return { status: "unknown", label: raw };
+    }
+  }
+
   function renderStatusPill(status, label) {
     const pill = element("span", undefined, "status-pill");
     pill.dataset.status = status;
@@ -603,7 +652,7 @@
     return { wrap, input, name: decl.name };
   }
 
-  function renderRunbookList(registerPanel, runbooks, fanouts, selectedRunbookId, selectedFanoutId, ctx) {
+  function renderRunbookList(registerPanel, runbooks, fanouts, dispatches, selectedRunbookId, selectedFanoutId, selectedDispatchId, ctx) {
     const heading = element("div", undefined, "section-heading");
     heading.append(element("h2", "Reviewed runbooks"));
     registerPanel.append(heading);
@@ -614,11 +663,11 @@
       for (const rb of runbooks) {
         const link = element("a", undefined, "run-choice");
         link.href = `?page=runbooks&runbook=${encodeURIComponent(rb.id)}`;
-        if (rb.id === selectedRunbookId && !selectedFanoutId) link.setAttribute("aria-current", "true");
+        if (rb.id === selectedRunbookId && !selectedFanoutId && !selectedDispatchId) link.setAttribute("aria-current", "true");
         link.addEventListener("click", (event) => {
           if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
           event.preventDefault();
-          ctx.navigate({ page: "runbooks", runbook: rb.id, fanout: "" });
+          ctx.navigate({ page: "runbooks", runbook: rb.id, fanout: "", dispatch: "", rollup_cursor: "" });
         });
 
         const titleRow = element("div", undefined, "cluster");
@@ -651,7 +700,7 @@
         link.addEventListener("click", (event) => {
           if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
           event.preventDefault();
-          ctx.navigate({ page: "runbooks", runbook: fo.runbook_id, fanout: fo.id });
+          ctx.navigate({ page: "runbooks", runbook: fo.runbook_id, fanout: fo.id, dispatch: "", rollup_cursor: "" });
         });
         const row = element("div", undefined, "cluster");
         row.append(element("strong", fo.runbook_id), element("code", fo.id, "mono small"));
@@ -662,6 +711,32 @@
         foList.append(link);
       }
       registerPanel.append(foList);
+    }
+
+    if (Array.isArray(dispatches) && dispatches.length) {
+      const dispHeading = element("div", undefined, "section-heading");
+      dispHeading.append(element("h2", "Recent dispatches"));
+      registerPanel.append(dispHeading);
+      const dispList = element("div", undefined, "view-stack");
+      for (const disp of dispatches) {
+        const link = element("a", undefined, "run-choice");
+        link.href = `?page=runbooks&runbook=${encodeURIComponent(disp.runbook_id)}&dispatch=${encodeURIComponent(disp.run_id)}`;
+        if (disp.run_id === selectedDispatchId) link.setAttribute("aria-current", "true");
+        link.addEventListener("click", (event) => {
+          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+          event.preventDefault();
+          ctx.navigate({ page: "runbooks", runbook: disp.runbook_id, fanout: "", dispatch: disp.run_id, rollup_cursor: "" });
+        });
+        const row = element("div", undefined, "cluster");
+        row.append(element("strong", disp.runbook_id), element("code", disp.run_id, "mono small"));
+        const { status, label } = fanoutOutcomeStatus(disp.status);
+        const badges = element("div", undefined, "badges");
+        badges.append(renderStatusPill(status, label));
+        const meta = element("p", `${text(disp.target)} · patchgate:${text(disp.patchgate_receipt_state)} · verify:${text(disp.verification_receipt_state)}`, "small");
+        link.append(row, badges, meta);
+        dispList.append(link);
+      }
+      registerPanel.append(dispList);
     }
   }
 
@@ -825,6 +900,16 @@
           const link = element("a", `Inspect run ${runId}`, "row-link");
           link.href = `?page=runs&run=${encodeURIComponent(runId)}&view=pipeline`;
           resultBox.append(link);
+        }
+        if (runId) {
+          const rollupLink = element("a", "Inspect result roll-up", "row-link");
+          rollupLink.href = `?page=runbooks&runbook=${encodeURIComponent(runbook.id)}&dispatch=${encodeURIComponent(runId)}`;
+          rollupLink.addEventListener("click", (e) => {
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+            e.preventDefault();
+            ctx.navigate({ page: "runbooks", runbook: runbook.id, fanout: "", dispatch: runId, rollup_cursor: "" });
+          });
+          resultBox.append(rollupLink);
         }
         resultBox.hidden = false;
         ctx.notice?.(`${statusTitle}: ${runId}`, "success");
@@ -1109,7 +1194,358 @@
     return wrap;
   }
 
-  async function renderFanoutInspector(detailPanel, fanoutId, ctx, currentGen, initialError = "") {
+  function validHttpsUrl(raw) {
+    if (
+      typeof raw !== "string" ||
+      !raw ||
+      utf8Length(raw) > 2048 ||
+      /[\s\u0000-\u001F\u007F]/.test(raw) ||
+      !raw.startsWith("https://")
+    ) {
+      return null;
+    }
+    try {
+      const url = new URL(raw);
+      if (url.protocol === "https:" && url.hostname && !url.username && !url.password) {
+        return url.href;
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }
+
+  function formatNotificationState(notification) {
+    const state = text(notification?.state) || "not_configured";
+    switch (state) {
+      case "delivered":
+        return "Delivered";
+      case "pending":
+        return "Pending";
+      case "ambiguous":
+        return `Unknown (${text(notification?.error_code) || "ambiguous"})`;
+      case "rejected":
+        return `Rejected (${text(notification?.error_code) || "rejected"})`;
+      default:
+        return "Not configured";
+    }
+  }
+
+  function renderReceiptBadge(receipt, kindLabel, runId) {
+    const wrap = element("div", undefined, "view-stack");
+    const state = text(receipt?.state) || "missing";
+    if (state === "present") {
+      if (kindLabel === "patchgate") {
+        const counts = isRecord(receipt?.decision_counts) ? receipt.decision_counts : {};
+        const entries = Object.entries(counts).map(([k, v]) => `${k}:${v}`);
+        const tally = entries.length ? entries.join(" ") : `${receipt?.reviews_count ?? 0} reviews`;
+        const pill = renderStatusPill(counts.rejected || counts.blocked || counts.escalated ? "failure" : counts.unknown ? "unknown" : "success", tally);
+        wrap.append(pill);
+        if (receipt?.authorizes_acceptance === true || receipt?.isolated === false) {
+          const warn = element("span", receipt.authorizes_acceptance ? "Claim warning: acceptance flag ignored" : "Non-isolated receipt", "state-badge");
+          warn.dataset.tone = "warning";
+          wrap.append(warn);
+        }
+        if (runId) {
+          const link = element("a", "Review receipt", "row-link small");
+          link.href = `?page=runs&run=${encodeURIComponent(runId)}&view=reviews`;
+          wrap.append(link);
+        }
+      } else {
+        const mapped = verificationOutcomeStatus(receipt?.outcome);
+        const pill = renderStatusPill(mapped.status, mapped.label);
+        if (!text(receipt?.outcome)) {
+          pill.title = "Verification artifact recorded without a pass/fail outcome; not treated as passing.";
+        }
+        wrap.append(pill);
+        const reportCount = Array.isArray(receipt?.run_reports) ? receipt.run_reports.length : 0;
+        const indepCount = Array.isArray(receipt?.independent_verifications) ? receipt.independent_verifications.length : 0;
+        const metaParts = [];
+        if (reportCount) metaParts.push(`${reportCount} report${reportCount === 1 ? "" : "s"}`);
+        if (indepCount) metaParts.push(`${indepCount} independent`);
+        if (receipt?.implementation_verification) metaParts.push("implementer");
+        if (metaParts.length) wrap.append(element("span", metaParts.join(" · "), "small"));
+        if (runId) {
+          const link = element("a", "Evidence", "row-link small");
+          link.href = `?page=runs&run=${encodeURIComponent(runId)}&view=evidence`;
+          wrap.append(link);
+        }
+      }
+      return wrap;
+    }
+    if (state === "unavailable") {
+      const badge = element("span", `Unavailable (${text(receipt?.unavailable_reason) || "unreadable"})`, "state-badge");
+      badge.dataset.tone = "warning";
+      wrap.append(badge);
+      return wrap;
+    }
+    if (state === "unrun") {
+      const badge = element("span", "Not run", "state-badge");
+      wrap.append(badge);
+      return wrap;
+    }
+    const badge = element("span", "Missing — not recorded", "state-badge");
+    badge.dataset.tone = "warning";
+    badge.title = "No receipt was retained; missing evidence is never treated as passing.";
+    wrap.append(badge);
+    return wrap;
+  }
+
+  function renderPrLinksCell(targetRow) {
+    const cell = document.createElement("td");
+    const links = Array.isArray(targetRow?.pull_requests) ? targetRow.pull_requests : [];
+    if (!links.length) {
+      cell.textContent = targetRow?.pull_request_state === "unrun" ? "Not run" : "None recorded";
+      return cell;
+    }
+    const list = element("div", undefined, "view-stack");
+    for (const pr of links) {
+      const row = element("div", undefined, "cluster");
+      const safeHref = validHttpsUrl(pr?.url);
+      if (safeHref) {
+        const anchor = element("a", text(pr.reference) || safeHref, "row-link");
+        anchor.href = safeHref;
+        anchor.target = "_blank";
+        anchor.rel = "noopener noreferrer";
+        anchor.referrerPolicy = "no-referrer";
+        row.append(anchor);
+      } else {
+        row.append(element("code", text(pr?.url) || "Invalid URL", "mono small"));
+      }
+      const stateBadge = element("span", `${text(pr?.kind) || "pull_request"}: ${text(pr?.state) || "unknown"}`, "state-badge");
+      row.append(stateBadge);
+      list.append(row);
+    }
+    cell.append(list);
+    return cell;
+  }
+
+  function renderRollupSection(container, rollup, ctx, options = {}) {
+    const section = element("section", undefined, "view-stack");
+    section.id = options.sectionId || "runbook-rollup-section";
+
+    const heading = element("div", undefined, "section-heading");
+    heading.append(element("h3", options.title || "Result roll-up"));
+    const badges = element("div", undefined, "badges");
+    badges.append(element("span", "Read-only observation", "state-badge"));
+    if (rollup?.has_unknown) {
+      const unk = element("span", "Contains Unknown", "state-badge");
+      unk.dataset.tone = "warning";
+      badges.append(unk);
+    }
+    heading.append(badges);
+    section.append(heading);
+
+    const claims = Array.isArray(rollup?.non_claims) && rollup.non_claims.length
+      ? rollup.non_claims.join(" ")
+      : "Result roll-ups project retained run, receipt, and publication records only; they grant no merge, approval, gate, or release authority. Outcome::Unknown and missing or unreadable receipts remain explicit and are never inferred as passing.";
+    section.append(element("p", claims, "boundary"));
+
+    const counts = isRecord(rollup?.counts) ? rollup.counts : {};
+    const tiles = element("div", undefined, "fact-grid");
+    const addTile = (label, value) => {
+      const tile = element("div", undefined, "fact");
+      tile.append(element("dt", label), element("dd", value));
+      tiles.append(tile);
+    };
+    addTile("Subject", `${text(rollup?.subject_kind)} ${text(rollup?.subject_id)}`);
+    addTile("Runbook", `${text(rollup?.runbook_id)} (${text(rollup?.mode)})`);
+    addTile(
+      "Outcomes",
+      `${counts.success ?? 0} passed · ${counts.failure ?? 0} failed · ${counts.unknown ?? 0} unknown · ${counts.skipped ?? 0} skipped · ${(counts.pending ?? 0) + (counts.active ?? 0)} open`,
+    );
+    addTile(
+      "Receipts",
+      `Patchgate ${counts.patchgate_present ?? 0} recorded / ${counts.patchgate_missing ?? 0} missing · Verify ${counts.verification_present ?? 0} recorded / ${counts.verification_missing ?? 0} missing`,
+    );
+    addTile("PR / stack links", `${counts.pull_requests_observed ?? 0} targets observed`);
+    addTile("Summary notification", formatNotificationState(rollup?.notification));
+    section.append(tiles);
+
+    const about = element("details", undefined, "about-view");
+    about.append(
+      element("summary", "Roll-up authority and receipt boundary"),
+      element(
+        "p",
+        "Retained Patchgate review receipts, verification receipts, and pull-request links are read-only observations bound to each target's exact revision. Neither this view nor summary webhook notifications grant review acceptance, gate approval, or merge/release authority.",
+        "small",
+      ),
+    );
+    section.append(about);
+
+    let filterMode = "all";
+    const filterGroup = element("div", undefined, "segmented");
+    filterGroup.id = "rollup-status-filters";
+    const filterButtons = [];
+
+    const tableWrap = element("div", undefined, "data-table-wrap");
+    const table = element("table", undefined, "data-table data-table-stack");
+    table.id = "rollup-targets-table";
+    const thead = document.createElement("thead");
+    const headRow = document.createElement("tr");
+    for (const col of ["Target", "Exact Revision", "Outcome", "Patchgate Receipt", "Verification Receipt", "PR / Stack Links", "Run"]) {
+      headRow.append(element("th", col));
+    }
+    thead.append(headRow);
+    const tbody = document.createElement("tbody");
+    table.append(thead, tbody);
+    tableWrap.append(table);
+
+    const targets = Array.isArray(rollup?.targets) ? rollup.targets : [];
+    const renderRows = () => {
+      tbody.replaceChildren();
+      const filtered = targets.filter((t) => {
+        if (filterMode === "all") return true;
+        if (filterMode === "missing_receipts") {
+          return t?.patchgate_receipt?.state === "missing" || t?.verification_receipt?.state === "missing";
+        }
+        return t?.status === filterMode;
+      });
+      if (!filtered.length) {
+        const emptyRow = document.createElement("tr");
+        const td = element("td", "No targets match the selected filter on this page.", "small");
+        td.setAttribute("colspan", "7");
+        emptyRow.append(td);
+        tbody.append(emptyRow);
+        return;
+      }
+      for (const row of filtered) {
+        const tr = document.createElement("tr");
+        const targetCell = document.createElement("td");
+        targetCell.append(element("div", text(row.target), "mono"), element("div", text(row.project_id), "small"));
+
+        const rev = text(row.source_revision);
+        const revCell = document.createElement("td");
+        revCell.append(element("code", rev ? rev.slice(0, 12) : "Not recorded", "mono"));
+        if (rev) revCell.title = rev;
+
+        const outcomeCell = document.createElement("td");
+        const outInfo = row.run_outcome && ui()?.outcomeStatus
+          ? ui().outcomeStatus(row.run_outcome, row.run_phase || "")
+          : fanoutOutcomeStatus(row.status);
+        outcomeCell.append(renderStatusPill(outInfo.status, outInfo.label));
+        if (row.reason) outcomeCell.append(element("div", text(row.reason), "small"));
+
+        const pgCell = document.createElement("td");
+        pgCell.append(renderReceiptBadge(row.patchgate_receipt, "patchgate", row.run_id));
+
+        const verCell = document.createElement("td");
+        verCell.append(renderReceiptBadge(row.verification_receipt, "verification", row.run_id));
+
+        const prCell = renderPrLinksCell(row);
+
+        const runCell = document.createElement("td");
+        if (row.run_id) {
+          if (typeof ctx.runLink === "function") {
+            runCell.append(ctx.runLink(row.run_id, row.run_id));
+          } else {
+            const link = element("a", row.run_id, "row-link");
+            link.href = `?page=runs&run=${encodeURIComponent(row.run_id)}&view=pipeline`;
+            runCell.append(link);
+          }
+        } else {
+          runCell.textContent = "Not admitted";
+        }
+
+        tr.append(targetCell, revCell, outcomeCell, pgCell, verCell, prCell, runCell);
+        tbody.append(tr);
+      }
+    };
+
+    for (const [key, label] of [
+      ["all", "All"],
+      ["failure", "Failed"],
+      ["unknown", "Unknown"],
+      ["missing_receipts", "Missing receipts"],
+      ["skipped", "Skipped"],
+      ["success", "Passed"],
+    ]) {
+      const btn = element("button", label);
+      btn.type = "button";
+      btn.setAttribute("aria-pressed", key === "all" ? "true" : "false");
+      btn.addEventListener("click", () => {
+        filterMode = key;
+        for (const other of filterButtons) other.setAttribute("aria-pressed", String(other === btn));
+        renderRows();
+      });
+      filterButtons.push(btn);
+      filterGroup.append(btn);
+    }
+    renderRows();
+    section.append(filterGroup, tableWrap);
+
+    const rollupCursor = text(options.rollupCursor);
+    const pager = element("div", undefined, "control-bar pager");
+    const pageSummary = rollup?.bounded && rollup?.next_cursor
+      ? `Showing ${targets.length} of ${rollup.total ?? targets.length} targets · bounded page (more targets available)`
+      : `Showing ${targets.length} of ${rollup?.total ?? targets.length} targets · bounded page`;
+    pager.append(element("span", pageSummary, "small"));
+    const firstBtn = element("button", "First page");
+    firstBtn.type = "button";
+    firstBtn.id = "rollup-first-page";
+    firstBtn.disabled = !rollupCursor;
+    firstBtn.addEventListener("click", () => {
+      ctx.navigate({ page: "runbooks", rollup_cursor: "" });
+    });
+    const nextBtn = element("button", "Next page");
+    nextBtn.type = "button";
+    nextBtn.id = "rollup-next-page";
+    nextBtn.disabled = !rollup?.next_cursor;
+    nextBtn.addEventListener("click", () => {
+      if (rollup?.next_cursor) {
+        ctx.navigate({ page: "runbooks", rollup_cursor: rollup.next_cursor });
+      }
+    });
+    pager.append(firstBtn, nextBtn);
+    section.append(pager);
+
+    container.append(section);
+  }
+
+  async function renderDispatchRollupInspector(detailPanel, runId, rollupCursor, ctx, currentGen) {
+    const query = rollupCursor ? `?cursor=${encodeURIComponent(rollupCursor)}` : "";
+    let rollup;
+    try {
+      rollup = await ctx.api(`/api/runbooks/dispatches/${encodeURIComponent(runId)}/rollup${query}`);
+    } catch (err) {
+      if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
+      if (err?.status === 404) {
+        const missing = element("p", `Runbook dispatch not found: ${runId}. No other dispatch was substituted.`, "warning");
+        missing.setAttribute("role", "alert");
+        detailPanel.replaceChildren(missing);
+        return;
+      }
+      const classified = classifyError(err);
+      const warn = element("p", `${classified.title}: ${classified.message}`, "warning");
+      warn.setAttribute("role", "alert");
+      detailPanel.replaceChildren(warn);
+      return;
+    }
+    if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
+    if (!isRecord(rollup) || !Array.isArray(rollup.targets)) {
+      detailPanel.replaceChildren(element("p", "Dispatch roll-up response was invalid.", "warning"));
+      return;
+    }
+
+    detailPanel.replaceChildren();
+    const header = element("div", undefined, "section-heading");
+    header.append(element("h2", `Dispatch ${rollup.subject_id || runId}`));
+    const badges = element("div", undefined, "badges");
+    const outInfo = rollup.overall_outcome && ui()?.outcomeStatus
+      ? ui().outcomeStatus(rollup.overall_outcome, rollup.phase || "")
+      : { status: "unknown", label: text(rollup.phase) || "Unknown" };
+    badges.append(renderStatusPill(outInfo.status, outInfo.label));
+    header.append(badges);
+    detailPanel.append(header);
+
+    renderRollupSection(detailPanel, rollup, ctx, {
+      sectionId: "dispatch-rollup-section",
+      title: "Dispatch result roll-up",
+      rollupCursor,
+    });
+  }
+
+  async function renderFanoutInspector(detailPanel, fanoutId, ctx, currentGen, initialError = "", rollupCursor = "") {
     let fanout;
     try {
       fanout = await ctx.api(`/api/runbooks/fanouts/${encodeURIComponent(fanoutId)}`);
@@ -1267,7 +1703,7 @@
           } else if (err?.status === 409) {
             lastRetryableControl = null;
             ctx.notice?.(message, "warning");
-            await renderFanoutInspector(detailPanel, fanoutId, ctx, currentGen, message);
+            await renderFanoutInspector(detailPanel, fanoutId, ctx, currentGen, message, rollupCursor);
           } else {
             lastRetryableControl = null;
             controlErr.textContent = message;
@@ -1396,6 +1832,25 @@
     }
     renderRows();
     detailPanel.append(filterGroup, tableWrap);
+
+    const rollupQuery = rollupCursor ? `?cursor=${encodeURIComponent(rollupCursor)}` : "";
+    try {
+      const rollup = await ctx.api(`/api/runbooks/fanouts/${encodeURIComponent(fanoutId)}/rollup${rollupQuery}`);
+      if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
+      if (isRecord(rollup) && Array.isArray(rollup.targets)) {
+        renderRollupSection(detailPanel, rollup, ctx, {
+          sectionId: "fanout-rollup-section",
+          title: "Result roll-up (receipts, verification & PR links)",
+          rollupCursor,
+        });
+      }
+    } catch {
+      if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
+      const fallback = element("section", undefined, "view-stack");
+      fallback.id = "fanout-rollup-section";
+      fallback.append(element("p", "Result roll-up details are currently unavailable; parent fan-out ledger remains shown above.", "small"));
+      detailPanel.append(fallback);
+    }
   }
 
   async function load(root, ctx) {
@@ -1431,19 +1886,39 @@
     }
     if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
 
+    let dispatches = [];
+    try {
+      const dispatchList = await ctx.api("/api/runbooks/dispatches?limit=20");
+      if (isRecord(dispatchList) && Array.isArray(dispatchList.dispatches)) {
+        dispatches = dispatchList.dispatches;
+      }
+    } catch {
+      dispatches = [];
+    }
+    if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
+
     const runbooks = response.runbooks;
     const normalized = normalizeRoute(ctx.route);
     const selectedId = normalized.runbook;
     const selectedFanoutId = normalized.fanout || "";
+    const selectedDispatchId = normalized.dispatch || "";
+    const rollupCursor = normalized.rollup_cursor || "";
     const grid = element("div", undefined, "workspace-grid");
     const left = element("section", undefined, "panel view-stack");
     const right = element("section", undefined, "panel view-stack");
-    renderRunbookList(left, runbooks, fanouts, selectedId, selectedFanoutId, ctx);
+    renderRunbookList(left, runbooks, fanouts, dispatches, selectedId, selectedFanoutId, selectedDispatchId, ctx);
 
     if (selectedFanoutId) {
       grid.append(left, right);
       root.replaceChildren(grid);
-      await renderFanoutInspector(right, selectedFanoutId, ctx, currentGen);
+      await renderFanoutInspector(right, selectedFanoutId, ctx, currentGen, "", rollupCursor);
+      return;
+    }
+
+    if (selectedDispatchId) {
+      grid.append(left, right);
+      root.replaceChildren(grid);
+      await renderDispatchRollupInspector(right, selectedDispatchId, rollupCursor, ctx, currentGen);
       return;
     }
 
@@ -1486,6 +1961,8 @@
     validateInputs,
     validateFanoutInputs,
     fanoutOutcomeStatus,
+    verificationOutcomeStatus,
+    validHttpsUrl,
     classifyError,
   });
 })();

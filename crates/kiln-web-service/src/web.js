@@ -1330,6 +1330,8 @@
       worker_campaign: params.get("worker_campaign") || "",
       runbook: (params.get("runbook") || "").slice(0, 128),
       fanout: (params.get("fanout") || "").slice(0, 128),
+      dispatch: (params.get("dispatch") || "").slice(0, 128),
+      rollup_cursor: (params.get("rollup_cursor") || "").slice(0, 512),
       // r[impl kiln.cairn.workspace.scenario.reload] The selected Cairn change, its open unit, register view and filters are bound to the URL.
       cairn_repository: (params.get("cairn_repository") || "").slice(0, 64), cairn_change: (params.get("cairn_change") || "").slice(0, 1024), cairn_q: (params.get("cairn_q") || "").slice(0, 256),
       cairn_unit: (params.get("cairn_unit") || "").slice(0, 2048), cairn_lane: (params.get("cairn_lane") || "").slice(0, 32),
@@ -1365,6 +1367,7 @@
   function navigate(patch) {
     const route = { ...state.route, ...patch };
     if (Object.hasOwn(patch, "run") && patch.run !== state.route.run && !Object.hasOwn(patch, "activity_cursor")) route.activity_cursor = "";
+    if ((Object.hasOwn(patch, "fanout") && patch.fanout !== state.route.fanout || Object.hasOwn(patch, "dispatch") && patch.dispatch !== state.route.dispatch) && !Object.hasOwn(patch, "rollup_cursor")) route.rollup_cursor = "";
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(route)) if (value) params.set(key, value);
     history.pushState(null, "", `${location.pathname}?${params}`);

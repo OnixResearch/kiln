@@ -358,7 +358,7 @@ fn print_json(value: &Value) -> Result<(), String> {
 pub fn cli_main(args: &[String]) -> Result<i32, String> {
     if args == ["--help"] || args == ["-h"] {
         println!(
-            "Usage: kiln-web-service ci --profile PATH --identity BLAKE3 COMMAND [OPTIONS]\n\nCommands:\n  submit --project ID --request-id ID --reference REF --revision COMMIT\n         [--dirty-repository PATH --include FILE ... --delete FILE ...]\n  review-submit --request-id ID --source-ref REF --title TITLE\n         [--description TEXT] [--expected-commit COMMIT] [--wip]\n         [--authorship undeclared|human|agent|mixed]\n         [--agent-harness TEXT [--agent-model TEXT]]\n  dispatch --runbook ID --target REPO@REF --request-id ID\n           [--param KEY=VALUE ...] [--output json|text]\n  fanout --runbook ID --request-id ID [--target SPEC ...] [--target-glob GLOB ...]\n         [--param KEY=VALUE ...] [--max-concurrency N] [--budget-cap N]\n         [--claim-policy refuse|skip|serialize] [--scope-path PATH] [--output json|text]\n  fanout-list [--runbook ID] [--admission open|paused|cancelled] [--limit N] [--cursor TOKEN] [--order asc|desc]\n  fanout-status --fanout ID [--output json|text]\n  fanout-watch --fanout ID\n  fanout-pause --fanout ID --request-id ID\n  fanout-continue --fanout ID --request-id ID\n  fanout-cancel --fanout ID --request-id ID\n  watch --run ID\n  logs --run ID [--follow]\n  cancel --run ID --request-id ID\n  retry --run ID --request-id ID\n\nProfile: config/web-developer.ncl exported to JSON; --identity pins its original bytes.\nOnly explicit dirty selections are uploaded; ignored paths and links are denied.\nReview submission resolves an admitted branch in the service's configured local repository.\nDeclared authorship is self-declared and unverified; it grants no authority.\nWatch/follow exits: success 0, failed 1, unknown 3, cancelled 130.\nMutations are sent once; reuse the exact request ID and arguments to reconcile a review submission."
+            "Usage: kiln-web-service ci --profile PATH --identity BLAKE3 COMMAND [OPTIONS]\n\nCommands:\n  submit --project ID --request-id ID --reference REF --revision COMMIT\n         [--dirty-repository PATH --include FILE ... --delete FILE ...]\n  review-submit --request-id ID --source-ref REF --title TITLE\n         [--description TEXT] [--expected-commit COMMIT] [--wip]\n         [--authorship undeclared|human|agent|mixed]\n         [--agent-harness TEXT [--agent-model TEXT]]\n  dispatch --runbook ID --target REPO@REF --request-id ID\n           [--param KEY=VALUE ...] [--output json|text]\n  dispatch-list [--runbook ID] [--outcome OUTCOME] [--limit N] [--cursor TOKEN] [--order asc|desc]\n  dispatch-rollup --run ID [--status STATUS] [--limit N] [--cursor TOKEN] [--order asc|desc] [--output json|text]\n  fanout --runbook ID --request-id ID [--target SPEC ...] [--target-glob GLOB ...]\n         [--param KEY=VALUE ...] [--max-concurrency N] [--budget-cap N]\n         [--claim-policy refuse|skip|serialize] [--scope-path PATH] [--output json|text]\n  fanout-list [--runbook ID] [--admission open|paused|cancelled] [--limit N] [--cursor TOKEN] [--order asc|desc]\n  fanout-status --fanout ID [--output json|text]\n  fanout-rollup --fanout ID [--status STATUS] [--limit N] [--cursor TOKEN] [--order asc|desc] [--output json|text]\n  fanout-watch --fanout ID\n  fanout-pause --fanout ID --request-id ID\n  fanout-continue --fanout ID --request-id ID\n  fanout-cancel --fanout ID --request-id ID\n  watch --run ID\n  logs --run ID [--follow]\n  cancel --run ID --request-id ID\n  retry --run ID --request-id ID\n\nProfile: config/web-developer.ncl exported to JSON; --identity pins its original bytes.\nOnly explicit dirty selections are uploaded; ignored paths and links are denied.\nReview submission resolves an admitted branch in the service's configured local repository.\nDeclared authorship is self-declared and unverified; it grants no authority.\nWatch/follow exits: success 0, failed 1, unknown 3, cancelled 130.\nMutations are sent once; reuse the exact request ID and arguments to reconcile a review submission."
         );
         return Ok(0);
     }
@@ -374,7 +374,7 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
             (profile_path, identity, command.as_str(), arguments)
         }
         _ => return Err(
-            "usage: ci --profile PATH --identity BLAKE3 submit|review-submit|dispatch|fanout|fanout-list|fanout-status|fanout-watch|fanout-pause|fanout-continue|fanout-cancel|watch|logs|cancel|retry [options]"
+            "usage: ci --profile PATH --identity BLAKE3 submit|review-submit|dispatch|dispatch-list|dispatch-rollup|fanout|fanout-list|fanout-status|fanout-rollup|fanout-watch|fanout-pause|fanout-continue|fanout-cancel|watch|logs|cancel|retry [options]"
                 .into(),
         ),
     };
@@ -413,6 +413,14 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
                 key,
                 "--runbook" | "--target" | "--request-id" | "--param" | "--output"
             ),
+            "dispatch-list" => matches!(
+                key,
+                "--runbook" | "--outcome" | "--limit" | "--cursor" | "--order"
+            ),
+            "dispatch-rollup" => matches!(
+                key,
+                "--run" | "--status" | "--limit" | "--cursor" | "--order" | "--output"
+            ),
             "fanout" => matches!(
                 key,
                 "--runbook"
@@ -431,6 +439,10 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
                 "--runbook" | "--admission" | "--limit" | "--cursor" | "--order"
             ),
             "fanout-status" => matches!(key, "--fanout" | "--output"),
+            "fanout-rollup" => matches!(
+                key,
+                "--fanout" | "--status" | "--limit" | "--cursor" | "--order" | "--output"
+            ),
             "fanout-watch" => key == "--fanout",
             "fanout-pause" | "fanout-continue" | "fanout-cancel" => {
                 matches!(key, "--fanout" | "--request-id")
@@ -496,6 +508,36 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
         }
         return Ok(0);
     }
+    if command == "dispatch-list" {
+        let path = dispatch_list_path(&options)?;
+        print_json(&client.request(reqwest::Method::GET, &path, None)?)?;
+        return Ok(0);
+    }
+    if command == "dispatch-rollup" {
+        let run_id = required("--run")?;
+        if !crate::profile::identifier(run_id) {
+            return Err("developer run identity invalid".into());
+        }
+        let output = options
+            .get("--output")
+            .and_then(|v| v.first())
+            .map(String::as_str)
+            .unwrap_or("json");
+        if !matches!(output, "json" | "text") {
+            return Err("developer --output must be json or text".into());
+        }
+        let path = rollup_path(
+            &format!("/api/runbooks/dispatches/{run_id}/rollup"),
+            &options,
+        )?;
+        let response = client.request(reqwest::Method::GET, &path, None)?;
+        if output == "text" {
+            print!("{}", format_rollup_text(&response)?);
+        } else {
+            print_json(&response)?;
+        }
+        return Ok(0);
+    }
     if command == "fanout" {
         let (runbook, output, fallback_body) = fanout_body_with_schema(&options, None)?;
         let body = if options.contains_key("--param") {
@@ -529,7 +571,12 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
     }
     if matches!(
         command,
-        "fanout-status" | "fanout-watch" | "fanout-pause" | "fanout-continue" | "fanout-cancel"
+        "fanout-status"
+            | "fanout-rollup"
+            | "fanout-watch"
+            | "fanout-pause"
+            | "fanout-continue"
+            | "fanout-cancel"
     ) {
         let fanout_id = required("--fanout")?;
         if !crate::fanouts::valid_fanout_id(fanout_id) {
@@ -552,6 +599,27 @@ pub fn cli_main(args: &[String]) -> Result<i32, String> {
                 )?;
                 if output == "text" {
                     print!("{}", format_fanout_view_text(&response)?);
+                } else {
+                    print_json(&response)?;
+                }
+                Ok(0)
+            }
+            "fanout-rollup" => {
+                let output = options
+                    .get("--output")
+                    .and_then(|v| v.first())
+                    .map(String::as_str)
+                    .unwrap_or("json");
+                if !matches!(output, "json" | "text") {
+                    return Err("developer --output must be json or text".into());
+                }
+                let path = rollup_path(
+                    &format!("/api/runbooks/fanouts/{fanout_id}/rollup"),
+                    &options,
+                )?;
+                let response = client.request(reqwest::Method::GET, &path, None)?;
+                if output == "text" {
+                    print!("{}", format_rollup_text(&response)?);
                 } else {
                     print_json(&response)?;
                 }
@@ -1095,6 +1163,13 @@ pub fn fanout_body_with_schema(
     Ok((runbook.to_owned(), output.to_owned(), Value::Object(body)))
 }
 
+fn valid_cursor_token(cursor: &str) -> bool {
+    (1..=4096).contains(&cursor.len())
+        && cursor
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'_' | b'-'))
+}
+
 pub fn fanout_list_path(options: &BTreeMap<&str, Vec<String>>) -> Result<String, String> {
     let first = |key| {
         options
@@ -1125,8 +1200,7 @@ pub fn fanout_list_path(options: &BTreeMap<&str, Vec<String>>) -> Result<String,
         query.push(format!("limit={parsed}"));
     }
     if let Some(cursor) = first("--cursor") {
-        if cursor.is_empty() || cursor.len() > 4096 || cursor.bytes().any(|b| b.is_ascii_control())
-        {
+        if !valid_cursor_token(cursor) {
             return Err("developer --cursor invalid".into());
         }
         query.push(format!("cursor={cursor}"));
@@ -1179,6 +1253,196 @@ pub fn format_fanout_view_text(fanout: &Value) -> Result<String, String> {
     Ok(format!(
         "id: {id}\nrunbook_id: {runbook_id}\nadmission: {admission}\nphase: {phase}\nmax_concurrency: {max_concurrency}\nbudget: {budget_drawn}/{budget_cap}\ncounts: total={total} success={success} failure={failure} unknown={unknown} skipped={skipped}\n"
     ))
+}
+
+pub fn dispatch_list_path(options: &BTreeMap<&str, Vec<String>>) -> Result<String, String> {
+    let first = |key| {
+        options
+            .get(key)
+            .and_then(|values| values.first())
+            .map(String::as_str)
+    };
+    let mut query = Vec::new();
+    if let Some(runbook) = first("--runbook") {
+        if !crate::runbooks::valid_runbook_id(runbook) {
+            return Err("developer runbook identity invalid".into());
+        }
+        query.push(format!("runbook_id={runbook}"));
+    }
+    if let Some(outcome) = first("--outcome") {
+        let lower = outcome.to_ascii_lowercase();
+        let valid = matches!(
+            outcome,
+            "Pending"
+                | "Success"
+                | "DomainFailure"
+                | "Denied"
+                | "Cancelled"
+                | "TimedOut"
+                | "ProviderError"
+                | "Unknown"
+        ) || matches!(
+            lower.as_str(),
+            "pending"
+                | "success"
+                | "domain_failure"
+                | "denied"
+                | "cancelled"
+                | "timed_out"
+                | "provider_error"
+                | "unknown"
+        );
+        if !valid {
+            return Err("developer --outcome invalid".into());
+        }
+        query.push(format!("outcome={outcome}"));
+    }
+    if let Some(limit) = first("--limit") {
+        let parsed = limit
+            .parse::<usize>()
+            .map_err(|_| "developer --limit invalid".to_owned())?;
+        if !(1..=100).contains(&parsed) {
+            return Err("developer --limit must be 1..=100".into());
+        }
+        query.push(format!("limit={parsed}"));
+    }
+    if let Some(cursor) = first("--cursor") {
+        if !valid_cursor_token(cursor) {
+            return Err("developer --cursor invalid".into());
+        }
+        query.push(format!("cursor={cursor}"));
+    }
+    if let Some(order) = first("--order") {
+        if !matches!(order, "asc" | "desc") {
+            return Err("developer --order must be asc or desc".into());
+        }
+        query.push(format!("order={order}"));
+    }
+    if query.is_empty() {
+        Ok("/api/runbooks/dispatches".to_owned())
+    } else {
+        Ok(format!("/api/runbooks/dispatches?{}", query.join("&")))
+    }
+}
+
+pub fn rollup_path(base: &str, options: &BTreeMap<&str, Vec<String>>) -> Result<String, String> {
+    let first = |key| {
+        options
+            .get(key)
+            .and_then(|values| values.first())
+            .map(String::as_str)
+    };
+    let mut query = Vec::new();
+    if let Some(status) = first("--status") {
+        if !matches!(
+            status,
+            "pending" | "active" | "success" | "failure" | "unknown" | "skipped"
+        ) {
+            return Err("developer --status invalid".into());
+        }
+        query.push(format!("status={status}"));
+    }
+    if let Some(limit) = first("--limit") {
+        let parsed = limit
+            .parse::<usize>()
+            .map_err(|_| "developer --limit invalid".to_owned())?;
+        if !(1..=100).contains(&parsed) {
+            return Err("developer --limit must be 1..=100".into());
+        }
+        query.push(format!("limit={parsed}"));
+    }
+    if let Some(cursor) = first("--cursor") {
+        if !valid_cursor_token(cursor) {
+            return Err("developer --cursor invalid".into());
+        }
+        query.push(format!("cursor={cursor}"));
+    }
+    if let Some(order) = first("--order") {
+        if !matches!(order, "asc" | "desc") {
+            return Err("developer --order must be asc or desc".into());
+        }
+        query.push(format!("order={order}"));
+    }
+    if query.is_empty() {
+        Ok(base.to_owned())
+    } else {
+        Ok(format!("{base}?{}", query.join("&")))
+    }
+}
+
+pub fn format_rollup_text(rollup: &Value) -> Result<String, String> {
+    let subject_kind = text(rollup, "subject_kind")?;
+    let subject_id = text(rollup, "subject_id")?;
+    let runbook_id = text(rollup, "runbook_id")?;
+    let phase = text(rollup, "phase")?;
+    let counts = rollup
+        .get("counts")
+        .ok_or("developer response field counts invalid")?;
+    let total = number(counts, "total")?;
+    let success = number(counts, "success")?;
+    let failure = number(counts, "failure")?;
+    let unknown = number(counts, "unknown")?;
+    let skipped = number(counts, "skipped")?;
+    let notification_state = rollup
+        .get("notification")
+        .and_then(|n| n.get("state"))
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let mut lines = vec![
+        format!("subject: {subject_kind} {subject_id}"),
+        format!("runbook_id: {runbook_id}"),
+        format!("phase: {phase}"),
+        format!(
+            "counts: total={total} success={success} failure={failure} unknown={unknown} skipped={skipped}"
+        ),
+        format!("notification: {notification_state}"),
+    ];
+    if let Some(targets) = rollup.get("targets").and_then(Value::as_array) {
+        for target in targets {
+            let name = target
+                .get("target")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown");
+            let rev = target
+                .get("source_revision")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown");
+            let status = target
+                .get("status")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown");
+            let patchgate = target
+                .get("patchgate_receipt")
+                .and_then(|p| p.get("state"))
+                .and_then(Value::as_str)
+                .unwrap_or("missing");
+            let verification = target
+                .get("verification_receipt")
+                .and_then(|v| v.get("state"))
+                .and_then(Value::as_str)
+                .unwrap_or("missing");
+            let prs: Vec<String> = target
+                .get("pull_requests")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(|pr| {
+                    let url = pr.get("url").and_then(Value::as_str)?;
+                    let state = pr.get("state").and_then(Value::as_str).unwrap_or("unknown");
+                    Some(format!("{url} ({state})"))
+                })
+                .collect();
+            let pr_summary = if prs.is_empty() {
+                "none".to_owned()
+            } else {
+                prs.join(", ")
+            };
+            lines.push(format!(
+                "target: {name} rev={rev} status={status} patchgate={patchgate} verification={verification} prs=[{pr_summary}]"
+            ));
+        }
+    }
+    Ok(format!("{}\n", lines.join("\n")))
 }
 
 #[cfg(test)]
@@ -1470,5 +1734,69 @@ mod tests {
             parse_param_value_for_kind("123", Some("enum")),
             json!("123")
         );
+    }
+
+    #[test]
+    fn list_and_rollup_paths_validate_cursor_tokens() {
+        let opts = |pairs: &[(&'static str, &str)]| -> BTreeMap<&'static str, Vec<String>> {
+            pairs
+                .iter()
+                .map(|(k, v)| (*k, vec![(*v).to_owned()]))
+                .collect()
+        };
+
+        let ok_token = "eyJ2ZXJzaW9uIjoxLCJvcmRlciI6ImFzYyJ9_-AZ09";
+        assert_eq!(
+            fanout_list_path(&opts(&[("--cursor", ok_token)])),
+            Ok(format!("/api/runbooks/fanouts?cursor={ok_token}"))
+        );
+        assert_eq!(
+            dispatch_list_path(&opts(&[("--cursor", ok_token)])),
+            Ok(format!("/api/runbooks/dispatches?cursor={ok_token}"))
+        );
+        assert_eq!(
+            rollup_path(
+                "/api/runbooks/dispatches/run-1/rollup",
+                &opts(&[("--cursor", ok_token)]),
+            ),
+            Ok(format!(
+                "/api/runbooks/dispatches/run-1/rollup?cursor={ok_token}"
+            ))
+        );
+
+        let max_ok = "A".repeat(4096);
+        assert!(fanout_list_path(&opts(&[("--cursor", &max_ok)])).is_ok());
+
+        let too_long = "A".repeat(4097);
+        for bad in [
+            "",
+            too_long.as_str(),
+            "abc&limit=999",
+            "abc=def",
+            "abc?foo=bar",
+            "abc#frag",
+            "abc/def",
+            "abc+def",
+            "abc def",
+            "abc\ndef",
+            "abc\u{0000}def",
+        ] {
+            assert!(
+                fanout_list_path(&opts(&[("--cursor", bad)])).is_err(),
+                "fanout_list_path accepted invalid cursor {bad:?}"
+            );
+            assert!(
+                dispatch_list_path(&opts(&[("--cursor", bad)])).is_err(),
+                "dispatch_list_path accepted invalid cursor {bad:?}"
+            );
+            assert!(
+                rollup_path(
+                    "/api/runbooks/dispatches/run-1/rollup",
+                    &opts(&[("--cursor", bad)]),
+                )
+                .is_err(),
+                "rollup_path accepted invalid cursor {bad:?}"
+            );
+        }
     }
 }

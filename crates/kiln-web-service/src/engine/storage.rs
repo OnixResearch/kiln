@@ -556,12 +556,29 @@ fn validate(state: &DurableState, b: &ServiceBounds) -> Result<(), String> {
         || state.requests.len() > b.max_requests
         || state.audit.len() > b.max_requests.saturating_mul(4).max(64)
         || state.fanouts.len() > kiln_core::implementation::MAX_FANOUT_RUNS
+        || state.runbook_notifications.len() > b.max_requests.saturating_mul(4).max(256)
         || state
             .runs
             .values()
             .any(|r| r.events.len() > b.max_events_per_run || r.artifacts.len() > b.max_artifacts)
     {
         return Err("durable retention bound exceeded".into());
+    }
+    for (id, delivery) in &state.runbook_notifications {
+        if id != &delivery.id
+            || !hex_identity(&delivery.id)
+            || !crate::profile::identifier(&delivery.registration_id)
+            || !matches!(delivery.subject_kind.as_str(), "dispatch" | "fanout")
+            || delivery.subject_id.is_empty()
+            || delivery.subject_id.len() > 128
+            || !crate::runbooks::valid_runbook_id(&delivery.runbook_id)
+            || !matches!(
+                delivery.status.as_str(),
+                "reserved" | "delivered" | "ambiguous" | "rejected"
+            )
+        {
+            return Err("stored runbook summary notification record invalid".into());
+        }
     }
     for (id, fanout) in &state.fanouts {
         if id != &fanout.id {

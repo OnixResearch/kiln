@@ -2954,3 +2954,253 @@ test("KilnRunbooks getEnrolledProjects and web.js refreshAll update preview when
     webWindow.KilnRunbooks?.clear?.();
   }
 });
+
+test("KilnRunbooks #100 result roll-up UI renders dispatch and fanout roll-ups, explicit Unknown/missing states, validated PR links, and pagination", async () => {
+  const page = cairnPage();
+  const doc = { createElement: (tag) => new CairnNode(tag) };
+  const win = { KilnUi: ui };
+  const ctxObj = {
+    window: win,
+    document: doc,
+    URL,
+    TextEncoder,
+    crypto: webcrypto,
+    setTimeout,
+    clearTimeout,
+  };
+  win.window = win;
+  vm.runInNewContext(asset("runbooks.js"), ctxObj);
+  const rb = win.KilnRunbooks;
+
+  // verificationOutcomeStatus maps verification outcomes and outcome-less present receipts safely
+  assert.deepEqual(plain(rb.verificationOutcomeStatus(null)), { status: "unknown", label: "Recorded (no outcome)" });
+  assert.deepEqual(plain(rb.verificationOutcomeStatus("")), { status: "unknown", label: "Recorded (no outcome)" });
+  assert.deepEqual(plain(rb.verificationOutcomeStatus("Verified")), { status: "success", label: "Verified" });
+  assert.deepEqual(plain(rb.verificationOutcomeStatus("Success")), { status: "success", label: "Passed" });
+  assert.deepEqual(plain(rb.verificationOutcomeStatus("Failure")), { status: "failure", label: "Failure" });
+  assert.deepEqual(plain(rb.verificationOutcomeStatus("Rejected")), { status: "failure", label: "Rejected" });
+  assert.deepEqual(plain(rb.verificationOutcomeStatus("Incomplete")), { status: "unknown", label: "Incomplete" });
+  assert.deepEqual(plain(rb.verificationOutcomeStatus("Unknown")), { status: "unknown", label: "Unknown" });
+  assert.deepEqual(plain(rb.verificationOutcomeStatus("DomainFailure")), { status: "failure", label: "Failed" });
+  assert.deepEqual(plain(rb.verificationOutcomeStatus("FutureOutcome")), { status: "unknown", label: "FutureOutcome" });
+
+  // validHttpsUrl rejects whitespace/control bytes, userinfo, non-https, and >2048-byte URLs
+  assert.equal(rb.validHttpsUrl("https://github.com/onixresearch/kiln/pull/100"), "https://github.com/onixresearch/kiln/pull/100");
+  assert.equal(rb.validHttpsUrl("https://github.com/onixresearch/kiln/pull/100\n"), null);
+  assert.equal(rb.validHttpsUrl("https://github.com/onixresearch/\tpull/100"), null);
+  assert.equal(rb.validHttpsUrl("https://github.com/onixresearch/pull 100"), null);
+  assert.equal(rb.validHttpsUrl("https://github.com/onixresearch/kiln\u0000/pull/100"), null);
+  assert.equal(rb.validHttpsUrl("https://github.com/onixresearch/kiln\u007F/pull/100"), null);
+  assert.equal(rb.validHttpsUrl("https://user:pass@github.com/onixresearch/kiln/pull/100"), null);
+  assert.equal(rb.validHttpsUrl("http://github.com/onixresearch/kiln/pull/100"), null);
+  assert.equal(rb.validHttpsUrl("javascript:alert(1)"), null);
+  assert.equal(rb.validHttpsUrl(`https://github.com/${"a".repeat(2040)}`), null);
+
+  // normalizeRoute preserves optional key omission and normalizes dispatch & rollup_cursor
+  assert.deepEqual(plain(rb.normalizeRoute({ runbook: "  audit  " })), { runbook: "audit" });
+  assert.deepEqual(
+    plain(rb.normalizeRoute({ runbook: "audit", dispatch: " web-run-1 ", rollup_cursor: " cur-1 " })),
+    { runbook: "audit", dispatch: "web-run-1", rollup_cursor: "cur-1" },
+  );
+
+  const findById = (node, id) => {
+    if (!node) return null;
+    if (node.id === id) return node;
+    for (const child of node.children || []) {
+      const hit = findById(child, id);
+      if (hit) return hit;
+    }
+    return null;
+  };
+  const collectByTag = (node, tag, acc = []) => {
+    if (!node) return acc;
+    if (node.tagName === tag) acc.push(node);
+    for (const child of node.children || []) collectByTag(child, tag, acc);
+    return acc;
+  };
+
+  const navCalls = [];
+  const rollupFixture = {
+    schema: "kiln.runbook-rollup.v1",
+    subject_kind: "fanout",
+    subject_id: "rb-fanout-9",
+    runbook_id: "audit-rb",
+    mode: "read_only",
+    run_id: null,
+    fanout_id: "rb-fanout-9",
+    principal: "local:operator",
+    phase: "completed",
+    overall_outcome: null,
+    has_unknown: true,
+    counts: {
+      total: 3, pending: 0, active: 0, success: 1, failure: 0, unknown: 1, skipped: 1,
+      patchgate_present: 1, patchgate_missing: 1, patchgate_unrun: 1, patchgate_unavailable: 0,
+      verification_present: 0, verification_missing: 1, verification_unrun: 1, verification_unavailable: 1,
+      pull_requests_observed: 1,
+    },
+    notification: { state: "delivered", delivery_id: "d".repeat(64), completed_at_ms: 100, error_code: null, deliveries: [] },
+    targets: [
+      {
+        index: 0,
+        project_id: "kiln",
+        repository: "onixresearch/kiln",
+        target: "onixresearch/kiln@refs/heads/main",
+        resolved_reference: "refs/heads/main",
+        source_revision: "a".repeat(40),
+        status: "unknown",
+        run_id: "web-run-1",
+        run_outcome: "Unknown",
+        run_phase: "unknown",
+        patchgate_receipt: {
+          state: "present",
+          decision_counts: { accepted: 1, unknown: 1 },
+          isolated: true,
+          authorizes_acceptance: false,
+          grants_authority: false,
+        },
+        verification_receipt: {
+          state: "unavailable",
+          unavailable_reason: "missing",
+          grants_authority: false,
+        },
+        pull_request_state: "observed",
+        pull_requests: [
+          { url: "https://github.com/onixresearch/kiln/pull/100", kind: "pull_request", state: "open", reference: "onixresearch/kiln#100" },
+          { url: "javascript:alert(1)", kind: "stack", state: "unknown" },
+        ],
+      },
+      {
+        index: 1,
+        project_id: "lattice",
+        repository: "onixresearch/lattice",
+        target: "onixresearch/lattice@refs/heads/main",
+        resolved_reference: "refs/heads/main",
+        source_revision: "b".repeat(40),
+        status: "skipped",
+        run_id: null,
+        run_outcome: null,
+        patchgate_receipt: { state: "unrun", grants_authority: false },
+        verification_receipt: { state: "unrun", grants_authority: false },
+        pull_request_state: "unrun",
+        pull_requests: [],
+      },
+    ],
+    next_cursor: "next-page-token",
+    total: 3,
+    bounded: true,
+    grants_authority: false,
+    non_claims: [
+      "Result roll-ups project retained run, receipt, and publication records only; they grant no merge, approval, gate, or release authority.",
+    ],
+  };
+
+  const ctx = {
+    route: { page: "runbooks", runbook: "audit-rb", fanout: "rb-fanout-9", rollup_cursor: "" },
+    canOperate: false,
+    principal: { id: "local:viewer", role: "viewer" },
+    enrolledProjects: [],
+    navigate(patch) { navCalls.push(patch); },
+    notice() {},
+    isCurrent: () => true,
+    async api(path) {
+      if (path === "/api/runbooks") {
+        return { schema: "kiln.web-runbooks-view.v1", configured: true, principal: "local:viewer", runbooks: [{ id: "audit-rb", display_name: "Audit", mode: "read_only", allowed_targets: [], params: [], can_dispatch: false }] };
+      }
+      if (path === "/api/runbooks/fanouts") {
+        return { schema: "kiln.runbook-fanouts-view.v1", fanouts: [{ id: "rb-fanout-9", runbook_id: "audit-rb", phase: "completed", counts: { success: 1, failure: 0, unknown: 1, skipped: 1 } }], next_cursor: null, total: 1, bounded: true };
+      }
+      if (path.startsWith("/api/runbooks/dispatches?")) {
+        return { schema: "kiln.runbook-dispatches-view.v1", dispatches: [{ run_id: "web-run-1", runbook_id: "audit-rb", target: "onixresearch/kiln@refs/heads/main", status: "unknown", patchgate_receipt_state: "present", verification_receipt_state: "missing" }], next_cursor: null, total: 1, bounded: true };
+      }
+      if (path === "/api/runbooks/fanouts/rb-fanout-9") {
+        return {
+          id: "rb-fanout-9", runbook_id: "audit-rb", admission: "open", phase: "completed",
+          max_concurrency: 2, active_children: 0, budget_drawn: 2, budget_cap: 3,
+          controls: { pause: false, continue: false, cancel: false },
+          counts: { total: 3, pending: 0, active: 0, success: 1, failure: 0, unknown: 1, skipped: 1 },
+          children: [],
+        };
+      }
+      if (path === "/api/runbooks/fanouts/rb-fanout-9/rollup") {
+        return rollupFixture;
+      }
+      if (path === "/api/runbooks/dispatches/web-run-1/rollup") {
+        return { ...rollupFixture, subject_kind: "dispatch", subject_id: "web-run-1", fanout_id: null, run_id: "web-run-1", next_cursor: null, total: 1, targets: [rollupFixture.targets[0]] };
+      }
+      throw new Error(`unexpected ${path}`);
+    },
+  };
+
+  const root = new CairnNode("div");
+  await rb.load(root, ctx);
+  assert.match(root.textContent, /Recent dispatches/);
+  const rollupSection = findById(root, "fanout-rollup-section");
+  assert.ok(rollupSection, "fanout rollup section rendered");
+  assert.match(rollupSection.textContent, /grant no merge, approval, gate, or release authority/);
+  assert.match(rollupSection.textContent, /Unknown/);
+  assert.match(rollupSection.textContent, /Unavailable \(missing\)/);
+  assert.match(rollupSection.textContent, /Not run/);
+  assert.match(rollupSection.textContent, /Delivered/);
+
+  // Only valid https:// PR links become anchors; javascript: remains inert <code>
+  const anchors = collectByTag(rollupSection, "a");
+  assert.ok(anchors.some((a) => a.href === "https://github.com/onixresearch/kiln/pull/100" && a.rel === "noopener noreferrer"));
+  assert.ok(!anchors.some((a) => String(a.href || "").includes("javascript:")));
+
+  // Pagination button triggers rollup_cursor navigation
+  const nextBtn = findById(rollupSection, "rollup-next-page");
+  assert.equal(nextBtn.disabled, false);
+  nextBtn.listeners.get("click")[0]();
+  assert.deepEqual(plain(navCalls.at(-1)), { page: "runbooks", rollup_cursor: "next-page-token" });
+
+  // Direct dispatch rollup route renders #dispatch-rollup-section
+  const dispRoot = new CairnNode("div");
+  await rb.load(dispRoot, { ...ctx, route: { page: "runbooks", runbook: "audit-rb", dispatch: "web-run-1", rollup_cursor: "" } });
+  assert.ok(findById(dispRoot, "dispatch-rollup-section"));
+
+  // Present verification receipt without outcome renders data-status="unknown" (never "success"),
+  // Rejected verification outcome renders data-status="failure", and whitespace-containing URL stays inert <code>
+  const noOutcomeRoot = new CairnNode("div");
+  await rb.load(noOutcomeRoot, {
+    ...ctx,
+    route: { page: "runbooks", runbook: "audit-rb", dispatch: "web-run-2", rollup_cursor: "" },
+    async api(path) {
+      if (path === "/api/runbooks/dispatches/web-run-2/rollup") {
+        return {
+          ...rollupFixture,
+          subject_kind: "dispatch",
+          subject_id: "web-run-2",
+          fanout_id: null,
+          run_id: "web-run-2",
+          next_cursor: null,
+          total: 2,
+          targets: [
+            {
+              ...rollupFixture.targets[0],
+              verification_receipt: { state: "present", outcome: null, grants_authority: false, run_reports: [{ report_id: "r1", kind: "Provenance" }] },
+              pull_requests: [{ url: "https://github.com/onixresearch/kiln/pull/100\n", kind: "pull_request", state: "open" }],
+            },
+            {
+              ...rollupFixture.targets[0],
+              index: 1,
+              project_id: "lattice",
+              verification_receipt: { state: "present", outcome: "Rejected", grants_authority: false },
+              pull_requests: [],
+            },
+          ],
+        };
+      }
+      return ctx.api(path);
+    },
+  });
+  const sec = findById(noOutcomeRoot, "dispatch-rollup-section");
+  const pills = collectByTag(sec, "span").filter((el) => el.className === "status-pill");
+  const recPill = pills.find((el) => el.textContent.includes("Recorded (no outcome)"));
+  assert.ok(recPill, "outcome-less present verification receipt renders Recorded (no outcome)");
+  assert.equal(recPill.dataset.status, "unknown");
+  const rejPill = pills.find((el) => el.textContent.includes("Rejected"));
+  assert.ok(rejPill, "Rejected verification receipt renders Rejected");
+  assert.equal(rejPill.dataset.status, "failure");
+  const prAnchors = collectByTag(sec, "a").filter((a) => String(a.href || "").includes("pull/100"));
+  assert.equal(prAnchors.length, 0);
+});

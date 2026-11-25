@@ -634,6 +634,700 @@
         ],
         "type": "object"
       },
+      "RollupCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "type": "integer"
+          },
+          "failure": {
+            "type": "integer"
+          },
+          "patchgate_missing": {
+            "type": "integer"
+          },
+          "patchgate_present": {
+            "type": "integer"
+          },
+          "patchgate_unavailable": {
+            "type": "integer"
+          },
+          "patchgate_unrun": {
+            "type": "integer"
+          },
+          "pending": {
+            "type": "integer"
+          },
+          "pull_requests_observed": {
+            "type": "integer"
+          },
+          "skipped": {
+            "type": "integer"
+          },
+          "success": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "unknown": {
+            "type": "integer"
+          },
+          "verification_missing": {
+            "type": "integer"
+          },
+          "verification_present": {
+            "type": "integer"
+          },
+          "verification_unavailable": {
+            "type": "integer"
+          },
+          "verification_unrun": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "pending",
+          "active",
+          "success",
+          "failure",
+          "unknown",
+          "skipped",
+          "patchgate_present",
+          "patchgate_missing",
+          "patchgate_unrun",
+          "patchgate_unavailable",
+          "verification_present",
+          "verification_missing",
+          "verification_unrun",
+          "verification_unavailable",
+          "pull_requests_observed"
+        ],
+        "type": "object"
+      },
+      "RollupIndependentVerificationRef": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_count": {
+            "type": "integer"
+          },
+          "independent_receipt": {
+            "nullable": true,
+            "type": "string"
+          },
+          "outcome": {
+            "enum": [
+              "Pending",
+              "Success",
+              "DomainFailure",
+              "Denied",
+              "Cancelled",
+              "TimedOut",
+              "ProviderError",
+              "Unknown"
+            ],
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "subject_hash": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "outcome",
+          "phase",
+          "subject_hash",
+          "independent_receipt",
+          "artifact_count"
+        ],
+        "type": "object"
+      },
+      "RollupNotificationDeliveryView": {
+        "additionalProperties": false,
+        "properties": {
+          "completed_at_ms": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "delivery_id": {
+            "type": "string"
+          },
+          "error_code": {
+            "nullable": true,
+            "type": "string"
+          },
+          "http_status": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "registration_id": {
+            "type": "string"
+          },
+          "reserved_at_ms": {
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "reserved",
+              "delivered",
+              "ambiguous",
+              "rejected"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "registration_id",
+          "delivery_id",
+          "status",
+          "reserved_at_ms",
+          "completed_at_ms",
+          "http_status",
+          "error_code"
+        ],
+        "type": "object"
+      },
+      "RollupNotificationStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "completed_at_ms": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "deliveries": {
+            "items": {
+              "$ref": "#/components/schemas/RollupNotificationDeliveryView"
+            },
+            "maxItems": 16,
+            "type": "array"
+          },
+          "delivery_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "error_code": {
+            "nullable": true,
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "not_configured",
+              "pending",
+              "delivered",
+              "ambiguous",
+              "rejected"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "delivery_id",
+          "completed_at_ms",
+          "error_code",
+          "deliveries"
+        ],
+        "type": "object"
+      },
+      "RollupPatchgateReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_download_path": {
+            "nullable": true,
+            "type": "string"
+          },
+          "authorizes_acceptance": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "candidate_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "candidate_root": {
+            "nullable": true,
+            "type": "string"
+          },
+          "claim_boundary": {
+            "type": "string"
+          },
+          "decision_counts": {
+            "type": "object"
+          },
+          "effect_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "grants_authority": {
+            "type": "boolean"
+          },
+          "isolated": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "node_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "report_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "report_identity": {
+            "nullable": true,
+            "type": "string"
+          },
+          "report_name": {
+            "nullable": true,
+            "type": "string"
+          },
+          "reviews_count": {
+            "type": "integer"
+          },
+          "source_blake3": {
+            "nullable": true,
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "present",
+              "unavailable",
+              "missing",
+              "unrun"
+            ],
+            "type": "string"
+          },
+          "unavailable_reason": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "unavailable_reason",
+          "report_id",
+          "report_name",
+          "node_id",
+          "source_blake3",
+          "artifact_download_path",
+          "effect_id",
+          "candidate_id",
+          "candidate_root",
+          "report_identity",
+          "isolated",
+          "authorizes_acceptance",
+          "grants_authority",
+          "reviews_count",
+          "decision_counts",
+          "claim_boundary"
+        ],
+        "type": "object"
+      },
+      "RollupPullRequestLink": {
+        "additionalProperties": false,
+        "properties": {
+          "base_branch": {
+            "nullable": true,
+            "type": "string"
+          },
+          "branch": {
+            "nullable": true,
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "pull_request",
+              "stack",
+              "change_review"
+            ],
+            "type": "string"
+          },
+          "merge_commit": {
+            "nullable": true,
+            "type": "string"
+          },
+          "number": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "reference": {
+            "nullable": true,
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "open",
+              "closed",
+              "merged",
+              "draft",
+              "unknown",
+              "unobserved"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "kind",
+          "state",
+          "number",
+          "source",
+          "reference",
+          "branch",
+          "base_branch",
+          "merge_commit"
+        ],
+        "type": "object"
+      },
+      "RollupTargetView": {
+        "additionalProperties": false,
+        "properties": {
+          "admitted_at_ms": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "canonical_tree": {
+            "type": "string"
+          },
+          "completed_at_ms": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "error_code": {
+            "nullable": true,
+            "type": "string"
+          },
+          "index": {
+            "type": "integer"
+          },
+          "patchgate_receipt": {
+            "$ref": "#/components/schemas/RollupPatchgateReceipt"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "pull_request_state": {
+            "enum": [
+              "observed",
+              "none_recorded",
+              "unrun"
+            ],
+            "type": "string"
+          },
+          "pull_requests": {
+            "items": {
+              "$ref": "#/components/schemas/RollupPullRequestLink"
+            },
+            "maxItems": 16,
+            "type": "array"
+          },
+          "reason": {
+            "nullable": true,
+            "type": "string"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "resolved_reference": {
+            "type": "string"
+          },
+          "run_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "run_outcome": {
+            "enum": [
+              "Pending",
+              "Success",
+              "DomainFailure",
+              "Denied",
+              "Cancelled",
+              "TimedOut",
+              "ProviderError",
+              "Unknown"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "run_phase": {
+            "nullable": true,
+            "type": "string"
+          },
+          "source_revision": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "active",
+              "success",
+              "failure",
+              "unknown",
+              "skipped"
+            ],
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "verification_receipt": {
+            "$ref": "#/components/schemas/RollupVerificationReceipt"
+          },
+          "write_scope": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "project_id",
+          "repository",
+          "target",
+          "resolved_reference",
+          "source_revision",
+          "canonical_tree",
+          "write_scope",
+          "status",
+          "run_id",
+          "run_outcome",
+          "run_phase",
+          "error_code",
+          "reason",
+          "patchgate_receipt",
+          "verification_receipt",
+          "pull_request_state",
+          "pull_requests",
+          "admitted_at_ms",
+          "completed_at_ms"
+        ],
+        "type": "object"
+      },
+      "RollupVerificationReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "claim_boundary": {
+            "type": "string"
+          },
+          "grants_authority": {
+            "type": "boolean"
+          },
+          "implementation_observation_status": {
+            "enum": [
+              "available",
+              "unconfigured",
+              "unavailable"
+            ],
+            "type": "string"
+          },
+          "implementation_verification": {
+            "additionalProperties": false,
+            "nullable": true,
+            "properties": {
+              "attempt_id": {
+                "type": "string"
+              },
+              "checks_count": {
+                "type": "integer"
+              },
+              "clean": {
+                "type": "boolean"
+              },
+              "full_run": {
+                "type": "boolean"
+              },
+              "run_id": {
+                "type": "string"
+              },
+              "success": {
+                "type": "boolean"
+              },
+              "terminal": {
+                "type": "boolean"
+              },
+              "verification_outcome": {
+                "nullable": true,
+                "type": "string"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "run_id",
+              "success",
+              "full_run",
+              "clean",
+              "terminal",
+              "verification_outcome",
+              "checks_count"
+            ],
+            "type": "object"
+          },
+          "independent_verifications": {
+            "items": {
+              "$ref": "#/components/schemas/RollupIndependentVerificationRef"
+            },
+            "maxItems": 8,
+            "type": "array"
+          },
+          "outcome": {
+            "nullable": true,
+            "type": "string"
+          },
+          "run_reports": {
+            "items": {
+              "$ref": "#/components/schemas/RollupVerificationReportRef"
+            },
+            "maxItems": 16,
+            "type": "array"
+          },
+          "state": {
+            "enum": [
+              "present",
+              "unavailable",
+              "missing",
+              "unrun"
+            ],
+            "type": "string"
+          },
+          "unavailable_reason": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "unavailable_reason",
+          "outcome",
+          "grants_authority",
+          "implementation_observation_status",
+          "run_reports",
+          "independent_verifications",
+          "implementation_verification",
+          "claim_boundary"
+        ],
+        "type": "object"
+      },
+      "RollupVerificationReportRef": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_download_path": {
+            "nullable": true,
+            "type": "string"
+          },
+          "coverage_summary": {
+            "additionalProperties": false,
+            "nullable": true,
+            "properties": {
+              "format": {
+                "type": "string"
+              },
+              "line_rate": {
+                "nullable": true,
+                "type": "number"
+              },
+              "lines_found": {
+                "type": "integer"
+              },
+              "lines_hit": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "format",
+              "lines_found",
+              "lines_hit",
+              "line_rate"
+            ],
+            "type": "object"
+          },
+          "evidence_claim_boundary": {
+            "nullable": true,
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "junit",
+              "cobertura",
+              "lcov",
+              "gate",
+              "review",
+              "provenance"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "report_id": {
+            "type": "string"
+          },
+          "source_blake3": {
+            "nullable": true,
+            "type": "string"
+          },
+          "tests_summary": {
+            "additionalProperties": false,
+            "nullable": true,
+            "properties": {
+              "errors": {
+                "type": "integer"
+              },
+              "failed": {
+                "type": "integer"
+              },
+              "passed": {
+                "type": "integer"
+              },
+              "skipped": {
+                "type": "integer"
+              },
+              "total": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "total",
+              "passed",
+              "failed",
+              "errors",
+              "skipped"
+            ],
+            "type": "object"
+          },
+          "unavailable": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "report_id",
+          "kind",
+          "name",
+          "node_id",
+          "source_blake3",
+          "artifact_download_path",
+          "unavailable",
+          "tests_summary",
+          "coverage_summary",
+          "evidence_claim_boundary"
+        ],
+        "type": "object"
+      },
       "RunPage": {
         "additionalProperties": false,
         "properties": {
@@ -694,6 +1388,51 @@
           "source_revision",
           "outcome",
           "phase"
+        ],
+        "type": "object"
+      },
+      "RunbookDispatchPage": {
+        "additionalProperties": false,
+        "properties": {
+          "bounded": {
+            "type": "boolean"
+          },
+          "dispatches": {
+            "items": {
+              "$ref": "#/components/schemas/RunbookDispatchSummary"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "grants_authority": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "nullable": true,
+            "type": "string"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "type": "array"
+          },
+          "schema": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "schema",
+          "dispatches",
+          "next_cursor",
+          "total",
+          "bounded",
+          "grants_authority",
+          "non_claims"
         ],
         "type": "object"
       },
@@ -797,6 +1536,127 @@
           "source_env",
           "run_id",
           "run"
+        ],
+        "type": "object"
+      },
+      "RunbookDispatchSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "completed_at_ms": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "created_at_ms": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "lattice_bundle_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "lattice_workflow_name": {
+            "type": "string"
+          },
+          "lattice_workflow_revision": {
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "read_only",
+              "mutating"
+            ],
+            "type": "string"
+          },
+          "ordinal": {
+            "type": "integer"
+          },
+          "outcome": {
+            "enum": [
+              "Pending",
+              "Success",
+              "DomainFailure",
+              "Denied",
+              "Cancelled",
+              "TimedOut",
+              "ProviderError",
+              "Unknown"
+            ],
+            "type": "string"
+          },
+          "params_identity": {
+            "type": "string"
+          },
+          "patchgate_receipt_state": {
+            "enum": [
+              "present",
+              "unavailable",
+              "missing",
+              "unrun"
+            ],
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "pull_request_count": {
+            "type": "integer"
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "runbook_id": {
+            "type": "string"
+          },
+          "source_revision": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "active",
+              "success",
+              "failure",
+              "unknown",
+              "skipped"
+            ],
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "verification_receipt_state": {
+            "enum": [
+              "present",
+              "unavailable",
+              "missing",
+              "unrun"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "ordinal",
+          "runbook_id",
+          "mode",
+          "target",
+          "project_id",
+          "source_revision",
+          "outcome",
+          "phase",
+          "status",
+          "lattice_bundle_id",
+          "lattice_workflow_name",
+          "lattice_workflow_revision",
+          "params_identity",
+          "created_at_ms",
+          "completed_at_ms",
+          "patchgate_receipt_state",
+          "verification_receipt_state",
+          "pull_request_count"
         ],
         "type": "object"
       },
@@ -938,6 +1798,157 @@
         "required": [
           "node",
           "shell_env"
+        ],
+        "type": "object"
+      },
+      "RunbookRollupPage": {
+        "additionalProperties": false,
+        "properties": {
+          "admission": {
+            "enum": [
+              "open",
+              "paused",
+              "cancelled"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "bounded": {
+            "type": "boolean"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/RollupCounts"
+          },
+          "fanout_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "grants_authority": {
+            "type": "boolean"
+          },
+          "has_unknown": {
+            "type": "boolean"
+          },
+          "lattice_bundle_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "lattice_bundle_identity": {
+            "type": "string"
+          },
+          "lattice_workflow_name": {
+            "type": "string"
+          },
+          "lattice_workflow_revision": {
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "read_only",
+              "mutating"
+            ],
+            "type": "string"
+          },
+          "next_cursor": {
+            "nullable": true,
+            "type": "string"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "type": "array"
+          },
+          "notification": {
+            "$ref": "#/components/schemas/RollupNotificationStatus"
+          },
+          "overall_outcome": {
+            "enum": [
+              "Pending",
+              "Success",
+              "DomainFailure",
+              "Denied",
+              "Cancelled",
+              "TimedOut",
+              "ProviderError",
+              "Unknown"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "params_identity": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "principal": {
+            "nullable": true,
+            "type": "string"
+          },
+          "run_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "runbook_id": {
+            "type": "string"
+          },
+          "schema": {
+            "type": "string"
+          },
+          "stop_reason": {
+            "nullable": true,
+            "type": "string"
+          },
+          "subject_id": {
+            "type": "string"
+          },
+          "subject_kind": {
+            "enum": [
+              "dispatch",
+              "fanout"
+            ],
+            "type": "string"
+          },
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/RollupTargetView"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "schema",
+          "subject_kind",
+          "subject_id",
+          "runbook_id",
+          "mode",
+          "run_id",
+          "fanout_id",
+          "principal",
+          "phase",
+          "overall_outcome",
+          "has_unknown",
+          "admission",
+          "stop_reason",
+          "lattice_bundle_id",
+          "lattice_bundle_identity",
+          "lattice_workflow_name",
+          "lattice_workflow_revision",
+          "params_identity",
+          "counts",
+          "notification",
+          "targets",
+          "next_cursor",
+          "total",
+          "bounded",
+          "grants_authority",
+          "non_claims"
         ],
         "type": "object"
       },
@@ -1103,6 +2114,160 @@
           }
         ],
         "summary": "List reviewed runbooks and principal dispatch eligibility"
+      }
+    },
+    "/api/runbooks/dispatches": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "runbook_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "outcome",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunbookDispatchPage"
+                }
+              }
+            },
+            "description": "Bounded paginated list of standalone runbook dispatches"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List standalone runbook dispatches with filtering and cursor pagination"
+      }
+    },
+    "/api/runbooks/dispatches/{run_id}/rollup": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "pending",
+                "active",
+                "success",
+                "failure",
+                "unknown",
+                "skipped"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunbookRollupPage"
+                }
+              }
+            },
+            "description": "Retained read-only result roll-up for a runbook dispatch"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Inspect the retained read-only result roll-up for a runbook dispatch"
       }
     },
     "/api/runbooks/fanouts": {
@@ -1380,6 +2545,89 @@
           }
         ],
         "summary": "Pause further fan-out child admission"
+      }
+    },
+    "/api/runbooks/fanouts/{fanout_id}/rollup": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fanout_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "pending",
+                "active",
+                "success",
+                "failure",
+                "unknown",
+                "skipped"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunbookRollupPage"
+                }
+              }
+            },
+            "description": "Bounded paginated read-only result roll-up for a parent fan-out run"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Inspect the bounded read-only result roll-up for a parent fan-out run"
       }
     },
     "/api/runbooks/{id}/dispatch": {

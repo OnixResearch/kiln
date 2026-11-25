@@ -406,6 +406,19 @@ fn served_https_matrix_and_complete_or_incomplete_pagination() {
         "unauthorized",
     );
     get("/api/projects", &worker, "Error").assert_error("authorization", 403, "worker_scope");
+    get("/api/runbooks/dispatches", &worker, "Error").assert_error(
+        "authorization",
+        403,
+        "worker_scope",
+    );
+    let dispatches_ok = get("/api/runbooks/dispatches", &viewer, "RunbookDispatchPage");
+    assert_eq!(dispatches_ok.class, "ok", "{dispatches_ok:?}");
+    get(
+        "/api/runbooks/fanouts/rb-fanout-missing/rollup",
+        &viewer,
+        "Error",
+    )
+    .assert_error("not_found", 404, "fanout_not_found");
     get(
         &format!("/api/runs/{id}/execution-binding"),
         &viewer,

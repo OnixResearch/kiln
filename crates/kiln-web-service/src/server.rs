@@ -1004,6 +1004,20 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
                 principal.role,
             );
         }
+        let is_rollup_read = request.method == "GET"
+            && (path == "/api/runbooks/dispatches"
+                || (path.starts_with("/api/runbooks/dispatches/") && path.ends_with("/rollup"))
+                || (path.starts_with("/api/runbooks/fanouts/") && path.ends_with("/rollup")));
+        // Read-only ImplementationObservation lookup runs outside Engine's mutex
+        // to preserve one-way lock discipline across stores.
+        let impl_work = if is_rollup_read {
+            context
+                .implementation_work
+                .map(crate::rollups::load_implementation_work_index)
+                .unwrap_or(crate::rollups::ImplementationWorkIndex::Unconfigured)
+        } else {
+            crate::rollups::ImplementationWorkIndex::Unconfigured
+        };
         let fleet_snapshot = if request.method == "POST"
             && path.starts_with("/api/runbooks/")
             && (path.ends_with("/fanout")
@@ -1022,7 +1036,13 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
                     engine.set_fleet_claims_snapshot(snapshot);
                 }
                 engine
-                    .api_as(&request.method, &request.target, &request.body, &principal)
+                    .api_as_with_work(
+                        &request.method,
+                        &request.target,
+                        &request.body,
+                        &principal,
+                        &impl_work,
+                    )
                     .unwrap_or_else(|_| error_response(503, "service_unavailable"))
             }
             Err(_) => error_response(503, "service_unavailable"),

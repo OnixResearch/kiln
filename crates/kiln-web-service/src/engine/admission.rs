@@ -87,6 +87,23 @@ impl Engine {
         body: &[u8],
         principal: &Principal,
     ) -> Result<ApiResponse, String> {
+        self.api_as_with_work(
+            method,
+            target,
+            body,
+            principal,
+            &crate::rollups::ImplementationWorkIndex::Unconfigured,
+        )
+    }
+
+    pub fn api_as_with_work(
+        &mut self,
+        method: &str,
+        target: &str,
+        body: &[u8],
+        principal: &Principal,
+        impl_work: &crate::rollups::ImplementationWorkIndex,
+    ) -> Result<ApiResponse, String> {
         if self.storage_failed {
             return error(503, "durable_state_unavailable");
         }
@@ -113,7 +130,7 @@ impl Engine {
         if write {
             self.append_audit(method, target, Some(principal), "admitted", 0)?;
         }
-        let response = self.route(method, target, body, principal)?;
+        let response = self.route_with_work(method, target, body, principal, impl_work)?;
         if write || response.status == 403 {
             self.append_audit(
                 method,

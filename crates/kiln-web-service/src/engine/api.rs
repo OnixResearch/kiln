@@ -272,12 +272,29 @@ impl Engine {
             },
         )
     }
+    #[allow(dead_code)]
     pub(super) fn route(
         &mut self,
         method: &str,
         target: &str,
         body: &[u8],
         principal: &crate::access::Principal,
+    ) -> Result<ApiResponse, String> {
+        self.route_with_work(
+            method,
+            target,
+            body,
+            principal,
+            &crate::rollups::ImplementationWorkIndex::Unconfigured,
+        )
+    }
+    pub(super) fn route_with_work(
+        &mut self,
+        method: &str,
+        target: &str,
+        body: &[u8],
+        principal: &crate::access::Principal,
+        impl_work: &crate::rollups::ImplementationWorkIndex,
     ) -> Result<ApiResponse, String> {
         let role = principal.role;
         if body.len() > self.profile.bounds.max_request_bytes {
@@ -363,8 +380,29 @@ impl Engine {
         if method == "GET" && path == "/api/runbooks" && params.is_empty() {
             return self.list_runbooks(principal);
         }
+        if method == "GET" && path == "/api/runbooks/dispatches" {
+            return self.list_runbook_dispatches(&params, impl_work);
+        }
+        if method == "GET"
+            && let Some(run_id) = path
+                .strip_prefix("/api/runbooks/dispatches/")
+                .and_then(|rest| rest.strip_suffix("/rollup"))
+            && !run_id.contains('/')
+            && !run_id.is_empty()
+        {
+            return self.get_dispatch_rollup(run_id, &params, impl_work);
+        }
         if method == "GET" && path == "/api/runbooks/fanouts" {
             return self.list_fanouts(&params);
+        }
+        if method == "GET"
+            && let Some(fanout_id) = path
+                .strip_prefix("/api/runbooks/fanouts/")
+                .and_then(|rest| rest.strip_suffix("/rollup"))
+            && !fanout_id.contains('/')
+            && !fanout_id.is_empty()
+        {
+            return self.get_fanout_rollup(fanout_id, &params, impl_work);
         }
         if method == "GET"
             && params.is_empty()

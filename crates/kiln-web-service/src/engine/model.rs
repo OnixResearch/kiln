@@ -31,6 +31,22 @@ pub struct DurableState {
     pub feeds: crate::feeds::FeedsState,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub fanouts: BTreeMap<String, kiln_core::implementation::FanOutRun>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub runbook_notifications: BTreeMap<String, SummaryDeliveryRecord>,
+}
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SummaryDeliveryRecord {
+    pub id: String,
+    pub registration_id: String,
+    pub subject_kind: String,
+    pub subject_id: String,
+    pub runbook_id: String,
+    pub reserved_at_ms: u64,
+    pub completed_at_ms: Option<u64>,
+    pub status: String,
+    pub http_status: Option<u16>,
+    pub error_code: Option<String>,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -279,7 +295,7 @@ pub struct RunView {
     pub fanout_run_id: Option<String>,
 }
 impl RunRecord {
-    pub(super) fn is_independent_verification(&self) -> bool {
+    pub(crate) fn is_independent_verification(&self) -> bool {
         self.plan.provider_profile.as_str() == super::verification::VERIFIER_PROVIDER
     }
     pub(super) fn is_canonical_nix_build(&self) -> bool {

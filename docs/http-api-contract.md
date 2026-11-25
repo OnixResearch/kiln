@@ -12,9 +12,12 @@ two-space indentation, trailing newline). The archived lifecycle change is
 - `GET /api/projects`
 - `GET /api/runbooks`
 - `POST /api/runbooks/{id}/dispatch`
+- `GET /api/runbooks/dispatches`
+- `GET /api/runbooks/dispatches/{run_id}/rollup`
 - `POST /api/runbooks/{id}/fanout`
 - `GET /api/runbooks/fanouts`
 - `GET /api/runbooks/fanouts/{fanout_id}`
+- `GET /api/runbooks/fanouts/{fanout_id}/rollup`
 - `POST /api/runbooks/fanouts/{fanout_id}/pause`
 - `POST /api/runbooks/fanouts/{fanout_id}/continue`
 - `POST /api/runbooks/fanouts/{fanout_id}/cancel`
@@ -89,6 +92,15 @@ so additive server fields do not break the lockstep client.
 `Outcome::Unknown` and lost observation remain explicit values. HTTP 2xx or
 successful deserialization is not evidence of execution, completed cleanup or
 accepted CI.
+
+The read-only roll-up endpoints (`GET /api/runbooks/dispatches`,
+`GET /api/runbooks/dispatches/{run_id}/rollup`, and
+`GET /api/runbooks/fanouts/{fanout_id}/rollup`) are bounded (`limit` `1..=100`,
+cursor-paginated), admit `viewer` and `operator` (refusing `worker` with
+`403 worker_scope`), preserve `Outcome::Unknown` and explicit
+`present`/`missing`/`unrun`/`unavailable` receipt states, validate `https://`
+PR/stack links without userinfo, and always emit `grants_authority: false` and
+`non_claims`.
 
 ## Client bounds
 

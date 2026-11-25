@@ -363,6 +363,7 @@ fn registry(allow_commit_sha: bool) -> RunbookRegistry {
             runbooks: vec!["flake-update".into()],
             not_after_ms: None,
         }],
+        notifications: Vec::new(),
     }
 }
 

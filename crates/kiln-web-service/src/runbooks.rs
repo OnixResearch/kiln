@@ -4,7 +4,8 @@
 mod secrets;
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::Path;
+use std::net::IpAddr;
+use std::path::{Path, PathBuf};
 
 use kiln_adapter_github::profile::{ConfigEdge, ConfigNode};
 use serde::{Deserialize, Serialize};
@@ -28,6 +29,7 @@ pub const MAX_TARGETS: usize = 64;
 pub const MAX_TARGET_REFS: usize = 64;
 pub const MAX_GRANTS: usize = 128;
 pub const MAX_GRANT_RUNBOOKS: usize = 64;
+pub const MAX_NOTIFICATIONS: usize = 32;
 pub const MAX_RELATIVE_PATH_BYTES: usize = 256;
 pub const MAX_NODES: usize = 32;
 pub const MAX_EDGES: usize = 64;
@@ -47,6 +49,63 @@ pub struct RunbookRegistry {
     pub runbooks: Vec<RunbookDefinition>,
     #[serde(default)]
     pub grants: Vec<RunbookGrant>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub notifications: Vec<RunbookNotificationProfile>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RunbookNotificationProfile {
+    pub id: String,
+    pub enabled: bool,
+    #[serde(default)]
+    pub runbooks: Vec<String>,
+    pub on_success: bool,
+    pub on_failure: bool,
+    #[serde(default = "default_true")]
+    pub on_unknown: bool,
+    pub host: String,
+    pub port: u16,
+    pub path: String,
+    pub addresses: Vec<IpAddr>,
+    pub bearer_secret_file: Option<PathBuf>,
+    pub ca_certificate_file: Option<PathBuf>,
+    pub allow_loopback: bool,
+    pub allow_private: bool,
+    pub timeout_ms: u64,
+    pub max_request_bytes: usize,
+    pub max_response_bytes: usize,
+    pub max_resolver_candidates: usize,
+}
+
+impl RunbookNotificationProfile {
+    #[must_use]
+    pub fn applies_to(&self, runbook_id: &str) -> bool {
+        self.runbooks.is_empty() || self.runbooks.iter().any(|id| id == runbook_id)
+    }
+
+    #[must_use]
+    pub fn to_automation_profile(&self) -> crate::automation::NotificationProfile {
+        crate::automation::NotificationProfile {
+            id: self.id.clone(),
+            project_id: "runbooks".to_owned(),
+            enabled: self.enabled,
+            on_success: self.on_success,
+            on_failure: self.on_failure,
+            host: self.host.clone(),
+            port: self.port,
+            path: self.path.clone(),
+            addresses: self.addresses.clone(),
+            bearer_secret_file: self.bearer_secret_file.clone(),
+            ca_certificate_file: self.ca_certificate_file.clone(),
+            allow_loopback: self.allow_loopback,
+            allow_private: self.allow_private,
+            timeout_ms: self.timeout_ms,
+            max_request_bytes: self.max_request_bytes,
+            max_response_bytes: self.max_response_bytes,
+            max_resolver_candidates: self.max_resolver_candidates,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -690,6 +749,94 @@ impl RunbookRegistry {
                 }
             }
         }
+
+        if self.notifications.len() > MAX_NOTIFICATIONS {
+            return Err("runbook registry notifications exceed bound".into());
+        }
+        let mut notification_ids = BTreeSet::new();
+        for notification in &self.notifications {
+            if !crate::profile::identifier(&notification.id)
+                || !notification_ids.insert(notification.id.as_str())
+            {
+                return Err("runbook notification id invalid or duplicated".into());
+            }
+            if notification.runbooks.len() > MAX_RUNBOOKS {
+                return Err("runbook notification runbooks exceed bound".into());
+            }
+            let mut scoped = BTreeSet::new();
+            for rb_id in &notification.runbooks {
+                if !valid_runbook_id(rb_id)
+                    || !runbook_ids.contains(rb_id.as_str())
+                    || !scoped.insert(rb_id.as_str())
+                {
+                    return Err(
+                        "runbook notification references unknown or duplicate runbook".into(),
+                    );
+                }
+            }
+            let profile = notification.to_automation_profile();
+            let webhook = profile.webhook()?;
+            kiln_adapter_webhook::admit_addresses(&webhook, &notification.addresses)
+                .map_err(|_| "runbook notification network addresses denied")?;
+            let canonical: Vec<_> = notification
+                .addresses
+                .iter()
+                .map(|address| match address {
+                    IpAddr::V6(v) => v.to_ipv4_mapped().map(IpAddr::V4).unwrap_or(*address),
+                    _ => *address,
+                })
+                .collect();
+            kiln_adapter_webhook::admit_addresses(&webhook, &canonical)
+                .map_err(|_| "runbook notification mapped network addresses denied")?;
+            let url = reqwest::Url::parse(&format!(
+                "https://{}:{}{}",
+                notification.host, notification.port, notification.path
+            ))
+            .map_err(|_| "runbook notification URL invalid")?;
+            if url.host_str() != Some(notification.host.as_str())
+                || url.path() != notification.path
+                || url.query().is_some()
+                || url.fragment().is_some()
+                || notification
+                    .host
+                    .parse::<IpAddr>()
+                    .is_ok_and(|ip| !notification.addresses.contains(&ip))
+            {
+                return Err(
+                    "runbook notification destination is not an exact registered authority".into(),
+                );
+            }
+            if notification.timeout_ms == 0
+                || notification.timeout_ms > 30_000
+                || notification.max_request_bytes == 0
+                || notification.max_request_bytes > MAX_PROFILE_BYTES
+                || notification.max_response_bytes == 0
+                || notification.max_response_bytes > MAX_PROFILE_BYTES
+                || notification.max_resolver_candidates == 0
+                || notification.max_resolver_candidates > 16
+                || notification.host.contains([':', '?', '#', '\\'])
+                || notification.path.contains(['?', '#', '\\'])
+                || notification.path.starts_with("//")
+                || !notification
+                    .host
+                    .bytes()
+                    .all(|v| v.is_ascii_alphanumeric() || matches!(v, b'.' | b'-'))
+                || notification
+                    .path
+                    .bytes()
+                    .any(|v| v.is_ascii_control() || v == b' ')
+                || notification
+                    .bearer_secret_file
+                    .as_ref()
+                    .is_some_and(|p| !crate::profile::absolute(p))
+                || notification
+                    .ca_certificate_file
+                    .as_ref()
+                    .is_some_and(|p| !crate::profile::absolute(p))
+            {
+                return Err("runbook notification authority invalid".into());
+            }
+        }
         Ok(())
     }
 
@@ -1159,6 +1306,7 @@ mod tests {
                 runbooks: vec!["flake-update".into()],
                 not_after_ms: Some(2_000_000_000_000),
             }],
+            notifications: Vec::new(),
         }
     }
 

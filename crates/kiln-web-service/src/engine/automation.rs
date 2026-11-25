@@ -6,7 +6,10 @@ use crate::automation::{
     SourceRecord, external, now_ms, secret,
 };
 use kiln_adapter_github::events::{DeliveryHeaders, EventSelector, admit_event_with};
-use kiln_adapter_webhook::{WebhookAdapter, project_notification};
+use kiln_adapter_webhook::{
+    AuthMaterial, AuthPolicy, TransportProgress, TransportResult, WebhookAdapter, WebhookRuntime,
+    admit_addresses, admit_profile, project_notification,
+};
 use kiln_core::domain::{NotificationIntent, Outcome};
 use kiln_core::types::{EffectId, RunId};
 use kiln_provider_api::{NotificationOutcome, NotificationPort, NotificationRequest};
@@ -130,73 +133,211 @@ fn pull_request_base(
 #[derive(Debug)]
 #[must_use]
 pub struct NotificationWork {
-    reservation: DeliveryRecord,
-    policy_identity: String,
-    registration: NotificationProfile,
-    request: NotificationRequest,
+    kind: NotificationWorkKind,
+}
+
+#[derive(Debug)]
+enum NotificationWorkKind {
+    Automation {
+        reservation: DeliveryRecord,
+        policy_identity: String,
+        registration: NotificationProfile,
+        request: NotificationRequest,
+    },
+    RunbookSummary {
+        reservation: super::model::SummaryDeliveryRecord,
+        registration: NotificationProfile,
+        request: NotificationRequest,
+    },
 }
 
 /// Opaque, exact-reservation observation produced only by consuming work.
 #[derive(Debug)]
 pub struct NotificationCompletion {
-    reservation: DeliveryRecord,
-    policy_identity: String,
-    completed_at_ms: u64,
-    status: &'static str,
-    http_status: Option<u16>,
-    error_code: Option<&'static str>,
+    kind: NotificationCompletionKind,
+}
+
+#[derive(Debug)]
+enum NotificationCompletionKind {
+    Automation {
+        reservation: DeliveryRecord,
+        policy_identity: String,
+        completed_at_ms: u64,
+        status: &'static str,
+        http_status: Option<u16>,
+        error_code: Option<&'static str>,
+    },
+    RunbookSummary {
+        reservation: super::model::SummaryDeliveryRecord,
+        completed_at_ms: u64,
+        status: &'static str,
+        http_status: Option<u16>,
+        error_code: Option<&'static str>,
+    },
 }
 
 impl NotificationWork {
-    pub fn deliver(self) -> Result<NotificationCompletion, String> {
-        let webhook = self.registration.webhook()?;
-        let mut adapter = WebhookAdapter::new(
-            webhook,
-            HttpsRuntime {
-                registration: self.registration,
-                addresses: Vec::new(),
-                http_status: None,
+    pub(super) fn from_runbook_summary(
+        reservation: super::model::SummaryDeliveryRecord,
+        registration: NotificationProfile,
+        request: NotificationRequest,
+    ) -> Self {
+        Self {
+            kind: NotificationWorkKind::RunbookSummary {
+                reservation,
+                registration,
+                request,
             },
-        );
-        let result = adapter.deliver(&self.request);
-        let (status, error_code) = match result {
-            Ok(observation) => {
-                if observation.effect_id != self.request.effect_id
-                    || observation.endpoint_profile != self.request.endpoint_profile
-                    || observation.body_identity != self.request.body_identity
-                {
-                    return Err("notification observation identity differs from reservation".into());
-                }
-                match observation.outcome {
-                    NotificationOutcome::Accepted => ("delivered", None),
-                    NotificationOutcome::Unknown => {
-                        ("ambiguous", Some("notification_acceptance_unknown"))
-                    }
-                    NotificationOutcome::Rejected => {
-                        ("rejected", Some("notification_receiver_rejected"))
-                    }
-                    NotificationOutcome::RateLimited => {
-                        ("rejected", Some("notification_rate_limited"))
-                    }
-                    NotificationOutcome::TimedOut => {
-                        ("rejected", Some("notification_timeout_before_send"))
-                    }
-                    NotificationOutcome::ProviderError => {
-                        ("rejected", Some("notification_provider_error"))
-                    }
-                }
-            }
-            Err(_) => ("rejected", Some("notification_preflight_rejected")),
-        };
-        Ok(NotificationCompletion {
-            reservation: self.reservation,
-            policy_identity: self.policy_identity,
-            completed_at_ms: now_ms()?,
-            status,
-            http_status: adapter.runtime().http_status,
-            error_code,
-        })
+        }
     }
+
+    pub fn deliver(self) -> Result<NotificationCompletion, String> {
+        match self.kind {
+            NotificationWorkKind::Automation {
+                reservation,
+                policy_identity,
+                registration,
+                request,
+            } => {
+                let webhook = registration.webhook()?;
+                let mut adapter = WebhookAdapter::new(
+                    webhook,
+                    HttpsRuntime {
+                        registration,
+                        addresses: Vec::new(),
+                        http_status: None,
+                    },
+                );
+                let result = adapter.deliver(&request);
+                let (status, error_code) = match result {
+                    Ok(observation) => {
+                        if observation.effect_id != request.effect_id
+                            || observation.endpoint_profile != request.endpoint_profile
+                            || observation.body_identity != request.body_identity
+                        {
+                            return Err(
+                                "notification observation identity differs from reservation".into(),
+                            );
+                        }
+                        match observation.outcome {
+                            NotificationOutcome::Accepted => ("delivered", None),
+                            NotificationOutcome::Unknown => {
+                                ("ambiguous", Some("notification_acceptance_unknown"))
+                            }
+                            NotificationOutcome::Rejected => {
+                                ("rejected", Some("notification_receiver_rejected"))
+                            }
+                            NotificationOutcome::RateLimited => {
+                                ("rejected", Some("notification_rate_limited"))
+                            }
+                            NotificationOutcome::TimedOut => {
+                                ("rejected", Some("notification_timeout_before_send"))
+                            }
+                            NotificationOutcome::ProviderError => {
+                                ("rejected", Some("notification_provider_error"))
+                            }
+                        }
+                    }
+                    Err(_) => ("rejected", Some("notification_preflight_rejected")),
+                };
+                Ok(NotificationCompletion {
+                    kind: NotificationCompletionKind::Automation {
+                        reservation,
+                        policy_identity,
+                        completed_at_ms: now_ms()?,
+                        status,
+                        http_status: adapter.runtime().http_status,
+                        error_code,
+                    },
+                })
+            }
+            NotificationWorkKind::RunbookSummary {
+                reservation,
+                registration,
+                request,
+            } => {
+                let (status, http_status, error_code) =
+                    deliver_summary_https(registration, &request)?;
+                Ok(NotificationCompletion {
+                    kind: NotificationCompletionKind::RunbookSummary {
+                        reservation,
+                        completed_at_ms: now_ms()?,
+                        status,
+                        http_status,
+                        error_code,
+                    },
+                })
+            }
+        }
+    }
+}
+
+fn deliver_summary_https(
+    registration: NotificationProfile,
+    request: &NotificationRequest,
+) -> Result<(&'static str, Option<u16>, Option<&'static str>), String> {
+    let webhook = registration.webhook()?;
+    if admit_profile(&webhook).is_err()
+        || request.endpoint_profile != webhook.profile_id
+        || request.body.len() > webhook.max_request_bytes
+    {
+        return Ok(("rejected", None, Some("notification_preflight_rejected")));
+    }
+    let mut runtime = HttpsRuntime {
+        registration,
+        addresses: Vec::new(),
+        http_status: None,
+    };
+    let Ok(addresses) =
+        runtime.resolve(&webhook.host, webhook.port, webhook.max_resolver_candidates)
+    else {
+        return Ok(("rejected", None, Some("notification_preflight_rejected")));
+    };
+    if admit_addresses(&webhook, &addresses).is_err() {
+        return Ok(("rejected", None, Some("notification_preflight_rejected")));
+    }
+    let mut auth = match &webhook.auth {
+        AuthPolicy::None => AuthMaterial::None,
+        AuthPolicy::Bearer { secret_reference } => match runtime.load_secret(secret_reference) {
+            Ok(bytes) => AuthMaterial::Bearer(bytes),
+            Err(_) => return Ok(("rejected", None, Some("notification_preflight_rejected"))),
+        },
+        AuthPolicy::Blake3Signature { .. } => {
+            return Ok(("rejected", None, Some("notification_preflight_rejected")));
+        }
+    };
+    let result = runtime.send(&webhook, request, &auth);
+    if let AuthMaterial::Bearer(mut bytes) = auth {
+        bytes.fill(0);
+    } else {
+        let _ = &mut auth;
+    }
+    let (status, error_code) = match result {
+        TransportResult::Response { status, .. } if (200..=299).contains(&status) => {
+            ("delivered", None)
+        }
+        TransportResult::Response { status: 429, .. } => {
+            ("rejected", Some("notification_rate_limited"))
+        }
+        TransportResult::Response { .. } | TransportResult::Redirect { .. } => {
+            ("rejected", Some("notification_receiver_rejected"))
+        }
+        TransportResult::TimedOut {
+            progress: TransportProgress::BeforeConnect,
+        } => ("rejected", Some("notification_timeout_before_send")),
+        TransportResult::Disconnected {
+            progress: TransportProgress::BeforeConnect,
+        }
+        | TransportResult::ProviderError {
+            progress: TransportProgress::BeforeConnect,
+        } => ("rejected", Some("notification_provider_error")),
+        TransportResult::TimedOut { .. }
+        | TransportResult::Disconnected { .. }
+        | TransportResult::ProviderError { .. } => {
+            ("ambiguous", Some("notification_acceptance_unknown"))
+        }
+    };
+    Ok((status, runtime.http_status, error_code))
 }
 
 enum SelectedEffect {
@@ -1376,10 +1517,12 @@ impl Engine {
                     self.state.automation.next_registration = next;
                     self.persist()?;
                     notifications.push(NotificationWork {
-                        reservation,
-                        policy_identity,
-                        registration,
-                        request,
+                        kind: NotificationWorkKind::Automation {
+                            reservation,
+                            policy_identity,
+                            registration,
+                            request,
+                        },
                     });
                 }
             }
@@ -1391,38 +1534,57 @@ impl Engine {
         &mut self,
         completion: NotificationCompletion,
     ) -> Result<(), String> {
-        if self.storage_failed {
-            return Err("durable state unavailable".into());
+        match completion.kind {
+            NotificationCompletionKind::Automation {
+                reservation,
+                policy_identity,
+                completed_at_ms,
+                status,
+                http_status,
+                error_code,
+            } => {
+                if self.storage_failed {
+                    return Err("durable state unavailable".into());
+                }
+                if self.state.automation.policy_identity.as_ref() != Some(&policy_identity)
+                    || self.state.automation.deliveries.get(&reservation.id) != Some(&reservation)
+                    || reservation.status != "reserved"
+                {
+                    return Err(
+                        "notification observation does not match exact retained reservation".into(),
+                    );
+                }
+                let record = self
+                    .state
+                    .automation
+                    .deliveries
+                    .get_mut(&reservation.id)
+                    .ok_or("delivery reservation missing")?;
+                record.http_status = http_status;
+                record.completed_at_ms = Some(completed_at_ms);
+                record.status = status.into();
+                record.error_code = error_code.map(str::to_string);
+                self.state
+                    .automation
+                    .settings
+                    .get_mut(&key("notification", &record.registration_id))
+                    .ok_or("notification state missing")?
+                    .last_status = Some(record.status.clone());
+                self.persist()
+            }
+            NotificationCompletionKind::RunbookSummary {
+                reservation,
+                completed_at_ms,
+                status,
+                http_status,
+                error_code,
+            } => self.record_summary_notification(
+                reservation,
+                completed_at_ms,
+                status,
+                http_status,
+                error_code,
+            ),
         }
-        if self.state.automation.policy_identity.as_ref() != Some(&completion.policy_identity)
-            || self
-                .state
-                .automation
-                .deliveries
-                .get(&completion.reservation.id)
-                != Some(&completion.reservation)
-            || completion.reservation.status != "reserved"
-        {
-            return Err(
-                "notification observation does not match exact retained reservation".into(),
-            );
-        }
-        let record = self
-            .state
-            .automation
-            .deliveries
-            .get_mut(&completion.reservation.id)
-            .ok_or("delivery reservation missing")?;
-        record.http_status = completion.http_status;
-        record.completed_at_ms = Some(completion.completed_at_ms);
-        record.status = completion.status.into();
-        record.error_code = completion.error_code.map(str::to_string);
-        self.state
-            .automation
-            .settings
-            .get_mut(&key("notification", &record.registration_id))
-            .ok_or("notification state missing")?
-            .last_status = Some(record.status.clone());
-        self.persist()
     }
 }

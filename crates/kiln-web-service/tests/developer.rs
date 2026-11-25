@@ -820,6 +820,86 @@ fn ci_fanout_and_controls_wire_http_routes_and_watch_exit_codes() {
                 }),
             };
         }
+        if method == "GET" && path.starts_with("/api/runbooks/dispatches") {
+            if path.contains("/rollup") {
+                let counts = json!({
+                    "total": 1, "pending": 0, "active": 0, "success": 0, "failure": 0, "unknown": 1, "skipped": 0,
+                });
+                let targets = json!([{
+                    "target": "onixresearch/kiln@refs/heads/main",
+                    "source_revision": "d".repeat(40),
+                    "status": "unknown",
+                    "patchgate_receipt": { "state": "missing" },
+                    "verification_receipt": { "state": "missing", "grants_authority": false },
+                    "pull_requests": [],
+                }]);
+                return StubResponse {
+                    status: 200,
+                    body: json!({
+                        "schema": "kiln.runbook-rollup.v1",
+                        "subject_kind": "dispatch",
+                        "subject_id": "web-run-1",
+                        "runbook_id": "security-audit",
+                        "phase": "unknown",
+                        "counts": counts,
+                        "notification": { "state": "not_configured" },
+                        "targets": targets,
+                        "next_cursor": null,
+                        "total": 1,
+                        "bounded": true,
+                        "grants_authority": false,
+                    }),
+                };
+            }
+            return StubResponse {
+                status: 200,
+                body: json!({
+                    "schema": "kiln.runbook-dispatches-view.v1",
+                    "dispatches": [],
+                    "next_cursor": null,
+                    "total": 0,
+                    "bounded": true,
+                    "grants_authority": false,
+                    "non_claims": []
+                }),
+            };
+        }
+        if method == "GET" && path == "/api/runbooks/fanouts/rb-fanout-1/rollup" {
+            return StubResponse {
+                status: 200,
+                body: json!({
+                    "schema": "kiln.runbook-rollup.v1",
+                    "subject_kind": "fanout",
+                    "subject_id": "rb-fanout-1",
+                    "runbook_id": "security-audit",
+                    "mode": "read_only",
+                    "run_id": null,
+                    "fanout_id": "rb-fanout-1",
+                    "principal": "local:operator",
+                    "phase": "completed",
+                    "overall_outcome": null,
+                    "has_unknown": false,
+                    "admission": "open",
+                    "stop_reason": null,
+                    "lattice_bundle_id": null,
+                    "lattice_bundle_identity": "a".repeat(64),
+                    "lattice_workflow_name": "security-audit",
+                    "lattice_workflow_revision": "b".repeat(64),
+                    "params_identity": "c".repeat(64),
+                    "counts": { "total": 1, "pending": 0, "active": 0, "success": 1, "failure": 0, "unknown": 0, "skipped": 0 },
+                    "notification": { "state": "delivered" },
+                    "targets": [{
+                        "target": "onixresearch/kiln@refs/heads/main",
+                        "source_revision": "d".repeat(40),
+                        "status": "success",
+                        "patchgate_receipt": { "state": "present" },
+                        "verification_receipt": { "state": "present" },
+                        "pull_requests": [{ "url": "https://github.com/onixresearch/kiln/pull/100", "state": "open" }]
+                    }],
+                    "next_cursor": null, "total": 1, "bounded": true, "grants_authority": false, "non_claims": []
+                }),
+            };
+        }
         if method == "POST" && path == "/api/runbooks/fanouts/rb-fanout-1/pause" {
             return StubResponse {
                 status: 200,
@@ -928,6 +1008,67 @@ fn ci_fanout_and_controls_wire_http_routes_and_watch_exit_codes() {
             .output(),
     );
     assert!(pause_out.status.success());
+
+    let disp_list_out = checked(
+        Command::new(env!("CARGO_BIN_EXE_kiln-web-service"))
+            .args([
+                "ci",
+                "--profile",
+                &profile_path.to_string_lossy(),
+                "--identity",
+                &identity,
+                "dispatch-list",
+                "--runbook",
+                "security-audit",
+                "--limit",
+                "10",
+            ])
+            .output(),
+    );
+    assert!(disp_list_out.status.success());
+
+    let disp_rollup_out = checked(
+        Command::new(env!("CARGO_BIN_EXE_kiln-web-service"))
+            .args([
+                "ci",
+                "--profile",
+                &profile_path.to_string_lossy(),
+                "--identity",
+                &identity,
+                "dispatch-rollup",
+                "--run",
+                "web-run-1",
+                "--output",
+                "text",
+            ])
+            .output(),
+    );
+    assert!(disp_rollup_out.status.success());
+    let disp_rollup_text = String::from_utf8_lossy(&disp_rollup_out.stdout);
+    assert!(disp_rollup_text.contains("subject: dispatch web-run-1"));
+    assert!(disp_rollup_text.contains("patchgate=missing"));
+    assert!(disp_rollup_text.contains("verification=missing"));
+
+    let fo_rollup_out = checked(
+        Command::new(env!("CARGO_BIN_EXE_kiln-web-service"))
+            .args([
+                "ci",
+                "--profile",
+                &profile_path.to_string_lossy(),
+                "--identity",
+                &identity,
+                "fanout-rollup",
+                "--fanout",
+                "rb-fanout-1",
+                "--output",
+                "text",
+            ])
+            .output(),
+    );
+    assert!(fo_rollup_out.status.success());
+    let fo_rollup_text = String::from_utf8_lossy(&fo_rollup_out.stdout);
+    assert!(fo_rollup_text.contains("subject: fanout rb-fanout-1"));
+    assert!(fo_rollup_text.contains("https://github.com/onixresearch/kiln/pull/100 (open)"));
 
     stop.store(true, Ordering::Release);
     let _ = handle.join();

@@ -762,6 +762,74 @@ fn http_contract_real_responses_validate_schema() {
         &components,
     )
     .unwrap_or_else(|e| unreachable!("fanout cancel schema: {e}"));
+
+    // #100 result roll-ups: dispatches list, dispatch rollup, fanout rollup, RBAC & errors
+    let dispatches_resp = get(
+        &mut engine,
+        "/api/runbooks/dispatches?limit=1",
+        Role::Viewer,
+    );
+    assert_eq!(dispatches_resp.status, 200);
+    let dispatches_val = value(&dispatches_resp);
+    validate(
+        &dispatches_val,
+        &schema_for(&openapi, "RunbookDispatchPage"),
+        &components,
+    )
+    .unwrap_or_else(|e| unreachable!("runbook dispatch page schema: {e}"));
+    let dispatch_run_id = dispatches_val
+        .pointer("/dispatches/0/run_id")
+        .and_then(Value::as_str)
+        .unwrap_or_else(|| unreachable!("dispatch run_id missing"));
+
+    let dispatch_rollup_resp = get(
+        &mut engine,
+        &format!("/api/runbooks/dispatches/{dispatch_run_id}/rollup"),
+        Role::Viewer,
+    );
+    assert_eq!(dispatch_rollup_resp.status, 200);
+    validate(
+        &value(&dispatch_rollup_resp),
+        &schema_for(&openapi, "RunbookRollupPage"),
+        &components,
+    )
+    .unwrap_or_else(|e| unreachable!("dispatch rollup schema: {e}"));
+
+    let fanout_rollup_resp = get(
+        &mut engine,
+        &format!("/api/runbooks/fanouts/{fanout_id}/rollup?limit=1"),
+        Role::Viewer,
+    );
+    assert_eq!(fanout_rollup_resp.status, 200);
+    validate(
+        &value(&fanout_rollup_resp),
+        &schema_for(&openapi, "RunbookRollupPage"),
+        &components,
+    )
+    .unwrap_or_else(|e| unreachable!("fanout rollup schema: {e}"));
+
+    // Worker denied & missing resource errors validate against Error schema
+    let worker_denied = get(&mut engine, "/api/runbooks/dispatches", Role::Worker);
+    assert_eq!(worker_denied.status, 403);
+    validate(
+        &value(&worker_denied),
+        &schema_for(&openapi, "Error"),
+        &components,
+    )
+    .unwrap_or_else(|e| unreachable!("worker error schema: {e}"));
+
+    let missing_rollup = get(
+        &mut engine,
+        "/api/runbooks/fanouts/rb-fanout-missing/rollup",
+        Role::Viewer,
+    );
+    assert_eq!(missing_rollup.status, 404);
+    validate(
+        &value(&missing_rollup),
+        &schema_for(&openapi, "Error"),
+        &components,
+    )
+    .unwrap_or_else(|e| unreachable!("missing rollup error schema: {e}"));
 }
 
 #[test]
