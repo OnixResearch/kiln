@@ -1,0 +1,19 @@
+## Why
+
+After P0 (reconciliation, combined Fleet UI, control safety) and P1 (7-destination IA, Factory Cockpit + Slide-Over Inspector, multiplexed SSE, 3-pane Code Review + Speculative Train), Kiln's deepest architectural advantages still have room to shine visually and operationally: Run `Activity` and `Evidence` render raw nested `renderRecorded()` JSON trees instead of a causal state-machine timeline; multi-node DAG failures lack a cross-node deduplicated failure digest; verification evidence (`cairn-authoritative-completion`, Patchgate receipts, SLSA/in-toto statements, Plan Review annotations, and Semantic Merge O/A/B/M quartets) is scattered across separate tabs; the fair-admission quota ledger and `AttemptMetrics` effort burn remain CLI-only; opt-in Atlas topology (`docs/atlas-view.md`) is unwired; and the web server still serves 33 uncompressed, uncached static assets (~1.27 MB cold boot) with incomplete Node module test coverage.
+
+P2 delivers Kiln's category-defining causal provenance UX, live fair-admission and effort governance, opt-in Atlas topology, and static asset/test hardening.
+
+## What Changes
+
+- Replace raw `renderRecorded()` JSON trees in Run `Activity` and `Evidence`, `receipts.js`, and `inventory.js` with a **Causal Event-Sourced Decision Timeline** (`Admitted -> Untrusted Gate -> Dispatched (effect_id) -> Observations (seq 1..N) -> Controls/Unknown -> Terminal`) with timestamps, principal/agent attribution, copyable 12-char BLAKE3 `event_identity` badges, and raw JSON tucked inside disclosures.
+- Add a **Cross-Node Failure Digest** above `Logs` in `Runs & Evidence` that deduplicates failing steps/errors across multi-node DAGs so operators jump directly to the root failing step without manually switching `#log-node` dropdowns.
+- Build the unified **Gate & Receipt Passport** on Runs and Code Reviews uniting typed CI checks, `cairn-authoritative-completion` receipts, Patchgate decisions (`receipts.js`), SLSA/in-toto subject/dependency digests, Plan Review annotations (`docs/plan-review.md`), and Semantic Merge O/A/B/M quartets (`docs/semantic-merge-orchestration.md`) with strict visual provenance badges (`Observed Receipt` solid vs `Agent Claim` dotted vs `Declared` dashed) and `current` vs `historical/stale` candidate marking.
+- Expose live **Fair-Admission & `AttemptMetrics` Governance** (`GET /api/implementation/admission` and guarded quota/share controls) plus guarded publication and integration recovery actions (`prepare-publication`, `publish`, `recover-integration`, `close-source`) inside `3.1 Fleet & Workers` and `2.1 Delivery & Cairn`.
+- Wire opt-in **Atlas Topology (`docs/atlas-view.md`)** rendering inert `<=64`-node declared-vs-observed packet topology views using same-origin assets (`dag-canvas` / flat graph fallback).
+- Add static asset bundling/compression (`gzip`/`zstd`) plus `ETag` and `Cache-Control` headers in `crates/kiln-web-service/src/server.rs` (eliminating the 33-request / 1.27 MB uncompressed cold boot) and complete Node module test suites for `web.js`, `fleet.js`, `work.js`, and `project.js`.
+
+## Impact
+
+- **Files**: `crates/kiln-web-service/src/{web.js,web.css,receipts.js,inventory.js,cairn.js,fleet.js,fleet-capacity.js,code-review.js,server.rs,engine/api.rs,campaign_controls.rs,campaign_projection.rs}`, `crates/kiln-dashboard/src/render/*`, `tests/{live-console-ui.test.mjs,work-views.test.mjs,fleet-ui.test.mjs,project-ui.test.mjs}`.
+- **Testing**: `cargo test --locked -p kiln-web-service -p kiln-dashboard`, Node unit/module tests covering `web.js`, `fleet.js`, `work.js`, and `project.js`, HTTP compression/`ETag`/`304 Not Modified` contract tests, positive and negative tests for Gate Passport provenance distinctions, Fair-Admission read/write bounds, and Atlas `<=64`-node limit enforcement.
