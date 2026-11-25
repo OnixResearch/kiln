@@ -680,7 +680,7 @@ fn enrolled_roster_reports_only_fresh_successful_herdr_counts() -> TestResult {
     let read_roster = |now_ms| {
         let response = service.route(
             PEER,
-            &Request { method: "GET".into(), path: "/v1/machines".into(), body: Vec::new() },
+            &Request { method: "GET".into(), path: "/v1/machines".into(), query: None, body: Vec::new() },
             now_ms,
         );
         assert_eq!(response.status, 200);

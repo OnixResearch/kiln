@@ -345,7 +345,7 @@ fn work_rows_preserve_exact_native_source_references() -> TestResult {
         native_id: "change/task-1".into(),
         version: common::content('2'),
     }];
-    let mut store = fixture.service.store.open()?;
+    let mut store = fixture.service.store.open_coordinator()?;
     store.admit(&ready, None)?;
     store.admit(&blocked, None)?;
 
