@@ -34,6 +34,22 @@ the reviewed routes with bounded request and response bytes; the fleet service
 remains the authority for every command. Mutations require an operator principal,
 and Worker principals cannot read the page's API.
 
+**Machines** lists the coordinator and every authenticated peer, even when
+no Herdr placement route is configured. The coordinator reuses its bounded
+Herdr reads to report session counts and last success; it does not probe
+machines on browser requests. A failed read is unreachable, an old observation
+is stale after three dispatch intervals, and a host with no observation is not
+reporting. None of these states implies zero sessions. Assignments and claims
+use the recorded session and holder hosts, respectively, not the claim scope.
+
+**Cairn progress** reads the canonical change index of admitted work and
+campaign selections. **Issues & requests** reads the principal-filtered native
+work store. **Fleet work sources** retains exact aliases from ranked, blocked
+and attempted work, including GitHub issue references. These sources refresh
+or report unavailability independently. Existing GitHub and Cairn intake must
+be configured for the desired repositories; Fleet does not crawl GitHub, scan
+remote checkouts, or treat an empty admitted list as an upstream census.
+
 The selected Cairn change also carries a read-only inline fleet panel: fleet
 attempts join by exact work identity, and host-wide claims are shown when no
 repository-scoped join exists. Its commands stay on the Fleet page.
@@ -129,6 +145,7 @@ The API takes JSON bodies of at most 64 KiB. Every peer must be a configured mac
 | Route | Result |
 | --- | --- |
 | `GET /v1/health` | machine and release version |
+| `GET /v1/machines` | enrolled roster with cached legacy Herdr observations and optional redacted Core observations |
 | `GET /v1/version` | BLAKE3 identity of the fleet, work and attempt row versions |
 | `GET /v1/metrics` | Prometheus text gauges for claims, ready/blocked work, attempts and decisions |
 | `GET /v1/claims` | open claims |
@@ -147,6 +164,41 @@ The MCP server speaks newline-delimited JSON-RPC 2.0 on stdio (protocol `2025-06
 `config/fleet.ncl` types `kiln.fleet.v1`, and `config/fleet-inventory.ncl` types the herdr inventory `kiln.fleet-inventory.v1`. The service refuses a swarm `from` address equal to any configured machine's `<machine>@swarm.local`, so Kiln never posts as an agent's machine.
 
 Kiln fetches every handed-off commit through the machine's `ssh_target`, the coordinator's too, so Kiln's account never needs to read an agent's home. Only the coordinator may omit `ssh_target`; Kiln then fetches its worktrees as a local path, and the service refuses an inventory where any other machine omits it.
+
+### Herdr Core observation
+
+Omit `herdr_core` to leave Core observation disabled. To enable it, add a
+profile like this to the Fleet Nickel configuration:
+
+```nickel
+herdr_core = {
+  socket = "/run/user/1000/example/core.sock",
+  version = "0.1.19",
+  hosts = { "example-desktop" = "", "example-worker" = "worker" },
+},
+```
+
+Select the actual local Unix socket explicitly. Its permissions grant
+shell-equivalent access to Core; do not make it public, proxy it, or relax
+permissions to enable observation. Keys must be enrolled Fleet machine labels.
+Values are distinct nicknames from the selected Core; `""` means that Core's
+local terminals. This does not enroll hosts or add dispatch routes.
+
+Fleet admits only the pinned Core version and protocol generation. Terminal
+events trigger a fresh list; heartbeats refresh remote line state even when
+terminals are quiet. The view expires after 30 seconds without a fresh list.
+The observer retries a lost connection independently of dispatch. Only live
+terminal totals, closed program-status counts and timestamps reach the roster.
+No program report is `unknown`, not `idle`. A fresh local snapshot can prove
+zero. Core can omit a remote list after a timeout while the line still says
+connected, so an empty remote result does not prove zero. Hosts that previously
+reported but lose a confirmed observation are stale. A fresh list with no
+matching alias is not reporting unless that host previously reported. An
+unavailable endpoint or an unconfirmed remote read without prior data is
+unreachable.
+
+Core counts do not establish Kiln assignment or completion. Fleet work, Cairn
+changes and native issues or requests retain their independent provenance.
 
 ## Non-claims
 

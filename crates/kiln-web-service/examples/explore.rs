@@ -512,6 +512,32 @@ impl Workspace {
                 Err((status, message)) => return Ok(error(status, message)),
             }
         }
+        if req.method == "GET" && path == "/api/fleet/machines" {
+            let now = now_ms()?;
+            return Ok(json(200, json!({"synthetic": true, "machines": [
+                {"machine": "example-desktop", "placement_configured": true, "observed_at_ms": now, "last_seen_at_ms": now, "state": "reporting", "sessions": 2, "core": {"state":"reporting","observed_at_ms":now,"last_seen_at_ms":now,"terminals":2,"statuses":{"idle":0,"working":0,"done":0,"blocked":1,"error":0,"unknown":1}}},
+                {"machine": "example-worker", "placement_configured": true, "observed_at_ms": now, "last_seen_at_ms": null, "state": "unreachable", "sessions": null, "core":{"state":"unreachable","observed_at_ms":now,"last_seen_at_ms":null,"terminals":null,"statuses":null}},
+                {"machine": "example-stale", "placement_configured": true, "observed_at_ms": now.saturating_sub(600_000), "last_seen_at_ms": now.saturating_sub(600_000), "state": "stale", "sessions": null, "core":{"state":"stale","observed_at_ms":now,"last_seen_at_ms":now.saturating_sub(600_000),"terminals":null,"statuses":null}},
+                {"machine": "example-peer", "placement_configured": false, "observed_at_ms": null, "last_seen_at_ms": null, "state": "not_reporting", "sessions": null}
+            ]})));
+        }
+        if req.method == "GET" && path == "/api/fleet/events" {
+            let version = "e".repeat(64);
+            if req.target.ends_with(&format!("?after={version}")) {
+                return Ok(bytes("text/event-stream", b": heartbeat\n\n"));
+            }
+            let attempt = "d".repeat(64);
+            let work = "a".repeat(64);
+            let snapshot = json!({
+                "version": version,
+                "health": {"machine": "example-desktop", "version": "example", "api": "v1"},
+                "claims": {"claims": []},
+                "work": {"ready_unclaimed": 1, "ranked": [{"identity": work, "repository": "example/release-service", "title": "Synthetic issue work", "sources": [{"kind": "github_issue", "source": {"contract_version": 1, "provider_namespace": "github", "native_kind": "issue", "native_id": "example/release-service#42"}, "native_id": "example/release-service#42", "version": "b".repeat(64)}]}], "blocked": [], "truncated": false},
+                "attempts": {"attempts": [{"attempt": attempt, "work": work, "title": "Synthetic running attempt", "state": "running", "fence": 1, "session": {"machine": "example-desktop"}}]},
+                "decisions": {"decisions": []}
+            });
+            return Ok(bytes("text/event-stream", format!("event: snapshot\ndata: {snapshot}\n\n").as_bytes()));
+        }
         // r[impl kiln.inventory.consumers]
         if path == "/api/inventory" {
             return inventory::response(&req.method, &req.target);
@@ -651,6 +677,8 @@ fn asset(path: &str) -> ApiResponse {
                 "code-review.js" => JS, "code-review.css" => CSS, "project.js" => JS, "project.css" => CSS,
                 "source.js" => JS, "source.css" => CSS, "receipts.js" => JS, "receipts.css" => CSS,
                 "workers.js" => JS, "workers.css" => CSS, "runbooks.js" => JS, "cairn.js" => JS, "cairn.css" => CSS,
+                "fleet.js" => JS, "fleet.css" => CSS, "fleet-runtime.js" => JS,
+                "fleet-capacity.js" => JS, "fleet-capacity.css" => CSS,
                 "inventory.js" => JS, "inventory.css" => CSS, "preview-review.js" => JS,
             }
         }

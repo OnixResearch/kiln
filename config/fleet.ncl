@@ -206,6 +206,19 @@ in
   implementer | { database | String | AbsolutePath, enrollment | String | AbsolutePath },
   # kiln.fleet-inventory.v1 JSON (config/fleet-inventory.ncl).
   inventory | String | AbsolutePath,
+  # Optional read-only Core endpoint; empty alias maps the local Core.
+  herdr_core
+    | { socket | String | AbsolutePath, version | String, hosts | { _ | String } }
+    | std.contract.from_predicate (fun core =>
+      core.version == "0.1.19"
+      && (let labels = std.record.fields core.hosts in
+          let aliases = std.record.values core.hosts in
+          std.array.length labels > 0
+          && std.array.all (fun host => host == machine || std.array.elem host (std.record.values peers)) labels
+          && std.array.all (fun alias => alias == "" || is_machine_label alias) aliases
+          && std.array.all (fun alias => std.array.length (std.array.filter (fun other => alias == other) aliases) == 1) aliases)
+    )
+    | optional,
   swarm
     | OwnFrom ([machine] @ std.record.values peers @ operators)
     | Nullable Swarm
