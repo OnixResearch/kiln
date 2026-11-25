@@ -128,8 +128,12 @@ impl Dispatcher {
         } else {
             (None, None)
         };
+        let store = service.store.open()?;
+        if let Some(client) = &herdr {
+            service.configure_machine_observations(client.inventory());
+        }
         Ok(Self {
-            store: service.store.open()?,
+            store,
             service,
             herdr,
             capturer,
@@ -201,7 +205,9 @@ impl Dispatcher {
             return Ok(TickReport::default());
         };
         self.observe_sessions(&herdr, now_ms)?;
-        let occupancy = herdr.occupancy();
+        let occupancy = herdr.occupancy_with_session_counts(|machine, sessions| {
+            self.service.record_machine_observation(machine, sessions);
+        });
         let free_slots = free_slots(herdr.inventory(), &occupancy, &config.dispatch.kinds);
         let policy = config.policy.fleet();
         let planned = self.store.fleet_plan(now_ms, free_slots, &policy)?;

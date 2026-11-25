@@ -6,9 +6,11 @@
 //! through [`crate::store::classify`]. Returned text written by agents is
 //! data, never instructions.
 
+use std::collections::BTreeMap;
 use std::net::IpAddr;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
+use kiln_adapter_herdr::HerdrInventory;
 use kiln_core::fleet::{
     ClaimCommand, ClaimOutcome, FleetAgent, ForeignClaim, Observation, parse_scope_text,
 };
@@ -34,6 +36,84 @@ pub const MAX_LISTED_DECISIONS: usize = 256;
 pub const MS_PER_MINUTE: u64 = 60_000;
 /// Handoffs name a full SHA-1 commit, the only form the herdr receipt admits.
 pub const HANDOFF_COMMIT_HEX: usize = 40;
+/// A probe expires after three dispatch intervals without a new observation.
+const MACHINE_STALE_TICKS: u64 = 3;
+// Core sends heartbeats every fifteen seconds; missing two expires the view.
+const CORE_STALE_MS: u64 = 30_000;
+
+#[derive(Debug, Default)]
+struct CoreObservations {
+    latest: BTreeMap<String, crate::core_observer::CoreHost>,
+    observed_at_ms: Option<u64>,
+    last_seen: BTreeMap<String, u64>,
+    invalidated: bool,
+}
+
+impl CoreObservations {
+    fn update(&mut self, incoming: Option<BTreeMap<String, crate::core_observer::CoreHost>>, now: u64) {
+        let Some(incoming) = incoming else {
+            self.invalidated = true;
+            return;
+        };
+        for (machine, observation) in &incoming {
+            if observation.connected {
+                self.last_seen.insert(machine.clone(), now);
+            }
+        }
+        self.latest = incoming;
+        self.observed_at_ms = Some(now);
+        self.invalidated = false;
+    }
+
+    fn project(&self, machine: &str, now: u64) -> Value {
+        let last_seen = self.last_seen.get(machine).copied();
+        let row = self.latest.get(machine);
+        let fresh = !self.invalidated
+            && self.observed_at_ms.and_then(|at| now.checked_sub(at))
+                .is_some_and(|age| age < CORE_STALE_MS);
+        let state = match (fresh, row, last_seen) {
+            (true, Some(row), _) if row.connected => "reporting",
+            (_, _, Some(_)) => "stale",
+            (true, None, _) => "not_reporting",
+            _ => "unreachable",
+        };
+        let reporting = row.filter(|_| state == "reporting");
+        json!({
+            "state": state,
+            "observed_at_ms": row.and(self.observed_at_ms).or(last_seen),
+            "last_seen_at_ms": last_seen,
+            "terminals": reporting.and_then(|row| row.terminals),
+            "statuses": reporting.and_then(|row| row.statuses.as_ref()),
+        })
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn core_counts_expire_and_missing_hosts_are_not_idle() {
+    use crate::core_observer::CoreHost;
+    let mut view = CoreObservations::default();
+    assert_eq!(view.project("local", 1)["state"], "unreachable");
+    view.update(Some(BTreeMap::from([("local".to_owned(), CoreHost {
+        connected: true, terminals: Some(0), statuses: Some(BTreeMap::new()),
+    })])), 2);
+    assert_eq!(view.project("local", 2)["terminals"], 0);
+    assert_eq!(view.project("absent", 2)["state"], "not_reporting");
+    assert_eq!(view.project("local", 2 + CORE_STALE_MS)["state"], "stale");
+    view.update(None, 3);
+    let stale = view.project("local", 3);
+    assert_eq!(stale["state"], "stale");
+    assert_eq!(stale["last_seen_at_ms"], 2);
+    assert!(stale["terminals"].is_null() && stale["statuses"].is_null());
+}
+
+#[derive(Debug)]
+struct MachineObservation {
+    has_route: bool,
+    observed_at_ms: Option<u64>,
+    last_seen_at_ms: Option<u64>,
+    sessions: Option<usize>,
+}
 
 /// Shared service state for the API and the dispatch thread.
 #[derive(Debug)]
@@ -43,6 +123,8 @@ pub struct Service {
     pub identity: PeerIdentity,
     pub swarm: Option<Arc<SwarmLink>>,
     pub clock: fn() -> u64,
+    machine_observations: Mutex<BTreeMap<String, MachineObservation>>,
+    core_observations: Mutex<CoreObservations>,
 }
 
 #[derive(Deserialize)]
@@ -118,6 +200,8 @@ impl Service {
             store,
             swarm,
             clock: log::now_ms,
+            machine_observations: Mutex::default(),
+            core_observations: Mutex::default(),
         })
     }
 
@@ -154,6 +238,7 @@ impl Service {
                 200,
                 json!({ "machine": self.config.machine, "version": env!("CARGO_PKG_VERSION"), "api": API_VERSION, "peer": machine }),
             )),
+            ("GET", ["machines"]) => Ok(self.machines(now_ms)),
             ("GET", ["version"]) => self.state_version(machine, now_ms),
             ("GET", ["claims"]) => self.list_claims(now_ms),
             ("POST", ["claims"]) => self.acquire(machine, &request.body, now_ms),
@@ -172,7 +257,7 @@ impl Service {
             }
             (
                 _,
-                ["health" | "version" | "claims" | "work" | "attempts" | "decisions" | "metrics"]
+                ["health" | "machines" | "version" | "claims" | "work" | "attempts" | "decisions" | "metrics"]
                 | ["claims", _, "renew" | "release"]
                 | ["attempts", _, "handoff" | "cancel"]
                 | ["decisions", _, "answer"],
@@ -184,6 +269,106 @@ impl Service {
             _ => Err(Response::error(404, "fleet_route", "no such route")),
         };
         outcome.unwrap_or_else(|response| response)
+    }
+
+    pub(crate) fn configure_machine_observations(&self, inventory: &HerdrInventory) {
+        if let Ok(mut observations) = self.machine_observations.lock() {
+            *observations = inventory
+                .machines
+                .iter()
+                .map(|machine| {
+                    (
+                        machine.label.clone(),
+                        MachineObservation {
+                            // Only the coordinator can be reached via the local Herdr session.
+                            has_route: machine.label == self.config.machine
+                                || machine.herdr_machine.is_some(),
+                            observed_at_ms: None,
+                            last_seen_at_ms: None,
+                            sessions: None,
+                        },
+                    )
+                })
+                .collect();
+        }
+    }
+
+    pub(crate) fn record_machine_observation(&self, machine: &str, sessions: Option<usize>) {
+        if let Ok(mut observations) = self.machine_observations.lock()
+            && let Some(observation) = observations.get_mut(machine)
+            && observation.has_route
+        {
+            let now_ms = (self.clock)();
+            observation.observed_at_ms = Some(now_ms);
+            if sessions.is_some() {
+                observation.last_seen_at_ms = Some(now_ms);
+            }
+            observation.sessions = sessions;
+        }
+    }
+
+    pub(crate) fn observe_core(&self) {
+        const RECONNECT_DELAY: std::time::Duration = std::time::Duration::from_secs(2);
+        let Some(config) = &self.config.herdr_core else { return; };
+        let mut last_error = None;
+        loop {
+            let result = crate::core_observer::observe(&config.socket, &config.version, &config.hosts, |value| {
+                if value.is_some() && last_error.take().is_some() {
+                    log::info("core.observation_restored", json!({}));
+                }
+                if let Ok(mut observations) = self.core_observations.lock() {
+                    observations.update(value, (self.clock)());
+                }
+            });
+            if let Ok(mut observations) = self.core_observations.lock() {
+                observations.update(None, (self.clock)());
+            }
+            if let Err(reason) = result && last_error != Some(reason) {
+                log::warn("core.observation_unavailable", json!({ "reason": reason }));
+                last_error = Some(reason);
+            }
+            std::thread::sleep(RECONNECT_DELAY);
+        }
+    }
+
+    // r[impl kiln.fleet.aggregate_workspace]
+    // r[impl kiln.fleet.herdr_core_observation]
+    fn machines(&self, now_ms: u64) -> Response {
+        let observations = self.machine_observations.lock().ok();
+        let core = self.core_observations.lock().ok();
+        let max_age = self.config.policy.tick_ms.saturating_mul(MACHINE_STALE_TICKS);
+        let machines: Vec<Value> = self
+            .config
+            .machines()
+            .into_iter()
+            .map(|machine| {
+                let observation = observations.as_ref().and_then(|rows| rows.get(machine));
+                let observed_at_ms = observation.and_then(|row| row.observed_at_ms);
+                let last_seen_at_ms = observation.and_then(|row| row.last_seen_at_ms);
+                let sessions = observation.and_then(|row| row.sessions);
+                let state = match observed_at_ms {
+                    None => "not_reporting",
+                    Some(at) if !now_ms.checked_sub(at).is_some_and(|age| age < max_age) => {
+                        "stale"
+                    }
+                    Some(_) if sessions.is_none() => "unreachable",
+                    Some(_) => "reporting",
+                };
+                let mut entry = json!({
+                    "machine": machine,
+                    "placement_configured": observation.is_some(),
+                    "observed_at_ms": observed_at_ms,
+                    "last_seen_at_ms": last_seen_at_ms,
+                    "state": state,
+                    "sessions": if state == "reporting" { sessions } else { None },
+                });
+                if self.config.herdr_core.as_ref().is_some_and(|config| config.hosts.contains_key(machine)) {
+                    entry["core"] = core.as_ref().map_or_else(|| CoreObservations::default().project(machine, now_ms), |view| view.project(machine, now_ms));
+                }
+                entry
+            })
+            .collect();
+        Response::new(200, json!({ "machines": machines }))
     }
 
     fn open(&self) -> Result<kiln_implementer::Implementer, Response> {
@@ -362,46 +547,49 @@ impl Service {
         let ready_unclaimed = implementer
             .fleet_ready_work(now_ms)
             .map_err(|error| store_error(&error))?;
-        let find = |identity: &ContentId| {
-            ledger
-                .current()
-                .find(|work| work.identity().is_ok_and(|id| &id == identity))
-        };
-        let ranked: Vec<Value> = ledger
-            .ranked()
+        let ready = ledger.ranked();
+        let ranked: Vec<Value> = ready
             .iter()
             .take(MAX_LISTED_WORK)
             .filter_map(|row| {
-                let work = find(&row.identity)?;
+                let work = ledger.get(&row.canonical_key)?;
                 Some(json!({
                     "identity": row.identity,
                     "priority": row.priority,
                     "repository": work.repository,
                     "title": work.title,
                     "permitted_paths": work.permitted_paths,
+                    "sources": work.aliases,
                     "interactive": work.permitted_effects.contains(kiln_core::implementation::INTERACTIVE_AGENT_EFFECT),
                 }))
             })
             .collect();
-        let blocked: Vec<Value> = ledger
+        let mut blocked = ledger
             .current()
             .filter_map(|work| {
                 let key = work.canonical_key().ok()?;
                 match ledger.eligibility_of(&key)? {
-                    Eligibility::Blocked { reasons } => Some(json!({
-                        "identity": work.identity().ok()?,
-                        "repository": work.repository,
-                        "title": work.title,
-                        "reasons": reasons,
-                    })),
+                    Eligibility::Blocked { reasons } => Some((work.identity().ok()?, work, reasons)),
                     Eligibility::Ready => None,
                 }
-            })
+            });
+        let blocked_rows: Vec<Value> = blocked
+            .by_ref()
             .take(MAX_LISTED_WORK)
+            .map(|(identity, work, reasons)| {
+                json!({
+                    "identity": identity,
+                    "repository": work.repository,
+                    "title": work.title,
+                    "sources": work.aliases,
+                    "reasons": reasons,
+                })
+            })
             .collect();
+        let truncated = ready.len() > MAX_LISTED_WORK || blocked.next().is_some();
         Ok(Response::new(
             200,
-            json!({ "ready_unclaimed": ready_unclaimed, "ranked": ranked, "blocked": blocked }),
+            json!({ "ready_unclaimed": ready_unclaimed, "ranked": ranked, "blocked": blocked_rows, "truncated": truncated }),
         ))
     }
 
@@ -446,11 +634,12 @@ impl Service {
                     "work": attempt.map(|attempt| &attempt.work_identity),
                     "repository": work.map(|work| &work.repository),
                     "title": work.map(|work| &work.title),
+                    "sources": work.map(|work| &work.aliases),
                     "session": session,
                 })
             })
             .collect();
-        Ok(Response::new(200, json!({ "attempts": listed })))
+        Ok(Response::new(200, json!({ "attempts": listed, "truncated": views.len() > MAX_LISTED_ATTEMPTS })))
     }
 
     // r[impl kiln.fleet.capture]

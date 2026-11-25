@@ -5,6 +5,7 @@
 
 mod common;
 
+use std::cell::Cell;
 use std::collections::BTreeMap;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
@@ -14,7 +15,7 @@ use std::sync::{Arc, LazyLock};
 
 use common::{COORDINATOR, PEER, REPOSITORY, TestResult, config, executable, write_enrollment};
 use kiln_core::fleet::{ClaimState, SessionState};
-use kiln_core::implementation::{AttemptPhase, ImplementationWork};
+use kiln_core::implementation::{AttemptPhase, ImplementationWork, SupersessionRule};
 use kiln_fleet::api::Service;
 use kiln_fleet::config::FleetConfig;
 use kiln_fleet::dispatch::Dispatcher;
@@ -530,6 +531,10 @@ fn work_without_interactive_agent_is_left_for_lattice() -> TestResult {
             .iter()
             .any(|row| row.get("interactive") == Some(&Value::Bool(false)))
     );
+    let mut newer = fleet.work.clone();
+    newer.revision += 1;
+    newer.aliases.first_mut().ok_or("alias")?.version = common::content('d');
+    store.admit_with_supersession(&newer, None, SupersessionRule::FinishActive, now())?;
     let attempts = fleet.service.route(
         COORDINATOR,
         &Request {
@@ -544,5 +549,114 @@ fn work_without_interactive_agent_is_left_for_lattice() -> TestResult {
         attempts.body.pointer("/attempts/0/held_by_fleet"),
         Some(&Value::Bool(true))
     );
+    assert_eq!(
+        attempts.body.pointer("/attempts/0/sources"),
+        Some(&serde_json::to_value(&fleet.work.aliases)?)
+    );
+    Ok(())
+}
+
+const ROSTER_HERDR: &str = r#"#!/bin/sh
+printf '%s\n' "$*" >> "$HOME/roster.log"
+case "$*" in
+  '--session kiln-test agent list')
+    printf '%s\n' '{"id":"cli","result":{"type":"agent_list","agents":[{"agent":"reviewer","agent_status":"working","name":"private-review","pane_id":"w1:p1","workspace_id":"w1"}]}}' ;;
+  '--machine private-route agent list')
+    if [ -f "$HOME/unreachable" ]; then
+      echo 'private remote failure details' >&2
+      exit 1
+    fi
+    printf '%s\n' '{"id":"cli","result":{"type":"agent_list","agents":[]}}' ;;
+  *) exit 1 ;;
+esac
+"#;
+
+thread_local! {
+    static ROSTER_CLOCK: Cell<u64> = const { Cell::new(1_000) };
+}
+
+#[test]
+// r[verify kiln.fleet.aggregate_workspace]
+fn enrolled_roster_reports_only_fresh_successful_herdr_counts() -> TestResult {
+    let directory = tempfile::tempdir()?;
+    let root = directory.path();
+    write_enrollment(root)?;
+    let herdr = executable("roster-herdr", ROSTER_HERDR);
+    let inventory = json!({
+        "schema": "kiln.fleet-inventory.v1",
+        "executable": herdr,
+        "session": "kiln-test",
+        "environment": { "home": root, "path": "/bin" },
+        "machines": [
+            { "label": COORDINATOR, "worktree_root": root, "agents": [{ "kind": "omp", "slots": 1 }] },
+            { "label": PEER, "worktree_root": root, "herdr_machine": "private-route", "ssh_target": "private-target" },
+        ],
+    });
+    fs::write(root.join("inventory.json"), serde_json::to_vec(&inventory)?)?;
+    let mut document = config(root, Path::new("/nonexistent/tailscale"));
+    let object = document.as_object_mut().ok_or("configuration must be an object")?;
+    object.insert("dispatch".into(), json!({ "enabled": true, "kinds": ["omp"] }));
+    object.insert("capture".into(), json!({
+        "git": "/bin/git", "tar": "/bin/tar", "export_root": root,
+        "verification_profiles": root, "repositories": {},
+    }));
+    let mut service = Service::new(FleetConfig::from_json(&serde_json::to_vec(&document)?)?)?;
+    service.clock = || ROSTER_CLOCK.get();
+    let service = Arc::new(service);
+    let mut dispatcher = Dispatcher::new(Arc::clone(&service))?;
+    let read_roster = |now_ms| {
+        let response = service.route(
+            PEER,
+            &Request { method: "GET".into(), path: "/v1/machines".into(), body: Vec::new() },
+            now_ms,
+        );
+        assert_eq!(response.status, 200);
+        response.body
+    };
+    let not_reporting = |machine, placement_configured| json!({
+        "machine": machine, "placement_configured": placement_configured, "state": "not_reporting",
+        "observed_at_ms": null, "last_seen_at_ms": null, "sessions": null,
+    });
+    assert_eq!(read_roster(1_000), json!({ "machines": [
+        not_reporting("aspen1", false), not_reporting(PEER, true), not_reporting(COORDINATOR, true),
+    ] }));
+    let log = root.join("roster.log");
+    assert!(!log.exists());
+
+    // The foreign agent contributes to the total without filling a Kiln slot.
+    ROSTER_CLOCK.set(2_000);
+    assert_eq!(dispatcher.tick(2_000)?.free_slots, 1);
+    assert_eq!(read_roster(2_001), json!({ "machines": [
+        not_reporting("aspen1", false),
+        { "machine": PEER, "placement_configured": true, "state": "reporting",
+          "observed_at_ms": 2_000, "last_seen_at_ms": 2_000, "sessions": 0 },
+        { "machine": COORDINATOR, "placement_configured": true, "state": "reporting",
+          "observed_at_ms": 2_000, "last_seen_at_ms": 2_000, "sessions": 1 },
+    ] }));
+
+    ROSTER_CLOCK.set(3_000);
+    fs::write(root.join("unreachable"), "")?;
+    dispatcher.tick(3_000)?;
+    let failure = read_roster(3_001);
+    assert_eq!(failure, json!({ "machines": [
+        not_reporting("aspen1", false),
+        { "machine": PEER, "placement_configured": true, "state": "unreachable",
+          "observed_at_ms": 3_000, "last_seen_at_ms": 2_000, "sessions": null },
+        { "machine": COORDINATOR, "placement_configured": true, "state": "reporting",
+          "observed_at_ms": 3_000, "last_seen_at_ms": 3_000, "sessions": 1 },
+    ] }));
+
+    let stale = read_roster(3_000 + service.config.policy.tick_ms * 3);
+    assert_eq!(stale, json!({ "machines": [
+        not_reporting("aspen1", false),
+        { "machine": PEER, "placement_configured": true, "state": "stale",
+          "observed_at_ms": 3_000, "last_seen_at_ms": 2_000, "sessions": null },
+        { "machine": COORDINATOR, "placement_configured": true, "state": "stale",
+          "observed_at_ms": 3_000, "last_seen_at_ms": 3_000, "sessions": null },
+    ] }));
+    assert_eq!(fs::read_to_string(log)?, concat!(
+        "--session kiln-test agent list\n--machine private-route agent list\n",
+        "--session kiln-test agent list\n--machine private-route agent list\n",
+    ));
     Ok(())
 }

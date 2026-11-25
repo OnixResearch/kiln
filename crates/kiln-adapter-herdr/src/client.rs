@@ -356,12 +356,24 @@ impl HerdrClient {
     /// that cannot be listed is recorded as unavailable, not as empty.
     #[must_use]
     pub fn occupancy(&self) -> Occupancy {
+        self.occupancy_with_session_counts(|_, _| {})
+    }
+
+    /// As [`Self::occupancy`], also reporting the total entries in each list
+    /// (including non-Kiln agents), or `None` if the bounded read failed.
+    #[must_use]
+    pub fn occupancy_with_session_counts(
+        &self,
+        mut observe: impl FnMut(&str, Option<usize>),
+    ) -> Occupancy {
         let machines = self
             .inventory
             .machines
             .iter()
             .map(|machine| {
-                let load = match self.list_agents(&machine.label) {
+                let listed = self.list_agents(&machine.label);
+                observe(&machine.label, listed.as_ref().ok().map(Vec::len));
+                let load = match listed {
                     Ok(agents) => MachineLoad::Available(count_occupancy(&agents)),
                     Err(failure) => MachineLoad::Unavailable(failure),
                 };

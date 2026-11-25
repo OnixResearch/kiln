@@ -59,6 +59,11 @@ button.fleet-mix-toggle[aria-pressed="true"] { background: var(--accent); border
 .fleet-answer { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); }
 .fleet-answer input { min-width: 0; width: 100%; max-width: 22rem; }
 .fleet-table td { white-space: pre-line; }
+.fleet-observation-status { color: var(--muted-foreground); }
+.fleet-core-observation { display: grid; gap: var(--space-1); justify-items: start; }
+.fleet-core-statuses { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 var(--space-2); margin: 0; width: 100%; font-size: var(--text-xs); }
+.fleet-core-statuses dd { margin: 0; text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.fleet-core-times { color: var(--muted-foreground); font-size: var(--text-xs); }
 .fleet-identity { display: inline-flex; align-items: baseline; gap: .2rem; min-width: 0; }
 .fleet-identity code { user-select: all; }
 .fleet-tag { justify-self: start; }
@@ -75,6 +80,12 @@ button.fleet-mix-toggle[aria-pressed="true"] { background: var(--accent); border
   .fleet-actions button { width: 100%; }
   .fleet-answer { flex-direction: column; align-items: stretch; }
   .fleet-answer input { max-width: none; }
+}
+
+/* Give the roster's stacked cells labels at the shared stack breakpoint. */
+@container data-table (max-width: 48rem) {
+  #fleet-machines .fleet-table td { display: block; min-width: 0; }
+  #fleet-machines .fleet-table td::before { content: attr(data-label); display: block; margin-bottom: .15rem; color: var(--muted-foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; }
 }
 
 /* Below the shared two-column stack, give each Fleet fact a full row. */

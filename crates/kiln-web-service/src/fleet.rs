@@ -216,6 +216,7 @@ pub fn upstream_path(method: &str, target: &str) -> Option<String> {
     };
     match (method, segments.as_slice()) {
         ("GET", ["health"]) => Some("/v1/health".into()),
+        ("GET", ["machines"]) => Some("/v1/machines".into()),
         ("GET", ["claims"]) => Some("/v1/claims".into()),
         ("GET", ["work"]) => Some("/v1/work".into()),
         ("GET", ["attempts"]) => Some("/v1/attempts".into()),
@@ -248,6 +249,8 @@ mod tests {
             upstream_path("GET", "/api/fleet/claims").as_deref(),
             Some("/v1/claims")
         );
+        assert_eq!(upstream_path("GET", "/api/fleet/machines").as_deref(), Some("/v1/machines"));
+        assert_eq!(upstream_path("POST", "/api/fleet/machines"), None);
         assert_eq!(
             upstream_path("GET", "/api/fleet/decisions").as_deref(),
             Some("/v1/decisions")

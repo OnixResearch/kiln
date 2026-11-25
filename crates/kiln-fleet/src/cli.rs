@@ -594,6 +594,16 @@ pub fn serve(path: &std::path::Path) -> Result<(), String> {
     started
         .recv()
         .map_err(|_| "the dispatch thread stopped during start-up".to_owned())??;
+    if service.config.herdr_core.is_some() {
+        let observer = Arc::clone(&service);
+        if std::thread::Builder::new()
+            .name("kiln-herdr-core-observer".into())
+            .spawn(move || observer.observe_core())
+            .is_err()
+        {
+            log::warn("core.observer_thread_unavailable", json!({}));
+        }
+    }
     let api = server::spawn(listeners, &service)?;
     log::info(
         "service.started",
