@@ -294,6 +294,8 @@
         key, repository: entry.repository_identity, change: entry.change, projects, campaigns,
         units: count(entry.units), currentWork: count(entry.current_work), attempts: count(entry.attempts),
         activeAttempts: count(entry.active_attempts), blockers: count(entry.blockers), openDecisions: count(entry.open_decisions),
+        activeAssignments: Array.isArray(entry.active_assignments) ? entry.active_assignments : null,
+        assignmentsTruncated: entry.active_assignments_truncated === true,
         lane: typeof entry.lane === "string" ? entry.lane : "", lanes: laneCounts(entry.lanes), firstBlocker: blockerOf(entry.first_blocker),
         search: [entry.change, entry.repository_identity, ...projects, ...campaigns].join("\n").toLowerCase(),
       }));

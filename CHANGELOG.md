@@ -169,6 +169,27 @@ entry describes the source tree prepared for the first tagged release.
   exit or `SIGINT`/`SIGTERM` (`130`/`143`), terminates the child without release on
   `4xx` renewal refusal, and warns while retrying until `expires_ms` when the
   coordinator is unreachable. (#104; CLI and loopback service tests)
+- The console Fleet view lets readers filter listed attempts by state and
+  recorded session machine using interactive bars. It separates ranked
+  work from the ready-and-unclaimed count, and keeps the last snapshot
+  timestamp visible when the stream goes stale. Command errors and decision
+  drafts survive unrelated live updates. (console UI fixture)
+- Fleet shows the observed stage and unit-stage counts for each listed Cairn
+  change, links to exact details, and refreshes the canonical index separately
+  from the coordinator stream. Failed refreshes leave the last read marked stale.
+- Cairn progress shows dispatch-bound worker references and independently
+  observed Fleet sessions for current active attempts. Session attribution
+  requires the exact attempt and fence; a binding alone does not imply runtime placement.
+- Cairn progress separates the planned dispatch profile, harness, requested
+  model artifact, and bound model services from the observed Fleet machine,
+  agent kind, and session timestamp. Unobserved swarm topology is not inferred.
+- Fleet adds a Cairn attempt inspector, operator inbox, capacity and runtime
+  evidence views, and guarded campaign controls. Opt-in web recovery requires
+  an exact operator grant and sealed original Lattice request; it does not
+  dispatch a replacement. Native inspection reads retained worker lifecycle
+  and Lattice's per-request model observations, distinguishing a response-model
+  match from the admitted deployment and replica. The opt-in Animus host
+  profile adds exact parent/child lineage; default OMP remains unchanged.
 
 **Sources**
 

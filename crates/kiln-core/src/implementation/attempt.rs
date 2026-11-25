@@ -614,7 +614,15 @@ impl AttemptLedger {
         &self,
         identity: &ContentId,
     ) -> Option<&super::ImplementationDispatchPlan> {
-        self.dispatch_plans.get(identity.as_str())
+        self.dispatch_plan_by_identity(identity.as_str())
+    }
+
+    /// Read-only lookup for projections that already hold an exact canonical ID as text.
+    pub fn dispatch_plan_by_identity(
+        &self,
+        identity: &str,
+    ) -> Option<&super::ImplementationDispatchPlan> {
+        self.dispatch_plans.get(identity)
     }
     pub fn bind_dispatch_request(
         &mut self,

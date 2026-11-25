@@ -42,6 +42,12 @@ pub const INDEX_SCHEMA: &str = "kiln.cairn-workspace-index.v2";
 pub const DETAIL_SCHEMA: &str = "kiln.cairn-workspace-detail.v4";
 /// Changes one index lists before reporting truncation.
 pub const MAX_INDEX_CHANGES: usize = 512;
+/// Per change; keeps busy changes from dominating the index byte budget.
+const MAX_INDEX_ACTIVE_ASSIGNMENTS: usize = 16;
+/// Across all changes in one response; bounds the added metadata independently of index size.
+const MAX_INDEX_ASSIGNMENTS_TOTAL: usize = 128;
+/// Model references displayed per assignment; the full plan stays in the ledger.
+const MAX_INDEX_MODEL_SERVICES: usize = 4;
 /// Error code of a retained record the projection cannot identify.
 pub const MALFORMED: &str = "cairn_workspace_observation_malformed";
 /// Owner of native Cairn source observations, in the campaign owner vocabulary.
@@ -386,7 +392,9 @@ pub struct AttemptView {
     /// `current` when bound to the unit's current canonical work, else `historical`.
     pub applicability: &'static str,
     pub claimed_at_ms: u64,
+    pub lease_until_ms: u64,
     pub ended_at_ms: Option<u64>,
+    pub workflow: Option<ExternalRef>,
     pub candidate: Option<ExternalRef>,
     pub failure: Option<FailureClass>,
     pub cause: Option<String>,
@@ -539,7 +547,19 @@ pub struct Detail {
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub struct IndexEntry {
+pub struct ActiveAssignment<'a> {
+    pub attempt: String,
+    pub fence: u64,
+    pub worker: Option<&'a kiln_core::inventory::FactRef>,
+    pub dispatch_profile: Option<&'a str>,
+    pub harness: Option<&'a str>,
+    pub requested_model: Option<&'a str>,
+    pub model_services: &'a [kiln_core::inventory::FactRef],
+    pub model_services_truncated: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct IndexEntry<'a> {
     pub repository_identity: String,
     pub change: String,
     pub projects: Vec<String>,
@@ -547,6 +567,8 @@ pub struct IndexEntry {
     pub current_work: usize,
     pub attempts: usize,
     pub active_attempts: usize,
+    pub active_assignments: Vec<ActiveAssignment<'a>>,
+    pub active_assignments_truncated: bool,
     pub campaigns: Vec<String>,
     pub blockers: usize,
     pub first_blocker: Option<Blocker>,
@@ -556,9 +578,9 @@ pub struct IndexEntry {
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub struct Index {
+pub struct Index<'a> {
     pub schema: &'static str,
-    pub changes: Vec<IndexEntry>,
+    pub changes: Vec<IndexEntry<'a>>,
     pub truncated: bool,
     pub snapshot: SnapshotFacts,
     pub non_claims: [&'static str; 4],
@@ -661,7 +683,9 @@ fn attempt_view(
             "historical"
         },
         claimed_at_ms: attempt.claimed_at_ms,
+        lease_until_ms: attempt.lease_until_ms,
         ended_at_ms: attempt.ended_at_ms,
+        workflow: attempt.workflow.clone(),
         candidate: attempt.candidate.clone(),
         failure: attempt.failure,
         cause: attempt.cause.clone(),
@@ -1255,11 +1279,69 @@ pub fn detail(
 }
 
 /// Every change named by canonical work or a campaign selection.
-pub fn index(snapshot: &CanonicalSnapshot) -> Result<Index, &'static str> {
+pub fn index(snapshot: &CanonicalSnapshot) -> Result<Index<'_>, &'static str> {
     index_bounded(snapshot, MAX_INDEX_CHANGES)
 }
 
-fn index_bounded(snapshot: &CanonicalSnapshot, max_changes: usize) -> Result<Index, &'static str> {
+// r[impl kiln.fleet.cairn_workers] r[impl kiln.fleet.cairn_execution_context]
+fn active_assignments<'a>(
+    detail: &Detail,
+    context: &Context<'a>,
+    remaining: usize,
+) -> (Vec<ActiveAssignment<'a>>, bool) {
+    let mut seen = BTreeSet::new();
+    let mut active = detail
+        .units
+        .iter()
+        .flat_map(|unit| &unit.attempts)
+        .filter(|attempt| {
+            attempt.active
+                && attempt.applicability == "current"
+                && seen.insert(attempt.identity.as_str())
+        });
+    let assignments = active
+        .by_ref()
+        .take(remaining.min(MAX_INDEX_ACTIVE_ASSIGNMENTS))
+        .map(|view| {
+            let plan = context.attempts.and_then(|ledger| {
+                let plan = ledger.dispatch_plan_by_identity(&view.identity)?;
+                (plan.attempt_identity.as_str() == view.identity
+                    && plan.fence == view.fence
+                    && plan.work_identity.as_str() == view.work_identity)
+                    .then_some(plan)
+            });
+            let execution = plan
+                .and_then(|plan| plan.execution.as_ref())
+                .filter(|execution| {
+                    let binding = &execution.attempt;
+                    binding.attempt == view.identity
+                        && binding.fence == view.fence
+                        && binding.work_version == view.work_identity
+                });
+            let model_services = execution.map_or(&[][..], |execution| {
+                execution.attempt.model_services.as_slice()
+            });
+            ActiveAssignment {
+                attempt: view.identity.clone(),
+                fence: view.fence,
+                worker: execution.map(|execution| &execution.attempt.worker),
+                dispatch_profile: plan.map(|plan| plan.provider_profile.as_str()),
+                harness: execution.map(|execution| execution.requirements.needs.harness.as_str()),
+                requested_model: execution
+                    .and_then(|execution| execution.requirements.needs.model_artifact.as_deref()),
+                model_services: &model_services
+                    [..model_services.len().min(MAX_INDEX_MODEL_SERVICES)],
+                model_services_truncated: model_services.len() > MAX_INDEX_MODEL_SERVICES,
+            }
+        })
+        .collect();
+    (assignments, active.next().is_some())
+}
+
+fn index_bounded(
+    snapshot: &CanonicalSnapshot,
+    max_changes: usize,
+) -> Result<Index<'_>, &'static str> {
     index_filtered(snapshot, max_changes, |_| true)
 }
 
@@ -1267,13 +1349,17 @@ fn index_filtered(
     snapshot: &CanonicalSnapshot,
     max_changes: usize,
     mut include: impl FnMut(&CairnKey) -> bool,
-) -> Result<Index, &'static str> {
+) -> Result<Index<'_>, &'static str> {
     let catalog = catalog(snapshot);
     let context = Context::new(snapshot)?;
-    let matching: Vec<_> = catalog.iter().filter(|(key, _)| include(key)).collect();
-    let total = matching.len();
-    let mut changes = Vec::with_capacity(total.min(max_changes));
-    for (key, facts) in matching.into_iter().take(max_changes) {
+    let mut total = 0;
+    let mut changes = Vec::with_capacity(catalog.len().min(max_changes));
+    let mut remaining = MAX_INDEX_ASSIGNMENTS_TOTAL;
+    for (key, facts) in catalog.iter().filter(|(key, _)| include(key)) {
+        total += 1;
+        if changes.len() >= max_changes {
+            continue;
+        }
         // The index carries no agents section.
         let detail = project(
             key,
@@ -1282,6 +1368,9 @@ fn index_filtered(
             &context,
             &agents::InventoryObservation::NotConfigured,
         )?;
+        let (active_assignments, active_assignments_truncated) =
+            active_assignments(&detail, &context, remaining);
+        remaining -= active_assignments.len();
         changes.push(IndexEntry {
             campaigns: detail
                 .memberships
@@ -1298,6 +1387,8 @@ fn index_filtered(
             current_work: detail.overview.current_work,
             attempts: detail.overview.attempts,
             active_attempts: detail.overview.active_attempts,
+            active_assignments,
+            active_assignments_truncated,
             blockers: detail.overview.blockers,
             first_blocker: detail.overview.first_blocker,
             lane: detail.overview.lane,
@@ -1343,9 +1434,9 @@ impl std::fmt::Debug for RestrictedCairnObserver<'_> {
 /// Restricted Cairn workspace index filtered by `SourceAuthority` and
 /// `RestrictedContext`.
 #[derive(Clone, Debug, Serialize)]
-pub struct RestrictedIndex {
+pub struct RestrictedIndex<'a> {
     pub schema: &'static str,
-    pub index: Index,
+    pub index: Index<'a>,
     pub restricted_context: serde_json::Value,
 }
 
@@ -1854,18 +1945,18 @@ fn redact_blocker(blocker: &mut Blocker, visible_work_ids: &BTreeSet<String>, te
 // r[impl kiln.source.projection.disclosure.cairn]
 /// Filter the Cairn workspace index for a capability-restricted observer (#84).
 /// Fails closed if authority is missing, denied, expired, revoked, or stale.
-pub fn restricted_index(
-    snapshot: &CanonicalSnapshot,
+pub fn restricted_index<'a>(
+    snapshot: &'a CanonicalSnapshot,
     observer: &mut RestrictedCairnObserver<'_>,
-) -> Result<RestrictedIndex, &'static str> {
+) -> Result<RestrictedIndex<'a>, &'static str> {
     restricted_index_bounded(snapshot, observer, MAX_INDEX_CHANGES)
 }
 
-fn restricted_index_bounded(
-    snapshot: &CanonicalSnapshot,
+fn restricted_index_bounded<'a>(
+    snapshot: &'a CanonicalSnapshot,
     observer: &mut RestrictedCairnObserver<'_>,
     max_changes: usize,
-) -> Result<RestrictedIndex, &'static str> {
+) -> Result<RestrictedIndex<'a>, &'static str> {
     let repo_hex = repository_identity(observer.admitted_repository.repository_id());
     let admitted = admit_cairn_context(snapshot, observer, None).map_err(|()| "unavailable")?;
     let visible_changes: BTreeSet<&str> = admitted

@@ -118,6 +118,44 @@ instead of submitting a new execution. A disconnected acceptance remains
 unknown. Transport acceptance is not a candidate, verification, integration or
 completion result; the implementation workflow and worker remain Lattice-owned.
 
+An explicit `--recover true` refuses an attempt with no persisted transport
+intent before binding the request or contacting Lattice. A repeat invocation
+with a retained intent recovers automatically, using the same attempt/fence,
+reserved plan and byte-sealed request; it never redispatches. The operator-only
+`GET /api/implementation/dispatch-recovery?attempt=HEX&fence=N` reports the
+bounded canonical intent, request digest and observed workflow. To enable a
+browser recovery action, provide `--dispatch-recovery PROFILE` alongside
+`--implementation-work DATABASE`. Author the profile with
+[`web-dispatch-recovery.ncl`](../config/web-dispatch-recovery.ncl) and give
+the service only the original reviewed socket/profile/transport and frozen
+request, bound to the same database and one authenticated web principal.
+The POST supplies only the digest reviewed in the GET at the exact attempt
+and fence. The owner rechecks authority and the byte seal before
+`RecoverDispatch`; an ambiguous response is not permission to start again.
+
+`--native-runtime-evidence PROFILE` optionally enables the read-only
+implementation-attempt inspector for campaign-produced frozen requests. Use
+[`web-native-runtime-evidence.ncl`](../config/web-native-runtime-evidence.ncl)
+to reference the canonical database, protected campaign bound inputs, and an
+immutable Lattice worker transport profile whose `implementation-attempt inspect`
+produces `lattice.worker-inventory.v3` (reviewed at
+[`d401f75f`](https://github.com/OnixResearch/lattice/blob/d401f75f8d3494cead30d085288b4bbe032ce871/docs/worker-serving-binding.md)).
+Fleet shows retained lifecycle and a bounded set of per-request model observations.
+It separates a response-matched model label from the admitted deployment and
+replica, neither of which proves which replica answered or which weights ran.
+Unattributed broker traffic and incomplete evidence stay distinct. Retained
+worker state does not prove physical host reachability.
+
+Default OMP does not export child lineage. The separate opt-in Animus profile
+uses an `animus_implementation` declaration in the native seed rather than
+`omp`; native `prepare` must qualify the selected profile. Fleet displays direct
+children only from the Lattice readback of `animus.implementation-child-lineage.v1`
+for the same sealed request, work, attempt, fence, profile and worker incarnation.
+Partial or missing coverage does not mean there were no children.
+The host adapter is explicitly injected and revision-bound. The stock Lattice
+CLI refuses to start an Animus attempt without that adapter; a seed declaration
+does not grant execution, workspace or provider authority.
+
 ## Non-claims
 
 Passing adapter checks does not prove:

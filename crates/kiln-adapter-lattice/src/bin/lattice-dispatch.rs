@@ -221,6 +221,8 @@ fn run() -> Result<(), ()> {
             Ok(exchange) => exchange,
             Err(error) => return fail(&format!("{error:?}")),
         };
+    // A prior durable transport intent always selects recovery, including when
+    // the caller omitted --recover. Never turn a requested recovery into dispatch.
     if !recover {
         let admission = match implementer.admission_snapshot() {
             Ok(value) => value,

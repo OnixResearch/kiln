@@ -812,18 +812,54 @@
           "global": "KilnFleet",
           "renderer": true,
           "node_tests": []
+        },
+        {
+          "file": "fleet-runtime.js",
+          "global": "KilnFleetRuntime",
+          "renderer": false,
+          "node_tests": []
+        },
+        {
+          "file": "fleet-capacity.js",
+          "global": "KilnFleetCapacity",
+          "renderer": false,
+          "node_tests": []
+        },
+        {
+          "file": "cairn.js",
+          "global": "KilnCairn",
+          "renderer": false,
+          "node_tests": []
+        },
+        {
+          "file": "inventory.js",
+          "global": "KilnInventory",
+          "renderer": false,
+          "node_tests": []
         }
       ],
       "stylesheets": [
-        "fleet.css"
+        "fleet.css",
+        "fleet-capacity.css"
       ],
       "api": [
         "/api/fleet/events",
         "/api/fleet/claims",
         "/api/fleet/attempts",
-        "/api/fleet/decisions"
+        "/api/fleet/decisions",
+        "/api/fleet/work",
+        "/api/workers",
+        "/api/inventory",
+        "/api/implementation/cairn",
+        "/api/implementation/cairn/detail",
+        "/api/implementation/dispatch-recovery",
+        "/api/implementation/runtime-evidence",
+        "/api/implementation/campaigns",
+        "/api/implementation/campaign-definitions",
+        "/api/implementation/campaigns/inbox",
+        "/api/implementation/campaigns/commands"
       ],
-      "url_state": [],
+      "url_state": ["worker_campaign"],
       "states": [
         "loading",
         "empty",

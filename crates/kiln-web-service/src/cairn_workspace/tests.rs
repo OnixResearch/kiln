@@ -734,8 +734,32 @@ fn the_index_reports_truncation_and_empty_stores() {
     let fixture = fixture();
     let bounded = index_bounded(&fixture.snapshot, 1).unwrap_or_else(|code| unreachable!("{code}"));
     assert_eq!((bounded.changes.len(), bounded.truncated), (1, true));
-    let empty = index(&CanonicalSnapshot::default()).unwrap_or_else(|code| unreachable!("{code}"));
+    let snapshot = CanonicalSnapshot::default();
+    let empty = index(&snapshot).unwrap_or_else(|code| unreachable!("{code}"));
     assert!(empty.changes.is_empty() && !empty.truncated && !empty.snapshot.work_recorded);
+}
+
+#[test]
+fn index_attributes_only_current_active_attempts() {
+    let fixture = fixture();
+    let projection = index(&fixture.snapshot).unwrap_or_else(|code| unreachable!("{code}"));
+    let assignments: Vec<_> = projection
+        .changes
+        .iter()
+        .flat_map(|change| &change.active_assignments)
+        .collect();
+    let [assignment] = assignments.as_slice() else {
+        unreachable!("expected only the current active attempt");
+    };
+    let attempt = fixture
+        .snapshot
+        .attempts
+        .as_ref()
+        .and_then(|ledger| ledger.get(&fixture.attempt_c2))
+        .unwrap_or_else(|| unreachable!("fixture requires a current attempt"));
+    assert_eq!(assignment.attempt, attempt.identity.as_str());
+    assert_eq!(assignment.fence, attempt.fence);
+    assert!(assignment.worker.is_none());
 }
 
 fn facets_of(

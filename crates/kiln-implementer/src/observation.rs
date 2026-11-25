@@ -94,6 +94,33 @@ impl ImplementationObservation {
         Ok(result)
     }
 
+    /// Read only the work and attempt ledgers for exact dispatch recovery.
+    /// Unrelated campaign and lifecycle records cannot affect this bounded read.
+    pub fn dispatch_recovery_ledgers(
+        &self,
+    ) -> Result<(Option<WorkLedger>, Option<AttemptLedger>), InventoryReadFailure> {
+        let transaction = self
+            .connection
+            .unchecked_transaction()
+            .map_err(|_| InventoryReadFailure::Unavailable)?;
+        let (work, attempts) = if table_exists(&transaction, "implementation_state")? {
+            (
+                record(&transaction, crate::WORK_KIND)?
+                    .map(|bytes| decode(&bytes))
+                    .transpose()?,
+                record(&transaction, crate::ATTEMPT_KIND)?
+                    .map(|bytes| decode(&bytes))
+                    .transpose()?,
+            )
+        } else {
+            (None, None)
+        };
+        transaction
+            .commit()
+            .map_err(|_| InventoryReadFailure::Unavailable)?;
+        Ok((work, attempts))
+    }
+
     // r[impl kiln.cairn.workspace]
     /// One consistent read of every canonical record the Cairn workspace joins,
     /// within the default bounds.
