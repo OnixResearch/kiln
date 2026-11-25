@@ -19,7 +19,7 @@
   });
   const CORE_FIELDS = ["state", "observed_at_ms", "last_seen_at_ms", "terminals", "statuses"];
   const SOURCE_KINDS = new Map([
-    ["git_hub_issue", ["GitHub issue", "github", "issue"]],
+    ["github_issue", ["GitHub issue", "github", "issue"]],
     ["cairn_task", ["Cairn task", "cairn", "task"]], ["cairn_artifact", ["Cairn artifact", "cairn", "artifact"]],
   ]);
   const AGGREGATE_REFRESH_MS = CAIRN_REFRESH_MS;
@@ -339,7 +339,7 @@
           const key = JSON.stringify([identity, ref.kind, id, version]);
           const known = references.get(key);
           if (known) { known.buckets.add(bucket); continue; }
-          const github = ref.kind === "git_hub_issue" && /^([a-z0-9-]+)\/([a-z0-9_.-]+)#([1-9][0-9]*)$/.exec(id);
+          const github = ref.kind === "github_issue" && /^([a-z0-9-]+)\/([a-z0-9_.-]+)#([1-9][0-9]*)$/.exec(id);
           const linkable = github && github[2] !== "." && github[2] !== ".." && `${github[1]}/${github[2]}` === entry.repository;
           const reference = element(linkable ? "a" : "code", id, linkable ? "row-link" : undefined);
           if (linkable) reference.href = `https://github.com/${github[1]}/${github[2]}/issues/${github[3]}`;

@@ -532,7 +532,7 @@ impl Workspace {
                 "version": version,
                 "health": {"machine": "example-desktop", "version": "example", "api": "v1"},
                 "claims": {"claims": []},
-                "work": {"ready_unclaimed": 1, "ranked": [{"identity": work, "repository": "example/release-service", "title": "Synthetic issue work", "sources": [{"kind": "git_hub_issue", "source": {"contract_version": 1, "provider_namespace": "github", "native_kind": "issue", "native_id": "example/release-service#42"}, "native_id": "example/release-service#42", "version": "b".repeat(64)}]}], "blocked": [], "truncated": false},
+                "work": {"ready_unclaimed": 1, "ranked": [{"identity": work, "repository": "example/release-service", "title": "Synthetic issue work", "sources": [{"kind": "github_issue", "source": {"contract_version": 1, "provider_namespace": "github", "native_kind": "issue", "native_id": "example/release-service#42"}, "native_id": "example/release-service#42", "version": "b".repeat(64)}]}], "blocked": [], "truncated": false},
                 "attempts": {"attempts": [{"attempt": attempt, "work": work, "title": "Synthetic running attempt", "state": "running", "fence": 1, "session": {"machine": "example-desktop"}}]},
                 "decisions": {"decisions": []}
             });

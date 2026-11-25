@@ -356,7 +356,7 @@ fn work_rows_preserve_exact_native_source_references() -> TestResult {
     assert_eq!(body.pointer("/ranked/0/repository"), Some(&json!(common::REPOSITORY)));
     assert_eq!(body.pointer("/blocked/0/repository"), Some(&json!(common::REPOSITORY)));
     assert_eq!(body.pointer("/ranked/0/sources"), Some(&json!([{
-        "kind": "git_hub_issue",
+        "kind": "github_issue",
         "source": { "contract_version": 1, "provider_namespace": "github", "native_kind": "issue", "native_id": "onix/kiln#7" },
         "native_id": "onix/kiln#7",
         "version": "1".repeat(64),
