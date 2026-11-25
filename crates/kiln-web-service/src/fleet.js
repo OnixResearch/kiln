@@ -7,10 +7,27 @@
   const STREAM_RECONNECT_MS = 1_000;
   const CAIRN_REFRESH_MS = 15_000;
   const CAIRN_INDEX = "/api/implementation/cairn";
+  const MACHINES = "/api/fleet/machines";
+  const NATIVE_WORK = "/api/work";
+  const MACHINE_STATES = new Map([
+    ["reporting", ["Reporting", "good"]], ["unreachable", ["Unreachable", "failure"]],
+    ["not_reporting", ["Not reporting", ""]], ["stale", ["Stale", "warning"]],
+  ]);
+  const CORE_STATUS_LABELS = Object.entries({
+    idle: "Idle", working: "Working", done: "Done", blocked: "Blocked", error: "Error",
+    unknown: "Unknown (program not reporting)",
+  });
+  const CORE_FIELDS = ["state", "observed_at_ms", "last_seen_at_ms", "terminals", "statuses"];
+  const SOURCE_KINDS = new Map([
+    ["git_hub_issue", ["GitHub issue", "github", "issue"]],
+    ["cairn_task", ["Cairn task", "cairn", "task"]], ["cairn_artifact", ["Cairn artifact", "cairn", "artifact"]],
+  ]);
+  const AGGREGATE_REFRESH_MS = CAIRN_REFRESH_MS;
   const STREAM_BACKOFF_MAX_MS = 30_000;
   const LEASE_NOTICE_MS = 15 * 60_000;
   const ATTENTION_LIMIT = 8;
   const IDENTITY = /^[0-9a-f]{64}$/;
+  const WORK_OBJECT = /^[0-9a-f]{40}$/;
   const VERSION = /^[0-9a-f]{64}$/;
   const TOOL = "kiln-web";
   const SESSION_KEY = "kiln-fleet-session";
@@ -174,6 +191,171 @@
   }
 
   const attemptMachine = (attempt) => text(attempt.session?.machine);
+  const claimMachine = (claim) => text(claim.holder?.host);
+
+  function hasExactFields(value, fields) {
+    return record(value) && Object.keys(value).length === fields.length
+      && fields.every((field) => Object.hasOwn(value, field));
+  }
+
+  function validCore(core) {
+    return hasExactFields(core, CORE_FIELDS) && MACHINE_STATES.has(core.state)
+      && [core.observed_at_ms, core.last_seen_at_ms, core.terminals].every((value) => value === null || count(value) !== null)
+      && (core.statuses === null || (record(core.statuses) && Object.keys(core.statuses).length === CORE_STATUS_LABELS.length
+        && CORE_STATUS_LABELS.every(([key]) => Object.hasOwn(core.statuses, key) && count(core.statuses[key]) !== null)));
+  }
+
+  function admitMachines(payload) {
+    if (!Array.isArray(payload?.machines)) throw new Error("Machine roster response is invalid.");
+    const seen = new Set();
+    for (const row of payload.machines) {
+      if (!text(row?.machine) || seen.has(row.machine) || typeof row.placement_configured !== "boolean"
+        || !MACHINE_STATES.has(row.state) || [row.observed_at_ms, row.last_seen_at_ms, row.sessions]
+          .some((value) => value !== null && count(value) === null)
+        || (Object.hasOwn(row, "core") && !validCore(row.core))) throw new Error("Machine roster response is invalid.");
+      seen.add(row.machine);
+    }
+    return payload.machines;
+  }
+
+  function machineCounts(rows, keyOf, roster) {
+    if (!rows) return null;
+    const byMachine = new Map();
+    let missing = 0, unmatched = 0;
+    for (const row of rows) {
+      const key = keyOf(row);
+      if (!key) missing += 1;
+      else if (!roster.has(key)) unmatched += 1;
+      else byMachine.set(key, (byMachine.get(key) || 0) + 1);
+    }
+    return { byMachine, missing, unmatched };
+  }
+
+  function machineStateBadge(state) {
+    const [name, tone] = MACHINE_STATES.get(state);
+    const badge = element("span", name, "state-badge");
+    if (tone) badge.dataset.tone = tone;
+    badge.dataset.state = state;
+    return badge;
+  }
+
+  function coreObservation(core) {
+    if (!core) return "Not selected";
+    const wrap = element("div", undefined, "fleet-core-observation");
+    const lastReported = core.state === "reporting" ? "" : " (last reported)";
+    wrap.append(machineStateBadge(core.state), element("div", core.terminals === null
+      ? "Terminals: not observed" : `Terminals: ${core.terminals}${lastReported}`));
+    if (core.statuses === null) {
+      wrap.append(element("div", "Terminal statuses: not observed", "fleet-observation-status"));
+    } else {
+      wrap.append(element("div", `Terminal statuses${lastReported}`));
+      const statuses = element("dl", undefined, "fleet-core-statuses");
+      for (const [key, name] of CORE_STATUS_LABELS) {
+        statuses.append(element("dt", name), element("dd", core.statuses[key]));
+      }
+      wrap.append(statuses);
+    }
+    const times = element("div", undefined, "fleet-core-times");
+    for (const [caption, value] of [["Observed at", core.observed_at_ms], ["Last seen", core.last_seen_at_ms]]) {
+      const line = element("div", `${caption}: `);
+      line.append(when(value));
+      times.append(line);
+    }
+    wrap.append(times);
+    return wrap;
+  }
+
+  function renderMachines(state) {
+    if (!state.listedMachines) return;
+    const roster = new Set(state.listedMachines.map(({ machine }) => machine));
+    const attempts = machineCounts(state.listedAttempts, attemptMachine, roster);
+    const claims = machineCounts(state.listedClaims, claimMachine, roster);
+    const signature = JSON.stringify([state.listedMachines, attempts ? [...attempts.byMachine] : null,
+      claims ? [...claims.byMachine] : null, attempts?.missing, attempts?.unmatched, claims?.missing, claims?.unmatched]);
+    if (signature === state.machineSignature) return;
+    state.machineSignature = signature;
+    const showCore = state.listedMachines.some((row) => Object.hasOwn(row, "core"));
+    const rows = state.listedMachines.map((row) => {
+      const sessions = row.sessions === null ? "Not observed" : `${row.sessions}${row.state === "reporting" ? "" : " (last reported)"}`;
+      return [element("code", row.machine), row.placement_configured ? "Configured" : "Not configured", machineStateBadge(row.state),
+        when(row.observed_at_ms), when(row.last_seen_at_ms), sessions,
+        attempts ? String(attempts.byMachine.get(row.machine) ?? 0) : "Not available",
+        claims ? String(claims.byMachine.get(row.machine) ?? 0) : "Not available",
+        ...(showCore ? [coreObservation(row.core)] : [])];
+    });
+    const headers = ["Machine", "Placement", "Observation", "Observed at", "Last seen", "Sessions", "Assigned attempts", "Held claims"];
+    if (showCore) headers.push("Herdr Core");
+    state.machineRows.replaceChildren(table(headers, rows, "No enrolled machines listed", "No machine rows were returned by the roster endpoint."));
+    const gaps = [[attempts, "Attempts", "session machine"], [claims, "Claims", "holder machine"]].flatMap(([counts, name, field]) => {
+      if (!counts) return [`${name} not yet available.`];
+      return counts.missing || counts.unmatched ? [`${name} not attributed: ${counts.missing} without a ${field}, ${counts.unmatched} outside this roster.`] : [];
+    });
+    notice(state.machineCoverage, gaps.join(" "));
+  }
+
+  function renderNativeWork(state, snapshot) {
+    if (snapshot?.schema !== "kiln.work.v1" || snapshot.bounded !== true || typeof snapshot.configured !== "boolean"
+      || !Array.isArray(snapshot.objects) || snapshot.principal !== state.principal) throw new Error("Native work response refused.");
+    const work = snapshot.configured ? snapshot.objects.filter((row) => row?.kind === "issue" || row?.kind === "request") : [];
+    const statusText = snapshot.configured ? "Bounded to native records visible to this principal." : "Native work workspace not configured.";
+    const signature = JSON.stringify([snapshot.configured, snapshot.truncated, work.map((row) => [row.id, row.kind, row.fields?.title, row.fields?.status])]);
+    if (signature === state.issueSignature) return;
+    state.issueSignature = signature;
+    let incomplete = snapshot.truncated === true;
+    const ids = new Map();
+    for (const row of work) ids.set(row.id, (ids.get(row.id) || 0) + 1);
+    const rows = [];
+    for (const row of work) {
+      if (!WORK_OBJECT.test(text(row.id)) || ids.get(row.id) !== 1) { incomplete = true; continue; }
+      const title = text(row.fields?.title), status = text(row.fields?.status);
+      if (!title || !status) incomplete = true;
+      const page = row.kind === "request" ? "triage" : "work";
+      const patch = { page, work_id: row.id, work_kind: "", work_view: "", work_q: "", work_status: "",
+        work_assignee: "", work_project: "", work_ci_project: "", work_ci_repository: "", work_layout: "list" };
+      const link = exactLink(state, title || "Title not recorded", patch, row.id);
+      link.dataset.workId = row.id;
+      rows.push([link, label(row.kind), status ? label(status) : "Not recorded", identityCell(row.id)]);
+    }
+    state.issueRows.replaceChildren(snapshot.configured
+      ? table(["Title", "Kind", "State", "Object ID"], rows, "No issues or requests listed", incomplete
+        ? "The native work response was incomplete." : "The authorized snapshot returned no issues or requests.")
+      : empty("Native issues unavailable", "Configure the native work workspace to read issues and requests."));
+    notice(state.issueStatus, `${statusText}${incomplete ? " Some records or fields are missing or could not be read." : ""}`);
+  }
+
+  function renderWorkSources(state, work, attempts) {
+    const references = new Map();
+    let incomplete = false;
+    for (const [bucket, entries, identityField] of [["Ranked", work.ranked, "identity"], ["Blocked", work.blocked, "identity"],
+      ["Attempts", attempts.attempts, "work"]]) {
+      for (const entry of entries) {
+        const refs = entry?.sources, identity = text(entry?.[identityField]);
+        if (!Array.isArray(refs) || !IDENTITY.test(identity)) { incomplete = true; continue; }
+        for (const ref of refs) {
+          const kind = SOURCE_KINDS.get(ref?.kind);
+          const source = ref?.source, id = text(ref?.native_id), version = text(ref?.version);
+          if (!kind || !id || !VERSION.test(version) || source?.contract_version !== 1 || source.provider_namespace !== kind[1]
+            || source.native_kind !== kind[2] || source.native_id !== id) { incomplete = true; continue; }
+          const key = JSON.stringify([identity, ref.kind, id, version]);
+          const known = references.get(key);
+          if (known) { known.buckets.add(bucket); continue; }
+          const github = ref.kind === "git_hub_issue" && /^([a-z0-9-]+)\/([a-z0-9_.-]+)#([1-9][0-9]*)$/.exec(id);
+          const linkable = github && github[2] !== "." && github[2] !== ".." && `${github[1]}/${github[2]}` === entry.repository;
+          const reference = element(linkable ? "a" : "code", id, linkable ? "row-link" : undefined);
+          if (linkable) reference.href = `https://github.com/${github[1]}/${github[2]}/issues/${github[3]}`;
+          references.set(key, { identity, kind: kind[0], reference, version, buckets: new Set([bucket]) });
+        }
+      }
+    }
+    const truncated = work.truncated === true || attempts.truncated === true;
+    const rows = [...references.values()].map(({ identity, kind, reference, version, buckets }) =>
+      [identityCell(identity), [...buckets].join(" · "), kind, reference, identityCell(version)]);
+    state.sourceRows.replaceChildren(table(["Work ID", "Listed in", "Source", "Native reference", "Source version"], rows,
+      "No work source references listed", incomplete || truncated
+        ? "Some work or source records are missing." : "No references were returned for the listed work."));
+    notice(state.sourceCoverage, [truncated ? "Fleet response is truncated." : "",
+      incomplete ? "Some work entries lack readable source references." : ""].filter(Boolean).join(" "));
+  }
 
   function attemptFacet(title, keyOf, labels) {
     const panel = element("div", undefined, "fleet-mix");
@@ -549,6 +731,8 @@
     if (state.connection.dataset.state === kind) return;
     state.connection.dataset.state = kind;
     state.connection.textContent = label;
+    notice(state.assignmentStatus, kind === "live" ? "" : (state.listedAttempts || state.listedClaims)
+      ? "Fleet assignments disconnected or reconnecting · last counts shown." : "Waiting for Fleet assignment observations.");
   }
 
   function live(state) {
@@ -603,13 +787,17 @@
     const parts = [snapshot.claims, snapshot.work, snapshot.attempts, snapshot.decisions];
     const render = [renderClaims, renderWork, renderAttempts, renderDecisions];
     const values = [snapshot.claims.claims, snapshot.work, snapshot.attempts.attempts, snapshot.decisions.decisions];
+    let sourcesChanged = false;
     parts.forEach((part, index) => {
       const signature = JSON.stringify(part);
       if (signature === state.signatures[index]) return;
+      if (index === 1 || index === 2) sourcesChanged = true;
       render[index](state, values[index]);
       state.signatures[index] = signature;
     });
     void refreshSwarms(state);
+    if (sourcesChanged) renderWorkSources(state, snapshot.work, snapshot.attempts);
+    renderMachines(state);
     state.machine.textContent = `${snapshot.health.machine} · fleet ${snapshot.health.version}`;
     const received = new Date();
     state.updated.dateTime = received.toISOString();
@@ -708,18 +896,23 @@
     void stream(state);
   }
 
-  function cairnLink(state, row) {
-    const patch = { page: "cairn", cairn_repository: row.repository, cairn_change: row.change, cairn_unit: "" };
-    const name = row.projects.join(", ") || row.repository.slice(0, 12);
-    const cell = element("div");
-    const link = element("a", row.change, "row-link");
+  function exactLink(state, name, patch, title) {
+    const link = element("a", name, "row-link");
     link.href = `?${new URLSearchParams({ ...patch, theme: state.context.route?.theme || "system" })}`;
-    link.title = row.repository;
+    link.title = title;
     link.addEventListener("click", (event) => {
       if (!state.context.navigate || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
       event.preventDefault();
       state.context.navigate(patch);
     });
+    return link;
+  }
+
+  function cairnLink(state, row) {
+    const patch = { page: "cairn", cairn_repository: row.repository, cairn_change: row.change, cairn_unit: "" };
+    const name = row.projects.join(", ") || row.repository.slice(0, 12);
+    const cell = element("div");
+    const link = exactLink(state, row.change, patch, row.repository);
     cell.append(link, element("div", name, "small"));
     return cell;
   }
@@ -1137,10 +1330,40 @@
     }
   }
 
+  const currentPrincipal = () => window.KilnWork?.session()?.principal || "";
+
+  function onSessionChanged() {
+    if (active && currentPrincipal() !== active.principal) clear();
+  }
+
+  function observationStatus(message) {
+    const status = element("p", message, "small fleet-observation-status");
+    status.setAttribute("role", "status");
+    return status;
+  }
+
+  async function pollProjection(state, poll) {
+    const current = () => active === state && state.context.isCurrent() && currentPrincipal() === state.principal;
+    if (!current() || document.visibilityState === "hidden" || poll.controller) return;
+    clearTimeout(poll.timer);
+    const controller = new AbortController();
+    poll.controller = controller;
+    try {
+      const value = await state.context.api(poll.path, { quiet: true, controller });
+      if (current()) poll.apply(value);
+    } catch (error) {
+      if (current() && error?.name !== "AbortError") poll.fail();
+    } finally {
+      poll.controller = null;
+      if (current() && document.visibilityState !== "hidden") poll.timer = setTimeout(() => { void pollProjection(state, poll); }, AGGREGATE_REFRESH_MS);
+    }
+  }
+
   function onVisible() {
     if (active && document.visibilityState === "visible" && active.context.isCurrent()) {
       restart(active);
       void pollCairn(active);
+      for (const poll of active.polls) void pollProjection(active, poll);
     }
   }
 
@@ -1149,6 +1372,7 @@
     clear();
     const state = {
       context, controller: null, timer: 0, inFlight: false, mutating: false, signatures: [],
+      root, principal: currentPrincipal(),
       version: "", epoch: 0, failures: 0, answerInputs: new Map(),
     };
     const page = element("div", undefined, "fleet-page");
@@ -1173,6 +1397,31 @@
       banner.hidden = true;
     }
     head.append(headRow, transport, command, metrics);
+    // r[impl kiln.fleet.aggregate_workspace]
+    const machinesPanel = element("section", undefined, "panel fleet-section");
+    machinesPanel.id = "fleet-machines";
+    state.machineStatus = observationStatus("Reading machine observations…");
+    state.assignmentStatus = observationStatus("Waiting for Fleet assignment observations.");
+    state.machineCoverage = observationStatus();
+    state.machineCoverage.hidden = true;
+    state.machineRows = element("div");
+    machinesPanel.append(element("h2", "Machines"),
+      element("p", "Enrolled peers and observed Herdr sessions. Counts cover listed attempts by exact session machine and live claims by holder machine, not claim scope. These counts do not establish host availability.", "small"),
+      state.machineStatus, state.assignmentStatus, state.machineCoverage, state.machineRows);
+    const issuesPanel = element("section", undefined, "panel fleet-section");
+    issuesPanel.id = "fleet-issues";
+    state.issueStatus = observationStatus("Reading native issues and requests…");
+    state.issueRows = element("div");
+    issuesPanel.append(element("h2", "Native issues and requests"),
+      element("p", "Open native issues in Issues and requests in Triage by exact object ID. Imported GitHub and Cairn work references are listed separately below.", "small"),
+      state.issueStatus, state.issueRows);
+    const sourcesPanel = element("section", undefined, "panel fleet-section");
+    sourcesPanel.id = "fleet-work-sources";
+    state.sourceCoverage = observationStatus("Waiting for Fleet work observations.");
+    state.sourceRows = element("div");
+    sourcesPanel.append(element("h2", "Implementation work sources"),
+      element("p", "Imported GitHub issues and Cairn references attached to ranked or blocked Fleet work or an attempt’s exact work ID. This is provenance, not a match to a native issue; freshness follows Fleet status above.", "small"),
+      state.sourceCoverage, state.sourceRows);
     const claimsPanel = element("section", undefined, "panel fleet-section");
     const claimsHead = element("div", undefined, "fleet-section-head");
     claimsHead.append(element("h2", "Claims"), element("p", "Live coordination claims with their current lease. Renew or release uses the claim's recorded fence.", "small"));
@@ -1256,7 +1505,8 @@
     state.runtime = element("div");
     state.campaign = element("div", undefined, "fleet-work");
     state.capacity = element("div");
-    page.append(head, decisionsPanel, cairnPanel, state.inspector, attemptsPanel, state.runtime, claimsPanel, window.KilnFleetCapacity ? state.capacity : work, state.campaign, swarmsPanel);
+    page.append(head, machinesPanel, decisionsPanel, cairnPanel, state.inspector, issuesPanel, attemptsPanel, state.runtime,
+      claimsPanel, window.KilnFleetCapacity ? state.capacity : work, sourcesPanel, state.campaign, swarmsPanel);
     root.replaceChildren(page);
     state.machine = machine;
     state.updated = updated;
@@ -1271,12 +1521,35 @@
     state.swarms = swarms;
     state.swarmDetail = swarmDetail;
     state.selectedSwarm = "";
+    state.polls = [{
+      path: MACHINES,
+      apply(payload) {
+        state.listedMachines = admitMachines(payload);
+        renderMachines(state);
+        notice(state.machineStatus, payload.truncated === true ? "Machine roster is incomplete; additional records were omitted." : "");
+      },
+      fail() {
+        notice(state.machineStatus, state.listedMachines
+          ? "Machine observation read failed · last roster snapshot shown."
+          : "Machine observation read failed · no roster snapshot available.");
+      },
+    }, {
+      path: NATIVE_WORK,
+      apply: (payload) => renderNativeWork(state, payload),
+      fail() {
+        state.issueSignature = undefined;
+        state.issueRows.replaceChildren();
+        notice(state.issueStatus, "Native issues and requests disconnected · no authorized snapshot available.");
+      },
+    }];
     renderAcquire(state);
     active = state;
     renderAttention(state);
     document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("kiln-session-changed", onSessionChanged);
     void stream(state);
     void pollCairn(state);
+    for (const poll of state.polls) void pollProjection(state, poll);
     void window.KilnFleetCapacity?.mount(state.capacity, context);
     if (window.KilnInventory?.loadFleetCampaign) {
       void window.KilnInventory.loadFleetCampaign(state.campaign, context, context.route?.worker_campaign || "", (campaign) => {
@@ -1287,19 +1560,26 @@
 
   function clear() {
     if (active) {
-      active.epoch += 1;
-      clearTimeout(active.timer);
-      active.controller?.abort();
-      clearTimeout(active.cairnTimer);
-      active.cairnController?.abort();
-      active.inspectorController?.abort();
-      active.inspectorController = null;
+      const state = active;
+      active = null;
+      state.epoch += 1;
+      clearTimeout(state.timer);
+      state.controller?.abort();
+      clearTimeout(state.cairnTimer);
+      state.cairnController?.abort();
+      state.inspectorController?.abort();
+      state.inspectorController = null;
+      for (const poll of state.polls) {
+        clearTimeout(poll.timer);
+        poll.controller?.abort();
+      }
       window.KilnFleetRuntime?.clear();
       window.KilnFleetCapacity?.clear();
       window.KilnInventory?.clearFleetCampaign?.();
-      active = null;
+      state.root.replaceChildren();
     }
     document.removeEventListener("visibilitychange", onVisible);
+    window.removeEventListener("kiln-session-changed", onSessionChanged);
   }
 
   window.KilnFleet = Object.freeze({ load, clear });

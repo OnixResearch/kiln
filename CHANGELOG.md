@@ -16,6 +16,12 @@ entry describes the source tree prepared for the first tagged release.
 
 ### Added
 
+- Fleet shows every enrolled machine, distinguishes stale and unavailable
+  observations, and includes exact issue, Cairn and work provenance.
+- Fleet can optionally observe pinned Herdr Core instances through a local Unix
+  socket, showing redacted live terminal and program-status counts separately
+  from legacy Herdr dispatch and Kiln work assignments.
+
 **Core**
 
 - Closed implementation-authority coverage: every protected claim, renewal,

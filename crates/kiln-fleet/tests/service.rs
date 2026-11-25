@@ -10,6 +10,8 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, LazyLock};
 
 use common::{COORDINATOR, PEER, TestResult, config, executable, write_enrollment};
+use kiln_core::implementation::{SourceRef, WorkSourceKind};
+use kiln_core::types::ExternalRef;
 use kiln_fleet::api::Service;
 use kiln_fleet::client::ApiClient;
 use kiln_fleet::config::FleetConfig;
@@ -321,9 +323,50 @@ fn claims_bind_the_authenticated_host_and_map_statuses() -> TestResult {
     assert_eq!(fixture.call(PEER, "GET", "/v1/nothing", None).status, 404);
     assert_eq!(fixture.call(PEER, "DELETE", "/v1/claims", None).status, 405);
     assert_eq!(fixture.call(PEER, "GET", "/v2/claims", None).status, 404);
-    for path in ["/v1/work", "/v1/attempts", "/v1/decisions"] {
+    assert_eq!(fixture.call(PEER, "POST", "/v1/machines", None).status, 405);
+    for path in ["/v1/machines", "/v1/work", "/v1/attempts", "/v1/decisions"] {
         assert_eq!(fixture.call(PEER, "GET", path, None).status, 200, "{path}");
     }
+    Ok(())
+}
+
+#[test]
+fn work_rows_preserve_exact_native_source_references() -> TestResult {
+    let fixture = fixture()?;
+    let profile = common::content('b');
+    let ready = common::work(&"a".repeat(40), &profile, &["src"])?;
+    let mut blocked = ready.clone();
+    // Identical titles aren't evidence of a source relationship.
+    blocked.dependencies = vec![common::content('c')];
+    blocked.aliases = vec![SourceRef {
+        kind: WorkSourceKind::CairnTask,
+        source: ExternalRef::new("cairn", "task", "change/task-1")
+            .map_err(|error| error.message)?,
+        native_id: "change/task-1".into(),
+        version: common::content('2'),
+    }];
+    let mut store = fixture.service.store.open()?;
+    store.admit(&ready, None)?;
+    store.admit(&blocked, None)?;
+
+    let response = fixture.call(PEER, "GET", "/v1/work", None);
+    assert_eq!(response.status, 200);
+    let body = response.body;
+    assert_eq!(body.pointer("/truncated"), Some(&json!(false)));
+    assert_eq!(body.pointer("/ranked/0/repository"), Some(&json!(common::REPOSITORY)));
+    assert_eq!(body.pointer("/blocked/0/repository"), Some(&json!(common::REPOSITORY)));
+    assert_eq!(body.pointer("/ranked/0/sources"), Some(&json!([{
+        "kind": "git_hub_issue",
+        "source": { "contract_version": 1, "provider_namespace": "github", "native_kind": "issue", "native_id": "onix/kiln#7" },
+        "native_id": "onix/kiln#7",
+        "version": "1".repeat(64),
+    }])));
+    assert_eq!(body.pointer("/blocked/0/sources"), Some(&json!([{
+        "kind": "cairn_task",
+        "source": { "contract_version": 1, "provider_namespace": "cairn", "native_kind": "task", "native_id": "change/task-1" },
+        "native_id": "change/task-1",
+        "version": "2".repeat(64),
+    }])));
     Ok(())
 }
 

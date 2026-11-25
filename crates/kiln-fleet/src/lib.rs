@@ -13,6 +13,7 @@ pub mod capture;
 pub mod cli;
 pub mod client;
 pub mod config;
+mod core_observer;
 pub mod dispatch;
 pub mod exec;
 pub mod hold;

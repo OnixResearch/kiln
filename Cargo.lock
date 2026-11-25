@@ -3479,6 +3479,7 @@ dependencies = [
  "serde",
  "serde_json",
  "signal-hook",
+ "socket2 0.6.5",
  "tempfile",
 ]
 

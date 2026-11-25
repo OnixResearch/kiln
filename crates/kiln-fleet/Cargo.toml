@@ -25,6 +25,7 @@ nix = { version = "=0.30.1", features = ["process", "signal"] }
 serde.workspace = true
 serde_json.workspace = true
 signal-hook = "0.3.18"
+socket2 = "0.6"
 
 [dev-dependencies]
 tempfile = "3.27.0"

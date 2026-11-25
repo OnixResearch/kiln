@@ -66,6 +66,8 @@ pub struct FleetConfig {
     pub implementer: ImplementerPaths,
     /// `kiln.fleet-inventory.v1` JSON for the herdr adapter.
     pub inventory: PathBuf,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) herdr_core: Option<HerdrCoreConfig>,
     #[serde(default)]
     pub swarm: Option<SwarmConfig>,
     #[serde(default = "default_decision_group")]
@@ -82,6 +84,15 @@ pub struct FleetConfig {
     /// `authority_operator`.
     #[serde(default)]
     pub authority_config: Option<PathBuf>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct HerdrCoreConfig {
+    pub(crate) socket: PathBuf,
+    pub(crate) version: String,
+    /// Fleet label to Core nickname; the empty nickname identifies the local core.
+    pub(crate) hosts: BTreeMap<String, String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -335,6 +346,15 @@ impl FleetConfig {
             (&self.inventory, "inventory"),
         ] {
             absolute(path, field)?;
+        }
+        if let Some(core) = &self.herdr_core {
+            absolute(&core.socket, "herdr_core.socket")?;
+            let mut aliases = BTreeSet::new();
+            if core.version != "0.1.19" || core.hosts.is_empty() || core.hosts.iter().any(|(host, alias)| {
+                !machines.contains(host.as_str()) || (!alias.is_empty() && !machine_label(alias)) || !aliases.insert(alias)
+            }) {
+                return Err("herdr_core requires version 0.1.19 and unique aliases for enrolled hosts".to_owned());
+            }
         }
         if let Some(swarm) = &self.swarm {
             swarm.validate()?;
@@ -632,6 +652,23 @@ mod tests {
         };
         if let Some(Value::Object(object)) = value.pointer_mut(parent) {
             object.insert(key.to_owned(), replacement);
+        }
+    }
+
+    #[test]
+    fn core_observation_pins_version_and_refuses_ambiguous_hosts() {
+        let mut value = document();
+        value["herdr_core"] = json!({"socket":"/run/kiln/core.sock","version":"0.1.19","hosts":{"britton-desktop":"","aspen3":"west"}});
+        assert!(parse(&value).is_ok());
+        for (field, invalid) in [
+            ("socket", json!("relative.sock")),
+            ("version", json!("0.1.18")),
+            ("hosts", json!({"britton-desktop":"west","aspen3":"west"})),
+            ("hosts", json!({"not-enrolled":"west"})),
+        ] {
+            let mut rejected = value.clone();
+            rejected["herdr_core"][field] = invalid;
+            assert!(parse(&rejected).is_err(), "{field}");
         }
     }
 
