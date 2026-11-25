@@ -688,8 +688,13 @@ fn typed_fair_admission_reasons_keep_work_policy_and_freshness_exact() -> TestRe
     policy_fact.policy_ref = needs.policy_ref.clone();
     let resource =
         crate::types::Alias::new("cpu_millicores").map_err(|error| format!("{error:?}"))?;
+    let tokens_dim = crate::types::Alias::new("tokens").map_err(|error| format!("{error:?}"))?;
     let mut held = BTreeMap::new();
     held.insert(resource.clone(), 1000);
+    let mut settled_measured = BTreeMap::new();
+    settled_measured.insert(tokens_dim.clone(), 300);
+    let mut settled_unknown = BTreeMap::new();
+    settled_unknown.insert(resource.clone(), 64);
     policy_fact.admission_explanation = Some(AdmissionExplanation {
         work_version: work,
         campaign: crate::types::Alias::new("pilot").map_err(|error| format!("{error:?}"))?,
@@ -703,8 +708,8 @@ fn typed_fair_admission_reasons_keep_work_policy_and_freshness_exact() -> TestRe
         observation_at_ms: Some(1000),
         lineage: None,
         serving: None,
-        settled_measured: BTreeMap::new(),
-        settled_unknown: BTreeMap::new(),
+        settled_measured,
+        settled_unknown,
     });
     let result = explain_readiness(&profile, &snapshot, &needs, 2000)?;
     assert!(
@@ -726,6 +731,36 @@ fn typed_fair_admission_reasons_keep_work_policy_and_freshness_exact() -> TestRe
         .ok_or("missing projected admission explanation")?;
     assert_eq!(admission.held.get(&resource), Some(&1000));
     assert!(admission.measured.is_empty());
+    assert_eq!(admission.settled_measured.get(&tokens_dim), Some(&300));
+    assert_eq!(admission.settled_unknown.get(&resource), Some(&64));
+    let mut inexact_measured = snapshot.clone();
+    inexact_measured
+        .policies
+        .first_mut()
+        .ok_or("missing policy")?
+        .admission_explanation
+        .as_mut()
+        .ok_or("missing admission explanation")?
+        .settled_measured
+        .insert(tokens_dim.clone(), MAX_EXACT_NUMBER + 1);
+    assert_eq!(
+        admit_snapshot(&profile, &inexact_measured),
+        Err("inventory_number_not_exact")
+    );
+    let mut inexact_unknown = snapshot.clone();
+    inexact_unknown
+        .policies
+        .first_mut()
+        .ok_or("missing policy")?
+        .admission_explanation
+        .as_mut()
+        .ok_or("missing admission explanation")?
+        .settled_unknown
+        .insert(resource, MAX_EXACT_NUMBER + 1);
+    assert_eq!(
+        admit_snapshot(&profile, &inexact_unknown),
+        Err("inventory_number_not_exact")
+    );
     snapshot
         .policies
         .first_mut()

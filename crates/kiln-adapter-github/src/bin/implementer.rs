@@ -55,7 +55,7 @@ fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         return fail(
-            "usage: kiln-implementer <drain|run|poll|poll-run|drain-runbooks|poll-runbooks|policy-check|status|claim|cancel|renew|reserve|reserve-plan|start|reconcile|recover|reconcile-termination|handoff|capture-candidate|prepare-verification-profile|prepare-needs|attach-needs|needs|inspect-work|inspect-attempt|admission|admission-status|host-owner-admit|host-owner-observe|host-owner-reserve|host-owner-release|campaign|prepare-publication|publish|recover-integration|close-source|source-status|observe-cairn-lifecycle|metrics|metrics-report|plan-review|plan-feedback|plan-review-receipt> --database PATH ...",
+            "usage: kiln-implementer <drain|run|poll|poll-run|drain-runbooks|poll-runbooks|policy-check|status|claim|cancel|renew|reserve|reserve-plan|start|reconcile|recover|reconcile-termination|handoff|capture-candidate|prepare-verification-profile|prepare-needs|attach-needs|needs|inspect-work|inspect-attempt|admission|admission-status|admission-explanation|host-owner-admit|host-owner-observe|host-owner-reserve|host-owner-release|campaign|prepare-publication|publish|prepare-stack-publication|publish-stack|recover-stack-integration|stack-gate|recover-integration|close-source|source-status|observe-cairn-lifecycle|metrics|metrics-report|plan-review|plan-feedback|plan-review-receipt> --database PATH ...",
         );
     };
     let flags = match parse_flags(arguments.collect()) {
@@ -87,6 +87,10 @@ fn run() -> Result<(), ()> {
         "prepare-needs" => prepare_needs(&flags),
         "prepare-publication" => prepare_publication(&flags),
         "publish" => publish(&flags),
+        "prepare-stack-publication" => prepare_stack_publication(&flags),
+        "publish-stack" => publish_stack(&flags),
+        "recover-stack-integration" => recover_stack_integration(&flags),
+        "stack-gate" => stack_gate_command(&flags),
         "land" => fail(
             "unattended landing is unsupported: ordinary GitHub merge cannot atomically guard the target; remain PR-ready",
         ),
@@ -101,6 +105,7 @@ fn run() -> Result<(), ()> {
         "needs" => show_needs(&flags),
         "admission" => admission_command(&flags),
         "admission-status" => admission_status(&flags),
+        "admission-explanation" => admission_explanation(&flags),
         "host-owner-admit" | "host-owner-observe" | "host-owner-reserve" | "host-owner-release" => {
             host_owner_command(command.as_str(), &flags)
         }
@@ -439,6 +444,27 @@ fn admission_status(flags: &BTreeMap<String, String>) -> Result<(), ()> {
                 Ok(())
             }
             Err(_) => fail("admission encoding failed"),
+        },
+        Err(error) => fail(&error),
+    }
+}
+
+fn admission_explanation(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let result = (|| -> Result<kiln_core::fair_admission::AdmissionExplanation, String> {
+        let work = required_identity(flags, "--work")?;
+        let mut store = open_implementer(flags)?;
+        let ledger = store.admission_snapshot()?;
+        ledger
+            .explanation(&work, wall_clock_ms())
+            .map_err(|error| format!("{}: {}", error.code, error.message))
+    })();
+    match result {
+        Ok(explanation) => match serde_json::to_string(&explanation) {
+            Ok(json) => {
+                println!("{json}");
+                Ok(())
+            }
+            Err(_) => fail("admission explanation encoding failed"),
         },
         Err(error) => fail(&error),
     }
@@ -867,8 +893,183 @@ fn prepare_publication(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     }
 }
 
-// r[impl kiln.implementation.publication] r[impl kiln.github.publication]
+// r[impl kiln.implementation.publication] r[impl kiln.github.publication] r[impl kiln.implementation.stack]
 fn publish(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    use kiln_core::implementation::{PublicationRoute, resolve_route};
+    let route = match flags.get("--route").map(String::as_str) {
+        None | Some("pull_request") => PublicationRoute::PullRequest,
+        Some("github_stack") => PublicationRoute::GithubStack,
+        Some("origin_stack") => {
+            let err = resolve_route(PublicationRoute::OriginStack, false)
+                .err()
+                .unwrap_or_else(|| {
+                    kiln_core::types::Diagnostic::new(
+                        "implementation_stack_destination_unsupported",
+                        "stack.route",
+                        "Origin stacks are unsupported",
+                    )
+                });
+            return fail(&format!("{}: {}", err.code, err.message));
+        }
+        Some(_) => return fail("--route must be pull_request, github_stack, or origin_stack"),
+    };
+    if route == PublicationRoute::PullRequest {
+        return publish_pull_request(flags);
+    }
+    let stack_path = match optional_path(flags, "--stack-file") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let publication_path = match optional_path(flags, "--publication-file") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    if stack_path.is_none() && publication_path.is_none() {
+        return fail("--stack-file or --publication-file is required for --route github_stack");
+    }
+    let stack_input: Option<kiln_implementer::stack_publication::StackPublicationInput> =
+        match stack_path.as_deref().map(read_json).transpose() {
+            Ok(value) => value,
+            Err(error) => return fail(&error),
+        };
+    let pub_plan: Option<kiln_core::implementation::PublicationPlan> =
+        match publication_path.as_deref().map(read_json).transpose() {
+            Ok(value) => value,
+            Err(error) => return fail(&error),
+        };
+    if let (Some(stack), Some(plan)) = (&stack_input, &pub_plan)
+        && (stack.plan.repository != plan.repository
+            || stack.plan.attempt != plan.attempt
+            || stack.plan.work_identity != plan.work_identity
+            || stack.plan.fence != plan.fence)
+    {
+        return fail("--stack-file and --publication-file bind different attempts or repositories");
+    }
+    let secret_file = match required_path(flags, "--secret-file") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let remote_profile_file = match required_path(flags, "--remote-profile") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let source = match kiln_adapter_github::publication::PublicationSourceProfile::read(
+        &remote_profile_file,
+    ) {
+        Ok(source) => source,
+        Err(_) => return fail("publication source profile is invalid"),
+    };
+    let timeout_ms = match optional_positive(flags, "--timeout-ms") {
+        Ok(Some(value)) => u64::try_from(value).unwrap_or(u64::MAX),
+        Ok(None) => 30_000,
+        Err(error) => return fail(&error),
+    };
+    let mut implementer = match open_implementer(flags) {
+        Ok(implementer) => implementer,
+        Err(error) => return fail(&error),
+    };
+    if let Some(stack) = &stack_input {
+        let already_stack = implementer
+            .stack_publication_record(&stack.plan.attempt)
+            .ok()
+            .flatten()
+            .is_some_and(|record| record.plan == stack.plan && record.publication.is_some());
+        if already_stack {
+            return publish_with_stack(&mut implementer, stack, &source, &secret_file, timeout_ms);
+        }
+    }
+    let (work_identity, attempt_identity, fence, repository) = match (&stack_input, &pub_plan) {
+        (Some(stack), _) => (
+            &stack.plan.work_identity,
+            &stack.plan.attempt,
+            stack.plan.fence,
+            stack.plan.repository.as_str(),
+        ),
+        (None, Some(plan)) => (
+            &plan.work_identity,
+            &plan.attempt,
+            plan.fence,
+            plan.repository.as_str(),
+        ),
+        (None, None) => {
+            return fail("--stack-file or --publication-file is required for --route github_stack");
+        }
+    };
+    if let Some(stack) = &stack_input {
+        match implementer.stack_publication_record(&stack.plan.attempt) {
+            Ok(Some(record))
+                if record.plan == stack.plan
+                    && record.layer_verifications != stack.layer_verifications =>
+            {
+                return fail("stack file differs from the prepared stack plan");
+            }
+            Ok(_) => {}
+            Err(error) => return fail(&error),
+        }
+    }
+    let has_prepared_stack = match stack_input.as_ref() {
+        Some(stack) => match implementer.stack_publication_record(&stack.plan.attempt) {
+            Ok(record) => record.is_some_and(|record| {
+                record.plan == stack.plan && record.layer_verifications == stack.layer_verifications
+            }),
+            Err(error) => return fail(&error),
+        },
+        None => false,
+    };
+    let has_prepared_pr = match pub_plan.as_ref() {
+        Some(plan) => match implementer.publication_record(&plan.attempt) {
+            Ok(record) => record.is_some_and(|record| record.plan == *plan),
+            Err(error) => return fail(&error),
+        },
+        None => false,
+    };
+    if !has_prepared_stack && !has_prepared_pr {
+        return fail("publication is not prepared");
+    }
+    let supported = match implementer.probe_publication_route(
+        work_identity,
+        attempt_identity,
+        fence,
+        repository,
+        || {
+            let bytes =
+                std::fs::read(&secret_file).map_err(|_| "secret file is unreadable".to_string())?;
+            let token = kiln_adapter_github::secret::ResolvedSecret::from_bytes(bytes)
+                .map_err(|_| "secret file is not a valid GitHub token".to_string())?;
+            let client =
+                kiln_adapter_github::publication::GithubPublicationClient::new(token, timeout_ms)
+                    .map_err(|_| "publication transport configuration is invalid".to_string())?;
+            client
+                .supports_stacks(repository)
+                .map_err(|error| format!("{error:?}"))
+        },
+    ) {
+        Ok(supported) => supported,
+        Err(error) => return fail(&error),
+    };
+    match resolve_route(PublicationRoute::GithubStack, supported) {
+        Ok(PublicationRoute::GithubStack) => {
+            let Some(stack) = stack_input.as_ref() else {
+                return fail("--stack-file is required when repository supports stacks");
+            };
+            publish_with_stack(&mut implementer, stack, &source, &secret_file, timeout_ms)
+        }
+        Ok(PublicationRoute::PullRequest) => {
+            let Some(plan) = pub_plan else {
+                return fail(
+                    "github_stack_unsupported: repository does not support stacks and no --publication-file was prepared for single-PR fallback",
+                );
+            };
+            publish_single_pr(&mut implementer, plan, &source, &secret_file, timeout_ms)
+        }
+        Ok(PublicationRoute::OriginStack) => {
+            fail("implementation_stack_destination_unsupported: Origin stacks are unsupported")
+        }
+        Err(error) => fail(&format!("{}: {}", error.code, error.message)),
+    }
+}
+
+fn publish_pull_request(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     let file = match required_path(flags, "--publication-file") {
         Ok(path) => path,
         Err(error) => return fail(&error),
@@ -900,6 +1101,16 @@ fn publish(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Ok(implementer) => implementer,
         Err(error) => return fail(&error),
     };
+    publish_single_pr(&mut implementer, plan, &source, &secret_file, timeout_ms)
+}
+
+fn publish_single_pr(
+    implementer: &mut Implementer,
+    plan: kiln_core::implementation::PublicationPlan,
+    source: &kiln_adapter_github::publication::PublicationSourceProfile,
+    secret_file: &std::path::Path,
+    timeout_ms: u64,
+) -> Result<(), ()> {
     let record = match implementer.publication_record(&plan.attempt) {
         Ok(Some(record)) => record,
         Ok(None) => return fail("publication is not prepared"),
@@ -967,7 +1178,7 @@ fn publish(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     let publication_client =
         || -> Result<kiln_adapter_github::publication::GithubPublicationClient, String> {
             let bytes =
-                std::fs::read(&secret_file).map_err(|_| "secret file is unreadable".to_string())?;
+                std::fs::read(secret_file).map_err(|_| "secret file is unreadable".to_string())?;
             let token = kiln_adapter_github::secret::ResolvedSecret::from_bytes(bytes)
                 .map_err(|_| "secret file is not a valid GitHub token".to_string())?;
             kiln_adapter_github::publication::GithubPublicationClient::new(token, timeout_ms)
@@ -981,7 +1192,7 @@ fn publish(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         |dispatch, _| {
             let client = publication_client()?;
             let head = client
-                .publish_candidate_branch(&plan, &source, dispatch == EffectDispatch::FirstDispatch)
+                .publish_candidate_branch(&plan, source, dispatch == EffectDispatch::FirstDispatch)
                 .map_err(|error| format!("{error:?}"))?;
             Ok(head.map(PublicationEffectResult::Branch))
         },
@@ -999,7 +1210,7 @@ fn publish(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         |dispatch, _| {
             let client = publication_client()?;
             let Some(_) = client
-                .publish_candidate_branch(&plan, &source, false)
+                .publish_candidate_branch(&plan, source, false)
                 .map_err(|error| format!("{error:?}"))?
             else {
                 return Ok(None);
@@ -1027,6 +1238,375 @@ fn publish(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Err(error) => return fail(&error),
     }
     Ok(())
+}
+
+// r[impl kiln.implementation.stack] r[impl kiln.github.stack]
+fn prepare_stack_publication(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let file = match required_path(flags, "--stack-file") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let input: kiln_implementer::stack_publication::StackPublicationInput = match read_json(&file) {
+        Ok(input) => input,
+        Err(error) => return fail(&error),
+    };
+    let mut implementer = match open_implementer(flags) {
+        Ok(implementer) => implementer,
+        Err(error) => return fail(&error),
+    };
+    let work = match implementer.work() {
+        Ok(work) => work,
+        Err(error) => return fail(&error),
+    };
+    let Some(work) = work
+        .current()
+        .find(|work| {
+            work.identity()
+                .is_ok_and(|identity| identity == input.plan.work_identity)
+        })
+        .cloned()
+    else {
+        return fail("stack publication work identity is not current");
+    };
+    match implementer.prepare_stack_publication(
+        &work,
+        &input.plan.attempt,
+        input.plan.fence,
+        wall_clock_ms(),
+        &input.layer_verifications,
+        &input.plan,
+    ) {
+        Ok(stack) => {
+            println!("{{\"stack\":\"{}\"}}", stack.as_str());
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
+// r[impl kiln.implementation.stack] r[impl kiln.github.stack]
+fn publish_stack(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let file = match required_path(flags, "--stack-file") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let input: kiln_implementer::stack_publication::StackPublicationInput = match read_json(&file) {
+        Ok(input) => input,
+        Err(error) => return fail(&error),
+    };
+    let secret_file = match required_path(flags, "--secret-file") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let remote_profile_file = match required_path(flags, "--remote-profile") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let source = match kiln_adapter_github::publication::PublicationSourceProfile::read(
+        &remote_profile_file,
+    ) {
+        Ok(source) => source,
+        Err(_) => return fail("publication source profile is invalid"),
+    };
+    let timeout_ms = match optional_positive(flags, "--timeout-ms") {
+        Ok(Some(value)) => u64::try_from(value).unwrap_or(u64::MAX),
+        Ok(None) => 30_000,
+        Err(error) => return fail(&error),
+    };
+    let mut implementer = match open_implementer(flags) {
+        Ok(implementer) => implementer,
+        Err(error) => return fail(&error),
+    };
+    publish_with_stack(&mut implementer, &input, &source, &secret_file, timeout_ms)
+}
+
+fn publish_with_stack(
+    implementer: &mut Implementer,
+    input: &kiln_implementer::stack_publication::StackPublicationInput,
+    source: &kiln_adapter_github::publication::PublicationSourceProfile,
+    secret_file: &std::path::Path,
+    timeout_ms: u64,
+) -> Result<(), ()> {
+    let plan = &input.plan;
+    let record = match implementer.stack_publication_record(&plan.attempt) {
+        Ok(Some(record)) => record,
+        Ok(None) => return fail("stack publication is not prepared"),
+        Err(error) => return fail(&error),
+    };
+    if record.plan != *plan || record.layer_verifications != input.layer_verifications {
+        return fail("stack file differs from the prepared stack plan");
+    }
+    let ledger = match implementer.work() {
+        Ok(ledger) => ledger,
+        Err(error) => return fail(&error),
+    };
+    let Some(work) = ledger
+        .current()
+        .find(|work| {
+            work.identity()
+                .is_ok_and(|identity| identity == plan.work_identity)
+        })
+        .cloned()
+    else {
+        return fail("stack publication work identity is not current");
+    };
+    let attempt = match implementer.attempt(&plan.attempt) {
+        Ok(Some(attempt)) => attempt,
+        Ok(None) => return fail("stack publication attempt is not retained"),
+        Err(error) => return fail(&error),
+    };
+    let handoff = match implementer.candidate_handoff(&plan.attempt) {
+        Ok(Some(handoff)) => handoff,
+        Ok(None) => return fail("stack publication candidate handoff is not retained"),
+        Err(error) => return fail(&error),
+    };
+    let handoff_identity =
+        match kiln_core::implementation::admit_candidate_handoff(&work, &attempt, &handoff) {
+            Ok(identity) => identity,
+            Err(_) => return fail("stack publication candidate handoff is invalid"),
+        };
+    let Some(top_layer) = plan.layers.last() else {
+        return fail("stack plan requires at least two layers");
+    };
+    if handoff_identity != plan.handoff
+        || handoff.candidate != top_layer.candidate
+        || handoff.tree != top_layer.tree
+    {
+        return fail("stack publication source does not match the admitted candidate handoff");
+    }
+    use kiln_implementer::publication_effects::EffectDispatch;
+    let publication_client =
+        || -> Result<kiln_adapter_github::publication::GithubPublicationClient, String> {
+            let bytes =
+                std::fs::read(secret_file).map_err(|_| "secret file is unreadable".to_string())?;
+            let token = kiln_adapter_github::secret::ResolvedSecret::from_bytes(bytes)
+                .map_err(|_| "secret file is not a valid GitHub token".to_string())?;
+            kiln_adapter_github::publication::GithubPublicationClient::new(token, timeout_ms)
+                .map_err(|_| "publication transport configuration is invalid".to_string())
+        };
+    match implementer.consume_stack_publication_effect(
+        &work,
+        &plan.attempt,
+        plan.fence,
+        plan,
+        |dispatch, stack_plan| {
+            let client = publication_client()?;
+            match dispatch {
+                EffectDispatch::FirstDispatch => client
+                    .publish_stack(stack_plan, source)
+                    .map(Some)
+                    .map_err(|error| format!("{error:?}")),
+                EffectDispatch::ReconcileOnly => client
+                    .reconcile_stack(stack_plan, source)
+                    .map_err(|error| format!("{error:?}")),
+            }
+        },
+    ) {
+        Ok(reservation) if reservation.observed.is_some() => {
+            println!(
+                "{}",
+                serde_json::to_string(&reservation).unwrap_or_else(|_| "null".into())
+            );
+            Ok(())
+        }
+        Ok(_) => fail("stack publication outcome remains unknown; reconcile before retry"),
+        Err(error) => fail(&error),
+    }
+}
+
+// r[impl kiln.implementation.stack.gate.scenario.integration] r[impl kiln.github.stack]
+fn recover_stack_integration(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let file = match required_path(flags, "--stack-file") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let secret_file = match required_path(flags, "--secret-file") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let input: kiln_implementer::stack_publication::StackPublicationInput = match read_json(&file) {
+        Ok(input) => input,
+        Err(error) => return fail(&error),
+    };
+    let timeout_ms = match optional_positive(flags, "--timeout-ms") {
+        Ok(Some(value)) => u64::try_from(value).unwrap_or(u64::MAX),
+        Ok(None) => 30_000,
+        Err(error) => return fail(&error),
+    };
+    let mut implementer = match open_implementer(flags) {
+        Ok(implementer) => implementer,
+        Err(error) => return fail(&error),
+    };
+    let record = match implementer.stack_publication_record(&input.plan.attempt) {
+        Ok(Some(record)) => record,
+        Ok(None) => return fail("stack publication is not prepared"),
+        Err(error) => return fail(&error),
+    };
+    if record.plan != input.plan || record.layer_verifications != input.layer_verifications {
+        return fail("stack file differs from the prepared stack plan");
+    }
+    let Some(publication) = record.publication else {
+        return fail("stack publication is not retained");
+    };
+    let work = match implementer.work() {
+        Ok(work) => work,
+        Err(error) => return fail(&error),
+    };
+    let Some(work) = work
+        .current()
+        .find(|work| {
+            work.identity()
+                .is_ok_and(|identity| identity == input.plan.work_identity)
+        })
+        .cloned()
+    else {
+        return fail("stack publication work identity is not current");
+    };
+    let landing_client = || -> Result<kiln_adapter_github::landing::GithubLandingClient, String> {
+        let bytes =
+            std::fs::read(&secret_file).map_err(|_| "secret file is unreadable".to_string())?;
+        let token = kiln_adapter_github::secret::ResolvedSecret::from_bytes(bytes)
+            .map_err(|_| "secret file is not a valid GitHub token".to_string())?;
+        kiln_adapter_github::landing::GithubLandingClient::new(token, timeout_ms)
+            .map_err(|_| "landing transport configuration is invalid".to_string())
+    };
+    match implementer.consume_stack_integration_effect(
+        &work,
+        &input.plan.attempt,
+        input.plan.fence,
+        &input.plan,
+        |_, stack_plan, stack_pub| {
+            let client = landing_client()?;
+            let receipt = client
+                .recover_stack_landed(stack_plan, stack_pub)
+                .map_err(|error| format!("{error:?}"))?;
+            Ok(receipt.map(|receipt| receipt.integration))
+        },
+    ) {
+        Ok(reservation) => {
+            let Some(kiln_implementer::stack_publication::StackEffectResult::Integration(
+                integration,
+            )) = &reservation.observed
+            else {
+                return fail("external stack integration is not independently established");
+            };
+            let admitted = match kiln_core::implementation::admit_stack_integration(
+                &input.plan,
+                &publication,
+                integration,
+            ) {
+                Ok(admitted) => admitted,
+                Err(error) => return fail(&format!("{}: {}", error.code, error.message)),
+            };
+            let output = serde_json::json!({
+                "stack": admitted.identity,
+                "integrated_layers": admitted.integrated_layers,
+                "complete": admitted.complete,
+                "reservation": reservation,
+            });
+            println!("{output}");
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
+// r[impl kiln.implementation.stack.gate]
+fn stack_gate_command(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let stack_file = match required_path(flags, "--stack-file") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let landing_file = match required_path(flags, "--landing-plans") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let secret_file = match required_path(flags, "--secret-file") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let input: kiln_implementer::stack_publication::StackPublicationInput =
+        match read_json(&stack_file) {
+            Ok(input) => input,
+            Err(error) => return fail(&error),
+        };
+    let landing_plans: Vec<kiln_adapter_github::landing::LandingPlan> =
+        match read_json(&landing_file) {
+            Ok(plans) => plans,
+            Err(error) => return fail(&error),
+        };
+    let timeout_ms = match optional_positive(flags, "--timeout-ms") {
+        Ok(Some(value)) => u64::try_from(value).unwrap_or(u64::MAX),
+        Ok(None) => 30_000,
+        Err(error) => return fail(&error),
+    };
+    let mut implementer = match open_implementer(flags) {
+        Ok(implementer) => implementer,
+        Err(error) => return fail(&error),
+    };
+    let record = match implementer.stack_publication_record(&input.plan.attempt) {
+        Ok(Some(record)) => record,
+        Ok(None) => return fail("stack publication is not prepared"),
+        Err(error) => return fail(&error),
+    };
+    if record.plan != input.plan || record.layer_verifications != input.layer_verifications {
+        return fail("stack file differs from the prepared stack plan");
+    }
+    let Some(publication) = record.publication else {
+        return fail("stack publication is not retained");
+    };
+    let Some((owner, repo_name)) = input.plan.repository.split_once('/') else {
+        return fail("stack publication repository is malformed");
+    };
+    if landing_plans.len() != input.plan.layers.len()
+        || publication.pull_requests.len() != input.plan.layers.len()
+    {
+        return fail("landing plans count differs from stack layers");
+    }
+    for ((landing, layer), pull_request) in landing_plans
+        .iter()
+        .zip(&input.plan.layers)
+        .zip(&publication.pull_requests)
+    {
+        if landing.repository != repo_name
+            || landing.owner != owner
+            || landing.head_sha != layer.candidate.native_id.as_str()
+            || landing.base_ref != layer.base_branch
+            || landing.base_head != layer.parent.native_id.as_str()
+            || pull_request.native_id.as_str()
+                != format!("{owner}/{repo_name}#{}", landing.pull_number)
+        {
+            return fail("landing plan does not match the prepared stack layer");
+        }
+    }
+    let integrated_layers = record
+        .integration
+        .as_ref()
+        .map_or(0, |integration| integration.layers.len());
+    let bytes = match std::fs::read(&secret_file) {
+        Ok(bytes) => bytes,
+        Err(_) => return fail("secret file is unreadable"),
+    };
+    let token = match kiln_adapter_github::secret::ResolvedSecret::from_bytes(bytes) {
+        Ok(token) => token,
+        Err(_) => return fail("secret file is not a valid GitHub token"),
+    };
+    let client = match kiln_adapter_github::landing::GithubLandingClient::new(token, timeout_ms) {
+        Ok(client) => client,
+        Err(_) => return fail("landing transport configuration is invalid"),
+    };
+    let states = client.observe_stack(&landing_plans, integrated_layers);
+    let gates = match kiln_core::implementation::stack_gate(&states) {
+        Ok(gates) => gates,
+        Err(error) => return fail(&format!("{}: {}", error.code, error.message)),
+    };
+    match serde_json::to_string(&gates) {
+        Ok(json) => {
+            println!("{json}");
+            Ok(())
+        }
+        Err(_) => fail("stack gate encoding failed"),
+    }
 }
 
 // r[impl kiln.implementation.integration] r[impl kiln.github.landing.merge]
@@ -2116,6 +2696,17 @@ fn required_path(flags: &BTreeMap<String, String>, key: &str) -> Result<PathBuf,
         return Err(format!("{key} must be absolute"));
     }
     Ok(path)
+}
+
+fn optional_path(flags: &BTreeMap<String, String>, key: &str) -> Result<Option<PathBuf>, String> {
+    let Some(value) = flags.get(key) else {
+        return Ok(None);
+    };
+    let path = PathBuf::from(value);
+    if !path.is_absolute() {
+        return Err(format!("{key} must be absolute"));
+    }
+    Ok(Some(path))
 }
 
 fn required_value(flags: &BTreeMap<String, String>, key: &str) -> Result<String, String> {

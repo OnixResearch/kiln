@@ -1095,7 +1095,13 @@ pub fn admit_snapshot(
             {
                 return Err("inventory_time_invalid");
             }
-            for (key, amount) in admission.held.iter().chain(admission.measured.iter()) {
+            for (key, amount) in admission
+                .held
+                .iter()
+                .chain(admission.measured.iter())
+                .chain(admission.settled_measured.iter())
+                .chain(admission.settled_unknown.iter())
+            {
                 token(key.as_str())?;
                 exact(&[*amount])?;
             }

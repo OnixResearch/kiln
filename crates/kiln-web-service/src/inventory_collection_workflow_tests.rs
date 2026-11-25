@@ -374,3 +374,80 @@ fn collect_input_isolates_slots_core_would_refuse() -> TestResult {
     assert_eq!(without_workflows(&input.snapshot), rest);
     Ok(())
 }
+
+#[test]
+// r[verify kiln.inventory.workflow.scenario.isolated]
+fn collect_input_isolates_workflow_source_kind_mismatch_as_unavailable() -> TestResult {
+    let scratch = tempfile::tempdir().map_err(|e| e.to_string())?;
+    copy_tree(&fixtures(), scratch.path())?;
+    let base = scratch.path();
+    let mut mismatched_profile = profile()?;
+    for policy in &mut mismatched_profile.sources {
+        if policy.source == SOURCE {
+            policy.kind = kiln_core::inventory::InventoryKind::Agents;
+        }
+    }
+    let profile_path = base.join("mismatched-profile.json");
+    std::fs::write(
+        &profile_path,
+        serde_json::to_vec(&mismatched_profile).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+
+    let good = collect_input(&base.join(PILOT), &base.join("profile.json"))?;
+    let input = collect_input(&base.join(PILOT), &profile_path)?;
+    assert_eq!(
+        workflow_reason(&input.snapshot),
+        Some("inventory_source_kind_mismatch")
+    );
+    assert!(input.snapshot.workflow_revisions.is_empty());
+    assert_eq!(
+        without_workflows(&input.snapshot),
+        without_workflows(&good.snapshot)
+    );
+    let projection = project_inventory(&mismatched_profile, &input.snapshot, None, NOW_MS)?;
+    let source = projection
+        .sources
+        .iter()
+        .find(|s| s.source == SOURCE)
+        .ok_or("missing workflow source")?;
+    assert_eq!(source.state, ObservationState::Unavailable);
+    assert_eq!(
+        source.reason.as_deref(),
+        Some("inventory_source_kind_mismatch")
+    );
+    Ok(())
+}
+
+#[test]
+fn streaming_workflow_collection_deduplicates_files_and_enforces_aggregate_budget() -> TestResult {
+    let set = CollectionSet::load(&fixtures().join(PILOT))?;
+    let workflow_collection = set
+        .collections
+        .iter()
+        .find(|c| c.source == SOURCE)
+        .cloned()
+        .ok_or("missing workflow collection")?;
+    // Repeat the same capture path multiple times across a collection; streaming
+    // collapses duplicates into one fact without retaining duplicate buffers.
+    let repeated = vec![fixtures().join(CAPTURE); 32];
+    let fragment = set.collect_workflow_slots_within(
+        &workflow_collection,
+        &repeated,
+        kiln_adapter_lattice::workflow_revision_slots::MAX_WORKFLOW_SLOTS_AGGREGATE_BYTES,
+    )?;
+    assert_eq!(fragment.workflow_revisions.len(), 1);
+
+    // An aggregate byte bound tighter than 2x the capture size refuses the 2nd file.
+    let file_len = std::fs::metadata(fixtures().join(CAPTURE))
+        .map_err(|e| e.to_string())?
+        .len();
+    let err = set
+        .collect_workflow_slots_within(&workflow_collection, &repeated, file_len)
+        .err();
+    assert_eq!(
+        err.as_deref(),
+        Some("lattice_workflow_slots_aggregate_byte_bound")
+    );
+    Ok(())
+}

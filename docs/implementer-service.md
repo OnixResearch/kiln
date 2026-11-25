@@ -127,11 +127,21 @@ observations in canonical CI and admits the exact candidate result. The old
 `kiln-implementer verify`/JSON-success import is removed.
 `prepare-publication --publication-file FILE` prepares the deterministic verified
 branch/PR plan; it creates no remote branch or pull request.
-`publish --publication-file FILE --secret-file FILE --remote-profile FILE [--timeout-ms N]` pushes the exact captured candidate Git objects via the enrolled `NativeRemoteProfile`, verifies the exact remote branch, then creates/reconciles one matching PR. The strict `kiln.github-publication-source.v1` profile binds the canonical repository path, remote profile/identity, and explicit fixture discriminator. Production publication requires the exact HTTPS GitHub repository; local bare remotes are explicit loopback-fixture-only. It never force-pushes, updates an existing branch, merges or lands.
+`prepare-stack-publication --stack-file FILE` (`{"plan": StackPlan,
+"layer_verifications": [...]}`) prepares a durable 2–16 layer ordered stack
+plan in separate `implementation_state` SQLite keys without changing
+`AttemptLedger` or `PublicationRecord`.
+`publish --publication-file FILE --secret-file FILE --remote-profile FILE [--route pull_request|github_stack|origin_stack] [--stack-file FILE] [--timeout-ms N]` pushes the exact captured candidate Git objects via the enrolled `NativeRemoteProfile`, verifies the exact remote branch, then creates/reconciles one matching PR (default `pull_request`), or probes `supports_stacks` (`github_stack`) and publishes via `publish_stack` or falls back to the prepared single-PR `--publication-file` on `404`; `origin_stack` refuses pre-effect (`implementation_stack_destination_unsupported`). `publish-stack --stack-file FILE --secret-file FILE --remote-profile FILE [--timeout-ms N]` runs or reconciles ordered stack publication directly. The strict `kiln.github-publication-source.v1` profile binds the canonical repository path, remote profile/identity, and explicit fixture discriminator. Production publication requires the exact HTTPS GitHub repository; local bare remotes are explicit loopback-fixture-only. It never force-pushes, updates an existing branch, merges or lands, and live GitHub stacked-PR endpoints remain unexercised.
 `recover-integration --publication-file FILE --landing-plan FILE --secret-file FILE
 [--timeout-ms N]` reconciles external integration by exact Git-object mapping,
-current checks/reviews and final target ancestry. It issues no merge request;
-ordinary GitHub merging lacks the required atomic candidate-and-base guard.
+current checks/reviews and final target ancestry. `recover-stack-integration
+--stack-file FILE --secret-file FILE [--timeout-ms N]` performs the same
+read-only recovery for ordered stack bottom prefixes, and `stack-gate
+--stack-file FILE --landing-plans FILE --secret-file FILE [--timeout-ms N]`
+prints bottom-up `LayerGate` states. Neither issues a merge request; ordinary
+GitHub merging lacks the required atomic candidate-and-base guard.
+`admission-explanation --work WORK_ID` reads `AdmissionLedger::explanation`
+without mutating state or loading holder seeds.
 `close-source --source-plan FILE --secret-file FILE [--timeout-ms N]` is
 observation-only: it retains an already closed issue only at the plan's exact
 admitted provider revision. It never PATCHes an open issue, accepts an arbitrary

@@ -216,6 +216,14 @@ impl CollectionSet {
     /// Read each named document and compose one snapshot. An unavailable
     /// source carries its reason and no facts.
     pub fn collect(&self, base: &Path) -> Result<InventorySnapshot, String> {
+        self.collect_with_profile_opt(base, None)
+    }
+
+    fn collect_with_profile_opt(
+        &self,
+        base: &Path,
+        profile: Option<&InventoryProfile>,
+    ) -> Result<InventorySnapshot, String> {
         let mut fragments = Vec::with_capacity(self.collections.len());
         for collection in &self.collections {
             if collection.unavailable_reason.is_some() && !collection.documents.is_empty() {
@@ -226,26 +234,70 @@ impl CollectionSet {
                 .iter()
                 .map(|relative| document_path(base, relative))
                 .collect::<Result<Vec<_>, _>>()?;
-            let mapped = paths
-                .iter()
-                .map(|path| {
-                    read_bounded(
-                        path,
-                        document_bound(collection),
-                        "inventory_collection_document_unavailable",
-                    )
-                })
-                .collect::<Result<Vec<_>, _>>()
-                .and_then(|bytes| {
-                    let documents: Vec<&[u8]> = bytes.iter().map(Vec::as_slice).collect();
-                    fragment(collection, &self.joins, &documents)
-                });
+            if let Some(profile) = profile
+                && let Some(policy) = profile
+                    .sources
+                    .iter()
+                    .find(|p| p.source == collection.source)
+                && (is_isolated(collection) || policy.kind == InventoryKind::WorkflowRevisions)
+                && policy.kind != collection.kind
+            {
+                fragments.push(unavailable(
+                    collection,
+                    "inventory_source_kind_mismatch".to_string(),
+                ));
+                continue;
+            }
+            let mapped = if is_isolated(collection) {
+                self.collect_workflow_slots_within(
+                    collection,
+                    &paths,
+                    kiln_adapter_lattice::workflow_revision_slots::MAX_WORKFLOW_SLOTS_AGGREGATE_BYTES,
+                )
+            } else {
+                paths
+                    .iter()
+                    .map(|path| {
+                        read_bounded(
+                            path,
+                            document_bound(collection),
+                            "inventory_collection_document_unavailable",
+                        )
+                    })
+                    .collect::<Result<Vec<_>, _>>()
+                    .and_then(|bytes| {
+                        let documents: Vec<&[u8]> = bytes.iter().map(Vec::as_slice).collect();
+                        fragment(collection, &self.joins, &documents)
+                    })
+            };
             fragments.push(match mapped {
                 Err(reason) if is_isolated(collection) => unavailable(collection, reason),
                 other => other?,
             });
         }
         compose_snapshot(&self.principal, self.synthetic, fragments).map_err(str::to_owned)
+    }
+
+    fn collect_workflow_slots_within(
+        &self,
+        collection: &SourceCollection,
+        paths: &[PathBuf],
+        max_aggregate_bytes: u64,
+    ) -> Result<InventoryFragment, String> {
+        let mut accumulator =
+            kiln_adapter_lattice::workflow_revision_slots::WorkflowRevisionSlotsAccumulator::new(
+                source_observation(collection),
+                self.joins.clone(),
+            )
+            .map_err(str::to_owned)?;
+        let bound = document_bound(collection);
+        for path in paths {
+            let bytes = read_bounded(path, bound, "inventory_collection_document_unavailable")?;
+            accumulator
+                .push_document_within(&bytes, max_aggregate_bytes)
+                .map_err(str::to_owned)?;
+        }
+        Ok(accumulator.finish())
     }
 }
 
@@ -267,7 +319,9 @@ pub fn collect_input(manifest: &Path, profile: &Path) -> Result<InventoryInput, 
         "inventory_profile_unavailable",
     )?)
     .map_err(|_| "inventory_profile_invalid")?;
-    let mut snapshot = collect_snapshot(manifest)?;
+    let set = CollectionSet::load(manifest)?;
+    let mut snapshot =
+        set.collect_with_profile_opt(manifest_directory(manifest), Some(&profile))?;
     // A workflow revision fact admission would refuse, or one past the
     // profile's item bound, makes only its own source unavailable.
     isolate_workflow_revisions(&profile, &mut snapshot);

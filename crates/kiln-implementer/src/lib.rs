@@ -24,6 +24,7 @@ pub mod observation;
 pub mod publication_effects;
 pub mod queue;
 pub mod runbook_routing;
+pub mod stack_publication;
 pub mod verification;
 
 pub use fleet::{FLEET_STATE_KIND, FLEET_STATE_SCHEMA, FleetState};
@@ -1163,9 +1164,22 @@ impl Implementer {
         )?;
         let currentness = self.attempt_currentness(identity, fence, now_ms);
         self.authorize_and_revalidate(&request, currentness, now_ms)?;
-        self.with_ledgers(|_, attempts| {
-            attempts.prepare_publication(work, identity, fence, handoff, verification, plan)
-        })
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(text)?;
+        let (work_ledger, work_version) = load::<WorkLedger>(&transaction, WORK_KIND)?;
+        let (mut attempts, attempt_version) = load::<AttemptLedger>(&transaction, ATTEMPT_KIND)?;
+        if stack_publication::has_retained_stack_plan(&transaction, identity)? {
+            return Err("single-PR publication conflicts with retained stack publication".into());
+        }
+        let result = attempts
+            .prepare_publication(work, identity, fence, handoff, verification, plan)
+            .map_err(diagnostic)?;
+        save(&transaction, WORK_KIND, work_version, &work_ledger)?;
+        save(&transaction, ATTEMPT_KIND, attempt_version, &attempts)?;
+        transaction.commit().map_err(text)?;
+        Ok(result)
     }
 
     pub fn publication_record(

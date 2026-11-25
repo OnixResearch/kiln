@@ -460,6 +460,45 @@
       node.append(element("summary", `Attempt ${attempt.binding.attempt} · fence ${attempt.binding.fence}`), facts([["Work", attempt.binding.work_version], ["Worker", refText(attempt.binding.worker)], ["Definition", agent ? refText(agent.meta.reference) : "Unknown"], ["Pinned revision", worker?.pinned_revision], ["Execution grant", refText(attempt.binding.execution_grant)], ["Model services", list(attempt.binding.model_services)], ["Request admissions", list(attempt.binding.request_admissions)]]), blockers(attempt.blockers));
       work.append(node);
     }
+    const amounts = (value) => {
+      if (!record(value)) return "None recorded";
+      const entries = Object.entries(value);
+      return entries.length ? entries.map(([dimension, amount]) => `${text(dimension)}: ${number(amount)}`).join(", ") : "None recorded";
+    };
+    const lineageText = (value) => {
+      if (!record(value)) return "None supplied";
+      const blocker = value.blocker ? ` · blocker ${text(value.blocker)}` : "";
+      return `root ${text(value.root)} · account ${text(value.account)} · depth ${number(value.depth)}${blocker}`;
+    };
+    const servingText = (value) => {
+      if (!record(value)) return "None supplied";
+      const obs = value.observation;
+      const window = obs ? ` · ${text(obs.readiness)} · remaining ${number(obs.remaining_slots)} · queued ${number(obs.queued)}` : "";
+      return `${text(value.provider)} · gate ${text(value.gate)}${window}`;
+    };
+    for (const policy of snapshot.policies) {
+      const adm = policy.admission_explanation;
+      const rows = [
+        ["Work version", policy.work_version],
+        ["Policy", policy.policy_ref],
+        ["Eligible", String(Boolean(policy.eligible))],
+        ["Owner reason", policy.owner_reason],
+      ];
+      if (record(adm)) {
+        rows.push(
+          ["Fair-admission phase", adm.phase],
+          ["Fair-admission reason", adm.reason],
+          ["Queue position", adm.position === null || adm.position === undefined ? "Not queued / active" : number(adm.position)],
+          ["Held reservations", amounts(adm.held)],
+          ["Measured usage", amounts(adm.measured)],
+          ["Settled (host-measured)", amounts(adm.settled_measured)],
+          ["Settled (unknown provenance)", amounts(adm.settled_unknown)],
+          ["Lineage", lineageText(adm.lineage)],
+          ["Serving gate", servingText(adm.serving)],
+        );
+      }
+      work.append(row(projection, policy, `Policy · ${text(policy.work_version)}`, rows));
+    }
     work.append(details("Owning producer admission/rejection reasons and policy/budget/waiting facts", { admissions: snapshot.admissions, policies: snapshot.policies }));
     page.append(work);
     return page;

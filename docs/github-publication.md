@@ -61,6 +61,46 @@ A re-run reuses the same branches, pull requests and stack and issues only
 reads. Kiln never adds to, removes from, retargets, rebases or dissolves a
 stack, and it never merges.
 
+### Operator CLI and durable persistence
+
+The `kiln-implementer` CLI selects the route on `publish` via `--route
+<pull_request|github_stack|origin_stack>` (defaulting to `pull_request`):
+
+- `pull_request`: runs the existing single-PR publication unchanged.
+- `origin_stack`: refused before any ledger, secret, or network effect with
+  `implementation_stack_destination_unsupported` until an Origin collaboration
+  adapter is admitted.
+- `github_stack`: probes `GET /repos/{owner}/{name}/stacks?per_page=1`; if
+  stacked pull requests are supported, publishes the prepared stack via
+  `consume_stack_publication_effect`; if GitHub returns `404` (`supports_stacks`
+  false), `resolve_route` falls back cleanly to single-PR publication using the
+  prepared `--publication-file` (or refuses cleanly if none was prepared).
+
+Dedicated stack subcommands:
+
+- `prepare-stack-publication --stack-file FILE`: admits and persists the stack
+  plan and lower-layer verifications under `stack-plan:<attempt_id>`. The
+  strict JSON wrapper for `--stack-file` is:
+  `{"plan": <StackPlan>, "layer_verifications": [<LayerVerification>, ...]}`.
+- `publish-stack --stack-file FILE --secret-file FILE --remote-profile FILE
+  [--timeout-ms N]`: reserves `stack-effect:<attempt_id>:publish`, runs
+  `publish_stack` on first dispatch or read-only `reconcile_stack` on recovery,
+  and persists the retained `StackPublication` under
+  `stack-publication:<attempt_id>`.
+- `recover-stack-integration --stack-file FILE --secret-file FILE
+  [--timeout-ms N]`: read-only recovery of merged bottom prefixes via
+  `consume_stack_integration_effect` (`stack-effect:<attempt_id>:integration`),
+  persisting monotonically extending prefixes under
+  `stack-integration:<attempt_id>`.
+- `stack-gate --stack-file FILE --landing-plans FILE --secret-file FILE
+  [--timeout-ms N]`: read-only `ObservationOnly` command computing bottom-up
+  `Vec<LayerGate>` JSON over the retained integration prefix and live layer
+  observations.
+
+Durable stack records live in separate `implementation_state` SQLite keys so
+`AttemptLedger` and `PublicationRecord` remain `#[serde(deny_unknown_fields)]`
+backwards compatible with earlier binaries.
+
 ## Non-claims
 
 Successful publication proves only the observed branch and PR objects returned
@@ -70,5 +110,6 @@ of the candidate's content. Remote ambiguity remains `Unknown` until reconciled.
 The stack endpoints have not been exercised on live GitHub. Requests carry the
 client's pinned `X-GitHub-Api-Version: 2022-11-28`; GitHub's stack reference
 shows `2026-03-10` in its examples. A repository that does not serve the stack
-endpoints is refused as unsupported. The route is not yet selectable from the
-operator CLI, and stack records are not yet persisted on the attempt.
+endpoints is refused as unsupported (unless `publish --route github_stack` falls
+back to a prepared single-PR plan), and `OriginStack` remains refused until an
+Origin collaboration adapter is admitted.

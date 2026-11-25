@@ -590,3 +590,30 @@ fn documents_differing_only_in_sessions_or_names_are_refused_as_a_conflict() -> 
     }
     Ok(())
 }
+
+#[test]
+fn streaming_accumulator_collapses_4096_documents_and_enforces_aggregate_bound() -> TestResult {
+    use super::WorkflowRevisionSlotsAccumulator;
+
+    let mut acc = WorkflowRevisionSlotsAccumulator::new(source(), joins())?;
+    for _ in 0..kiln_core::inventory::MAX_INVENTORY_ITEMS {
+        acc.push_document(SECOND).map_err(str::to_owned)?;
+    }
+    assert_eq!(
+        acc.push_document(SECOND),
+        Err("lattice_workflow_slots_document_bound")
+    );
+    let fragment = acc.finish();
+    assert_eq!(fragment.workflow_revisions.len(), 1);
+
+    let mut bounded = WorkflowRevisionSlotsAccumulator::new(source(), joins())?;
+    let limit = u64::try_from(SECOND.len()).map_err(|e| e.to_string())?;
+    bounded
+        .push_document_within(SECOND, limit)
+        .map_err(str::to_owned)?;
+    assert_eq!(
+        bounded.push_document_within(SECOND, limit),
+        Err("lattice_workflow_slots_aggregate_byte_bound")
+    );
+    Ok(())
+}

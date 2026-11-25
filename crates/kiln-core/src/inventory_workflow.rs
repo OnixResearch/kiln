@@ -221,14 +221,42 @@ pub fn admit_workflow_revisions(value: &WorkflowRevisionSlots) -> Result<(), &'s
 pub fn isolate_workflow_revisions(profile: &InventoryProfile, snapshot: &mut InventorySnapshot) {
     let mut reasons: BTreeMap<String, &'static str> = BTreeMap::new();
     for slots in &snapshot.workflow_revisions {
-        if let Err(code) = admit_workflow_revisions(slots) {
+        let source = &slots.meta.reference.source;
+        if profile
+            .sources
+            .iter()
+            .find(|policy| policy.source == *source)
+            .is_some_and(|policy| policy.kind != InventoryKind::WorkflowRevisions)
+        {
             reasons
-                .entry(slots.meta.reference.source.clone())
-                .or_insert(code);
+                .entry(source.clone())
+                .or_insert("inventory_source_kind_mismatch");
+        }
+        if let Err(code) = admit_workflow_revisions(slots) {
+            reasons.entry(source.clone()).or_insert(code);
+        }
+    }
+    let workflow_policy_sources: BTreeSet<&str> = profile
+        .sources
+        .iter()
+        .filter(|policy| policy.kind == InventoryKind::WorkflowRevisions)
+        .map(|policy| policy.source.as_str())
+        .collect();
+    for (meta, kind) in metas(snapshot) {
+        if kind != InventoryKind::WorkflowRevisions
+            && workflow_policy_sources.contains(meta.reference.source.as_str())
+        {
+            reasons
+                .entry(meta.reference.source.clone())
+                .or_insert("inventory_source_kind_mismatch");
         }
     }
     let others = metas(snapshot)
-        .filter(|(_, kind)| *kind != InventoryKind::WorkflowRevisions)
+        .filter(|(meta, kind)| {
+            let source = meta.reference.source.as_str();
+            *kind != InventoryKind::WorkflowRevisions
+                && !(reasons.contains_key(source) && workflow_policy_sources.contains(source))
+        })
         .count()
         .saturating_add(snapshot.attempts.len());
     let admissible: Vec<&str> = snapshot
@@ -249,6 +277,29 @@ pub fn isolate_workflow_revisions(profile: &InventoryProfile, snapshot: &mut Inv
     snapshot
         .workflow_revisions
         .retain(|slots| !reasons.contains_key(&slots.meta.reference.source));
+    let drop_non_workflow =
+        |source: &str| reasons.contains_key(source) && workflow_policy_sources.contains(source);
+    snapshot
+        .agents
+        .retain(|fact| !drop_non_workflow(&fact.meta.reference.source));
+    snapshot
+        .workers
+        .retain(|fact| !drop_non_workflow(&fact.meta.reference.source));
+    snapshot
+        .compute
+        .retain(|fact| !drop_non_workflow(&fact.meta.reference.source));
+    snapshot
+        .pools
+        .retain(|fact| !drop_non_workflow(&fact.meta.reference.source));
+    snapshot
+        .models
+        .retain(|fact| !drop_non_workflow(&fact.meta.reference.source));
+    snapshot
+        .admissions
+        .retain(|fact| !drop_non_workflow(&fact.meta.reference.source));
+    snapshot
+        .policies
+        .retain(|fact| !drop_non_workflow(&fact.meta.reference.source));
     for source in &mut snapshot.sources {
         if let Some(code) = reasons.get(&source.source) {
             source.unavailable_reason = Some((*code).to_string());

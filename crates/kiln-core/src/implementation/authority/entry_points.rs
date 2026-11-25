@@ -45,6 +45,7 @@ const FLEET: &str = "crates/kiln-implementer/src/fleet.rs";
 const HOST_OWNER: &str = "crates/kiln-implementer/src/host_owner.rs";
 const NATIVE: &str = "crates/kiln-implementer/src/native_publication.rs";
 const EFFECTS: &str = "crates/kiln-implementer/src/publication_effects.rs";
+const STACK: &str = "crates/kiln-implementer/src/stack_publication.rs";
 /// Path of the `kiln-implementer` CLI, whose subcommands are entry points.
 pub const IMPLEMENTER_CLI: &str = "crates/kiln-adapter-github/src/bin/implementer.rs";
 const CLI: &str = IMPLEMENTER_CLI;
@@ -233,6 +234,20 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     observe(NATIVE, "native_git_plan"),
     observe(NATIVE, "native_git_effect_reservation"),
     observe(NATIVE, "native_git_receipt"),
+    protected(STACK, "prepare_stack_publication", Op::PublicationPublish),
+    protected(STACK, "probe_publication_route", Op::PublicationPublish),
+    protected(
+        STACK,
+        "consume_stack_publication_effect",
+        Op::PublicationPublish,
+    ),
+    protected(
+        STACK,
+        "consume_stack_integration_effect",
+        Op::IntegrationLand,
+    ),
+    observe(STACK, "stack_publication_record"),
+    observe(STACK, "read_stack_effect"),
     // ── Implementer: work and attempt reads ──
     observe(LIB, "work"),
     observe(LIB, "attempts"),
@@ -297,6 +312,10 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     operator(CLI, "prepare-needs"),
     protected(CLI, "prepare-publication", Op::PublicationPublish),
     protected(CLI, "publish", Op::PublicationPublish),
+    protected(CLI, "prepare-stack-publication", Op::PublicationPublish),
+    protected(CLI, "publish-stack", Op::PublicationPublish),
+    protected(CLI, "recover-stack-integration", Op::IntegrationLand),
+    observe(CLI, "stack-gate"),
     // Refuses unconditionally; performs nothing.
     observe(CLI, "land"),
     protected(CLI, "recover-integration", Op::PublicationPublish),
@@ -316,6 +335,7 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     protected(CLI, "admission", Op::Dispatch),
     operator(CLI, "admission"),
     observe(CLI, "admission-status"),
+    observe(CLI, "admission-explanation"),
     operator(CLI, "host-owner-admit"),
     operator(CLI, "host-owner-observe"),
     protected(CLI, "host-owner-reserve", Op::Dispatch),

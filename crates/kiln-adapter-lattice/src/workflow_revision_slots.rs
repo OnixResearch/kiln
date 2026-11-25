@@ -31,6 +31,10 @@ pub const WORKFLOW_REVISION_SLOTS_SCHEMA: &str = "lattice.workflow-agent-revisio
 /// for the bounded revision list. The collection shell reads slots documents
 /// up to this bound, apart from the general producer-document bound.
 pub const MAX_WORKFLOW_REVISION_SLOTS_BYTES: usize = 2_097_152;
+/// Explicit aggregate byte budget across all workflow slots documents of one
+/// source (`MAX_INVENTORY_ITEMS * MAX_WORKFLOW_REVISION_SLOTS_BYTES` = 8 GiB).
+pub const MAX_WORKFLOW_SLOTS_AGGREGATE_BYTES: u64 =
+    (MAX_INVENTORY_ITEMS as u64) * (MAX_WORKFLOW_REVISION_SLOTS_BYTES as u64);
 /// Lattice bounds one token to 256 printable bytes (`MAX_TOKEN_BYTES`).
 const MAX_TOKEN_BYTES: usize = 256;
 /// Lattice's `blake3:` references and its `b3:` plan and cohort identities.
@@ -364,6 +368,151 @@ fn slots_fact(
     }
 }
 
+fn hash_str(hasher: &mut blake3::Hasher, value: &str) {
+    hasher.update(&(value.len() as u64).to_be_bytes());
+    hasher.update(value.as_bytes());
+}
+
+fn hash_entry(hasher: &mut blake3::Hasher, entry: &EntryDto) {
+    hash_str(hasher, &entry.revision);
+    for value in [
+        &entry.workflow.compiler_revision,
+        &entry.workflow.compiler_artifact_identity,
+        &entry.workflow.plan_identity,
+        &entry.workflow.graph_identity,
+        &entry.workflow.selection_identity,
+        &entry.workflow.obligations_identity,
+        &entry.workflow.policy_identity,
+        &entry.worker.definition,
+        &entry.worker.definition_name,
+        &entry.worker.revision,
+        &entry.worker.bundle_identity,
+    ] {
+        hash_str(hasher, value);
+    }
+}
+
+fn hash_opt_entry(hasher: &mut blake3::Hasher, entry: Option<&EntryDto>) {
+    match entry {
+        None => {
+            hasher.update(&[0]);
+        }
+        Some(entry) => {
+            hasher.update(&[1]);
+            hash_entry(hasher, entry);
+        }
+    }
+}
+
+fn hash_slots_dto(slots: &SlotsDto) -> [u8; 32] {
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(b"kiln.lattice-workflow-slots.dto.v1\0");
+    hash_str(&mut hasher, &slots.schema);
+    hash_str(&mut hasher, &slots.definition);
+    hash_str(&mut hasher, &slots.name);
+    hash_opt_entry(&mut hasher, slots.desired.as_ref());
+    hash_opt_entry(&mut hasher, slots.last_usable.as_ref());
+    match &slots.selected_for_new_sessions {
+        None => {
+            hasher.update(&[0]);
+        }
+        Some(selected) => {
+            hasher.update(&[1]);
+            hash_entry(&mut hasher, &selected.bundle);
+            hasher.update(&selected.rollout_generation.to_be_bytes());
+            hasher.update(&[match selected.kind {
+                KindDto::Promotion => 0,
+                KindDto::Rollback => 1,
+            }]);
+            hash_str(&mut hasher, &selected.qualification_ref);
+        }
+    }
+    hasher.update(&(slots.pinned.len() as u64).to_be_bytes());
+    for pin in &slots.pinned {
+        hash_str(&mut hasher, &pin.session);
+        hash_entry(&mut hasher, &pin.bundle);
+        hasher.update(&[match pin.status {
+            StatusDto::Live => 0,
+            StatusDto::Closed => 1,
+        }]);
+        hasher.update(&[u8::from(pin.is_blocked)]);
+    }
+    *hasher.finalize().as_bytes()
+}
+
+/// Streaming accumulator that decodes, admits, deduplicates, and collapses
+/// workflow slots documents one at a time without retaining raw bytes or full
+/// `SlotsDto` session lists in memory.
+#[derive(Debug)]
+pub struct WorkflowRevisionSlotsAccumulator {
+    source: SourceObservation,
+    joins: InventoryJoins,
+    facts: BTreeMap<String, (WorkflowRevisionSlots, [u8; 32])>,
+    document_count: usize,
+    total_bytes: u64,
+}
+
+impl WorkflowRevisionSlotsAccumulator {
+    /// Start a streaming accumulator after validating join sources.
+    pub fn new(source: SourceObservation, joins: InventoryJoins) -> Result<Self, &'static str> {
+        joins.admit()?;
+        Ok(Self {
+            source,
+            joins,
+            facts: BTreeMap::new(),
+            document_count: 0,
+            total_bytes: 0,
+        })
+    }
+
+    /// Decode and collapse one slots document within the default aggregate
+    /// budget (`MAX_WORKFLOW_SLOTS_AGGREGATE_BYTES`).
+    pub fn push_document(&mut self, document: &[u8]) -> Result<(), &'static str> {
+        self.push_document_within(document, MAX_WORKFLOW_SLOTS_AGGREGATE_BYTES)
+    }
+
+    /// Decode and collapse one slots document within an explicit aggregate byte
+    /// budget, dropping the decoded DTO before returning.
+    pub fn push_document_within(
+        &mut self,
+        document: &[u8],
+        max_aggregate_bytes: u64,
+    ) -> Result<(), &'static str> {
+        self.document_count = self
+            .document_count
+            .checked_add(1)
+            .filter(|&count| count <= MAX_INVENTORY_ITEMS)
+            .ok_or("lattice_workflow_slots_document_bound")?;
+        let doc_len =
+            u64::try_from(document.len()).map_err(|_| "lattice_workflow_slots_byte_bound")?;
+        self.total_bytes = self
+            .total_bytes
+            .checked_add(doc_len)
+            .filter(|&total| total <= max_aggregate_bytes)
+            .ok_or("lattice_workflow_slots_aggregate_byte_bound")?;
+        let slots = decode(document)?;
+        let fact = slots_fact(&slots, &self.source, &self.joins);
+        admit_workflow_revisions(&fact)?;
+        let digest = hash_slots_dto(&slots);
+        match self.facts.entry(slots.definition.clone()) {
+            Entry::Vacant(slot) => {
+                slot.insert((fact, digest));
+            }
+            Entry::Occupied(slot) if slot.get().1 == digest => {}
+            Entry::Occupied(_) => return Err("lattice_workflow_definition_conflict"),
+        }
+        Ok(())
+    }
+
+    /// Emit the deduplicated `InventoryFragment`.
+    #[must_use]
+    pub fn finish(self) -> InventoryFragment {
+        let mut fragment = InventoryFragment::new(InventoryKind::WorkflowRevisions, self.source);
+        fragment.workflow_revisions = self.facts.into_values().map(|(fact, _)| fact).collect();
+        fragment
+    }
+}
+
 /// Map one source's slots documents: one fact per workflow-agent definition.
 /// Repeats with equal decoded documents collapse; two
 /// documents for one definition that differ in any field, sessions and names
@@ -374,28 +523,14 @@ pub fn map_workflow_revision_slots(
     joins: &InventoryJoins,
     documents: &[&[u8]],
 ) -> Result<InventoryFragment, &'static str> {
-    joins.admit()?;
     if documents.len() > MAX_INVENTORY_ITEMS {
         return Err("lattice_workflow_slots_document_bound");
     }
-    let mut decoded: BTreeMap<String, SlotsDto> = BTreeMap::new();
+    let mut accumulator = WorkflowRevisionSlotsAccumulator::new(source.clone(), joins.clone())?;
     for document in documents {
-        let slots = decode(document)?;
-        match decoded.entry(slots.definition.clone()) {
-            Entry::Vacant(slot) => {
-                slot.insert(slots);
-            }
-            Entry::Occupied(slot) if *slot.get() == slots => {}
-            Entry::Occupied(_) => return Err("lattice_workflow_definition_conflict"),
-        }
+        accumulator.push_document(document)?;
     }
-    let mut fragment = InventoryFragment::new(InventoryKind::WorkflowRevisions, source.clone());
-    for slots in decoded.values() {
-        let fact = slots_fact(slots, source, joins);
-        admit_workflow_revisions(&fact)?;
-        fragment.workflow_revisions.push(fact);
-    }
-    Ok(fragment)
+    Ok(accumulator.finish())
 }
 
 #[cfg(test)]

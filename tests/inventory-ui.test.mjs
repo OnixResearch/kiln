@@ -430,3 +430,76 @@ test("campaign controls load beside the projection and stay read-only when not c
   assert.ok(text.includes("Campaign controls are not configured for this service"));
   assert.equal(buttons(root).length, 0);
 });
+
+test("fair-admission explanation renders settled measured and unknown provenance distinctly", () => {
+  const inventory = setup();
+  const projection = fixture();
+  projection.snapshot.policies[0].admission_explanation = {
+    work_version: projection.snapshot.policies[0].work_version,
+    campaign: "pilot",
+    policy_revision: projection.snapshot.policies[0].policy_ref,
+    phase: "terminal",
+    reason: "eligible",
+    position: null,
+    eligible_at_ms: 1000,
+    held: { cpu_millicores: 250 },
+    measured: { tokens: 120 },
+    observation_at_ms: 1500,
+    lineage: { root: "a".repeat(64), account: "b".repeat(64), depth: 1, blocker: null },
+    serving: { provider: "animus", gate: "eligible", observation: null },
+    settled_measured: { model_requests: 3 },
+    settled_unknown: { model_requests: 64 },
+  };
+  const page = inventory.render(projection);
+  const text = allText(page);
+  assert.ok(text.includes("Settled (host-measured)"));
+  assert.ok(text.includes("model_requests: 3"));
+  assert.ok(text.includes("Settled (unknown provenance)"));
+  assert.ok(text.includes("model_requests: 64"));
+  assert.ok(text.includes("Held reservations"));
+  assert.ok(text.includes("cpu_millicores: 250"));
+  assert.ok(text.includes("animus · gate eligible"));
+  assert.equal(descendants(page).filter((node) => ["script", "img", "iframe"].includes(node.tagName)).length, 0);
+});
+
+test("fair-admission serving observation validates integer slot counts via number()", () => {
+  const inventory = setup();
+  const base = {
+    work_version: "w".repeat(64),
+    campaign: "pilot",
+    policy_revision: "p".repeat(64),
+    phase: "terminal",
+    reason: "eligible",
+    position: null,
+    eligible_at_ms: 1000,
+    held: {},
+    measured: {},
+    observation_at_ms: 1500,
+    lineage: { root: "a".repeat(64), account: "b".repeat(64), depth: 1, blocker: null },
+    settled_measured: {},
+    settled_unknown: {},
+  };
+
+  const valid = fixture();
+  valid.snapshot.policies[0].admission_explanation = {
+    ...base,
+    serving: { provider: "animus", gate: "eligible", observation: { readiness: "ready", remaining_slots: 4, queued: 0 } },
+  };
+  assert.ok(allText(inventory.render(valid)).includes("animus · gate eligible · ready · remaining 4 · queued 0"));
+
+  for (const observation of [
+    { readiness: "degraded", remaining_slots: null, queued: -1 },
+    { readiness: "degraded", remaining_slots: 1.5, queued: "bad" },
+  ]) {
+    const malformed = fixture();
+    malformed.snapshot.policies[0].admission_explanation = {
+      ...base,
+      serving: { provider: "animus", gate: "eligible", observation },
+    };
+    const text = allText(inventory.render(malformed));
+    assert.ok(text.includes("animus · gate eligible · degraded · remaining Unknown · queued Unknown"), text);
+    assert.ok(!text.includes("queued -1"));
+    assert.ok(!text.includes("remaining 1.5"));
+    assert.ok(!text.includes("queued bad"));
+  }
+});

@@ -633,6 +633,25 @@ are non-preemptible; arbitrary heterogeneous tasks have no strict latency,
 completion-time or instantaneous-share guarantee. Accounting is not measured
 billing. Missing usage remains conservative/unknown rather than zero.
 
+### Observed-draw settlement and explanation provenance
+
+Worker runtime settlement (`kiln_implementer::admission::Implementer::admission_settle_observed_draw`)
+extracts host-measured usage through `kiln_adapter_lattice::worker_settlement::extract_observed_draw`,
+mapping `SettlementProvenance::HostMeasured` when an unambiguous `host_measured`
+draw is present and `SettlementProvenance::Unknown` when usage is absent or
+unverified (fail-closed charging the full reservation). Draws exceeding the
+reserved amount fail closed (`worker_draw_exceeds_reservation`), and missing,
+malformed, or duplicate `budget_lineage.usage[]` entries never fabricate a
+refund.
+
+`AdmissionLedger::explanation(&work, now_ms)` (also exposed read-only via
+`kiln-implementer admission-explanation --work WORK_ID` and rendered in the
+inventory UI) separates `settled_measured` from `settled_unknown` alongside
+`phase`, `reason`, `position`, `held`, `measured`, `lineage`, and `serving`.
+Inventory admission (`admit_snapshot`) enforces public token and `MAX_EXACT_NUMBER`
+bounds on `settled_measured` and `settled_unknown` identically to `held` and
+`measured`.
+
 A live claim additionally requires independently qualified Lattice #24 execution
 bindings and #13 usage provenance, Aspen/Molten #42 exact grants/releases, Animus
 #17 owner-aggregate admission/reconciliation and #49 authorized host assembly.

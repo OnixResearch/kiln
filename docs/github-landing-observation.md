@@ -63,6 +63,14 @@ each other layer's observation above. An admitted observation is `Ready`, a
 domain refusal is `Refused`, and any other failure is `Unknown`. The lowest
 refused or unknown layer holds every layer above it.
 
+The `kiln-implementer` CLI exposes read-only stack integration recovery and
+gating via `recover-stack-integration --stack-file FILE --secret-file FILE`
+(recording the admitted bottom prefix under `stack-integration:<attempt_id>`
+without mutating remote state) and `stack-gate --stack-file FILE
+--landing-plans FILE --secret-file FILE` (reporting `Vec<LayerGate>` JSON).
+Live GitHub stacked-PR merge qualification remains unverified against live
+GitHub.
+
 ## Non-claims
 
 The observation is not merge authority, approval authority, integration proof or

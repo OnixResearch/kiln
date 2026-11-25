@@ -156,6 +156,21 @@ fn workflow_slots_in_another_kind_of_source_are_refused() -> TestResult {
         admit_snapshot(&profile, &snapshot),
         Err("inventory_source_kind_mismatch")
     );
+    let mut isolated = snapshot;
+    isolate_workflow_revisions(&profile, &mut isolated);
+    admit_snapshot(&profile, &isolated)?;
+    assert!(isolated.workflow_revisions.is_empty());
+    let projection = project_inventory(&profile, &isolated, None, 2000)?;
+    let source = projection
+        .sources
+        .iter()
+        .find(|source| source.source == SOURCE)
+        .ok_or("missing workflow source")?;
+    assert_eq!(source.state, ObservationState::Unavailable);
+    assert_eq!(
+        source.reason.as_deref(),
+        Some("inventory_source_kind_mismatch")
+    );
     Ok(())
 }
 
@@ -243,6 +258,47 @@ fn private_or_malformed_identities_are_refused() -> TestResult {
     assert_eq!(
         admitted(qualification)?,
         Err("inventory_public_identifier_invalid")
+    );
+    Ok(())
+}
+
+#[test]
+fn mixed_kind_non_workflow_source_still_counts_toward_workflow_item_bound() -> TestResult {
+    let (mut profile, mut snapshot) = cohort(slots())?;
+    let mut stray = slots();
+    stray.meta.reference.source = "agents".into();
+    stray.meta.reference.id = "blake3:stray-workflow".into();
+    snapshot.workflow_revisions.push(stray);
+
+    let non_workflow_count = crate::inventory::metas(&snapshot)
+        .filter(|(_, kind)| *kind != InventoryKind::WorkflowRevisions)
+        .count()
+        .saturating_add(snapshot.attempts.len());
+    profile.max_items = non_workflow_count;
+
+    let mut isolated = snapshot;
+    isolate_workflow_revisions(&profile, &mut isolated);
+    admit_snapshot(&profile, &isolated)?;
+    assert!(isolated.workflow_revisions.is_empty());
+    assert!(!isolated.agents.is_empty());
+
+    let agents_source = isolated
+        .sources
+        .iter()
+        .find(|source| source.source == "agents")
+        .ok_or("missing agents source")?;
+    assert_eq!(
+        agents_source.unavailable_reason.as_deref(),
+        Some("inventory_source_kind_mismatch")
+    );
+    let workflow_source = isolated
+        .sources
+        .iter()
+        .find(|source| source.source == SOURCE)
+        .ok_or("missing workflow source")?;
+    assert_eq!(
+        workflow_source.unavailable_reason.as_deref(),
+        Some("inventory_item_bound")
     );
     Ok(())
 }

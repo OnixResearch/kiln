@@ -1431,3 +1431,337 @@ fn cli_reserve_and_start_reach_the_dispatch_check_before_any_mutation() {
         )
     );
 }
+
+#[test]
+fn admission_explanation_reports_settled_measured_and_unknown_without_authority() {
+    use kiln_core::fair_admission::{
+        ADMISSION_VERSION, AdmissionPolicy, BudgetAccount, EligibilityInput, QueueItem,
+        SettlementProvenance, UsageObservation,
+    };
+    use kiln_core::implementation::{
+        DISPATCH_PLAN_SCHEMA, DispatchControls, DispatchWorkspace, IMPLEMENTATION_WORK_SCHEMA,
+        ImplementationDispatchPlan, ImplementationWork, SourceRef, WorkSourceKind,
+        WorkspaceIsolation,
+    };
+    use kiln_core::operations::{FairnessStrategy, TenantUsage, UsageValue};
+    use kiln_core::types::{Alias, ExternalRef, ProviderProfileId};
+    use kiln_implementer::admission::{AdmissionCommand, AdmissionOwnerPortV1, OwnerPortFailure};
+
+    struct TestOwner;
+    impl AdmissionOwnerPortV1 for TestOwner {
+        fn reserve(
+            &mut self,
+            request: &kiln_core::fair_admission::OwnerReservation,
+        ) -> Result<kiln_core::fair_admission::OwnerReply, OwnerPortFailure> {
+            Ok(kiln_core::fair_admission::OwnerReply {
+                version: ADMISSION_VERSION,
+                operation: request.operation.clone(),
+                provider: request.provider.clone(),
+                generation: request.generation,
+                receipt: content('d'),
+                state: kiln_core::fair_admission::ReservationState::Committed,
+                retry_at_ms: None,
+                serving_bounds: None,
+            })
+        }
+        fn reconcile(
+            &mut self,
+            request: &kiln_core::fair_admission::OwnerReservation,
+        ) -> Result<kiln_core::fair_admission::OwnerReply, OwnerPortFailure> {
+            self.reserve(request)
+        }
+        fn cancel(
+            &mut self,
+            request: &kiln_core::fair_admission::OwnerReservation,
+        ) -> Result<kiln_core::fair_admission::OwnerReply, OwnerPortFailure> {
+            self.reserve(request)
+        }
+    }
+
+    let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let database = directory.path().join("work.sqlite");
+    let enrollment_file = directory.path().join("enrollment.json");
+    let enrollment = Enrollment {
+        repositories: BTreeSet::from(["octocat/hello-world".to_string()]),
+        actors: BTreeSet::from(["operator".to_string()]),
+    };
+    write(
+        &enrollment_file,
+        &serde_json::to_vec(&enrollment).unwrap_or_else(|_| unreachable!()),
+    );
+    let work = ImplementationWork {
+        schema: IMPLEMENTATION_WORK_SCHEMA.to_string(),
+        revision: 1,
+        actor: "operator".to_string(),
+        repository: "octocat/hello-world".to_string(),
+        project: "kiln".to_string(),
+        base: Some(
+            ExternalRef::new("git", "commit", &"b".repeat(40)).unwrap_or_else(|_| unreachable!()),
+        ),
+        title: "Explanation CLI".to_string(),
+        requested_outcome: "implement".to_string(),
+        acceptance: vec![AcceptanceObligation {
+            id: "accepted".to_string(),
+            statement: "verified".to_string(),
+        }],
+        dependencies: Vec::new(),
+        permitted_paths: vec!["crates".to_string()],
+        permitted_effects: BTreeSet::from(["write_source".to_string()]),
+        verification_profile: content('a'),
+        budget: WorkBudget {
+            attempts: 2,
+            minutes_per_attempt: 60,
+        },
+        terminal_policy: TerminalPolicy::VerifiedPullRequest,
+        priority: 1,
+        aliases: vec![SourceRef {
+            kind: WorkSourceKind::GitHubIssue,
+            source: kiln_core::types::ExternalRef::new("github", "issue", "octocat/hello-world#60")
+                .unwrap_or_else(|_| unreachable!()),
+            native_id: "octocat/hello-world#60".to_string(),
+            version: content('1'),
+        }],
+    };
+    let work_id = work.identity().unwrap_or_else(|_| unreachable!());
+    let mut store = Implementer::open_with_local_operator(&database, enrollment, "test-operator")
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    store
+        .admit(&work, None)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    let campaign = Alias::new("pilot").unwrap_or_else(|_| unreachable!());
+    let tenant = Alias::new("octocat").unwrap_or_else(|_| unreachable!());
+    let repo_alias = Alias::new("hello-world").unwrap_or_else(|_| unreachable!());
+    let dim = Alias::new("model_requests").unwrap_or_else(|_| unreachable!());
+    let provider =
+        ProviderProfileId::new("lattice-implementation").unwrap_or_else(|_| unreachable!());
+    let policy = AdmissionPolicy {
+        version: ADMISSION_VERSION,
+        max_items: 64,
+        max_bytes: 65_536,
+        max_wait_ms: 86_400_000,
+        max_observation_age_ms: 60_000,
+        max_retry_after_ms: 60_000,
+        max_children: 8,
+        max_active: 8,
+        group_limits: Vec::new(),
+        strategy: FairnessStrategy::DominantShare,
+        shares: std::collections::BTreeMap::from([(campaign.clone(), 1)]),
+        accounting_basis: content('b'),
+        serving: None,
+    };
+    store
+        .admission_apply(AdmissionCommand::Configure { policy }, 100)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    let root_id = content('c');
+    store
+        .admission_apply(
+            AdmissionCommand::Root {
+                account: BudgetAccount {
+                    identity: root_id.clone(),
+                    parent: None,
+                    parent_attempt: None,
+                    campaign: campaign.clone(),
+                    tenant: tenant.clone(),
+                    deadline_ms: 100_000,
+                    available: std::collections::BTreeMap::from([(dim.clone(), 100)]),
+                    consumed: std::collections::BTreeMap::new(),
+                    children: 0,
+                },
+            },
+            100,
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    store
+        .admission_apply(
+            AdmissionCommand::Enqueue {
+                item: QueueItem {
+                    work_version: work_id.clone(),
+                    account: root_id.clone(),
+                    tenant,
+                    campaign: campaign.clone(),
+                    repository: repo_alias,
+                    priority: 1,
+                    bytes: 1,
+                    enqueued_at_ms: 100,
+                    deadline_ms: 100_000,
+                    eligible_at_ms: 100,
+                    claim: None,
+                    phase: kiln_core::fair_admission::AdmissionPhase::PreClaim,
+                    reason: kiln_core::fair_admission::AdmissionReason::Waiting,
+                    order: 0,
+                    required_owners: std::collections::BTreeMap::from([(
+                        provider.clone(),
+                        kiln_core::fair_admission::ChargeKind::Execution,
+                    )]),
+                    shared_allocations: Vec::new(),
+                    budget: std::collections::BTreeMap::from([(dim.clone(), 64)]),
+                },
+            },
+            100,
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    store
+        .admission_apply(
+            AdmissionCommand::Observe {
+                observation: UsageObservation {
+                    usage: TenantUsage {
+                        tenant: campaign,
+                        share: 1,
+                        provider: provider.clone(),
+                        interval_start: 0,
+                        interval_end: 1000,
+                        observed_at: 100,
+                        resources: std::collections::BTreeMap::from([(
+                            dim.clone(),
+                            UsageValue {
+                                amount: 2,
+                                capacity: Some(100),
+                            },
+                        )]),
+                    },
+                    generation: 1,
+                    accounting_basis: content('b'),
+                    covered: std::collections::BTreeMap::new(),
+                    complete: true,
+                },
+            },
+            100,
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    let input = vec![EligibilityInput {
+        work_version: work_id.clone(),
+        reason: kiln_core::fair_admission::AdmissionReason::Eligible,
+        provider: provider.clone(),
+        generation: 1,
+        observed_at_ms: 100,
+        valid_until_ms: 60_000,
+    }];
+    let claim_result = store
+        .admission_apply(
+            AdmissionCommand::Claim {
+                inputs: input.clone(),
+                lease_ms: 60_000,
+            },
+            101,
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    let attempt = match claim_result {
+        kiln_implementer::admission::AdmissionResult::Claimed { attempt: Some(a) } => *a,
+        other => unreachable!("unexpected claim result: {other:?}"),
+    };
+    let reservation = kiln_core::fair_admission::OwnerReservation {
+        version: ADMISSION_VERSION,
+        operation: content('0'),
+        provider: provider.clone(),
+        generation: 1,
+        work_version: work_id.clone(),
+        claim: kiln_core::fair_admission::ClaimRef {
+            attempt: attempt.identity.clone(),
+            fence: attempt.fence,
+        },
+        account: root_id,
+        kind: kiln_core::fair_admission::ChargeKind::Execution,
+        subject: content('f'),
+        accounting_basis: content('b'),
+        serving_bounds: None,
+        amounts: std::collections::BTreeMap::from([(dim.clone(), 64)]),
+        expires_at_ms: 60_000,
+        state: kiln_core::fair_admission::ReservationState::Tentative,
+        receipt: None,
+    };
+    let mut owner = TestOwner;
+    store
+        .admission_reserve_with_owner(reservation, input.clone(), &mut owner, 102)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    let plan = ImplementationDispatchPlan {
+        schema: DISPATCH_PLAN_SCHEMA.into(),
+        work_identity: work_id.clone(),
+        work_revision: work.revision,
+        attempt_identity: attempt.identity.clone(),
+        fence: attempt.fence,
+        repository: work.repository.clone(),
+        base: work.base.clone(),
+        workspace: DispatchWorkspace {
+            identity: content('9'),
+            isolation: WorkspaceIsolation::IsolatedSnapshot,
+            network: false,
+            credentials: false,
+            projection: None,
+        },
+        provider_profile: provider,
+        permitted_paths: work.permitted_paths.clone(),
+        permitted_effects: work.permitted_effects.clone(),
+        controls: DispatchControls {
+            cancel: true,
+            pause: false,
+            resume: false,
+        },
+        deadline_minutes: 60,
+        token_budget: 1_000,
+        invocation_budget: 1,
+        expected_output: content('8'),
+        execution: None,
+    };
+    let reserved = store
+        .reserve_dispatch_plan(&work, &attempt.identity, attempt.fence, 102, &plan)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    store
+        .bind_campaign_request(&work, &attempt.identity, attempt.fence, 102, b"{}")
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    store
+        .admission_before_transport(&attempt.identity, attempt.fence, &input, 102)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    store
+        .begin_dispatch_transport(&attempt.identity, attempt.fence, 102, &reserved.plan, None)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    let workflow = ExternalRef::new(
+        "lattice",
+        "implementation-attempt",
+        attempt.identity.as_str(),
+    )
+    .unwrap_or_else(|_| unreachable!());
+    store
+        .start_execution(&attempt.identity, attempt.fence, 102, &workflow)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    store
+        .admission_execution_observed(&attempt.identity, attempt.fence, 102)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    let draw = std::collections::BTreeMap::from([("model_requests".to_owned(), 7)]);
+    store
+        .admission_settle_observed_draw(
+            &attempt.identity,
+            attempt.fence,
+            &content('e'),
+            Some(&draw),
+            SettlementProvenance::HostMeasured,
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    drop(store);
+
+    // Invoke `admission-explanation` without `--local-operator` (ObservationOnly).
+    let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
+        .args(["admission-explanation", "--work", work_id.as_str()])
+        .arg("--database")
+        .arg(&database)
+        .arg("--enrollment")
+        .arg(&enrollment_file)
+        .output()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let json: serde_json::Value =
+        serde_json::from_slice(&output.stdout).unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        json.get("work_version").and_then(serde_json::Value::as_str),
+        Some(work_id.as_str())
+    );
+    assert_eq!(
+        json.pointer("/settled_measured/model_requests")
+            .and_then(serde_json::Value::as_u64),
+        Some(7)
+    );
+    assert_eq!(json.get("settled_unknown"), Some(&serde_json::json!({})));
+}

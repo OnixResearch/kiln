@@ -306,10 +306,22 @@ impl std::fmt::Debug for GithubLandingClient {
 
 impl GithubLandingClient {
     pub fn new(token: ResolvedSecret, timeout_ms: u64) -> PortResult<Self> {
+        // Default builds never read this qualification-only transport override.
+        #[cfg(feature = "protocol-fixtures")]
+        if let Some(endpoint) = std::env::var_os("KILN_GITHUB_FIXTURE_LANDING_ENDPOINT") {
+            let endpoint = endpoint.into_string().map_err(|_| {
+                domain(
+                    "github_landing_endpoint",
+                    "landing.endpoint",
+                    "fixture endpoint must be a UTF-8 loopback HTTP origin",
+                )
+            })?;
+            return Self::new_fixture(token, timeout_ms, &endpoint);
+        }
         Self::build(token, timeout_ms, API.to_string(), true)
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "protocol-fixtures"))]
     fn new_fixture(token: ResolvedSecret, timeout_ms: u64, endpoint: &str) -> PortResult<Self> {
         let authority = endpoint.strip_prefix("http://").ok_or_else(|| {
             domain(

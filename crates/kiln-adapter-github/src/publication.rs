@@ -434,6 +434,48 @@ impl GithubPublicationClient {
         Ok(publication)
     }
 
+    /// Reconcile an already-started stack publication without mutating branches,
+    /// pull requests, or stacks. Returns `Ok(None)` when any layer PR or the
+    /// provider stack is absent.
+    // r[impl kiln.github.stack]
+    pub fn reconcile_stack(
+        &self,
+        plan: &StackPlan,
+        source: &PublicationSourceProfile,
+    ) -> PortResult<Option<StackPublication>> {
+        let layers = validate_stack_plan(plan)?;
+        if !self.supports_stacks(&plan.repository)? {
+            return Err(domain(
+                "github_stack_unsupported",
+                "stack.repository",
+                "repository has no stacked pull requests; publish one pull request instead",
+            ));
+        }
+        check_stack_layers(&layers, source, &self.endpoint)?;
+        let mut pulls = Vec::with_capacity(layers.len());
+        for layer in &layers {
+            let Some(pull) = self.find_pull_request(layer, false)? else {
+                return Ok(None);
+            };
+            pulls.push(pull);
+        }
+        let Some(number) = self.find_stack(plan, &pulls)? else {
+            return Ok(None);
+        };
+        let publication = StackPublication {
+            schema: STACK_PUBLICATION_SCHEMA.to_string(),
+            stack: stack_identity(plan)?,
+            provider_stack: ExternalRef::new(
+                "github",
+                "stack",
+                &format!("{}#{number}", plan.repository),
+            )?,
+            pull_requests: pulls.into_iter().map(|pull| pull.pull_request).collect(),
+        };
+        admit_stack_publication(plan, &publication)?;
+        Ok(Some(publication))
+    }
+
     /// Reuse the exact stack or create it once. A conflict, lost response or
     /// unreadable body is reconciled once and otherwise stays unknown.
     fn ensure_stack(&self, plan: &StackPlan, pulls: &[PublicationOutcome]) -> PortResult<u64> {
