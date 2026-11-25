@@ -389,6 +389,7 @@ mod tests {
             terminal_policy: TerminalPolicy::VerifiedPullRequest,
             priority: 1,
             selection: None,
+            runbook_routing: None,
         }
     }
 

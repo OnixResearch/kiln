@@ -55,7 +55,7 @@ fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         return fail(
-            "usage: kiln-implementer <drain|run|poll|poll-run|policy-check|status|claim|cancel|renew|reserve|reserve-plan|start|reconcile|recover|reconcile-termination|handoff|capture-candidate|prepare-verification-profile|prepare-needs|attach-needs|needs|inspect-work|inspect-attempt|admission|admission-status|host-owner-admit|host-owner-observe|host-owner-reserve|host-owner-release|campaign|prepare-publication|publish|recover-integration|close-source|source-status|observe-cairn-lifecycle|metrics|metrics-report|plan-review|plan-feedback|plan-review-receipt> --database PATH ...",
+            "usage: kiln-implementer <drain|run|poll|poll-run|drain-runbooks|poll-runbooks|policy-check|status|claim|cancel|renew|reserve|reserve-plan|start|reconcile|recover|reconcile-termination|handoff|capture-candidate|prepare-verification-profile|prepare-needs|attach-needs|needs|inspect-work|inspect-attempt|admission|admission-status|host-owner-admit|host-owner-observe|host-owner-reserve|host-owner-release|campaign|prepare-publication|publish|recover-integration|close-source|source-status|observe-cairn-lifecycle|metrics|metrics-report|plan-review|plan-feedback|plan-review-receipt> --database PATH ...",
         );
     };
     let flags = match parse_flags(arguments.collect()) {
@@ -70,6 +70,8 @@ fn run() -> Result<(), ()> {
         "run" => run_loop(&flags),
         "poll" => poll(&flags),
         "poll-run" => poll_run(&flags),
+        "drain-runbooks" => drain_runbooks(&flags),
+        "poll-runbooks" => poll_runbooks(&flags),
         "policy-check" => policy_check(&flags),
         "status" => status(&flags),
         "claim" => claim(&flags),
@@ -1856,6 +1858,147 @@ fn poll(flags: &BTreeMap<String, String>) -> Result<(), ()> {
             Err(_) => fail("poll summary could not be encoded"),
         },
         Err(error) => fail(&format!("{error:?}")),
+    }
+}
+
+#[cfg(feature = "protocol-fixtures")]
+const FIXTURE_GITHUB_API_ENDPOINT: &str = "KILN_GITHUB_FIXTURE_API_ENDPOINT";
+
+fn open_github_comment_client(
+    flags: &BTreeMap<String, String>,
+    timeout_ms: u64,
+) -> Result<kiln_adapter_github::comments::GithubCommentClient, String> {
+    let token_file = required_path(flags, "--github-token-file")?;
+    let bytes = std::fs::read(&token_file).map_err(|_| "GitHub token file is unreadable")?;
+    let token = kiln_adapter_github::secret::ResolvedSecret::from_bytes(bytes)
+        .map_err(|_| "GitHub token file is not a valid token")?;
+    #[cfg(feature = "protocol-fixtures")]
+    if let Some(endpoint) = std::env::var_os(FIXTURE_GITHUB_API_ENDPOINT) {
+        let endpoint = endpoint
+            .to_str()
+            .ok_or("fixture GitHub API endpoint is not UTF-8")?;
+        return kiln_adapter_github::comments::GithubCommentClient::new_fixture(
+            token, timeout_ms, endpoint,
+        )
+        .map_err(|_| "fixture GitHub comment client configuration is invalid".to_string());
+    }
+    kiln_adapter_github::comments::GithubCommentClient::new(token, timeout_ms)
+        .map_err(|_| "GitHub comment client configuration is invalid".to_string())
+}
+
+fn open_web_dispatch_client(
+    flags: &BTreeMap<String, String>,
+    timeout_ms: u64,
+) -> Result<kiln_adapter_github::runbook_dispatch::WebRunbookDispatchClient, String> {
+    let service_origin = required_value(flags, "--service-origin")?;
+    let token_file = required_path(flags, "--service-token-file")?;
+    let bytes = std::fs::read(&token_file).map_err(|_| "service token file is unreadable")?;
+    let token = kiln_adapter_github::secret::ResolvedSecret::from_bytes(bytes)
+        .map_err(|_| "service token file is not a valid token")?;
+    let config = kiln_adapter_github::runbook_dispatch::WebDispatchConfig {
+        service_origin: service_origin.clone(),
+        timeout_ms,
+        maximum_response_bytes: 1_048_576,
+    };
+    #[cfg(feature = "protocol-fixtures")]
+    if service_origin.starts_with("http://") {
+        return kiln_adapter_github::runbook_dispatch::WebRunbookDispatchClient::new_fixture(
+            config, token,
+        )
+        .map_err(|_| "fixture service dispatch client configuration is invalid".to_string());
+    }
+    let ca_file = required_path(flags, "--service-ca-file")?;
+    let ca_pem = std::fs::read(&ca_file).map_err(|_| "service CA file is unreadable")?;
+    kiln_adapter_github::runbook_dispatch::WebRunbookDispatchClient::new(config, token, &ca_pem)
+        .map_err(|_| "service dispatch client configuration is invalid".to_string())
+}
+
+fn drain_runbooks(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let result = (|| -> Result<String, String> {
+        let inputs = drain_inputs(flags)?;
+        kiln_adapter_github::runbook_routing::ensure_repository_enrolled(
+            &inputs.policy,
+            &inputs.enrollment,
+        )
+        .map_err(|error| format!("{error:?}"))?;
+        let timeout_ms = match optional_positive(flags, "--timeout-ms")? {
+            Some(value) => u64::try_from(value).unwrap_or(u64::MAX),
+            None => 30_000,
+        };
+        let mut store = kiln_implementer::RunbookRoutingStore::open(
+            &inputs.database,
+            inputs.maximum_deliveries,
+        )?;
+        let mut comments = open_github_comment_client(flags, timeout_ms)?;
+        let mut dispatcher = open_web_dispatch_client(flags, timeout_ms)?;
+        let queue_config = ImplementationQueueConfig {
+            path: inputs.queue,
+            maximum_deliveries: inputs.maximum_deliveries,
+        };
+        let summary = kiln_adapter_github::runbook_routing::drain_runbooks_queue(
+            &queue_config,
+            &inputs.secret,
+            &inputs.policy,
+            &inputs.enrollment,
+            &mut store,
+            &mut comments,
+            &mut dispatcher,
+            inputs.limit,
+            wall_clock_ms(),
+        )
+        .map_err(|error| format!("{error:?}"))?;
+        serde_json::to_string(&summary).map_err(|_| "runbook drain summary encoding failed".into())
+    })();
+    match result {
+        Ok(json) => {
+            println!("{json}");
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
+fn poll_runbooks(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let result = (|| -> Result<String, String> {
+        let database = required_path(flags, "--database")?;
+        let enrollment: Enrollment = read_json(&required_path(flags, "--enrollment")?)?;
+        let policy: ImplementationIssuePolicy = read_json(&required_path(flags, "--policy")?)?;
+        kiln_adapter_github::runbook_routing::ensure_repository_enrolled(&policy, &enrollment)
+            .map_err(|error| format!("{error:?}"))?;
+        let max_pages = u32::try_from(required_positive(flags, "--max-pages")?)
+            .map_err(|_| "--max-pages exceeds its bound".to_string())?;
+        let since_ms = match flags.get("--since-ms") {
+            Some(value) => value
+                .parse::<u64>()
+                .map_err(|_| "--since-ms must be a non-negative integer".to_string())?,
+            None => 0,
+        };
+        let timeout_ms = match optional_positive(flags, "--timeout-ms")? {
+            Some(value) => u64::try_from(value).unwrap_or(u64::MAX),
+            None => 30_000,
+        };
+        let mut store = kiln_implementer::RunbookRoutingStore::open(&database, 65_536)?;
+        let mut comments = open_github_comment_client(flags, timeout_ms)?;
+        let mut dispatcher = open_web_dispatch_client(flags, timeout_ms)?;
+        let summary = kiln_adapter_github::runbook_routing::poll_runbooks(
+            &policy,
+            &enrollment,
+            &mut store,
+            &mut comments,
+            &mut dispatcher,
+            since_ms,
+            max_pages,
+            wall_clock_ms(),
+        )
+        .map_err(|error| format!("{error:?}"))?;
+        serde_json::to_string(&summary).map_err(|_| "runbook poll summary encoding failed".into())
+    })();
+    match result {
+        Ok(json) => {
+            println!("{json}");
+            Ok(())
+        }
+        Err(error) => fail(&error),
     }
 }
 

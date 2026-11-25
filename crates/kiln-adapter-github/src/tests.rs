@@ -27,6 +27,103 @@ use crate::status::*;
 
 const SECRET: &[u8] = b"webhook-secret";
 
+pub(crate) fn read_http_request(stream: &mut TcpStream) -> String {
+    const MAX_HEADER_BYTES: usize = 65_536;
+    const MAX_BODY_BYTES: usize = 1_048_576;
+    const READ_TIMEOUT: Duration = Duration::from_secs(5);
+
+    let deadline = Instant::now() + READ_TIMEOUT;
+    let mut buf = Vec::new();
+    let mut chunk = [0_u8; 4096];
+
+    let header_end = loop {
+        if let Some(pos) = buf.windows(4).position(|window| window == b"\r\n\r\n") {
+            break pos + 4;
+        }
+        if buf.len() >= MAX_HEADER_BYTES {
+            unreachable!("mock HTTP request headers exceeded bound");
+        }
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            unreachable!("mock HTTP request header read timed out");
+        }
+        stream
+            .set_read_timeout(Some(remaining))
+            .unwrap_or_else(|_| unreachable!());
+        let max_read = chunk.len().min(MAX_HEADER_BYTES.saturating_sub(buf.len()));
+        let slice = chunk.get_mut(..max_read).unwrap_or_else(|| unreachable!());
+        let read = match stream.read(slice) {
+            Ok(n) => n,
+            Err(err) if err.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(err) => unreachable!("mock HTTP request header read failed: {err}"),
+        };
+        if read == 0 {
+            unreachable!("mock HTTP request closed before header terminator");
+        }
+        buf.extend_from_slice(chunk.get(..read).unwrap_or_else(|| unreachable!()));
+    };
+
+    let headers_str = std::str::from_utf8(buf.get(..header_end).unwrap_or_else(|| unreachable!()))
+        .unwrap_or_else(|_| unreachable!("mock HTTP request headers are not UTF-8"));
+
+    let mut content_length: Option<usize> = None;
+    for line in headers_str.split("\r\n").skip(1) {
+        if line.is_empty() {
+            break;
+        }
+        let Some((name, value)) = line.split_once(':') else {
+            continue;
+        };
+        let name = name.trim();
+        if name.eq_ignore_ascii_case("transfer-encoding") {
+            unreachable!("mock HTTP request does not support Transfer-Encoding: {value}");
+        }
+        if name.eq_ignore_ascii_case("content-length") {
+            let parsed = value
+                .trim()
+                .parse::<usize>()
+                .unwrap_or_else(|_| unreachable!("invalid Content-Length: {value}"));
+            if parsed > MAX_BODY_BYTES {
+                unreachable!("mock HTTP request body exceeded bound: {parsed}");
+            }
+            if let Some(prev) = content_length
+                && prev != parsed
+            {
+                unreachable!("conflicting Content-Length headers: {prev} vs {parsed}");
+            }
+            content_length = Some(parsed);
+        }
+    }
+
+    let body_len = content_length.unwrap_or(0);
+    let total_len = header_end
+        .checked_add(body_len)
+        .unwrap_or_else(|| unreachable!());
+
+    while buf.len() < total_len {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            unreachable!("mock HTTP request body read timed out");
+        }
+        stream
+            .set_read_timeout(Some(remaining))
+            .unwrap_or_else(|_| unreachable!());
+        let want = chunk.len().min(total_len.saturating_sub(buf.len()));
+        let slice = chunk.get_mut(..want).unwrap_or_else(|| unreachable!());
+        let read = match stream.read(slice) {
+            Ok(n) => n,
+            Err(err) if err.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(err) => unreachable!("mock HTTP request body read failed: {err}"),
+        };
+        if read == 0 {
+            unreachable!("mock HTTP request closed before Content-Length body arrived");
+        }
+        buf.extend_from_slice(chunk.get(..read).unwrap_or_else(|| unreachable!()));
+    }
+
+    String::from_utf8_lossy(buf.get(..total_len).unwrap_or_default()).into_owned()
+}
+
 fn hash(character: char) -> ContentId {
     ContentId::from_blake3_hex(character.to_string().repeat(64)).unwrap_or_else(|_| unreachable!())
 }
@@ -53,6 +150,7 @@ fn config(root: &TempDir) -> GithubConfig {
         webhook_path: "/github/webhook".into(),
         replay_database_path: root.path().join("github.sqlite"),
         implementation_queue: None,
+        runbook_routing_queue: None,
         maximum_run_records: 4,
         maximum_delivery_records: 8,
         maximum_record_bytes: 65536,
@@ -1028,6 +1126,7 @@ fn queued_issue_deliveries_drain_into_admitted_work_once() {
         terminal_policy: TerminalPolicy::VerifiedPullRequest,
         priority: 1,
         selection: None,
+        runbook_routing: None,
     };
     let enrolled = ["operator".to_string()].into_iter().collect();
     assert_eq!(
@@ -1170,6 +1269,7 @@ fn ignored_labeled_deliveries_drain_and_later_events_are_admitted() {
             issues: Default::default(),
             labels: std::iter::once("kiln-pilot".to_string()).collect(),
         }),
+        runbook_routing: None,
     };
     let enrolled = ["operator".to_string()].into_iter().collect();
     // Every delivery drains; only the enrolled, selected, open labelling is work.
@@ -1193,4 +1293,328 @@ fn ignored_labeled_deliveries_drain_and_later_events_are_admitted() {
             .count(),
         1
     );
+}
+
+#[test]
+fn admit_config_rejects_identical_implementation_and_runbook_routing_queue_paths() {
+    let root = TempDir::new().unwrap_or_else(|_| unreachable!());
+    let mut cfg = config(&root);
+    let shared = root.path().join("shared.sqlite");
+    cfg.implementation_queue = Some(ImplementationQueueConfig {
+        path: shared.clone(),
+        maximum_deliveries: 8,
+    });
+    cfg.runbook_routing_queue = Some(ImplementationQueueConfig {
+        path: shared,
+        maximum_deliveries: 8,
+    });
+    assert!(admit_config(cfg.clone()).is_err());
+
+    cfg.runbook_routing_queue = Some(ImplementationQueueConfig {
+        path: root.path().join("runbook.sqlite"),
+        maximum_deliveries: 8,
+    });
+    assert!(admit_config(cfg).is_ok());
+}
+
+#[test]
+fn admit_config_rejects_parent_dir_in_queue_paths() {
+    let root = TempDir::new().unwrap_or_else(|_| unreachable!());
+
+    let mut cfg = config(&root);
+    cfg.implementation_queue = Some(ImplementationQueueConfig {
+        path: root.path().join("sub/../impl.sqlite"),
+        maximum_deliveries: 8,
+    });
+    assert!(matches!(
+        admit_config(cfg),
+        Err(kiln_provider_api::PortFailure::Domain(d)) if d.code == "github_profile"
+    ));
+
+    let mut cfg = config(&root);
+    cfg.runbook_routing_queue = Some(ImplementationQueueConfig {
+        path: root.path().join("sub/../runbook.sqlite"),
+        maximum_deliveries: 8,
+    });
+    assert!(matches!(
+        admit_config(cfg),
+        Err(kiln_provider_api::PortFailure::Domain(d)) if d.code == "github_profile"
+    ));
+
+    let mut cfg = config(&root);
+    cfg.implementation_queue = Some(ImplementationQueueConfig {
+        path: root.path().join("shared.sqlite"),
+        maximum_deliveries: 8,
+    });
+    cfg.runbook_routing_queue = Some(ImplementationQueueConfig {
+        path: root.path().join("sub/../shared.sqlite"),
+        maximum_deliveries: 8,
+    });
+    assert!(matches!(
+        admit_config(cfg),
+        Err(kiln_provider_api::PortFailure::Domain(d)) if d.code == "github_profile"
+    ));
+
+    let mut cfg = config(&root);
+    cfg.implementation_queue = Some(ImplementationQueueConfig {
+        path: std::path::PathBuf::from("./impl.sqlite"),
+        maximum_deliveries: 8,
+    });
+    assert!(matches!(
+        admit_config(cfg),
+        Err(kiln_provider_api::PortFailure::Domain(d)) if d.code == "github_profile"
+    ));
+
+    let mut cfg = config(&root);
+    cfg.runbook_routing_queue = Some(ImplementationQueueConfig {
+        path: std::path::PathBuf::from("./runbook.sqlite"),
+        maximum_deliveries: 8,
+    });
+    assert!(matches!(
+        admit_config(cfg),
+        Err(kiln_provider_api::PortFailure::Domain(d)) if d.code == "github_profile"
+    ));
+
+    let mut cfg = config(&root);
+    cfg.implementation_queue = Some(ImplementationQueueConfig {
+        path: root.path().join("shared.sqlite"),
+        maximum_deliveries: 8,
+    });
+    cfg.runbook_routing_queue = Some(ImplementationQueueConfig {
+        path: root.path().join("./shared.sqlite"),
+        maximum_deliveries: 8,
+    });
+    assert!(matches!(
+        admit_config(cfg),
+        Err(kiln_provider_api::PortFailure::Domain(d)) if d.code == "github_profile"
+    ));
+
+    let mut cfg = config(&root);
+    cfg.implementation_queue = Some(ImplementationQueueConfig {
+        path: root.path().join("impl.sqlite"),
+        maximum_deliveries: 8,
+    });
+    cfg.runbook_routing_queue = Some(ImplementationQueueConfig {
+        path: root.path().join("runbook.sqlite"),
+        maximum_deliveries: 8,
+    });
+    assert!(admit_config(cfg).is_ok());
+}
+
+#[test]
+fn separate_queues_isolate_issues_and_issue_comments_and_reject_conflicts_http() {
+    let root = TempDir::new().unwrap_or_else(|_| unreachable!());
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap_or_else(|_| unreachable!());
+    let address = listener.local_addr().unwrap_or_else(|_| unreachable!());
+    let mut cfg = config(&root);
+    cfg.listen_address = address;
+    let impl_queue_path = root.path().join("impl-queue.sqlite");
+    let rb_queue_path = root.path().join("rb-queue.sqlite");
+    cfg.implementation_queue = Some(ImplementationQueueConfig {
+        path: impl_queue_path.clone(),
+        maximum_deliveries: 8,
+    });
+    cfg.runbook_routing_queue = Some(ImplementationQueueConfig {
+        path: rb_queue_path.clone(),
+        maximum_deliveries: 8,
+    });
+    let admitted = admit_config(cfg).unwrap_or_else(|_| unreachable!());
+    let remote = Arc::new(Mutex::new(Remote::default()));
+    let service = service(&admitted, Arc::clone(&remote), false, false, false);
+    let stop = Arc::new(AtomicBool::new(false));
+    let shutdown = Arc::clone(&stop);
+    let server = std::thread::spawn(move || {
+        crate::server::serve_on(
+            admitted,
+            ResolvedSecret::from_bytes(SECRET.to_vec()).unwrap_or_else(|_| unreachable!()),
+            service,
+            shutdown,
+            listener,
+            Arc::new(AtomicUsize::new(0)),
+        )
+    });
+
+    let build_http = |event: &str, delivery: &str, body: &[u8]| -> Vec<u8> {
+        let h = headers(body, 1);
+        let mut mac =
+            hmac::Hmac::<sha2::Sha256>::new_from_slice(SECRET).unwrap_or_else(|_| unreachable!());
+        hmac::Mac::update(&mut mac, body);
+        let sig: String = mac
+            .finalize()
+            .into_bytes()
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect();
+        let _ = h;
+        format!(
+            "POST /github/webhook HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {}\r\nX-GitHub-Delivery: {delivery}\r\nX-GitHub-Event: {event}\r\nX-Hub-Signature-256: sha256={sig}\r\n\r\n",
+            body.len()
+        )
+        .into_bytes()
+        .into_iter()
+        .chain(body.iter().copied())
+        .collect()
+    };
+
+    // 1. `issues` routes to BOTH implementation_queue and runbook_routing_queue.
+    let issue_body = serde_json::to_vec(&serde_json::json!({
+        "action": "opened",
+        "repository": {"id": 1296269, "name": "Hello-World", "owner": {"login": "octocat"}},
+        "sender": {"login": "operator"},
+        "issue": {
+            "number": 70,
+            "title": "separate queues",
+            "state": "open",
+            "updated_at": "2026-11-11T10:00:00Z"
+        }
+    }))
+    .unwrap_or_else(|_| unreachable!());
+    let issue_resp = request(
+        address,
+        &build_http(
+            "issues",
+            "00000000-0000-0000-0000-000000000701",
+            &issue_body,
+        ),
+    );
+    assert!(issue_resp.starts_with("HTTP/1.1 202"), "{issue_resp}");
+    let issue_json: serde_json::Value = serde_json::from_str(
+        issue_resp
+            .split_once("\r\n\r\n")
+            .unwrap_or_else(|| unreachable!())
+            .1,
+    )
+    .unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        issue_json
+            .get("implementation_queued")
+            .and_then(|v| v.as_bool()),
+        Some(true)
+    );
+    assert_eq!(
+        issue_json
+            .get("runbook_routing_queued")
+            .and_then(|v| v.as_bool()),
+        Some(true)
+    );
+
+    // 2. `issue_comment` routes ONLY to runbook_routing_queue.
+    let comment_body = serde_json::to_vec(&serde_json::json!({
+        "action": "created",
+        "repository": {"id": 1296269, "name": "Hello-World", "owner": {"login": "octocat"}},
+        "sender": {"login": "operator", "type": "User"},
+        "issue": {"number": 70, "state": "open", "updated_at": "2026-11-11T10:01:00Z"},
+        "comment": {"id": 7001, "body": "/runbook flake-update", "user": {"login": "operator", "type": "User"}, "author_association": "OWNER"}
+    }))
+    .unwrap_or_else(|_| unreachable!());
+    let comment_resp = request(
+        address,
+        &build_http(
+            "issue_comment",
+            "00000000-0000-0000-0000-000000000702",
+            &comment_body,
+        ),
+    );
+    assert!(comment_resp.starts_with("HTTP/1.1 202"), "{comment_resp}");
+    let comment_json: serde_json::Value = serde_json::from_str(
+        comment_resp
+            .split_once("\r\n\r\n")
+            .unwrap_or_else(|| unreachable!())
+            .1,
+    )
+    .unwrap_or_else(|_| unreachable!());
+    assert_eq!(comment_json.get("implementation_queued"), None);
+    assert_eq!(
+        comment_json
+            .get("runbook_routing_queued")
+            .and_then(|v| v.as_bool()),
+        Some(true)
+    );
+
+    // 3. Reusing the same delivery_id (even uppercase) with modified body returns HTTP 400 github_delivery_conflict.
+    let mut modified_comment = comment_body.clone();
+    modified_comment.push(b' ');
+    let conflict_resp = request(
+        address,
+        &build_http(
+            "issue_comment",
+            "00000000-0000-0000-0000-000000000702",
+            &modified_comment,
+        ),
+    );
+    assert!(conflict_resp.starts_with("HTTP/1.1 400"), "{conflict_resp}");
+    assert!(
+        conflict_resp.contains("github_delivery_conflict"),
+        "{conflict_resp}"
+    );
+
+    stop.store(true, Ordering::Release);
+    server
+        .join()
+        .unwrap_or_else(|_| unreachable!())
+        .unwrap_or_else(|_| unreachable!());
+
+    let impl_queue = DeliveryQueue::open(&impl_queue_path, 8).unwrap_or_else(|_| unreachable!());
+    let rb_queue = DeliveryQueue::open(&rb_queue_path, 8).unwrap_or_else(|_| unreachable!());
+    assert_eq!(impl_queue.len().unwrap_or_else(|_| unreachable!()), 1);
+    assert_eq!(rb_queue.len().unwrap_or_else(|_| unreachable!()), 2);
+
+    // Draining implementation_queue must leave runbook_routing_queue completely intact.
+    let enrollment = Enrollment {
+        repositories: ["octocat/hello-world".to_string()].into_iter().collect(),
+        actors: ["operator".to_string()].into_iter().collect(),
+    };
+    let mut implementer = Implementer::open_with_local_operator(
+        &root.path().join("work.sqlite"),
+        enrollment,
+        "test-operator",
+    )
+    .unwrap_or_else(|_| unreachable!());
+    let policy = ImplementationIssuePolicy {
+        repository: EventPolicy {
+            owner: "octocat".to_string(),
+            repository: "hello-world".to_string(),
+            repository_id: 1296269,
+            allow_fork_pull_requests: false,
+            untrusted_pull_requests: Default::default(),
+        },
+        project: "kiln".to_string(),
+        base: None,
+        requested_outcome: "implement".to_string(),
+        acceptance: vec![AcceptanceObligation {
+            id: "accepted".to_string(),
+            statement: "verified".to_string(),
+        }],
+        dependencies: Vec::new(),
+        permitted_paths: vec!["crates".to_string()],
+        permitted_effects: std::iter::once("write_source".to_string()).collect(),
+        verification_profile: hash('a'),
+        budget: WorkBudget {
+            attempts: 2,
+            minutes_per_attempt: 60,
+        },
+        terminal_policy: TerminalPolicy::VerifiedPullRequest,
+        priority: 1,
+        selection: None,
+        runbook_routing: None,
+    };
+    let enrolled = ["operator".to_string()].into_iter().collect();
+    let impl_cfg = ImplementationQueueConfig {
+        path: impl_queue_path.clone(),
+        maximum_deliveries: 8,
+    };
+    assert_eq!(
+        crate::implementation::drain_issue_queue(
+            &impl_cfg,
+            SECRET,
+            &policy,
+            &enrolled,
+            &mut implementer,
+            8
+        )
+        .unwrap_or_else(|_| unreachable!()),
+        1
+    );
+    assert!(impl_queue.is_empty().unwrap_or_else(|_| unreachable!()));
+    assert_eq!(rb_queue.len().unwrap_or_else(|_| unreachable!()), 2);
 }

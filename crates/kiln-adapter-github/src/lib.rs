@@ -1,3 +1,4 @@
+pub mod comments;
 pub mod events;
 pub mod export;
 pub mod implementation;
@@ -8,6 +9,8 @@ pub mod poll_http;
 pub mod profile;
 pub mod publication;
 pub mod replay;
+pub mod runbook_dispatch;
+pub mod runbook_routing;
 pub mod secret;
 pub mod server;
 pub mod service;

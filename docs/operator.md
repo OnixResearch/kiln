@@ -945,6 +945,47 @@ Nickel and unchanged workspace checks before making local compatibility claims.
 Do not turn local conformance into a deployment, source-trust, confinement,
 workflow-correctness, or release-readiness claim.
 
+### GitHub issue label and `/runbook <id>` comment routing
+
+`config/implementer-policy.ncl` accepts an optional `runbook_routing` record
+binding exact GitHub issue labels and exact `/runbook <id>` comment commands
+to reviewed runbook IDs, fixed target references, and fixed parameters (for
+either single dispatch via `POST /api/runbooks/{id}/dispatch` or fan-out via
+`POST /api/runbooks/{id}/fanout`). Issue and comment prose never supplies
+commands, runbook IDs outside the reviewed mapping, parameters, targets, or
+budgets.
+
+- **Separate webhook queues**: `config/github-ci.ncl` accepts an optional
+  `runbook_routing_queue` distinct from `implementation_queue` (`impl_q.path !=
+  rb_q.path` enforced at admission). When configured, `issues` webhooks enqueue
+  to both queues and `issue_comment` webhooks enqueue only to
+  `runbook_routing_queue`. Operators running `kiln-implementer drain` and
+  `kiln-implementer drain-runbooks` must supply separate `--queue` paths.
+- **Security and RBAC**: Deliveries (`issues` `labeled` on open issues, and
+  `issue_comment` `created` on issues or PRs) require valid HMAC-SHA256
+  authentication, enrolled repository match (`id`, `owner`, `name`, plus
+  `Enrollment.repositories` check), non-bot actor membership in both
+  `Enrollment.actors` and `runbook_routing.allowed_actors`, and push-access
+  `author_association` (`OWNER`, `MEMBER`, or `COLLABORATOR`). For `issues`
+  `labeled` events (and `poll-runbooks` label polling, which reads GitHub's
+  `/issues` endpoint), both the labeler/issue-creator actor and
+  `issue.author_association` must satisfy push access; labels added to
+  external-contributor issues are refused (`github_outside_contributor_denied`),
+  so maintainers should trigger runbooks on external issues via
+  `/runbook <id>` comments instead. Pull request comments additionally verify
+  `head.repo` via `GET /repos/{owner}/{repo}/pulls/{number}` and fail closed on
+  forks (`github_fork_denied`) or unverified origins. Every refused event is
+  recorded in `RunbookRoutingStore` without secrets or raw prose.
+- **Idempotency and reply comments**: `kiln-implementer drain-runbooks` and
+  `kiln-implementer poll-runbooks` deduplicate on both `X-GitHub-Delivery`
+  (`body_identity` verified) and canonical source key (comment ID or
+  issue/label), derive deterministic `gh-rb-<blake3>` `request_id`
+  values, and post a concise issue/PR reply comment with only the runbook ID,
+  run/fan-out ID, optional `console_base_url` link, and hidden reconciliation
+  marker (never credentials, tokens, `LATTICE_PARAM_*` values, local paths, or
+  raw logs). Both CLI subcommands are registered as `OperatorConfig` in
+  `ENTRY_POINTS`.
+
 The retained [local runtime evidence](../evidence/github-ci-local-runtime.ncl)
 imports the [raw observations](../evidence/github-ci-local-runtime.json) and binds
 the exercised executables and selected producer files by BLAKE3. It covers exact

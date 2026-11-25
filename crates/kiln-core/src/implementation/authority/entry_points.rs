@@ -279,6 +279,8 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     operator(CLI, "run"),
     operator(CLI, "poll"),
     operator(CLI, "poll-run"),
+    operator(CLI, "drain-runbooks"),
+    operator(CLI, "poll-runbooks"),
     observe(CLI, "policy-check"),
     observe(CLI, "status"),
     protected(CLI, "claim", Op::ClaimAcquire),

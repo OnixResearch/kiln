@@ -322,18 +322,32 @@ fn handle_connection(
             )
         })?;
     let result = read_request(stream, &admitted.config, accepted_at).and_then(|request| {
-        if let Some(inserted) = store_issue_delivery(
+        if let Some(queued) = store_queued_delivery(
             &admitted.config,
             &request.headers,
             request.body(),
             secret,
             wall_clock_ms(),
         )? {
-            return Ok(serde_json::json!({
+            let mut response = serde_json::json!({
                 "accepted": true,
-                "implementation_queued": true,
-                "duplicate": !inserted
-            }));
+                "duplicate": !queued.inserted
+            });
+            if let Some(map) = response.as_object_mut() {
+                if queued.implementation {
+                    map.insert(
+                        "implementation_queued".to_string(),
+                        serde_json::Value::Bool(true),
+                    );
+                }
+                if queued.runbook_routing {
+                    map.insert(
+                        "runbook_routing_queued".to_string(),
+                        serde_json::Value::Bool(true),
+                    );
+                }
+            }
+            return Ok(response);
         }
         match admit_event(&admitted.config.event_policy, &request.headers, request.body(), secret, admitted.config.maximum_body_bytes)? {
             None => Ok(serde_json::json!({"accepted": true, "ignored": true})),
@@ -383,9 +397,104 @@ fn wall_clock_ms() -> u64 {
         .unwrap_or(0)
 }
 
-/// Store one authenticated `issues` delivery for a separate implementation
-/// scheduler. `None` means the event was not an issue or no queue is configured.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct QueuedDeliveryOutcome {
+    pub implementation: bool,
+    pub runbook_routing: bool,
+    pub inserted: bool,
+}
+
+fn record_into_queue(
+    queue_config: &crate::profile::ImplementationQueueConfig,
+    headers: &DeliveryHeaders,
+    body: &[u8],
+    now_ms: u64,
+) -> PortResult<bool> {
+    let mut queue =
+        kiln_implementer::DeliveryQueue::open(&queue_config.path, queue_config.maximum_deliveries)
+            .map_err(|_| {
+                infrastructure(
+                    "github_implementation_queue",
+                    "implementation delivery queue is unavailable",
+                )
+            })?;
+    queue
+        .record_checked(
+            &headers.delivery,
+            &headers.event,
+            &headers.signature,
+            body,
+            now_ms,
+        )
+        .map_err(|error| match error {
+            kiln_implementer::DeliveryQueueError::Conflict => domain(
+                "github_delivery_conflict",
+                "delivery_id",
+                "GitHub delivery id reappeared with different event or payload bytes",
+            ),
+            kiln_implementer::DeliveryQueueError::Invalid(_) => domain(
+                "github_event_headers",
+                "headers",
+                "GitHub delivery header or body exceeds queue bounds",
+            ),
+            kiln_implementer::DeliveryQueueError::Full
+            | kiln_implementer::DeliveryQueueError::Storage(_) => {
+                kiln_provider_api::PortFailure::Retryable(
+                    kiln_provider_api::InfrastructureFailure {
+                        code: "github_implementation_queue".to_string(),
+                        message: "implementation delivery queue refused the delivery".to_string(),
+                    },
+                )
+            }
+        })
+}
+
+/// Route one authenticated webhook delivery into the configured separate
+/// queues: `"issues"` goes to `implementation_queue` (if set) and
+/// `runbook_routing_queue` (if set); `"issue_comment"` goes ONLY to
+/// `runbook_routing_queue` (if set).
+pub(crate) fn store_queued_delivery(
+    config: &GithubConfig,
+    headers: &DeliveryHeaders,
+    body: &[u8],
+    secret: &[u8],
+    now_ms: u64,
+) -> PortResult<Option<QueuedDeliveryOutcome>> {
+    let want_impl = headers.event == "issues" && config.implementation_queue.is_some();
+    let want_runbook = (headers.event == "issues" || headers.event == "issue_comment")
+        && config.runbook_routing_queue.is_some();
+    if !want_impl && !want_runbook {
+        return Ok(None);
+    }
+    if !crate::events::valid_delivery(&headers.delivery)
+        || !crate::events::valid_event_name(&headers.event)
+    {
+        return Err(domain(
+            "github_event_headers",
+            "headers",
+            "GitHub delivery or event header is invalid",
+        ));
+    }
+    crate::events::authenticate(&headers.signature, body, secret)?;
+    let mut inserted = false;
+    if want_impl && let Some(queue) = &config.implementation_queue {
+        inserted |= record_into_queue(queue, headers, body, now_ms)?;
+    }
+    if want_runbook && let Some(queue) = &config.runbook_routing_queue {
+        inserted |= record_into_queue(queue, headers, body, now_ms)?;
+    }
+    Ok(Some(QueuedDeliveryOutcome {
+        implementation: want_impl,
+        runbook_routing: want_runbook,
+        inserted,
+    }))
+}
+
+/// Store one authenticated `issues` or `issue_comment` delivery for a separate
+/// implementation/runbook scheduler. `None` means the event was neither or no
+/// queue is configured.
 // r[impl kiln.implementation.delivery_queue]
+#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn store_issue_delivery(
     config: &GithubConfig,
     headers: &DeliveryHeaders,
@@ -393,35 +502,7 @@ pub(crate) fn store_issue_delivery(
     secret: &[u8],
     now_ms: u64,
 ) -> PortResult<Option<bool>> {
-    let Some(queue) = &config.implementation_queue else {
-        return Ok(None);
-    };
-    if headers.event != "issues" {
-        return Ok(None);
-    }
-    crate::events::authenticate(&headers.signature, body, secret)?;
-    let mut queue = kiln_implementer::DeliveryQueue::open(&queue.path, queue.maximum_deliveries)
-        .map_err(|_| {
-            infrastructure(
-                "github_implementation_queue",
-                "implementation delivery queue is unavailable",
-            )
-        })?;
-    queue
-        .record(
-            &headers.delivery,
-            &headers.event,
-            &headers.signature,
-            body,
-            now_ms,
-        )
-        .map(Some)
-        .map_err(|_| {
-            kiln_provider_api::PortFailure::Retryable(kiln_provider_api::InfrastructureFailure {
-                code: "github_implementation_queue".to_string(),
-                message: "implementation delivery queue refused the delivery".to_string(),
-            })
-        })
+    Ok(store_queued_delivery(config, headers, body, secret, now_ms)?.map(|out| out.inserted))
 }
 
 fn read_request(

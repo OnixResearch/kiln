@@ -23,10 +23,12 @@ pub mod native_publication;
 pub mod observation;
 pub mod publication_effects;
 pub mod queue;
+pub mod runbook_routing;
 pub mod verification;
 
 pub use fleet::{FLEET_STATE_KIND, FLEET_STATE_SCHEMA, FleetState};
-pub use queue::{DeliveryQueue, QueuedDelivery};
+pub use queue::{DeliveryQueue, DeliveryQueueError, QueuedDelivery};
+pub use runbook_routing::{RunbookRoutingLock, RunbookRoutingStore};
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;

@@ -7,7 +7,7 @@
 use std::path::Path;
 use std::time::Duration;
 
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, OptionalExtension, params};
 
 const BUSY_TIMEOUT_MS: u64 = 10_000;
 const MAX_BODY_BYTES: usize = 1_048_576;
@@ -22,6 +22,28 @@ CREATE TABLE IF NOT EXISTS implementation_deliveries (
     body BLOB NOT NULL,
     recorded_at_ms INTEGER NOT NULL
 );";
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DeliveryQueueError {
+    Conflict,
+    Full,
+    Invalid(String),
+    Storage(String),
+}
+
+impl std::fmt::Display for DeliveryQueueError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Conflict => {
+                formatter.write_str("delivery id reappeared with different event or payload bytes")
+            }
+            Self::Full => formatter.write_str("delivery queue is full"),
+            Self::Invalid(message) | Self::Storage(message) => formatter.write_str(message),
+        }
+    }
+}
+
+impl std::error::Error for DeliveryQueueError {}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueuedDelivery {
@@ -54,6 +76,76 @@ impl DeliveryQueue {
         })
     }
 
+    /// Store one exact authenticated delivery. Repeating a delivery identity
+    /// with identical event and body bytes is idempotent; reusing a delivery
+    /// identity (case-insensitively) with different event or body bytes fails
+    /// closed with [`DeliveryQueueError::Conflict`]. A full queue refuses
+    /// instead of evicting.
+    pub fn record_checked(
+        &mut self,
+        delivery_id: &str,
+        event: &str,
+        signature: &str,
+        body: &[u8],
+        recorded_at_ms: u64,
+    ) -> Result<bool, DeliveryQueueError> {
+        if !valid_delivery_id(delivery_id)
+            || event.is_empty()
+            || event.len() > 64
+            || signature.is_empty()
+            || signature.len() > 128
+            || body.is_empty()
+            || body.len() > MAX_BODY_BYTES
+        {
+            return Err(DeliveryQueueError::Invalid(
+                "delivery is malformed or exceeds its byte bound".to_string(),
+            ));
+        }
+        let recorded_at = i64::try_from(recorded_at_ms)
+            .map_err(|_| DeliveryQueueError::Invalid("delivery timestamp exceeds bound".into()))?;
+        let normalized_id = delivery_id.to_ascii_lowercase();
+        let transaction = self
+            .connection
+            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+            .map_err(|e| DeliveryQueueError::Storage(e.to_string()))?;
+        let existing: Option<(String, Vec<u8>)> = transaction
+            .query_row(
+                "SELECT event, body FROM implementation_deliveries WHERE LOWER(delivery_id) = ?1",
+                params![&normalized_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()
+            .map_err(|e| DeliveryQueueError::Storage(e.to_string()))?;
+        if let Some((existing_event, existing_body)) = existing {
+            if existing_event == event && existing_body.as_slice() == body {
+                return Ok(false);
+            }
+            return Err(DeliveryQueueError::Conflict);
+        }
+        let count: i64 = transaction
+            .query_row(
+                "SELECT COUNT(*) FROM implementation_deliveries",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(|e| DeliveryQueueError::Storage(e.to_string()))?;
+        if usize::try_from(count).unwrap_or(usize::MAX) >= self.maximum_deliveries {
+            return Err(DeliveryQueueError::Full);
+        }
+        transaction
+            .execute(
+                "INSERT INTO implementation_deliveries
+                 (delivery_id, event, signature, body, recorded_at_ms)
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![&normalized_id, event, signature, body, recorded_at],
+            )
+            .map_err(|e| DeliveryQueueError::Storage(e.to_string()))?;
+        transaction
+            .commit()
+            .map_err(|e| DeliveryQueueError::Storage(e.to_string()))?;
+        Ok(true)
+    }
+
     /// Store one exact authenticated delivery. Repeating a delivery identity is
     /// idempotent. A full queue refuses instead of evicting.
     pub fn record(
@@ -64,56 +156,8 @@ impl DeliveryQueue {
         body: &[u8],
         recorded_at_ms: u64,
     ) -> Result<bool, String> {
-        if !valid_delivery_id(delivery_id)
-            || event.is_empty()
-            || event.len() > 64
-            || signature.is_empty()
-            || signature.len() > 128
-            || body.is_empty()
-            || body.len() > MAX_BODY_BYTES
-        {
-            return Err("delivery is malformed or exceeds its byte bound".to_string());
-        }
-        let transaction = self
-            .connection
-            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
-            .map_err(text)?;
-        let exists: bool = transaction
-            .query_row(
-                "SELECT 1 FROM implementation_deliveries WHERE delivery_id = ?1",
-                params![delivery_id],
-                |_| Ok(true),
-            )
-            .unwrap_or(false);
-        if exists {
-            return Ok(false);
-        }
-        let count: i64 = transaction
-            .query_row(
-                "SELECT COUNT(*) FROM implementation_deliveries",
-                [],
-                |row| row.get(0),
-            )
-            .map_err(text)?;
-        if usize::try_from(count).unwrap_or(usize::MAX) >= self.maximum_deliveries {
-            return Err("delivery queue is full".to_string());
-        }
-        transaction
-            .execute(
-                "INSERT INTO implementation_deliveries
-                 (delivery_id, event, signature, body, recorded_at_ms)
-                 VALUES (?1, ?2, ?3, ?4, ?5)",
-                params![
-                    delivery_id,
-                    event,
-                    signature,
-                    body,
-                    i64::try_from(recorded_at_ms).map_err(text)?
-                ],
-            )
-            .map_err(text)?;
-        transaction.commit().map_err(text)?;
-        Ok(true)
+        self.record_checked(delivery_id, event, signature, body, recorded_at_ms)
+            .map_err(|error| error.to_string())
     }
 
     /// Oldest queued deliveries, bounded by `limit`.
@@ -144,14 +188,15 @@ impl DeliveryQueue {
     }
 
     pub fn remove(&mut self, delivery_id: &str) -> Result<bool, String> {
+        let normalized_id = delivery_id.to_ascii_lowercase();
         let removed = self
             .connection
             .execute(
-                "DELETE FROM implementation_deliveries WHERE delivery_id = ?1",
-                params![delivery_id],
+                "DELETE FROM implementation_deliveries WHERE LOWER(delivery_id) = ?1",
+                params![normalized_id],
             )
             .map_err(text)?;
-        Ok(removed == 1)
+        Ok(removed > 0)
     }
 
     pub fn len(&self) -> Result<usize, String> {
@@ -274,5 +319,33 @@ mod tests {
                 )
                 .is_err()
         );
+    }
+
+    #[test]
+    fn record_checked_detects_conflicts_and_normalizes_delivery_id_casing() {
+        let (_directory, mut queue) = queue();
+        let upper = "00000000-0000-0000-0000-0000000000AB";
+        let lower = "00000000-0000-0000-0000-0000000000ab";
+        assert_eq!(
+            queue.record_checked(upper, "issues", "sha256=00", b"body", 1),
+            Ok(true)
+        );
+        // Same delivery id in lowercase with identical event/body is idempotent.
+        assert_eq!(
+            queue.record_checked(lower, "issues", "sha256=00", b"body", 2),
+            Ok(false)
+        );
+        // Same delivery id with different body or event returns Conflict.
+        assert_eq!(
+            queue.record_checked(lower, "issues", "sha256=00", b"other", 3),
+            Err(DeliveryQueueError::Conflict)
+        );
+        assert_eq!(
+            queue.record_checked(upper, "issue_comment", "sha256=00", b"body", 4),
+            Err(DeliveryQueueError::Conflict)
+        );
+        // Removal matches case-insensitively.
+        assert!(queue.remove(upper).unwrap_or_else(|_| unreachable!()));
+        assert!(queue.is_empty().unwrap_or_else(|_| unreachable!()));
     }
 }

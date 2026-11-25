@@ -98,6 +98,10 @@ pub struct ImplementationIssuePolicy {
     /// admissible under this repository-wide policy.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub selection: Option<IssueSelection>,
+    /// Optional reviewed GitHub label and `/runbook <id>` comment routing
+    /// rules (`OnixResearch/kiln#99`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub runbook_routing: Option<crate::runbook_routing::RunbookRoutingPolicy>,
 }
 
 impl ImplementationIssuePolicy {
@@ -112,6 +116,9 @@ impl ImplementationIssuePolicy {
         }
         if let Some(selection) = &self.selection {
             selection.validate()?;
+        }
+        if let Some(routing) = &self.runbook_routing {
+            routing.validate()?;
         }
         Ok(())
     }
@@ -553,6 +560,7 @@ mod tests {
             terminal_policy: TerminalPolicy::VerifiedPullRequest,
             priority: 7,
             selection: None,
+            runbook_routing: None,
         }
     }
 

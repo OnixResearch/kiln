@@ -111,6 +111,11 @@ pub struct GithubConfig {
     /// implementation scheduler.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub implementation_queue: Option<ImplementationQueueConfig>,
+    /// Optional authenticated issue and `issue_comment` delivery queue for
+    /// runbook routing. Absence keeps all prior behavior; presence must use a
+    /// distinct SQLite path from `implementation_queue`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub runbook_routing_queue: Option<ImplementationQueueConfig>,
     pub maximum_run_records: usize,
     pub maximum_delivery_records: usize,
     pub maximum_record_bytes: usize,
@@ -244,11 +249,21 @@ pub fn admit_config(config: GithubConfig) -> PortResult<AdmittedGithubConfig> {
             .repository
             .eq_ignore_ascii_case(&config.event_policy.repository)
         || config.non_claims != REQUIRED_NON_CLAIMS
-        || config.implementation_queue.as_ref().is_some_and(|queue| {
-            !queue.path.is_absolute()
-                || queue.maximum_deliveries == 0
-                || queue.maximum_deliveries > 65_536
-        })
+        || config
+            .implementation_queue
+            .as_ref()
+            .is_some_and(|queue| !valid_queue_config(queue))
+        || config
+            .runbook_routing_queue
+            .as_ref()
+            .is_some_and(|queue| !valid_queue_config(queue))
+        || config
+            .implementation_queue
+            .as_ref()
+            .zip(config.runbook_routing_queue.as_ref())
+            .is_some_and(|(impl_q, rb_q)| {
+                impl_q.path == rb_q.path || impl_q.path.components().eq(rb_q.path.components())
+            })
     {
         return Err(domain(
             "github_profile",
@@ -355,4 +370,15 @@ pub fn load_config(path: &std::path::Path) -> PortResult<AdmittedGithubConfig> {
         )
     })?;
     admit_config(config)
+}
+
+fn valid_queue_config(queue: &ImplementationQueueConfig) -> bool {
+    queue.path.is_absolute()
+        && !queue.path.components().any(|part| {
+            matches!(
+                part,
+                std::path::Component::ParentDir | std::path::Component::CurDir
+            )
+        })
+        && (1..=65_536).contains(&queue.maximum_deliveries)
 }

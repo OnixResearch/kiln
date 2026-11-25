@@ -132,6 +132,12 @@ let ServiceProfileContract = {
       maximum_deliveries | BoundedIntegerContract 1 65536,
     }
     | optional,
+  runbook_routing_queue
+    | {
+      path | AbsolutePathContract,
+      maximum_deliveries | BoundedIntegerContract 1 65536,
+    }
+    | optional,
   maximum_run_records | PositiveContract,
   maximum_delivery_records | PositiveContract,
   maximum_record_bytes | PositiveContract,

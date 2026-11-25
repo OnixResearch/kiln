@@ -31,6 +31,12 @@ fun input =>
             maximum_deliveries | c.Positive,
           }
           | optional,
+        runbook_routing_queue
+          | {
+            path | c.AbsolutePath,
+            maximum_deliveries | c.Positive,
+          }
+          | optional,
         webhook_secret | c.SecretReference,
         status_secret | c.SecretReference,
         workflow | c.Workflow,
@@ -74,6 +80,12 @@ fun input =>
   & (
     if std.record.has_field "implementation_queue" settings then
       { implementation_queue = settings.implementation_queue }
+    else
+      {}
+  )
+  & (
+    if std.record.has_field "runbook_routing_queue" settings then
+      { runbook_routing_queue = settings.runbook_routing_queue }
     else
       {}
   )
