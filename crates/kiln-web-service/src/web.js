@@ -1390,10 +1390,10 @@
     for (const node of document.querySelectorAll("a[data-view]")) node.href = routeHref({ view: node.dataset.view });
     $("live-activity").href = routeHref(PENDING_RUNS);
     $("brand-home").href = routeHref(HOME);
+    const previousNavPage = $("app-sidebar").querySelector('[aria-current="page"]')?.dataset.page;
     for (const node of document.querySelectorAll("[data-page]")) { if (node.dataset.page === navPage) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
-    for (const group of document.querySelectorAll(".app-navigation details")) {
-      if (group.querySelector('[aria-current="page"]')) group.open = true;
-    }
+    const more = $("nav-more");
+    if (previousNavPage !== navPage) more.open = Boolean(more.querySelector('[aria-current="page"]'));
     // r[impl kiln.web.wayfinding] When the rail is taller than the window it scrolls; the current destination is
     // brought fully into the rail's own view. Only the rail scrolls: the page keeps its position.
     const rail = document.querySelector(".app-navigation");
@@ -2275,10 +2275,10 @@
     const grid = element("div", undefined, "dashboard-grid");
     const main = element("div", undefined, "dashboard-main");
     const side = element("div", undefined, "dashboard-side");
-    dashboardSection(main, "overview-health", "Project health", "card health-hero");
     dashboardSection(main, "overview-attention", "Needs attention", "dashboard-section");
     dashboardSection(main, "overview-passed", "Recently passed", "card dashboard-section");
     dashboardSection(main, "overview-other", "In progress & unresolved", "card dashboard-section");
+    dashboardSection(main, "overview-health", "Project health", "card health-hero");
     const trend = element("details", undefined, "panel overview-timing");
     const trendBody = element("div", undefined, "stack stack-sm");
     trendBody.id = "overview-trend";
@@ -2390,7 +2390,7 @@
       const headline = element("p", undefined, "health-headline");
       headline.dataset.state = failing ? "failing" : "clear";
       headline.append(element("span", String(failing), "health-failing"), document.createTextNode(` failing of ${total} project${total === 1 ? "" : "s"}`));
-      const summary = element("p", failing ? "Latest retained run per project. Failing projects are listed first below." : "No project's latest retained run failed.", "health-summary");
+      const summary = element("p", failing ? "Health uses the latest retained run for each project." : "No project's latest retained run failed.", "health-summary");
       const rate = element("div", undefined, "rate-block");
       const head = element("div", undefined, "rate-head");
       head.append(element("span", "Pass rate of latest project runs"), element("span", denominator ? `${Math.floor((passed / denominator) * 100)}%` : "Unavailable", "rate-value"));

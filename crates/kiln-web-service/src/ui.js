@@ -667,35 +667,34 @@
   }
   // r[impl kiln.web.wayfinding] One numbered register of console destinations. The rail, the page title block, the
   // Guide and the command palette all read it, so a destination's number, name and purpose cannot drift between them.
-  // Numbers follow the rail's reading order, as sections of a standards manual: 0 start here, 1 continuous
-  // integration, 2 work, 3 inspection, 4 administration. The project history page sits under CI projects.
+  // Numbers identify the Guide sections, not sidebar placement. Project history shares the CI projects number.
   const DESTINATION_GROUPS = Object.freeze([
     ["0", "Start here"], ["1", "Continuous integration"], ["2", "Work"], ["3", "Inspect"], ["4", "Administration"],
   ].map(([number, name]) => Object.freeze({ number, name })));
   const DESTINATIONS = Object.freeze([
-    ["guide", "0.0", "Guide", "Every destination by section number, how run states read, the words Kiln uses and the keyboard reference."],
-    ["overview", "1.1", "Overview", "Failing projects first, then health, worker capacity and recent activity. Counts cover retained runs only."],
-    ["runs", "1.2", "Runs", "Filter retained runs, select an execution, then inspect its pipeline, logs and evidence."],
-    ["projects", "1.3", "CI projects", "Choose a project to start a source-bound run, or browse its retained history."],
-    ["project", "1.3", "CI project", "Health, streak, duration trend and recent runs, derived from this project's retained runs.", "projects"],
-    ["workers", "1.4", "Workers", "Find a configured execution target, check its project slots and inspect its latest execution."],
-    ["work", "2.1", "Issues", "Capture an issue, decide what happens next, and follow its discussion and linked CI results."],
-    ["inbox", "2.2", "My inbox", "Assignments, mentions, watched updates and due reminders. Opening an item does not mark it read."],
-    ["planning", "2.3", "Planning", "Organize issues into projects, milestones and cycles. Track larger goals with initiatives."],
-    ["code-review", "2.4", "Code review", "Review exact revisions, publish discussions and approvals, and inspect every submit requirement. CI evidence alone is not merge authority."],
-    ["triage", "2.5", "Requests & triage", "Review incoming requests, keep their original source and decide what to take on next."],
-    ["workviews", "2.6", "Saved views", "Return to private or shared filters, boards and favorites saved in this workspace."],
-    ["cairn", "2.7", "Cairn changes", "Find the next step for each change; inspect its units, attempts and dependencies. Answer admitted campaign decisions in place. This page never claims, dispatches or completes work."],
-    ["fleet", "2.8", "Fleet", "Inspect this host's fleet coordinator: live claims, ranked and blocked work, attempts and open decisions. Commands are forwarded to the fleet service, which remains their authority."],
-    ["source", "3.1", "Source", "Choose a repository and revision to browse files and changes without modifying source."],
-    ["reviews", "3.2", "Patchgate receipts", "What Patchgate decided for each reviewed change, why and when. A receipt is evidence only: it never accepts or merges a change."],
-    ["activity", "3.3", "Activity", "Browse retained canonical events and attributable audit decisions."],
-    ["feeds", "3.4", "Feeds", "Subscribe to Atom feeds of retained runs and follow external repository feeds. Feeds are read-only projections, not CI evidence."],
-    ["evidence", "3.5", "Evidence", "Choose a retained run to inspect its source, execution and recorded evidence."],
-    ["automation", "4.1", "Automation", "Inspect registered triggers, schedules and delivery outcomes. Only admitted registrations are editable."],
-    ["operations", "4.2", "Operations", "Inspect capacity, queued work and retention limits. No automatic pruning is performed."],
-    ["cobs", "4.3", "Raw collaboration history", "Browse local collaboration records. Raw operation history is not verified lifecycle state."],
-    ["settings", "4.4", "Settings", "Review your access and adjust appearance and density. Credentials are never saved by this page."],
+    ["guide", "0.0", "Guide", "Find pages, run states and keyboard shortcuts."],
+    ["overview", "1.1", "Overview", "Start with failing projects and active work."],
+    ["runs", "1.2", "Runs", "Find a retained run and inspect its execution."],
+    ["projects", "1.3", "CI projects", "Start a source-bound run or open a project’s history."],
+    ["project", "1.3", "CI project", "See this project’s recent results and recorded timings.", "projects"],
+    ["workers", "1.4", "Workers", "Find an execution target and check its project slots."],
+    ["work", "2.1", "Issues", "Track issues, discussions and linked CI results."],
+    ["inbox", "2.2", "My inbox", "See assignments, mentions, watched updates and reminders."],
+    ["planning", "2.3", "Planning", "Organize issues by project, milestone or cycle."],
+    ["code-review", "2.4", "Code review", "Review exact revisions and check what blocks submission."],
+    ["triage", "2.5", "Requests & triage", "Decide which incoming requests to take on."],
+    ["workviews", "2.6", "Saved views", "Find your saved lists and boards."],
+    ["cairn", "2.7", "Cairn changes", "Find blocked changes and decisions that need attention."],
+    ["fleet", "2.8", "Fleet", "See live claims, queued work, attempts and open decisions."],
+    ["source", "3.1", "Source", "Browse files and changes at an exact revision."],
+    ["reviews", "3.2", "Patchgate receipts", "Inspect recorded decisions, not merge authority."],
+    ["activity", "3.3", "Activity", "Browse retained events and audit decisions."],
+    ["feeds", "3.4", "Feeds", "Subscribe to retained runs or follow repository feeds."],
+    ["evidence", "3.5", "Evidence", "Inspect evidence for an exact retained run."],
+    ["automation", "4.1", "Automation", "Inspect registered triggers, schedules and delivery outcomes."],
+    ["operations", "4.2", "Operations", "Check capacity, queued work and retention limits."],
+    ["cobs", "4.3", "Raw collaboration history", "Inspect raw collaboration records, not verified lifecycle state."],
+    ["settings", "4.4", "Settings", "Adjust appearance and check your access."],
   ].map(([page, number, title, purpose, parent = null]) => Object.freeze({ page, number, group: number.split(".")[0], title, purpose, parent })));
   // The destination of a page, or null for anything that is not a console page.
   function destination(page) {

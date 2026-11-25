@@ -1855,17 +1855,20 @@ reset, credential rotation or live database rewind is part of this operation.
 
 <!-- r[impl kiln.web.console_layout] -->
 Navigation is a compact icon rail. Hovering it, or moving keyboard focus into it,
-expands it over the page to show every label and the **Continuous
-integration**, **Work**, **More work**, **Inspect** and **Administration**
-groups; labels stay available to assistive technology while it is collapsed.
+expands it over the page to show labels; they stay available to assistive
+technology while the rail is collapsed. Overview, Runs, CI projects, Issues
+and Code review are always in the main list. Open **More tools** for Workers,
+My inbox, Planning, Fleet and the other secondary destinations. **Guide** stays
+at the bottom; command search still finds every destination.
 **Keep navigation expanded** at the bottom pins it open beside the content for
 this page session (the URL is unchanged). Escape collapses an unpinned expansion
 and returns focus. Group headings keep their place while the rail is collapsed
 and fade in when it expands, so no destination moves under the pointer. The
 active page is an inverted ink row. Rail destinations and run tabs are links, so
 they open in a new tab and keep browser history; commands stay buttons.
-Secondary groups open automatically for a selected deep link, and when the rail
-scrolls the active page is scrolled into its view. Existing page URLs remain
+**More tools** opens when you navigate to a secondary destination and closes
+when you return to a primary destination. The active link scrolls into view
+within the rail when needed. Existing page URLs remain
 valid; the Kiln brand returns to the Overview, the page a bare console URL
 opens. The service boundary note (authenticated live service; actions affect
 the configured execution provider; recorded evidence is not acceptance

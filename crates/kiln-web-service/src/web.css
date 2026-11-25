@@ -197,11 +197,10 @@ button.chip[aria-pressed="true"] { background: var(--foreground); color: var(--b
 .app-navigation [aria-current="page"], .app-navigation .active, .app-navigation [aria-current="page"]:hover { background: var(--foreground); color: var(--background); font-weight: 700; }
 /* r[impl kiln.web.wayfinding] Each destination carries its section number, shown once the rail shows labels. */
 .nav-number { flex: 0 0 auto; min-width: 2.1rem; color: inherit; font: 500 .6875rem/1 var(--mono); letter-spacing: .02em; opacity: .7; }
-.nav-group { display: grid; gap: 1px; min-width: 0; margin: 0; }
-.app-navigation > .nav-group + .nav-group { margin-top: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--border); }
+.app-navigation > .nav-disclosure { min-width: 0; margin-top: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--border); }
 .app-sidebar .nav-label { min-width: 0; margin: 0; padding: var(--space-1) .5rem var(--space-1); overflow: hidden; font-size: .625rem; text-overflow: ellipsis; white-space: nowrap; transition: opacity var(--motion-fast) ease; }
-.nav-disclosure { display: block; }
 .nav-disclosure > summary { list-style: none; }
+.nav-disclosure:not([open]) > :not(summary) { display: none; }
 .nav-disclosure > summary::-webkit-details-marker { display: none; }
 .nav-disclosure > summary > .disclosure-chevron { width: .875rem; height: .875rem; margin-inline-end: .5rem; }
 .nav-disclosure[open] > summary > svg:not(.disclosure-chevron) { background: var(--list-hover); }
@@ -224,7 +223,6 @@ button.chip[aria-pressed="true"] { background: var(--foreground); color: var(--b
   :is(.app-sidebar:is(:hover, :has(:focus-visible)):not(.rail-suppressed), .rail-pinned .app-sidebar) :is(.nav-text, .nav-number) { position: static; width: auto; height: auto; overflow: hidden; clip-path: none; text-overflow: ellipsis; }
   :is(.app-sidebar:is(:hover, :has(:focus-visible)):not(.rail-suppressed), .rail-pinned .app-sidebar) .nav-label { opacity: 1; }
   :is(.app-sidebar:is(:hover, :has(:focus-visible)):not(.rail-suppressed), .rail-pinned .app-sidebar) .nav-disclosure > summary > .disclosure-chevron { display: block; }
-  :is(.app-sidebar:is(:hover, :has(:focus-visible)):not(.rail-suppressed), .rail-pinned .app-sidebar) .nav-disclosure > summary { color: var(--muted-foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; }
   .rail-pinned .app-workspace { margin-left: var(--rail-expanded); }
 }
 /* r[impl kiln.web.topbar_containment] r[impl kiln.web.topbar_containment.scenario.location]

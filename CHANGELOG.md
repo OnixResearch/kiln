@@ -14,6 +14,14 @@ eligibility.
 First public version. No tag or release artifact exists yet on any remote. This
 entry describes the source tree prepared for the first tagged release.
 
+### Changed
+
+- The Kiln workspace rail keeps five primary destinations visible and groups
+  secondary destinations under **More tools**. URLs and command search are unchanged.
+- Workspace pages use shorter introductions. Overview leads with failures,
+  Workers leads with execution targets, and work shortcuts and supplemental
+  inventory are available in disclosures.
+
 ### Added
 
 **Core**
