@@ -343,6 +343,12 @@ pub fn response(
     };
     let admitted = config.is_some_and(|config| {
         recovery_admitted(config, database, work.as_ref(), &ledger, attempt, current_unix_ms())
+            && Implementer::open_read_only(database, config.profile.enrollment.clone())
+                .and_then(|mut owner| owner.dispatch_record(&identity))
+                .is_ok_and(|record| record.is_some_and(|record| {
+                    record.transport_started && record.launch.is_none() && record.request.is_none()
+                        && record.attempt == *attempt
+                }))
     });
     if let Some(command) = command {
         let Some(config) = config else { return error(503, "dispatch_recovery_input_not_configured") };
@@ -431,9 +437,20 @@ fn recover_original(
     if owner.select_local_operator(config.profile.local_operator.clone()).is_err() {
         return unknown(identity, fence, work);
     }
-    // Revalidate live fence and durable intent in the implementation owner
-    // transaction. A missing intent must never become a first dispatch here.
-    if !matches!(owner.begin_dispatch_transport(identity, fence, current_unix_ms(), plan), Ok(true)) {
+    // This profile recovers legacy socket dispatches only. Other launch
+    // cohorts require their own recorded launch and frozen-request authority.
+    if owner.authorize_current(identity, fence, current_unix_ms()).is_err()
+        || !owner.dispatch_record(identity).is_ok_and(|record| {
+            record.is_some_and(|record| {
+                record.transport_started && record.launch.is_none() && record.request.is_none()
+                    && record.attempt.fence == fence && &record.attempt.work_identity == work
+                    && record.attempt.dispatch.as_ref().is_some_and(|reservation| &reservation.plan == plan)
+                    && record.attempt.dispatch_request_binding.as_ref().is_some_and(|seal|
+                        seal.validate_for(identity, fence, plan, &config.request_digest).is_ok())
+                    && record.attempt.workflow.is_none()
+            })
+        })
+    {
         return error(409, "dispatch_recovery_not_admitted");
     }
     let mut transport = match UnixWorkflowExchange::new(
