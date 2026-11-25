@@ -677,6 +677,8 @@ fn asset(path: &str) -> ApiResponse {
                 "code-review.js" => JS, "code-review.css" => CSS, "project.js" => JS, "project.css" => CSS,
                 "source.js" => JS, "source.css" => CSS, "receipts.js" => JS, "receipts.css" => CSS,
                 "workers.js" => JS, "workers.css" => CSS, "runbooks.js" => JS, "cairn.js" => JS, "cairn.css" => CSS,
+                "fleet.js" => JS, "fleet.css" => CSS, "fleet-runtime.js" => JS,
+                "fleet-capacity.js" => JS, "fleet-capacity.css" => CSS,
                 "inventory.js" => JS, "inventory.css" => CSS, "preview-review.js" => JS,
             }
         }
