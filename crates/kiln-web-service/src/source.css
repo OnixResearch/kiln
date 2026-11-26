@@ -196,3 +196,65 @@ a.src-commit-title:hover { color: var(--link); text-decoration: underline; }
   tr.is-selected > td { background: Highlight; color: HighlightText; forced-color-adjust: none; }
   .src-d-add > .src-dm, .src-d-delete > .src-dm { color: CanvasText; }
 }
+
+/* Repositories & Fleet Copies hub (?page=source&tab=repositories) */
+/* r[impl kiln.web.repository_import_ui] */
+.repo-hub { display: grid; gap: var(--space-4); min-width: 0; }
+.repo-hub-header { display: grid; gap: var(--space-3); }
+.repo-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr)); gap: 0; border-top: 1px solid var(--border); border-left: 1px solid var(--border); }
+.repo-kpi-tile { display: grid; gap: .15rem; padding: var(--space-2) var(--space-3); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--secondary); }
+.repo-kpi-value { font: 700 var(--text-xl)/1.2 var(--mono); font-variant-numeric: tabular-nums; color: var(--foreground); }
+.repo-kpi-tile[data-tone="success"] .repo-kpi-value { color: var(--success); }
+.repo-kpi-tile[data-tone="failure"] .repo-kpi-value { color: var(--danger); }
+.repo-kpi-tile[data-tone="warning"] .repo-kpi-value { color: var(--warning); }
+.repo-kpi-tile[data-tone="unknown"] .repo-kpi-value { color: var(--unknown); }
+
+.repo-health-banner { display: grid; gap: var(--space-1); padding: var(--space-3) var(--space-4); border: 1px solid var(--warning); background: var(--warning-background); color: var(--foreground); }
+.repo-health-banner p { margin: 0; }
+.repo-banner-head { display: flex; align-items: center; gap: var(--space-2); color: var(--warning); }
+.repo-banner-head .icon { width: 1rem; height: 1rem; }
+
+.repo-import-card { display: grid; gap: var(--space-3); }
+.repo-import-form { display: grid; gap: var(--space-3); }
+.repo-import-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: var(--space-3); align-items: end; }
+.repo-import-url-field { grid-column: 1 / -1; }
+.repo-radicle-notice, .repo-import-error, .repo-readonly-note { display: flex; align-items: flex-start; gap: var(--space-2); margin: 0; padding: var(--space-2) var(--space-3); }
+.repo-radicle-notice .icon { flex: 0 0 auto; width: 1rem; height: 1rem; margin-top: .1rem; }
+.repo-radicle-notice[hidden], .repo-import-error[hidden] { display: none; }
+
+.repo-matrix-panel { display: grid; gap: var(--space-3); }
+.repo-filter-bar { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: var(--space-3); }
+.repo-filter-chips { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.repo-filter-chip { cursor: pointer; }
+.repo-filter-chip[aria-pressed="true"] { border-color: var(--list-active-border); background: var(--list-active); color: var(--foreground); font-weight: 700; }
+.repo-filter-search { display: grid; gap: var(--space-1); min-width: min(100%, 18rem); flex: 1 1 16rem; max-width: 28rem; }
+.repo-matrix-status { margin: 0; }
+
+.repo-card { display: grid; gap: var(--space-3); border: 1px solid var(--frame); background: var(--group-box); }
+.repo-card[data-sync="diverged"] { border-left: 4px solid var(--danger); }
+.repo-card[data-sync="dirty"] { border-left: 4px solid var(--warning); }
+.repo-card[data-sync="synced"] { border-left: 4px solid var(--success); }
+.repo-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-3); }
+.repo-card-title-box { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); min-width: 0; }
+.repo-card-title { margin: 0; font-size: var(--text-lg); font-weight: 700; overflow-wrap: anywhere; }
+.repo-id-btn { display: inline-flex; align-items: center; gap: .3rem; min-height: 1.75rem; padding: .1rem .45rem; border: 1px solid var(--border-emphasis); background: var(--muted); color: var(--foreground); font-size: var(--text-xs); }
+.repo-id-btn .icon { width: .85rem; height: .85rem; }
+.repo-copy-status { margin: 0; }
+.repo-copy-status:empty { display: none; }
+.repo-card-status { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+
+.repo-admission-badges, .repo-pill-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); }
+.repo-adm-ci { color: var(--info); border-color: color-mix(in srgb, var(--info) 55%, transparent); background: var(--info-background); }
+.repo-adm-fleet { color: var(--success); border-color: color-mix(in srgb, var(--success) 55%, transparent); background: var(--success-background); }
+.repo-adm-observed { color: var(--muted-foreground); background: var(--muted); }
+
+.repo-strip { display: grid; gap: var(--space-1); }
+.repo-remote-pill { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .35rem; }
+.repo-remote-pill[data-role="canonical"] { border-color: var(--frame); background: var(--list-active); }
+.repo-copy-pill[data-health="unavailable"] { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 55%, transparent); background: var(--danger-background); }
+.repo-copy-pill[data-dirty="true"] { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 55%, transparent); background: var(--warning-background); }
+.repo-row-actions { padding-top: var(--space-2); border-top: 1px solid var(--border); }
+
+@media (max-width: 60rem) {
+  .repo-filter-chip, .repo-id-btn, .repo-row-actions button, .repo-row-actions a, #repo-refresh-btn, #repo-import-submit { min-height: 2.75rem; }
+}

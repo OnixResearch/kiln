@@ -1013,3 +1013,12 @@ a.count-chip:hover { border-color: var(--frame); background: var(--accent); box-
 .log-digest-actions { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 .log-digest-jump { min-height: 1.85rem; padding: .15rem .5rem; border: 1px solid var(--frame); background: var(--muted); color: var(--foreground); font-family: var(--mono); font-size: var(--text-xs); }
 .log-digest-jump:hover:not(:disabled) { background: var(--accent); color: var(--foreground); }
+
+/* ---------- Slide-Over Repository Inspector ---------- */
+.slide-over-repo-note { display: grid; gap: var(--space-1); padding: var(--space-2) var(--space-3); }
+.slide-over-repo-note p { margin: 0; }
+.slide-over-repo-table { font-size: var(--text-xs); }
+.slide-over-mirror-form { gap: var(--space-2); }
+@media (max-width: 60rem) {
+  .slide-over-mirror-form button, .slide-over-mirror-form select, .slide-over-mirror-form input { min-height: 2.75rem; }
+}

@@ -3312,3 +3312,275 @@ fn claim_cancel_and_answer_routes_accept_and_deduplicate_request_id() -> TestRes
 
     Ok(())
 }
+
+#[test]
+// r[verify kiln.fleet.local_copy_census]
+// r[verify kiln.fleet.local_copy_census.scenario.offline_host]
+fn repositories_census_observes_local_git_and_jj_and_reports_offline_hosts() -> TestResult {
+    let directory = tempfile::tempdir()?;
+    let root = directory.path();
+    write_enrollment(root)?;
+
+    let find_program = |name: &str| -> TestResult<PathBuf> {
+        let path = std::env::var_os("PATH").ok_or("PATH is unset")?;
+        std::env::split_paths(&path)
+            .map(|dir| dir.join(name))
+            .find(|candidate| candidate.is_file())
+            .ok_or_else(|| format!("{name} not found on PATH").into())
+    };
+    let git_bin = find_program("git")?;
+
+    let run_git = |cwd: &Path, args: &[&str]| -> TestResult<String> {
+        let out = std::process::Command::new(&git_bin)
+            .current_dir(cwd)
+            .args(args)
+            .output()?;
+        if !out.status.success() {
+            return Err(format!(
+                "git {:?} failed: {}",
+                args,
+                String::from_utf8_lossy(&out.stderr)
+            )
+            .into());
+        }
+        Ok(String::from_utf8_lossy(&out.stdout).trim().to_owned())
+    };
+
+    // 1. Configured local git checkout (dirty, 2 active cairn changes, GitHub remote).
+    let git_repo = root.join("configured-git-repo");
+    std::fs::create_dir_all(git_repo.join(".cairn").join("changes").join("change-one"))?;
+    std::fs::create_dir_all(git_repo.join(".cairn").join("changes").join("change-two"))?;
+    run_git(&git_repo, &["init", "-b", "main"])?;
+    run_git(&git_repo, &["config", "user.name", "Kiln Test"])?;
+    run_git(&git_repo, &["config", "user.email", "test@kiln.local"])?;
+    std::fs::write(git_repo.join("README.md"), b"hello\n")?;
+    run_git(&git_repo, &["add", "README.md"])?;
+    run_git(&git_repo, &["commit", "-m", "initial"])?;
+    let expected_git_head = run_git(&git_repo, &["rev-parse", "HEAD"])?;
+    run_git(
+        &git_repo,
+        &[
+            "remote",
+            "add",
+            "origin",
+            "https://github.com/OnixResearch/kiln.git",
+        ],
+    )?;
+    // Dirty working tree modification + untracked file.
+    std::fs::write(git_repo.join("README.md"), b"modified\n")?;
+    std::fs::write(git_repo.join("untracked.txt"), b"dirty\n")?;
+
+    // 2. Scan root with depth-1 repo, depth-2 jj repo, hidden dir (ignored), and depth-3 repo (ignored).
+    let scan_root = root.join("scan-root");
+    let org_dir = scan_root.join("OnixResearch");
+    let jj_repo = org_dir.join("mneme");
+    std::fs::create_dir_all(jj_repo.join(".cairn").join("changes").join("jj-cairn"))?;
+    run_git(&jj_repo, &["init", "-b", "main"])?;
+    run_git(&jj_repo, &["config", "user.name", "Kiln Test"])?;
+    run_git(&jj_repo, &["config", "user.email", "test@kiln.local"])?;
+    std::fs::write(jj_repo.join("lib.rs"), b"pub fn x() {}\n")?;
+    run_git(&jj_repo, &["add", "lib.rs"])?;
+    run_git(&jj_repo, &["commit", "-m", "jj base"])?;
+    run_git(
+        &jj_repo,
+        &[
+            "remote",
+            "add",
+            "rad",
+            "rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+        ],
+    )?;
+    if let Ok(jj_bin) = find_program("jj") {
+        let out = std::process::Command::new(jj_bin)
+            .current_dir(&jj_repo)
+            .args(["git", "init", "--colocate"])
+            .output()?;
+        if !out.status.success() {
+            std::fs::create_dir_all(jj_repo.join(".jj"))?;
+        }
+    } else {
+        std::fs::create_dir_all(jj_repo.join(".jj"))?;
+    }
+
+    // Depth-3 repo must NOT be scanned.
+    let too_deep = org_dir.join("nested").join("too-deep");
+    std::fs::create_dir_all(&too_deep)?;
+    run_git(&too_deep, &["init", "-b", "main"])?;
+
+    // Hidden depth-1 dir must NOT be scanned.
+    let hidden_repo = scan_root.join(".hidden-repo");
+    std::fs::create_dir_all(&hidden_repo)?;
+    run_git(&hidden_repo, &["init", "-b", "main"])?;
+
+    // Missing configured checkout must be reported as unavailable.
+    let missing_repo = root.join("does-not-exist");
+
+    let worktrees = root.join("worktrees");
+    std::fs::create_dir_all(&worktrees)?;
+    let inventory = json!({
+        "schema": "kiln.fleet-inventory.v1",
+        "executable": "/bin/true",
+        "session": "kiln-census-test",
+        "environment": { "home": root, "path": std::env::var("PATH").unwrap_or_else(|_| "/bin:/usr/bin".to_owned()) },
+        "machines": [
+            {
+                "label": COORDINATOR,
+                "worktree_root": worktrees,
+                "repositories": {
+                    "OnixResearch/kiln": git_repo,
+                    "OnixResearch/missing": missing_repo
+                },
+                "agents": [{ "kind": "omp", "slots": 1 }]
+            },
+            {
+                "label": PEER,
+                "herdr_machine": PEER,
+                "ssh_target": "brittonr@aspen3",
+                "worktree_root": "/home/brittonr/worktrees",
+                "repositories": {
+                    "OnixResearch/kiln": "/home/brittonr/git/kiln"
+                },
+                "agents": [{ "kind": "omp", "slots": 1 }]
+            }
+        ]
+    });
+    std::fs::write(root.join("inventory.json"), serde_json::to_vec(&inventory)?)?;
+
+    let mut document = config(root, &FAKE_TAILSCALE);
+    if let Some(obj) = document.as_object_mut() {
+        obj.insert("repository_scan_roots".into(), json!([scan_root]));
+    }
+    let cfg = FleetConfig::from_json(&serde_json::to_vec(&document)?)?;
+    let service = Service::new(cfg)?;
+
+    let ip = |text: &str| text.parse::<IpAddr>().unwrap_or_else(|_| unreachable!());
+    // Negative: unauthenticated peer is refused with 403.
+    assert_eq!(
+        service
+            .handle(ip("100.100.1.2"), &request("GET", "/v1/repositories", None))
+            .status,
+        403
+    );
+    // Negative: non-GET returns 405.
+    assert_eq!(
+        service
+            .route(COORDINATOR, &request("POST", "/v1/repositories", None), 5_000)
+            .status,
+        405
+    );
+    // Negative: unexpected query returns 400.
+    assert_eq!(
+        service
+            .route(
+                COORDINATOR,
+                &request("GET", "/v1/repositories?machine=britton-desktop", None),
+                5_000,
+            )
+            .status,
+        400
+    );
+    assert_eq!(
+        service
+            .route(COORDINATOR, &request("GET", "/v1/repositories?", None), 5_000)
+            .status,
+        400
+    );
+
+    // Positive: authenticated peer receives full bounded census.
+    let response = service.handle(ip("100.100.1.1"), &request("GET", "/v1/repositories", None));
+    assert_eq!(response.status, 200, "{}", response.body);
+    assert_eq!(response.body["schema"], "kiln.fleet-repositories.v1");
+    assert_eq!(response.body["bounded"], true);
+    assert_eq!(response.body["truncated"], false);
+
+    let hosts = response.body["hosts"]
+        .as_array()
+        .ok_or("missing hosts array")?;
+    let host_row = |name: &str| -> Option<&Value> {
+        hosts.iter().find(|entry| entry["machine"] == name)
+    };
+    let coord_host = host_row(COORDINATOR).ok_or("missing coordinator host")?;
+    assert_eq!(coord_host["health"], "available");
+    assert_eq!(coord_host["copy_count"], 3);
+
+    // Offline/unreachable fleet hosts MUST appear explicitly as unavailable.
+    let aspen3_host = host_row(PEER).ok_or("missing aspen3 host")?;
+    assert_eq!(aspen3_host["health"], "unavailable");
+    assert!(
+        aspen3_host["error"].as_str().is_some_and(|s| !s.is_empty()),
+        "aspen3 error diagnostic must be non-empty"
+    );
+    assert_eq!(aspen3_host["copy_count"], 1);
+
+    let aspen1_host = host_row("aspen1").ok_or("missing aspen1 host")?;
+    assert_eq!(aspen1_host["health"], "unavailable");
+    assert!(aspen1_host["error"].as_str().is_some_and(|s| !s.is_empty()));
+
+    let copies = response.body["copies"]
+        .as_array()
+        .ok_or("missing copies array")?;
+    // Verify depth-3 and hidden repos were not included.
+    assert!(
+        !copies.iter().any(|c| {
+            c["path"]
+                .as_str()
+                .is_some_and(|p| p.contains("too-deep") || p.contains(".hidden-repo"))
+        }),
+        "depth-3 and hidden repos must not be scanned: {copies:?}"
+    );
+
+    let git_copy = copies
+        .iter()
+        .find(|c| c["path"] == git_repo.to_string_lossy().as_ref())
+        .ok_or("missing git copy")?;
+    assert_eq!(git_copy["machine"], COORDINATOR);
+    assert_eq!(git_copy["vcs"], "git");
+    assert_eq!(git_copy["head_commit"], expected_git_head);
+    assert_eq!(git_copy["branch_or_bookmark"], "main");
+    assert_eq!(git_copy["dirty"], true);
+    assert_eq!(git_copy["cairn_count"], 2);
+    assert_eq!(git_copy["health"], "available");
+    assert_eq!(
+        git_copy["remotes"],
+        json!(["https://github.com/OnixResearch/kiln.git"])
+    );
+    // Read-only check: no index.lock left behind.
+    assert!(!git_repo.join(".git").join("index.lock").exists());
+
+    let jj_copy = copies
+        .iter()
+        .find(|c| c["path"] == jj_repo.to_string_lossy().as_ref())
+        .ok_or("missing jj copy")?;
+    assert_eq!(jj_copy["machine"], COORDINATOR);
+    assert_eq!(jj_copy["vcs"], "jj");
+    assert_eq!(jj_copy["cairn_count"], 1);
+    assert_eq!(jj_copy["health"], "available");
+    assert_eq!(
+        jj_copy["remotes"],
+        json!(["rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"])
+    );
+    assert!(
+        jj_copy["head_commit"]
+            .as_str()
+            .is_some_and(|s| s.len() == 40)
+    );
+
+    let missing_copy = copies
+        .iter()
+        .find(|c| c["path"] == missing_repo.to_string_lossy().as_ref())
+        .ok_or("missing unavailable local checkout entry")?;
+    assert_eq!(missing_copy["health"], "unavailable");
+    assert!(missing_copy["error"].as_str().is_some_and(|s| !s.is_empty()));
+
+    let remote_copy = copies
+        .iter()
+        .find(|c| c["machine"] == PEER)
+        .ok_or("missing remote host configured copy")?;
+    assert_eq!(remote_copy["path"], "/home/brittonr/git/kiln");
+    assert_eq!(remote_copy["health"], "unavailable");
+    assert!(remote_copy["dirty"].is_null());
+    assert!(remote_copy["head_commit"].is_null());
+    assert!(remote_copy["error"].as_str().is_some_and(|s| !s.is_empty()));
+
+    Ok(())
+}

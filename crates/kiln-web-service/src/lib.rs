@@ -22,6 +22,7 @@ pub mod monorepo;
 pub mod preview;
 pub mod profile;
 pub mod reports;
+pub mod repository_catalog;
 pub mod reviews;
 pub mod rollups;
 pub mod runbooks;

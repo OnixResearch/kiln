@@ -289,7 +289,7 @@
         return data.receipts.filter((receipt) => matches(searchTerm, receipt.name, receipt.provider_profile, ...Object.keys(receipt.decision_counts || {}))).map((receipt) => ({ label: receipt.name, detail: `Retained review · ${receipt.provider_profile || "profile unavailable"}`, run: () => bridge().navigate({ page: "reviews", receipt: receipt.name }) }));
       }],
     ];
-    const [coreResults, claimsData, attemptsData, decisionsData, machinesData, cairnData, campaignsData, workersData, reviewData, attentionData] = await Promise.all([
+    const [coreResults, claimsData, attemptsData, decisionsData, machinesData, cairnData, campaignsData, workersData, reviewData, attentionData, reposData] = await Promise.all([
       Promise.allSettled(coreSources.map(async ([, target, project]) => project(await bridge().api(target)))),
       safeFetch("/api/fleet/claims?include=foreign,expired"),
       safeFetch("/api/fleet/attempts"),
@@ -300,6 +300,7 @@
       safeFetch("/api/workers"),
       safeFetch("/api/code-review"),
       safeFetch("/api/implementation/attention"),
+      safeFetch("/api/repositories"),
     ]);
     if (!current()) return;
     const errors = [];
@@ -440,9 +441,30 @@
           });
         }
       }
+      if (allowVerb("import") && canOp && (!targetFilter || matches(targetFilter, "repo") || matches(targetFilter, "repository"))) {
+        entries.push({
+          group: "Commands",
+          label: "> import repo",
+          detail: "Tier 2 · Open Repositories & Fleet Copies import form",
+          run: () => {
+            bridge().navigate({ page: "source", tab: "repositories", repo_focus: "import" });
+            setTimeout(() => document.getElementById("repo-import-url")?.focus?.(), 60);
+          },
+        });
+      }
     }
 
     if (!isVerbQuery) {
+      for (const repo of (Array.isArray(reposData?.repositories) ? reposData.repositories : []).filter((r) => matches(searchTerm, r.identity, r.slug, r.label, r.sync_status, ...(r.remotes || []).flatMap((rm) => [rm.native_id, rm.url]), ...(r.local_copies || []).flatMap((cp) => [cp.machine, cp.path])))) {
+        const hosts = [...new Set((repo.local_copies || []).map((cp) => cp.machine).filter(Boolean))].join(", ");
+        entries.push({
+          group: "Repositories",
+          label: repo.label || repo.slug || String(repo.identity || "").slice(0, 12),
+          detail: `Repository · ${repo.sync_status || "unknown"}${hosts ? ` · ${hosts}` : ""}`,
+          exact: String(repo.identity || "").slice(0, 12),
+          run: () => fac?.openInspector ? fac.openInspector("repo", repo.identity) : bridge().navigate({ page: "source", tab: "repositories", inspect: `repo:${repo.identity}` }),
+        });
+      }
       for (const c of (Array.isArray(claimsData?.claims) ? claimsData.claims : []).filter((x) => matches(searchTerm, x.identity, claimScope(x), x.purpose))) {
         entries.push({ group: "Fleet claims", label: claimScope(c), detail: `Claim · ${c.holder?.host || ""}`, exact: c.identity, run: () => fac?.openInspector ? fac.openInspector("claim", c.identity) : bridge().navigate({ page: "fleet" }) });
       }

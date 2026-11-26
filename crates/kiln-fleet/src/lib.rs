@@ -22,6 +22,7 @@ pub mod http;
 pub mod identity;
 pub mod log;
 pub mod mcp;
+pub mod repositories;
 pub mod server;
 pub mod store;
 pub mod swarm;

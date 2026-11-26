@@ -22,6 +22,7 @@ pub mod preview;
 pub mod projection;
 pub mod provider;
 pub mod remote;
+pub mod repository_catalog;
 pub mod review;
 pub mod semantic_merge;
 pub mod source;

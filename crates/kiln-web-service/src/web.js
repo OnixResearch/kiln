@@ -50,7 +50,7 @@
     liveTicker: null, logAutoFollow: false, followDeclined: "", startProject: "",
     events: { status: "disconnected", ready: null, ci: null, fleet: null, fleetObservedAt: 0, cairn: null, attention: null },
     eventSubscribers: new Set(),
-    factory: { attention: null, machines: null, claims: null, dispatch: null, cairn: null, codeReview: null, showAllClaims: false },
+    factory: { attention: null, machines: null, claims: null, dispatch: null, cairn: null, codeReview: null, repositories: null, showAllClaims: false },
     inspector: { open: false, kind: "", id: "", items: [], paneTimer: null, paneController: null, paneLines: 200, returnFocus: null },
     selectedRuns: new Set(),
     chordPrefix: "", chordTimer: null,
@@ -1746,6 +1746,7 @@
     ]),
     source: Object.freeze([
       Object.freeze({ id: "source", label: "Source browser", panel: "source" }),
+      Object.freeze({ id: "repositories", label: "Repositories", panel: "repositories" }),
       Object.freeze({ id: "activity", label: "Activity", panel: "activity" }),
       Object.freeze({ id: "feeds", label: "Feeds", panel: "feeds" }),
       Object.freeze({ id: "automation", label: "Automation", panel: "automation" }),
@@ -1758,9 +1759,9 @@
     cairn: new Set(["cairn", "work", "planning", "workviews"]),
     runs: new Set(["runs", "projects", "project", "runbooks", "reviews", "evidence"]),
     fleet: new Set(["fleet", "workers"]),
-    source: new Set(["source", "activity", "feeds", "automation", "operations", "cobs"]),
+    source: new Set(["source", "repositories", "activity", "feeds", "automation", "operations", "cobs"]),
   });
-  const INSPECT_KINDS = new Set(["attempt", "claim", "decision", "attention", "run", "cairn", "review"]);
+  const INSPECT_KINDS = new Set(["attempt", "claim", "decision", "attention", "run", "cairn", "review", "repo"]);
   function parseInspectParam(raw) {
     if (typeof raw !== "string" || !raw) return "";
     const idx = raw.indexOf(":");
@@ -1855,6 +1856,7 @@
       cob: params.get("cob") || "", cob_repo: params.get("cob_repo") || "", cob_kind: params.get("cob_kind") || "",
       src: params.get("src") || "", rev: params.get("rev") || "", spath: params.get("spath") || "", sfile: params.get("sfile") || "", sq: (params.get("sq") || "").slice(0, 256),
       sview: ["history", "changes"].includes(params.get("sview")) ? params.get("sview") : "", sline: (params.get("sline") || "").slice(0, 32),
+      repo_focus: params.get("repo_focus") === "import" ? "import" : "",
       receipt: (params.get("receipt") || "").slice(0, 128), receipt_q: (params.get("receipt_q") || "").slice(0, 256), receipt_decision: (params.get("receipt_decision") || "").slice(0, 32),
       worker_q: (params.get("worker_q") || "").slice(0, 256), worker_status: Object.hasOwn(window.KilnWorkers.statuses, params.get("worker_status")) ? params.get("worker_status") : "", worker: params.get("worker") || "",
       worker_campaign: params.get("worker_campaign") || "",
@@ -1960,6 +1962,7 @@
     if (prevSub === "code-review" && nextSub !== "code-review") window.KilnCodeReview?.clear();
     if (prevSub === "project" && nextSub !== "project") window.KilnProject?.clear();
     if (prevSub === "source" && nextSub !== "source") window.KilnSource?.clear();
+    if (prevSub === "repositories" && nextSub !== "repositories") window.KilnSource?.clearRepositories?.();
     if (prevSub === "reviews" && nextSub !== "reviews") window.KilnReceipts?.clear();
     if (prevSub === "cairn" && nextSub !== "cairn") window.KilnCairn?.clear();
     if (prevSub === "fleet" && nextSub !== "fleet") window.KilnFleet?.clear();
@@ -2003,11 +2006,12 @@
     // r[impl kiln.web.wayfinding] The title block reads the destination register: section number and group, title, purpose.
     const place = ui.destination(route.page);
     const subPlace = nextSub !== route.page ? ui.destination(nextSub) : null;
+    const subMeta = !subPlace && nextSub === "repositories" ? { title: "Repositories", purpose: "Multi-forge repository catalog, canonical Radicle/GitHub/Gitea remotes, mirrors, and cross-fleet local working copies." } : null;
     $("workspace-title").textContent = place.title;
-    $("app-breadcrumb").textContent = subPlace ? `${place.number} ${place.title} / ${subPlace.title}` : `${place.number} ${place.title}`;
+    $("app-breadcrumb").textContent = (subPlace || subMeta) ? `${place.number} ${place.title} / ${(subPlace || subMeta).title}` : `${place.number} ${place.title}`;
     document.title = `Kiln · ${place.title}`;
     $("workspace-eyebrow").replaceChildren(element("span", place.number, "page-number"), document.createTextNode(ui.destinationGroup(place.group).name));
-    $("observation-note").textContent = subPlace ? subPlace.purpose : place.purpose;
+    $("observation-note").textContent = (subPlace || subMeta) ? (subPlace || subMeta).purpose : place.purpose;
     if (previous?.page !== route.page || prevSub !== nextSub) {
       notice("");
       $("page-primary-action").replaceChildren();
@@ -2580,6 +2584,10 @@
       if (!window.KilnSource) { $("source-content").replaceChildren(element("p", "Source browser is loading.", "small")); return; }
       await window.KilnSource.load($("source-content"), { api, navigate, route });
     }
+    if (subPage === "repositories") {
+      if (!window.KilnSource?.loadRepositories) { $("repositories-content").replaceChildren(element("p", "Repositories workbench is loading.", "small")); return; }
+      await window.KilnSource.loadRepositories($("repositories-content"), { api, navigate, route, confirmControl, mutate, canOperate, openInspector, notice });
+    }
     // r[impl kiln.dashboard.reviews.view] The Patchgate receipts page renders through receipts.js.
     if (subPage === "reviews") {
       if (!window.KilnReceipts) { $("receipts-content").replaceChildren(element("p", "Patchgate receipts are loading.", "small")); return; }
@@ -3048,6 +3056,23 @@
     addCell("Host slot occupancy", (dd) => {
       dd.append(element("span", `${usedSlots} / ${capSlots}${offlineMachines ? ` (${offlineMachines} offline)` : ""}`));
     });
+    // r[impl kiln.web.repository_import_ui] Compact 1-line Repositories & Fleet Sync summary linking to ?page=source&tab=repositories.
+    addCell("Repositories & Fleet Sync", (dd) => {
+      const repoData = state.factory.repositories;
+      if (!repoData) {
+        dd.append(element("span", "Unavailable", "small"), workspaceLink({ page: "source", tab: "repositories" }, "Open ->", "row-link"));
+        return;
+      }
+      const list = Array.isArray(repoData.repositories) ? repoData.repositories : [];
+      const sum = repoData.summary || {
+        total: list.length,
+        diverged: list.filter((r) => r.sync_status === "diverged").length,
+        dirty: list.filter((r) => r.sync_status === "dirty").length,
+        unknown: list.filter((r) => r.sync_status === "unknown").length,
+      };
+      const label = `${sum.total ?? 0} repos · ${sum.diverged ?? 0} diverged · ${sum.dirty ?? 0} dirty${sum.unknown ? ` · ${sum.unknown} offline` : ""}`;
+      dd.append(workspaceLink({ page: "source", tab: "repositories" }, label, "row-link"));
+    });
   }
   function attentionKindLabel(kind) {
     return {
@@ -3426,16 +3451,22 @@
         updateGlobalLiveStrip();
       }
     }
+    if (activeSubPageFor(state.route) === "repositories" && (channel === "repositories" || channel === "fleet")) {
+      void readAction(loadPage)();
+    }
     if (state.route?.page === "overview") {
-      if (channel === "fleet") {
-        const [machines, claims, dispatch] = await Promise.all([
+      if (channel === "fleet" || channel === "repositories") {
+        const [machines, claims, dispatch, repos] = await Promise.all([
           safeCall("/api/fleet/machines"),
           safeCall("/api/fleet/claims?include=foreign,expired"),
           safeCall("/api/fleet/dispatch/status"),
+          safeCall("/api/repositories"),
         ]);
         if (machines.ok) renderFactoryMachines(machines.value);
         if (claims.ok) renderFactoryClaims(claims.value);
-        if (dispatch.ok) { state.factory.dispatch = dispatch.value; renderFactoryRibbon(); }
+        if (dispatch.ok) { state.factory.dispatch = dispatch.value; }
+        if (repos.ok) state.factory.repositories = repos.value;
+        renderFactoryRibbon();
       } else if (channel === "cairn") {
         const cairn = await safeCall("/api/implementation/cairn");
         if (cairn.ok) { state.factory.cairn = cairn.value; renderFactoryDeliverySpine(); }
@@ -3444,7 +3475,7 @@
   }
   async function loadOverview() {
     if (!$("overview-content")?.querySelector?.(".factory-cockpit")) buildOverview($("overview-content"));
-    const [overviewRes, workersRes, activityRes, attentionRes, machinesRes, claimsRes, dispatchRes, cairnRes, attemptsRes, reviewRes] = await Promise.all([
+    const [overviewRes, workersRes, activityRes, attentionRes, machinesRes, claimsRes, dispatchRes, cairnRes, attemptsRes, reviewRes, reposRes] = await Promise.all([
       safeCall("/api/overview"),
       safeCall("/api/workers"),
       safeCall(`/api/activity?${new URLSearchParams({ limit: String(OVERVIEW_ACTIVITY_LIMIT) })}`),
@@ -3455,6 +3486,7 @@
       safeCall("/api/implementation/cairn"),
       safeCall("/api/fleet/attempts"),
       safeCall("/api/code-review"),
+      safeCall("/api/repositories"),
     ]);
     if (state.route?.page !== "overview") return;
     if (overviewRes.ok && overviewRes.value?.totals) renderOverviewHealth(overviewRes.value);
@@ -3471,6 +3503,7 @@
     state.factory.cairn = cairnRes.ok ? cairnRes.value : null;
     state.factory.attempts = attemptsRes.ok ? (attemptsRes.value?.attempts || []) : [];
     state.factory.codeReview = reviewRes.ok ? reviewRes.value : null;
+    state.factory.repositories = reposRes.ok ? reposRes.value : null;
 
     if (attentionRes.ok) renderFactoryAttention(attentionRes.value);
     else $("factory-attention")?.replaceChildren(errorState(`Attention inbox unavailable: ${explain(attentionRes.error)}`));
@@ -5143,6 +5176,7 @@
       run: { page: "runs", tab: "runs", run: id },
       cairn: { page: "cairn", tab: "cairn", cairn_change: id.includes("/") ? id.split("/").slice(1).join("/") : id, cairn_repository: id.includes("/") ? id.split("/")[0] : "" },
       review: { page: "code-review", review_change: id },
+      repo: { page: "source", tab: "repositories" },
     };
     if (openFull && fullLinks[kind]) {
       openFull.hidden = false;
@@ -5382,6 +5416,206 @@
         const facts = element("dl", undefined, "facts");
         addFacts(facts, [["Decision", dec.identity], ["Question", dec.question], ["Raised", timestamp(dec.raised_ms)], ["Answer", dec.answer]]);
         body.replaceChildren(facts);
+        return;
+      }
+      if (kind === "repo") {
+        const repoRes = await api("/api/repositories", { quiet: true });
+        if (!state.inspector.open || state.inspector.id !== id) return;
+        const repos = Array.isArray(repoRes?.repositories) ? repoRes.repositories : [];
+        const repo = repos.find((r) => r.identity === id || r.slug === id);
+        if (!repo) { body.replaceChildren(errorState(`Repository ${id} not found in catalog.`)); return; }
+        titleEl.textContent = repo.label || repo.slug || shortIdentity(repo.identity);
+
+        const syncMap = { synced: "success", diverged: "failure", dirty: "warning", unknown: "unknown", local_only: "queued" };
+        const syncTone = syncMap[repo.sync_status] || "unknown";
+        const adm = repo.admission || {};
+        const admLabels = [
+          adm.catalog_imported ? "Catalog Imported" : null,
+          adm.ci_configured ? "CI Configured" : null,
+          adm.fleet_enrolled ? "Fleet Enrolled" : null,
+          adm.source_configured ? "Source Configured" : null,
+          (!adm.ci_configured && !adm.fleet_enrolled) ? "Observed" : null,
+        ].filter(Boolean);
+
+        const facts = element("dl", undefined, "facts");
+        addFacts(facts, [
+          ["Canonical ID", copyableIdentityChip(repo.identity, "repository") || repo.identity],
+          ["Slug", repo.slug],
+          ["Cross-fleet sync", statePill(syncTone, String(repo.sync_status || "unknown").toUpperCase())],
+          ["Active Cairns", String(repo.total_cairns ?? 0)],
+          ["Admission", admLabels.join(" · ")],
+        ]);
+        const nodes = [facts];
+
+        if (Array.isArray(repo.non_claims) && repo.non_claims.length) {
+          const ncBox = element("div", undefined, "warning slide-over-repo-note");
+          for (const nc of repo.non_claims) ncBox.append(element("p", nc, "small"));
+          nodes.push(ncBox);
+        }
+
+        // Remotes & Mirrors table
+        nodes.push(element("h3", "Remotes & mirrors"));
+        const remotes = Array.isArray(repo.remotes) && repo.remotes.length ? repo.remotes : repo.canonical ? [repo.canonical] : [];
+        if (!remotes.length) {
+          nodes.push(element("p", "No external remotes declared (local checkout only).", "small"));
+        } else {
+          const rWrap = element("div", undefined, "data-table-wrap");
+          const rTable = element("table", undefined, "data-table slide-over-repo-table");
+          const rHead = element("thead");
+          const rHeadRow = element("tr");
+          for (const h of ["Provider", "Role", "Endpoint", "Default ref", "Observed rev", "Status"]) rHeadRow.append(element("th", h));
+          rHead.append(rHeadRow);
+          const rBody = element("tbody");
+          for (const ep of remotes) {
+            const tr = element("tr");
+            tr.append(
+              element("td", ep.provider || "unknown"),
+              element("td", ep.role === "canonical" ? "Canonical" : "Mirror"),
+              element("td", ep.native_id || ep.url || "", "mono"),
+              element("td", ep.default_ref || "—", "mono"),
+              element("td", ep.observed_revision ? shortIdentity(ep.observed_revision) : "Unobserved", "mono"),
+              element("td", ep.status || "declared"),
+            );
+            rBody.append(tr);
+          }
+          rTable.append(rHead, rBody);
+          rWrap.append(rTable);
+          nodes.push(rWrap);
+        }
+
+        // Fleet Local Copies table
+        nodes.push(element("h3", "Fleet local working copies"));
+        const copies = Array.isArray(repo.local_copies) ? repo.local_copies : [];
+        if (!copies.length) {
+          nodes.push(element("p", "No local working copies observed across the fleet.", "small"));
+        } else {
+          const cWrap = element("div", undefined, "data-table-wrap");
+          const cTable = element("table", undefined, "data-table slide-over-repo-table");
+          const cHead = element("thead");
+          const cHeadRow = element("tr");
+          for (const h of ["Machine", "Path", "VCS", "HEAD", "Branch", "State", "Cairns"]) cHeadRow.append(element("th", h));
+          cHead.append(cHeadRow);
+          const cBody = element("tbody");
+          for (const cp of copies) {
+            const tr = element("tr");
+            const offline = cp.health === "unavailable";
+            const stateCell = element("td");
+            if (offline) stateCell.append(statePill("failure", "OFFLINE", cp.error || "Host unavailable"));
+            else if (cp.dirty === true) stateCell.append(statePill("warning", "DIRTY"));
+            else if (cp.dirty === false) stateCell.append(statePill("success", "CLEAN"));
+            else stateCell.append(statePill("unknown", "UNKNOWN"));
+            if (cp.error) stateCell.append(element("p", cp.error, "small"));
+            tr.append(
+              element("td", cp.machine || "unknown", "mono"),
+              element("td", cp.path || "—", "mono"),
+              element("td", cp.vcs || "—", "mono"),
+              element("td", cp.head_commit ? shortIdentity(cp.head_commit) : "—", "mono"),
+              element("td", cp.branch_or_bookmark || "—", "mono"),
+              stateCell,
+              element("td", cp.cairn_count != null ? String(cp.cairn_count) : "—", "num"),
+            );
+            cBody.append(tr);
+          }
+          cTable.append(cHead, cBody);
+          cWrap.append(cTable);
+          nodes.push(cWrap);
+        }
+
+        // Inline Add Mirror & Tier-3 Remove
+        if (canOperate()) {
+          nodes.push(element("h3", "Attach remote or mirror"));
+          const mirrorForm = element("form", undefined, "view-stack slide-over-mirror-form");
+          const row = element("div", undefined, "inline-form");
+          const provSel = element("select");
+          provSel.id = "slide-over-mirror-provider";
+          provSel.setAttribute("aria-label", "Mirror provider");
+          for (const [val, lbl] of [["github", "GitHub"], ["gitea", "Gitea / Forgejo"], ["radicle", "Radicle"]]) {
+            provSel.append(Object.assign(element("option", lbl), { value: val }));
+          }
+          const roleSel = element("select");
+          roleSel.id = "slide-over-mirror-role";
+          roleSel.setAttribute("aria-label", "Mirror role");
+          for (const [val, lbl] of [["mirror", "Mirror"], ["canonical", "Canonical"]]) {
+            roleSel.append(Object.assign(element("option", lbl), { value: val }));
+          }
+          const urlInp = element("input");
+          urlInp.id = "slide-over-mirror-url";
+          urlInp.type = "text";
+          urlInp.required = true;
+          urlInp.placeholder = "owner/repo, https://..., or rad:z...";
+          urlInp.setAttribute("aria-label", "Mirror URL or Radicle RID");
+          const radNotice = element("p", "Read-only declaration/observation only: importing a Radicle RID never runs rad init, signing, push, sync, or delegate mutation.", "warning");
+          radNotice.hidden = true;
+          const mirrorErr = element("p", "", "warning");
+          mirrorErr.hidden = true;
+          provSel.addEventListener("change", () => { radNotice.hidden = provSel.value !== "radicle"; });
+          const addBtn = element("button", "Add mirror…", "primary");
+          addBtn.type = "submit";
+          row.append(provSel, roleSel, urlInp, addBtn);
+          mirrorForm.append(row, radNotice, mirrorErr);
+          mirrorForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const provider = provSel.value;
+            const role = roleSel.value;
+            const url = urlInp.value.trim();
+            if (typeof window.KilnSource?.validateRemoteInput === "function") {
+              const check = window.KilnSource.validateRemoteInput({ provider, role, url, attachRepo: repo });
+              if (!check.ok) { mirrorErr.textContent = check.error; mirrorErr.hidden = false; return; }
+            }
+            mirrorErr.hidden = true;
+            const choice = await confirmControl({
+              title: `Attach ${provider} ${role} to ${repo.label || repo.slug}?`,
+              verb: "Attach mirror",
+              warning: provider === "radicle" ? "Read-only declaration/observation only: importing a Radicle RID never runs rad init, signing, push, sync, or delegate mutation." : DEFAULT_CONFIRM_WARNING,
+              facts: [["Repository", repo.identity], ["Provider", provider], ["Role", role], ["Endpoint", url]],
+              cliCommand: `kiln repositories add-mirror ${repo.identity} --provider ${provider} --role ${role} ${url}`,
+              opener: addBtn,
+            });
+            if (!choice.confirmed) return;
+            const res = await mutate(`/api/repositories/${encodeURIComponent(repo.identity)}/mirrors`, {
+              provider, role, url, request_id: choice.requestId,
+            }, "Mirror attached to repository.");
+            if (res) {
+              void renderSlideOver("repo", id);
+              if (activeSubPageFor(state.route) === "repositories") void readAction(loadPage)();
+              else if (state.route?.page === "overview") void loadOverview();
+            }
+          });
+          nodes.push(mirrorForm);
+
+          if (adm.catalog_imported) {
+            const remBtn = element("button", "Remove from catalog…", "danger");
+            remBtn.type = "button";
+            remBtn.addEventListener("click", async () => {
+              const choice = await confirmControl({
+                title: `Remove ${repo.label || repo.slug} from catalog?`,
+                verb: "Remove from catalog",
+                dismiss: "Keep in catalog",
+                danger: true,
+                warning: "Removes this repository registration from Kiln's durable catalog only. Local files on disk are NEVER deleted.",
+                facts: [["Repository", repo.label || repo.slug], ["Canonical ID", repo.identity], ["Disk files", "Untouched"]],
+                reason: { label: "Removal reason", placeholder: "Why this catalog entry is being removed", required: true },
+                cliCommand: `kiln repositories remove ${repo.identity}`,
+                opener: remBtn,
+              });
+              if (!choice.confirmed) return;
+              const res = await mutate(`/api/repositories/${encodeURIComponent(repo.identity)}/remove`, {
+                reason: choice.reason, request_id: choice.requestId,
+              }, "Repository removed from catalog (disk checkouts untouched).");
+              if (res) {
+                closeInspector();
+                if (activeSubPageFor(state.route) === "repositories") void readAction(loadPage)();
+                else if (state.route?.page === "overview") void loadOverview();
+              }
+            });
+            nodes.push(remBtn);
+          }
+        } else {
+          nodes.push(element("p", "Read-only principal: mirror attachment and catalog removal require operator access.", "small"));
+        }
+
+        body.replaceChildren(...nodes);
+        return;
       }
     } catch (error) {
       if (state.inspector.open && state.inspector.id === id && !isAborted(error)) {

@@ -101,6 +101,26 @@ struct ClaimsEnvelope {
     claims: Vec<kiln_core::fleet::FleetClaim>,
 }
 
+/// Typed host reachability row returned by `kiln-fleet` `GET /v1/repositories`.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+pub struct FleetRepositoryHost {
+    pub machine: String,
+    pub health: String,
+    pub error: Option<String>,
+    pub copy_count: usize,
+}
+
+/// Typed census snapshot returned by `kiln-fleet` `GET /v1/repositories`.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+pub struct FleetRepositoriesSnapshot {
+    pub schema: String,
+    pub observed_at_ms: u64,
+    pub hosts: Vec<FleetRepositoryHost>,
+    pub copies: Vec<kiln_core::repository_catalog::FleetLocalCopy>,
+    pub bounded: bool,
+    pub truncated: bool,
+}
+
 pub(crate) enum EventFrame {
     Snapshot { version: String, data: Vec<u8> },
     Heartbeat,
@@ -183,6 +203,29 @@ impl Client {
         Ok(envelope.claims)
     }
 
+    #[allow(dead_code)]
+    pub(crate) fn repositories(&self) -> Result<FleetRepositoriesSnapshot, String> {
+        let reply = self
+            .call("GET", "/v1/repositories", None)
+            .map_err(|()| "fleet repositories endpoint is unreachable".to_owned())?;
+        if !(200..300).contains(&reply.status) {
+            return Err(format!(
+                "fleet repositories endpoint returned status {}",
+                reply.status
+            ));
+        }
+        let snapshot: FleetRepositoriesSnapshot = serde_json::from_slice(&reply.body)
+            .map_err(|_| "fleet repositories payload is malformed".to_owned())?;
+        if snapshot.schema != "kiln.fleet-repositories.v1" {
+            return Err("fleet repositories schema mismatch".to_owned());
+        }
+        for copy in &snapshot.copies {
+            kiln_core::repository_catalog::validate_local_copy(copy)
+                .map_err(|diag| diag.message)?;
+        }
+        Ok(snapshot)
+    }
+
     fn version(&self) -> Result<String, ()> {
         let value = self
             .json("/v1/version")?
@@ -254,6 +297,7 @@ impl Client {
 // r[impl kiln.fleet.swarm.console]
 // r[impl kiln.fleet.unified_console_surface]
 // r[impl kiln.fleet.live_pane_and_machine_census]
+// r[impl kiln.fleet.local_copy_census]
 pub fn upstream_path(method: &str, target: &str) -> Option<String> {
     let rest = target.strip_prefix("/api/fleet/")?;
     if rest.contains('#')
@@ -277,6 +321,7 @@ pub fn upstream_path(method: &str, target: &str) -> Option<String> {
     match (method, segments.as_slice()) {
         ("GET", ["health"]) if query.is_none() => Some("/v1/health".into()),
         ("GET", ["machines"]) if query.is_none() => Some("/v1/machines".into()),
+        ("GET", ["repositories"]) if query.is_none() => Some("/v1/repositories".into()),
         ("POST", ["machines", name, "drain"])
             if query.is_none() && machine_label(name) =>
         {
@@ -655,6 +700,32 @@ mod tests {
             ("GET", "/api/fleet/dispatch/status?x=1".to_string()),
         ] {
             assert_eq!(upstream_path(refused.0, &refused.1), None, "{refused:?}");
+        }
+    }
+
+    #[test]
+    // r[verify kiln.fleet.local_copy_census]
+    fn repositories_route_is_strictly_allowlisted() {
+        assert_eq!(
+            upstream_path("GET", "/api/fleet/repositories").as_deref(),
+            Some("/v1/repositories")
+        );
+        for refused in [
+            ("POST", "/api/fleet/repositories"),
+            ("PUT", "/api/fleet/repositories"),
+            ("DELETE", "/api/fleet/repositories"),
+            ("GET", "/api/fleet/repositories/"),
+            ("GET", "/api/fleet/repositories/extra"),
+            ("GET", "/api/fleet/repositories?"),
+            ("GET", "/api/fleet/repositories?machine=britton-desktop"),
+            ("GET", "/api/fleet/repositories#frag"),
+            ("GET", "/api/fleet/repositories/../claims"),
+            ("GET", "/api/fleet/../repositories"),
+            ("GET", "/api/fleet/repositories%3fx=1"),
+            ("GET", "/api/fleet/repositories\r\n"),
+            ("GET", "/api/fleet//repositories"),
+        ] {
+            assert_eq!(upstream_path(refused.0, refused.1), None, "{refused:?}");
         }
     }
 

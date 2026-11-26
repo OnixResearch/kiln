@@ -254,7 +254,8 @@
         "/api/implementation/attention",
         "/api/fleet/machines",
         "/api/fleet/claims",
-        "/api/fleet/dispatch/status"
+        "/api/fleet/dispatch/status",
+        "/api/repositories"
       ],
       "url_state": [
         "inspect"
@@ -954,7 +955,8 @@
           "global": "KilnSource",
           "renderer": true,
           "node_tests": [
-            "tests/live-console-ui.test.mjs"
+            "tests/live-console-ui.test.mjs",
+            "tests/repository-import-ui.test.mjs"
           ]
         }
       ],
@@ -962,16 +964,22 @@
         "source.css"
       ],
       "api": [
-        "/api/sources"
+        "/api/sources",
+        "/api/repositories",
+        "/api/repositories/import",
+        "/api/repositories/refresh"
       ],
       "url_state": [
+        "tab",
         "src",
         "rev",
         "spath",
         "sfile",
         "sq",
         "sview",
-        "sline"
+        "sline",
+        "repo_focus",
+        "inspect"
       ],
       "states": [
         "loading",

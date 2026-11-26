@@ -82,7 +82,7 @@ fn usage() -> i32 {
         "       kiln-web-service worker-target --provider-profile <id> --socket <path> --platform <id>"
     );
     eprintln!(
-        "       serve/check observations: [--inventory <path>] [--implementation-work <database>] [--campaign-controls <profile>] [--dispatch-recovery <profile>] [--native-runtime-evidence <profile>] [--delivery-observations <path>] [--artifact-previews <catalog>] [--preview-observations <owned-directory>]"
+        "       serve/check observations: [--inventory <path>] [--implementation-work <database>] [--campaign-controls <profile>] [--dispatch-recovery <profile>] [--native-runtime-evidence <profile>] [--delivery-observations <path>] [--artifact-previews <catalog>] [--preview-observations <owned-directory>] [--repository-root <dir>]"
     );
     eprintln!("       kiln-web-service verify-implementation --help");
     eprintln!("       kiln-web-service implementation-verification-graph --help");
@@ -189,6 +189,13 @@ fn service(command: &str, mut arguments: impl Iterator<Item = String>) -> i32 {
     let mut profile = None;
     let mut options = kiln_web_service::server::Options::default();
     while let Some(flag) = arguments.next() {
+        if flag == "--repository-root" {
+            let Some(value) = arguments.next().filter(|value| !value.starts_with("--")) else {
+                return usage();
+            };
+            options.repository_roots.push(std::path::PathBuf::from(value));
+            continue;
+        }
         let slot = match flag.as_str() {
             "--profile" => &mut profile,
             "--access" => &mut options.access,

@@ -418,6 +418,7 @@ impl Service {
                 json!({ "machine": self.config.machine, "version": env!("CARGO_PKG_VERSION"), "api": API_VERSION, "peer": machine }),
             )),
             ("GET", ["machines"]) => self.machines(now_ms),
+            ("GET", ["repositories"]) => self.repositories(request.query.as_deref(), now_ms),
             ("POST", ["machines", name, "drain"]) => {
                 self.drain_machine(machine, name, &request.body, now_ms)
             }
@@ -476,8 +477,8 @@ impl Service {
             (
                 _,
                 [
-                    "health" | "machines" | "version" | "claims" | "work" | "attempts"
-                    | "decisions" | "metrics" | "swarms",
+                    "health" | "machines" | "repositories" | "version" | "claims" | "work"
+                    | "attempts" | "decisions" | "metrics" | "swarms",
                 ]
                 | ["machines", _, "drain"]
                 | ["dispatch", "status" | "pause" | "resume"]
@@ -686,6 +687,24 @@ impl Service {
             })
             .collect();
         Ok(Response::new(200, json!({ "machines": machines })))
+    }
+
+    // r[impl kiln.fleet.local_copy_census]
+    fn repositories(&self, query: Option<&str>, now_ms: u64) -> Handled {
+        if query.is_some() {
+            return Err(Response::error(
+                400,
+                "fleet_query",
+                "repositories route accepts no query parameters",
+            ));
+        }
+        let herdr = self.herdr_client();
+        let response = crate::repositories::collect_repositories(
+            &self.config,
+            herdr.as_ref().map(HerdrClient::inventory),
+            now_ms,
+        );
+        Ok(Response::new(200, json!(response)))
     }
 
     // r[impl kiln.fleet.live_pane_and_machine_census]

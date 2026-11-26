@@ -47,6 +47,8 @@ pub struct Options {
     pub fleet: Option<PathBuf>,
     /// Explicit bounded export from the deployment owner.
     pub delivery_observations: Option<PathBuf>,
+    /// Optional coordinator-local directory roots scanned shallowly for checkouts.
+    pub repository_roots: Vec<PathBuf>,
 }
 
 impl Options {
@@ -82,6 +84,13 @@ impl Options {
             .is_some_and(|path| !path.is_absolute())
         {
             return Err("delivery observation path must be absolute".into());
+        }
+        if self
+            .repository_roots
+            .iter()
+            .any(|path| !crate::profile::absolute(path))
+        {
+            return Err("repository root path must be absolute".into());
         }
         Ok(())
     }
@@ -267,11 +276,32 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
         .as_deref()
         .map(crate::sources::Profile::load)
         .transpose()?;
+    let configured_sources = sources_profile
+        .as_ref()
+        .map(|loaded| {
+            loaded
+                .sources
+                .iter()
+                .map(|source| crate::repository_catalog::ConfiguredSource {
+                    id: source.id.clone(),
+                    label: source.label.clone(),
+                    kind: source.kind.clone(),
+                    path: source.path.clone(),
+                    executable: source.executable.clone(),
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
     let sources = if profile.restricted_projection {
         crate::sources::Browser::restricted(sources_profile)?
     } else {
         crate::sources::Browser::new(sources_profile)?
     };
+    let repository_catalog = crate::repository_catalog::CatalogService::new(
+        &profile,
+        configured_sources,
+        options.repository_roots.clone(),
+    );
     let reviews = crate::reviews::Browser::new(
         options
             .reviews
@@ -481,11 +511,12 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
                     let permit = Permit(&active);
                     let tls = Arc::clone(&tls);
                     let context = &context;
+                    let repo_catalog = &repository_catalog;
                     if std::thread::Builder::new()
                         .spawn_scoped(scope, move || {
                             let _permit = permit;
                             // Malformed/closed/expired client connections have no application effect.
-                            let _ = connection(stream, tls, context);
+                            let _ = connection(stream, tls, context, repo_catalog);
                         })
                         .is_err()
                     {
@@ -742,6 +773,7 @@ fn connection(
     stream: TcpStream,
     tls: Arc<ServerConfig>,
     context: &Context<'_>,
+    repository_catalog: &crate::repository_catalog::CatalogService,
 ) -> std::io::Result<()> {
     let deadline = Instant::now()
         .checked_add(Duration::from_secs(context.profile.bounds.timeout_seconds))
@@ -779,9 +811,21 @@ fn connection(
         };
     }
     let is_post = request.method == "POST";
-    let response = route(request, context);
+    let is_repo_mutation = is_post
+        && (request_path == "/api/repositories" || request_path.starts_with("/api/repositories/"));
+    let response = route(request, context, repository_catalog);
     if is_post && (200..300).contains(&response.status) {
         if let Some(hub) = context.events {
+            if is_repo_mutation {
+                let version = repository_catalog.catalog_digest();
+                let payload = serde_json::json!({
+                    "invalidated": true,
+                    "version": version,
+                })
+                .to_string()
+                .into_bytes();
+                hub.publish_repositories(version, payload);
+            }
             hub.wake_watcher();
         }
     }
@@ -977,7 +1021,11 @@ fn authenticate_http(
     Ok(principal)
 }
 
-fn route(request: Request, context: &Context<'_>) -> ApiResponse {
+fn route(
+    request: Request,
+    context: &Context<'_>,
+    repository_catalog: &crate::repository_catalog::CatalogService,
+) -> ApiResponse {
     let principal = match authenticate_http(&request, context) {
         Ok(principal) => principal,
         Err(response) => return response,
@@ -1088,6 +1136,25 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
                 return denied(&request, context, Some(&principal), 403, "fleet_read_only");
             }
             return fleet_response(&request, context, &principal);
+        }
+        // r[impl kiln.web.repository_import_api]
+        if path == "/api/repositories" || path.starts_with("/api/repositories/") {
+            if principal.role == crate::engine::Role::Worker {
+                return denied(
+                    &request,
+                    context,
+                    Some(&principal),
+                    403,
+                    "repositories_forbidden",
+                );
+            }
+            return repository_catalog.response(
+                &request.method,
+                &request.target,
+                &request.body,
+                principal.role,
+                context.fleet,
+            );
         }
         if crate::cairn_workspace::http::ROUTES.contains(&path) {
             if context.profile.restricted_projection {
@@ -1927,12 +1994,17 @@ enum BroadcastEvent {
         digest: String,
         data: Arc<Vec<u8>>,
     },
+    Repositories {
+        #[allow(dead_code)]
+        version: String,
+        data: Arc<Vec<u8>>,
+    },
 }
 
 impl BroadcastEvent {
     const fn channel_index(&self) -> usize {
         match self {
-            Self::Ci { .. } => CHANNEL_CI,
+            Self::Ci { .. } | Self::Repositories { .. } => CHANNEL_CI,
             Self::Fleet { .. } | Self::FleetUnavailable { .. } => CHANNEL_FLEET,
             Self::Cairn { .. } => CHANNEL_CAIRN,
             Self::Attention { .. } => CHANNEL_ATTENTION,
@@ -1945,6 +2017,7 @@ impl BroadcastEvent {
             Self::Fleet { .. } | Self::FleetUnavailable { .. } => "fleet",
             Self::Cairn { .. } => "cairn",
             Self::Attention { .. } => "attention",
+            Self::Repositories { .. } => "repositories",
         }
     }
 
@@ -1954,7 +2027,8 @@ impl BroadcastEvent {
             | Self::Fleet { data, .. }
             | Self::FleetUnavailable { data }
             | Self::Cairn { data, .. }
-            | Self::Attention { data, .. } => data.as_slice(),
+            | Self::Attention { data, .. }
+            | Self::Repositories { data, .. } => data.as_slice(),
         }
     }
 }
@@ -2207,6 +2281,12 @@ impl EventHub {
         state.attention_event = Some(Arc::clone(&arc));
         Self::fanout_locked(&mut state, BroadcastEvent::Attention { digest, data: arc });
         true
+    }
+
+    pub(crate) fn publish_repositories(&self, version: String, data: Vec<u8>) {
+        let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+        let arc = Arc::new(data);
+        Self::fanout_locked(&mut state, BroadcastEvent::Repositories { version, data: arc });
     }
 }
 

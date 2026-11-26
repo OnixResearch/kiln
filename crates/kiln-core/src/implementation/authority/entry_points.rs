@@ -353,6 +353,7 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     observe(FLEET_API, "GET /v1/health"),
     observe(FLEET_API, "GET /v1/machines"),
     operator(FLEET_API, "POST /v1/machines/{name}/drain"),
+    observe(FLEET_API, "GET /v1/repositories"),
     observe(FLEET_API, "GET /v1/version"),
     observe(FLEET_API, "GET /v1/claims"),
     operator(FLEET_API, "POST /v1/claims"),

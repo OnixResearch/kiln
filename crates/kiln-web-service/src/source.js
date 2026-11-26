@@ -975,8 +975,753 @@
     for (const map of Object.values(caches)) map.clear();
   }
 
+  // ---------- Repositories & Fleet Copies hub (?page=source&tab=repositories) ----------
+  // r[impl kiln.web.repository_import_ui]
+  const MAX_REMOTE_URL_BYTES = 2048;
+  const RADICLE_NOTICE = "Read-only declaration/observation only: importing a Radicle RID never runs rad init, signing, push, sync, or delegate mutation.";
+  const BASE58_PATTERN = /^[1-9A-HJ-NP-Za-km-z]+$/;
+  const GITHUB_SEGMENT = /^[A-Za-z0-9_.-]+$/;
+  const PROVIDER_LABELS = Object.freeze({ github: "GitHub", gitea: "Gitea", radicle: "Radicle" });
+  const SYNC_META = Object.freeze({
+    synced: Object.freeze({ status: "success", label: "Synced" }),
+    diverged: Object.freeze({ status: "failure", label: "Diverged" }),
+    dirty: Object.freeze({ status: "warning", label: "Dirty" }),
+    unknown: Object.freeze({ status: "unknown", label: "Unknown" }),
+    local_only: Object.freeze({ status: "queued", label: "Local Only" }),
+  });
+
+  function hasControlOrSpace(value) {
+    return /[\u0000-\u001f\u007f\s]/.test(value);
+  }
+  function isDisallowedHost(rawHost) {
+    const host = String(rawHost || "").toLowerCase().replace(/^\[|\]$/g, "");
+    if (!host || host === "localhost" || host.endsWith(".localhost")) return true;
+    if (host.includes(":")) return true; // IPv6 literal
+    const ipv4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+    if (ipv4) return true; // Reject all bare IPv4 literals
+    if (!host.includes(".")) return true;
+    return false;
+  }
+  function parseOwnerRepoPath(path) {
+    const trimmed = String(path || "").replace(/^\/+/, "").replace(/\.git$/i, "");
+    const parts = trimmed.split("/");
+    if (parts.length !== 2) return null;
+    const [owner, repo] = parts;
+    if (!owner || !repo || owner === "." || owner === ".." || repo === "." || repo === ".." || owner.startsWith("-")) return null;
+    if (!GITHUB_SEGMENT.test(owner) || !GITHUB_SEGMENT.test(repo)) return null;
+    return [owner, repo];
+  }
+  function validateRemoteInput({ provider, role, url, attachRepo = null }) {
+    if (!["github", "gitea", "radicle"].includes(provider)) return { ok: false, error: "Select GitHub, Gitea, or Radicle." };
+    if (!["canonical", "mirror"].includes(role)) return { ok: false, error: "Role must be Canonical or Mirror." };
+    const raw = typeof url === "string" ? url.trim() : "";
+    if (!raw) return { ok: false, error: "Enter a repository URL, owner/repo slug, or Radicle RID." };
+    if (utf8Length(raw) > MAX_REMOTE_URL_BYTES) return { ok: false, error: `Endpoint exceeds ${MAX_REMOTE_URL_BYTES} bytes.` };
+    if (hasControlOrSpace(raw)) return { ok: false, error: "Endpoint must not contain whitespace or control characters." };
+
+    // Reject embedded credentials in URLs (allow standard git@host:owner/repo or ssh://git@host/...).
+    if (/^https?:\/\/[^/]*@/i.test(raw)) return { ok: false, error: "Embedded credentials in HTTP(S) URLs are forbidden." };
+    if (/^ssh:\/\/(?!git@)[^/]*@/i.test(raw)) return { ok: false, error: "Embedded credentials in SSH URLs are forbidden (only git@ is allowed)." };
+    if (/^ssh:\/\/git@[^/:]+:[^0-9/][^/]*@/i.test(raw)) return { ok: false, error: "Embedded SSH passwords are forbidden." };
+    if (/^[A-Za-z0-9._-]+:[^/@]+@/.test(raw)) return { ok: false, error: "Embedded credentials are forbidden." };
+
+    if (attachRepo && role === "canonical" && (attachRepo.canonical || (Array.isArray(attachRepo.remotes) && attachRepo.remotes.some((r) => r.role === "canonical")))) {
+      return { ok: false, error: "This repository already has a canonical remote; choose Mirror / Projection instead." };
+    }
+
+    if (provider === "radicle") {
+      let id = raw;
+      if (id.startsWith("rad::rad://")) id = id.slice("rad::rad://".length);
+      else if (id.startsWith("rad://")) id = id.slice("rad://".length);
+      else if (id.startsWith("rad:")) id = id.slice("rad:".length);
+      else return { ok: false, error: "Radicle RID must start with rad:z... or rad://z...." };
+      if (!id.startsWith("z") || id.length < 24 || id.length > 64 || !BASE58_PATTERN.test(id)) {
+        return { ok: false, error: "Radicle RID must be a valid Base58btc z-prefixed identifier (24-64 chars, no 0/O/I/l)." };
+      }
+      return { ok: true, normalized: `rad:${id}` };
+    }
+
+    if (provider === "github") {
+      if (raw.startsWith("http://")) return { ok: false, error: "GitHub URLs must use https://, ssh://git@, git@github.com:, or owner/repo." };
+      if (raw.startsWith("https://github.com/")) {
+        const pair = parseOwnerRepoPath(raw.slice("https://github.com/".length));
+        return pair ? { ok: true, normalized: `https://github.com/${pair[0]}/${pair[1]}.git` } : { ok: false, error: "GitHub URL must point to https://github.com/<owner>/<repo>." };
+      }
+      if (raw.startsWith("ssh://git@github.com/")) {
+        const pair = parseOwnerRepoPath(raw.slice("ssh://git@github.com/".length));
+        return pair ? { ok: true, normalized: `ssh://git@github.com/${pair[0]}/${pair[1]}.git` } : { ok: false, error: "GitHub SSH URL must point to ssh://git@github.com/<owner>/<repo>." };
+      }
+      if (raw.startsWith("git@github.com:")) {
+        const pair = parseOwnerRepoPath(raw.slice("git@github.com:".length));
+        return pair ? { ok: true, normalized: `git@github.com:${pair[0]}/${pair[1]}.git` } : { ok: false, error: "GitHub SSH target must be git@github.com:<owner>/<repo>." };
+      }
+      if (!raw.includes("://") && !raw.includes(":")) {
+        const pair = parseOwnerRepoPath(raw);
+        return pair ? { ok: true, normalized: `https://github.com/${pair[0]}/${pair[1]}.git` } : { ok: false, error: "GitHub shorthand must be <owner>/<repo>." };
+      }
+      return { ok: false, error: "Unrecognized GitHub repository URL or owner/repo." };
+    }
+
+    // Gitea / Forgejo
+    if (raw.startsWith("http://")) return { ok: false, error: "Gitea/Forgejo URLs must use https://, ssh://git@, or git@host:owner/repo." };
+    let hostPort = "";
+    let restPath = "";
+    if (raw.startsWith("https://")) {
+      const after = raw.slice("https://".length);
+      const slash = after.indexOf("/");
+      if (slash <= 0) return { ok: false, error: "Gitea URL must include https://<host>/<owner>/<repo>." };
+      hostPort = after.slice(0, slash);
+      restPath = after.slice(slash + 1);
+    } else if (raw.startsWith("ssh://git@")) {
+      const after = raw.slice("ssh://git@".length);
+      const slash = after.indexOf("/");
+      if (slash <= 0) return { ok: false, error: "Gitea SSH URL must include ssh://git@<host>/<owner>/<repo>." };
+      hostPort = after.slice(0, slash);
+      restPath = after.slice(slash + 1);
+    } else if (raw.startsWith("git@")) {
+      const after = raw.slice("git@".length);
+      const colon = after.indexOf(":");
+      if (colon <= 0) return { ok: false, error: "Gitea SSH target must be git@<host>:<owner>/<repo>." };
+      hostPort = after.slice(0, colon);
+      restPath = after.slice(colon + 1);
+    } else {
+      return { ok: false, error: "Gitea/Forgejo endpoint must use https://<host>/<owner>/<repo> or SSH." };
+    }
+    const hostOnly = hostPort.startsWith("[") ? hostPort : hostPort.split(":")[0];
+    if (isDisallowedHost(hostOnly)) return { ok: false, error: "Gitea host must be a valid non-loopback domain name (IP literals and localhost are rejected)." };
+    const pair = parseOwnerRepoPath(restPath);
+    if (!pair) return { ok: false, error: "Gitea path must include <owner>/<repo>." };
+    return { ok: true, normalized: raw };
+  }
+
+  function summarizeRepositories(repositories) {
+    const list = Array.isArray(repositories) ? repositories : [];
+    const counts = { total: list.length, synced: 0, diverged: 0, dirty: 0, unknown: 0, local_only: 0, total_local_copies: 0, total_cairns: 0 };
+    for (const repo of list) {
+      const status = typeof repo?.sync_status === "string" ? repo.sync_status : "unknown";
+      if (Object.hasOwn(counts, status)) counts[status] += 1;
+      else counts.unknown += 1;
+      counts.total_local_copies += Array.isArray(repo?.local_copies) ? repo.local_copies.length : 0;
+      counts.total_cairns += Number.isSafeInteger(repo?.total_cairns) ? repo.total_cairns : 0;
+    }
+    return counts;
+  }
+
+  function filterRepositories(repositories, { status = "all", query = "" } = {}) {
+    const list = Array.isArray(repositories) ? repositories : [];
+    const needle = String(query || "").trim().toLowerCase();
+    return list.filter((repo) => {
+      if (status && status !== "all" && repo?.sync_status !== status) return false;
+      if (!needle) return true;
+      const fields = [
+        repo?.identity, repo?.slug, repo?.label, repo?.sync_status,
+        ...(Array.isArray(repo?.remotes) ? repo.remotes.flatMap((r) => [r?.provider, r?.role, r?.native_id, r?.url]) : []),
+        ...(Array.isArray(repo?.local_copies) ? repo.local_copies.flatMap((c) => [c?.machine, c?.path, c?.vcs, c?.branch_or_bookmark, c?.head_commit]) : []),
+      ];
+      return fields.some((val) => String(val ?? "").toLowerCase().includes(needle));
+    });
+  }
+
+  function formatLocalCopySummary(copy) {
+    if (!copy || typeof copy !== "object") return "Unknown copy";
+    const machine = copy.machine || "unknown-host";
+    if (copy.health === "unavailable") return `${machine} · OFFLINE`;
+    const vcs = copy.vcs || "vcs?";
+    const branch = copy.branch_or_bookmark || "detached";
+    const state = copy.dirty === true ? "dirty" : copy.dirty === false ? "clean" : "unknown";
+    const head = copy.head_commit ? shortId(copy.head_commit) : "no-head";
+    return `${machine} · ${vcs} · ${branch} · ${state} · ${head}`;
+  }
+
+  function syncBadge(syncStatus) {
+    const meta = SYNC_META[syncStatus] || SYNC_META.unknown;
+    const pill = element("span", undefined, "status-pill");
+    pill.dataset.status = meta.status;
+    const svg = meta.status === "success" ? icon("circle-check") : meta.status === "failure" ? icon("circle-x") : meta.status === "warning" ? icon("triangle-alert") : icon("circle-alert");
+    pill.append(svg, element("span", meta.label, "status-pill-label"));
+    pill.title = `Cross-fleet sync status: ${syncStatus || "unknown"}`;
+    return pill;
+  }
+
+  function matchLocalSourceId(repo, sources) {
+    if (typeof repo?.source_id === "string" && repo.source_id) return repo.source_id;
+    const list = Array.isArray(sources) ? sources : [];
+    const copyPaths = new Set((repo?.local_copies || []).map((c) => c?.path).filter(Boolean));
+    for (const s of list) {
+      if (!s || typeof s.id !== "string") continue;
+      if (s.id === repo?.slug || s.id === repo?.label || (s.path && copyPaths.has(s.path))) return s.id;
+    }
+    return "";
+  }
+
+  let repoGeneration = 0;
+  let repoMounted = null;
+  let repoFilterState = { status: "all", query: "" };
+
+  function renderHealthBanner(catalog) {
+    const fleetSource = catalog?.sources?.fleet;
+    const localSource = catalog?.sources?.local_scan;
+    const catalogSource = catalog?.sources?.catalog;
+    const unavailableHosts = Array.isArray(catalog?.hosts) ? catalog.hosts.filter((h) => h && h.health === "unavailable") : [];
+    const warnings = [];
+    if (fleetSource && fleetSource.available === false) {
+      warnings.push(`Fleet census unavailable${fleetSource.error ? `: ${fleetSource.error}` : ""}. Local and catalog repositories remain visible.`);
+    }
+    if (localSource && localSource.available === false) {
+      warnings.push(`Local checkout scan unavailable${localSource.error ? `: ${localSource.error}` : ""}.`);
+    }
+    if (catalogSource && catalogSource.available === false) {
+      warnings.push(`Catalog store warning${catalogSource.error ? `: ${catalogSource.error}` : ""}.`);
+    }
+    if (unavailableHosts.length) {
+      warnings.push(`Offline / unreachable fleet hosts: ${unavailableHosts.map((h) => `${h.machine}${h.error ? ` (${h.error})` : ""}`).join(", ")}.`);
+    }
+    if (!warnings.length) return null;
+    const banner = element("div", undefined, "warning repo-health-banner");
+    banner.id = "repo-health-banner";
+    banner.setAttribute("role", "status");
+    const head = element("div", undefined, "repo-banner-head");
+    head.append(icon("triangle-alert"), element("strong", "Degraded source observation"));
+    banner.append(head);
+    for (const msg of warnings) banner.append(element("p", msg, "small"));
+    return banner;
+  }
+
+  function renderImportCard(ctx, repositories, onReload) {
+    const card = element("section", undefined, "card repo-import-card");
+    card.id = "repo-import-card";
+    const head = element("div", undefined, "section-heading");
+    head.append(element("h2", "Import repository or attach mirror", "card-title"));
+    card.append(head);
+
+    const canOp = typeof ctx.canOperate === "function" ? ctx.canOperate() : window.KilnFactory?.canOperate?.() === true;
+    const confirmFn = ctx.confirmControl || window.KilnFactory?.confirmControl;
+    const mutateFn = ctx.mutate || window.KilnFactory?.mutate;
+
+    if (!canOp) {
+      card.append(element("p", "Read-only principal: importing repositories, attaching mirrors, refreshing census, and removing catalog entries require operator access.", "small repo-readonly-note"));
+    }
+
+    const form = element("form", undefined, "repo-import-form");
+    form.id = "repo-import-form";
+
+    const grid = element("div", undefined, "repo-import-grid");
+
+    const attachWrap = element("div", undefined, "form-field");
+    const attachLabel = element("label", "Target repository");
+    attachLabel.htmlFor = "repo-import-attach";
+    const attachSelect = element("select");
+    attachSelect.id = "repo-import-attach";
+    attachSelect.append(Object.assign(element("option", "New repository (import)"), { value: "" }));
+    for (const r of repositories) {
+      const opt = element("option", `${r.label || r.slug || shortId(r.identity)} (${shortId(r.identity)})`);
+      opt.value = r.identity;
+      attachSelect.append(opt);
+    }
+    attachSelect.disabled = !canOp;
+    attachWrap.append(attachLabel, attachSelect);
+
+    const provWrap = element("div", undefined, "form-field");
+    const provLabel = element("label", "Provider");
+    provLabel.htmlFor = "repo-import-provider";
+    const provSelect = element("select");
+    provSelect.id = "repo-import-provider";
+    for (const [val, text] of [["github", "GitHub (owner/repo or URL)"], ["gitea", "Gitea / Forgejo (HTTPS or SSH)"], ["radicle", "Radicle (rad:z...)"]]) {
+      provSelect.append(Object.assign(element("option", text), { value: val }));
+    }
+    provSelect.disabled = !canOp;
+    provWrap.append(provLabel, provSelect);
+
+    const roleWrap = element("div", undefined, "form-field");
+    const roleLabel = element("label", "Role");
+    roleLabel.htmlFor = "repo-import-role";
+    const roleSelect = element("select");
+    roleSelect.id = "repo-import-role";
+    for (const [val, text] of [["canonical", "Canonical"], ["mirror", "Mirror / Projection"]]) {
+      roleSelect.append(Object.assign(element("option", text), { value: val }));
+    }
+    roleSelect.disabled = !canOp;
+    roleWrap.append(roleLabel, roleSelect);
+
+    const urlWrap = element("div", undefined, "form-field repo-import-url-field");
+    const urlLabel = element("label", "Repository URL / slug / Radicle RID");
+    urlLabel.htmlFor = "repo-import-url";
+    const urlInput = element("input");
+    urlInput.id = "repo-import-url";
+    urlInput.type = "text";
+    urlInput.maxLength = MAX_REMOTE_URL_BYTES;
+    urlInput.autocomplete = "off";
+    urlInput.spellcheck = false;
+    urlInput.required = true;
+    urlInput.disabled = !canOp;
+    urlWrap.append(urlLabel, urlInput);
+
+    const labelWrap = element("div", undefined, "form-field");
+    const labelText = element("label", "Display label (optional)");
+    labelText.htmlFor = "repo-import-label";
+    const labelInput = element("input");
+    labelInput.id = "repo-import-label";
+    labelInput.type = "text";
+    labelInput.maxLength = 256;
+    labelInput.autocomplete = "off";
+    labelInput.placeholder = "Optional display name";
+    labelInput.disabled = !canOp;
+    labelWrap.append(labelText, labelInput);
+
+    const refWrap = element("div", undefined, "form-field");
+    const refLabel = element("label", "Default ref (optional)");
+    refLabel.htmlFor = "repo-import-ref";
+    const refInput = element("input");
+    refInput.id = "repo-import-ref";
+    refInput.type = "text";
+    refInput.maxLength = 256;
+    refInput.autocomplete = "off";
+    refInput.placeholder = "main";
+    refInput.disabled = !canOp;
+    refWrap.append(refLabel, refInput);
+
+    grid.append(attachWrap, provWrap, roleWrap, urlWrap, labelWrap, refWrap);
+
+    const radicleNotice = element("p", undefined, "warning repo-radicle-notice");
+    radicleNotice.id = "repo-radicle-notice";
+    radicleNotice.append(icon("shield-check"), element("span", RADICLE_NOTICE));
+    radicleNotice.hidden = true;
+
+    const formError = element("p", "", "warning repo-import-error");
+    formError.id = "repo-import-error";
+    formError.setAttribute("role", "status");
+    formError.hidden = true;
+
+    const actions = element("div", undefined, "src-actions");
+    const submitBtn = element("button", "Import repository…", "primary");
+    submitBtn.id = "repo-import-submit";
+    submitBtn.type = "submit";
+    submitBtn.disabled = !canOp;
+    actions.append(submitBtn);
+
+    const syncFormHints = () => {
+      const p = provSelect.value;
+      urlInput.placeholder = p === "radicle" ? "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE" : p === "gitea" ? "https://gitea.example.com/owner/repo" : "owner/repo or https://github.com/owner/repo";
+      radicleNotice.hidden = p !== "radicle";
+      const attaching = Boolean(attachSelect.value);
+      labelInput.disabled = !canOp || attaching;
+      submitBtn.textContent = attaching ? "Attach mirror…" : "Import repository…";
+    };
+    provSelect.addEventListener("change", syncFormHints);
+    attachSelect.addEventListener("change", () => {
+      const target = repositories.find((r) => r.identity === attachSelect.value) || null;
+      if (target && (target.canonical || target.remotes?.some((rm) => rm.role === "canonical"))) {
+        roleSelect.value = "mirror";
+      }
+      syncFormHints();
+    });
+    syncFormHints();
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!canOp || !confirmFn || !mutateFn) return;
+      const provider = provSelect.value;
+      const role = roleSelect.value;
+      const url = urlInput.value.trim();
+      const label = labelInput.value.trim();
+      const defaultRef = refInput.value.trim();
+      const attachId = attachSelect.value;
+      const attachRepo = attachId ? repositories.find((r) => r.identity === attachId) || null : null;
+
+      const check = validateRemoteInput({ provider, role, url, attachRepo });
+      if (!check.ok) {
+        formError.textContent = check.error;
+        formError.hidden = false;
+        urlInput.focus();
+        return;
+      }
+      formError.textContent = "";
+      formError.hidden = true;
+
+      const providerName = PROVIDER_LABELS[provider] || provider;
+      const choice = await confirmFn({
+        title: attachRepo ? `Attach ${providerName} ${role} to ${attachRepo.label || attachRepo.slug}?` : `Import ${providerName} repository?`,
+        verb: attachRepo ? "Attach mirror" : "Import repository",
+        dismiss: "Cancel",
+        danger: false,
+        warning: provider === "radicle" ? RADICLE_NOTICE : "Records this repository endpoint in Kiln's durable catalog. Importing does not run CI workflows, fetch remotes, or enroll Fleet execution.",
+        facts: [
+          ["Provider", providerName],
+          ["Role", role === "canonical" ? "Canonical" : "Mirror / Projection"],
+          ["Endpoint", check.normalized],
+          ...(attachRepo ? [["Target repository", `${attachRepo.label || attachRepo.slug} (${shortId(attachRepo.identity)})`]] : []),
+          ...(defaultRef ? [["Default ref", defaultRef]] : []),
+          ...(label && !attachRepo ? [["Label", label]] : []),
+        ],
+        cliCommand: attachRepo
+          ? `kiln repositories add-mirror ${attachRepo.identity} --provider ${provider} --role ${role} ${check.normalized}`
+          : `kiln repositories import --provider ${provider} --role ${role} ${check.normalized}`,
+        opener: submitBtn,
+      });
+      if (!choice.confirmed) return;
+
+      submitBtn.disabled = true;
+      try {
+        const res = attachRepo
+          ? await mutateFn(`/api/repositories/${encodeURIComponent(attachRepo.identity)}/mirrors`, {
+            provider, role, url: check.normalized,
+            ...(defaultRef ? { default_ref: defaultRef } : {}),
+            request_id: choice.requestId,
+          }, `Attached ${providerName} ${role} to ${attachRepo.label || attachRepo.slug}.`)
+          : await mutateFn("/api/repositories/import", {
+            provider, role, url: check.normalized,
+            ...(label ? { label } : {}),
+            ...(defaultRef ? { default_ref: defaultRef } : {}),
+            request_id: choice.requestId,
+          }, `Imported ${providerName} repository into catalog.`);
+        if (res) {
+          urlInput.value = "";
+          labelInput.value = "";
+          refInput.value = "";
+          attachSelect.value = "";
+          await onReload();
+        }
+      } finally {
+        if (submitBtn.isConnected) submitBtn.disabled = !canOp;
+      }
+    });
+
+    form.append(grid, radicleNotice, formError, actions);
+    card.append(form);
+    return card;
+  }
+
+  function renderAdmissionBadges(repo) {
+    const row = element("div", undefined, "repo-admission-badges");
+    const adm = repo?.admission || {};
+    if (adm.catalog_imported) row.append(element("span", "Catalog Imported", "chip"));
+    if (adm.ci_configured) row.append(element("span", "CI Configured", "chip repo-adm-ci"));
+    if (adm.fleet_enrolled) row.append(element("span", "Fleet Enrolled", "chip repo-adm-fleet"));
+    if (adm.source_configured) row.append(element("span", "Source Configured", "chip"));
+    if (!adm.ci_configured && !adm.fleet_enrolled) row.append(element("span", "Observed", "chip repo-adm-observed"));
+    return row;
+  }
+
+  function renderRepositoryCard(ctx, repo, sources, onReload) {
+    const card = element("article", undefined, "card repo-card");
+    card.dataset.repoId = repo.identity || "";
+    card.dataset.sync = repo.sync_status || "unknown";
+
+    const canOp = typeof ctx.canOperate === "function" ? ctx.canOperate() : window.KilnFactory?.canOperate?.() === true;
+    const confirmFn = ctx.confirmControl || window.KilnFactory?.confirmControl;
+    const mutateFn = ctx.mutate || window.KilnFactory?.mutate;
+    const openInspector = ctx.openInspector || window.KilnFactory?.openInspector;
+
+    const head = element("div", undefined, "repo-card-head");
+    const titleBox = element("div", undefined, "repo-card-title-box");
+    const title = element("h3", repo.label || repo.slug || shortId(repo.identity), "repo-card-title");
+    const copyStatus = element("span", "", "small repo-copy-status");
+    copyStatus.setAttribute("role", "status");
+    const idBtn = element("button", undefined, "quiet repo-id-btn");
+    idBtn.type = "button";
+    idBtn.title = `Canonical Kiln BLAKE3 identity: ${repo.identity} (click to copy)`;
+    idBtn.append(element("span", shortId(repo.identity), "mono"), icon("copy"));
+    idBtn.addEventListener("click", () => ui().copyText(String(repo.identity || ""), copyStatus, "Canonical ID copied."));
+    titleBox.append(title, idBtn, copyStatus);
+
+    const statusBox = element("div", undefined, "repo-card-status");
+    statusBox.append(syncBadge(repo.sync_status));
+    const cairnCount = Number.isSafeInteger(repo.total_cairns) ? repo.total_cairns : 0;
+    statusBox.append(element("span", `${cairnCount} ${cairnCount === 1 ? "Cairn" : "Cairns"}`, "chip repo-cairn-chip"));
+    head.append(titleBox, statusBox);
+
+    const admRow = renderAdmissionBadges(repo);
+
+    // Remotes & Mirrors strip
+    const remotesWrap = element("div", undefined, "repo-strip");
+    remotesWrap.append(element("span", "Remotes & Mirrors", "kiln-label"));
+    const remotesList = element("div", undefined, "repo-pill-row");
+    const remotes = Array.isArray(repo.remotes) && repo.remotes.length ? repo.remotes : repo.canonical ? [repo.canonical] : [];
+    if (!remotes.length) {
+      remotesList.append(element("span", "No external remotes declared (local checkout only)", "small"));
+    } else {
+      for (const ep of remotes) {
+        const pill = element("span", undefined, "chip repo-remote-pill");
+        pill.dataset.role = ep.role || "mirror";
+        const roleLabel = ep.role === "canonical" ? "Canonical" : "Mirror";
+        const provLabel = PROVIDER_LABELS[ep.provider] || ep.provider || "Remote";
+        pill.append(element("strong", `${provLabel} · ${roleLabel}`), element("span", ep.native_id || ep.url || "", "mono"));
+        if (ep.observed_revision) pill.append(element("span", `@${shortId(ep.observed_revision)}`, "mono small"));
+        pill.title = [ep.url, ep.default_ref ? `ref: ${ep.default_ref}` : "", ep.observed_revision ? `rev: ${ep.observed_revision}` : "", ep.status ? `status: ${ep.status}` : ""].filter(Boolean).join(" · ");
+        remotesList.append(pill);
+      }
+    }
+    remotesWrap.append(remotesList);
+
+    // Fleet Local Copies summary
+    const copiesWrap = element("div", undefined, "repo-strip");
+    copiesWrap.append(element("span", "Fleet Local Copies", "kiln-label"));
+    const copiesList = element("div", undefined, "repo-pill-row");
+    const copies = Array.isArray(repo.local_copies) ? repo.local_copies : [];
+    if (!copies.length) {
+      copiesList.append(element("span", "No fleet local copies observed", "small"));
+    } else {
+      for (const copy of copies) {
+        const pill = element("span", formatLocalCopySummary(copy), "chip repo-copy-pill");
+        pill.dataset.health = copy.health || "available";
+        if (copy.dirty === true) pill.dataset.dirty = "true";
+        pill.title = copy.health === "unavailable"
+          ? `${copy.machine}: ${copy.error || "unreachable"}`
+          : [copy.machine, copy.path, copy.head_commit ? `HEAD ${copy.head_commit}` : "", Number.isSafeInteger(copy.cairn_count) ? `${copy.cairn_count} cairns` : ""].filter(Boolean).join(" · ");
+        copiesList.append(pill);
+      }
+    }
+    copiesWrap.append(copiesList);
+
+    // Actions
+    const actions = element("div", undefined, "src-actions repo-row-actions");
+    const inspectBtn = element("button", undefined, "primary");
+    inspectBtn.type = "button";
+    withIcon(inspectBtn, icon("eye"), "Inspect");
+    inspectBtn.addEventListener("click", () => {
+      if (openInspector) openInspector("repo", repo.identity, [{ kind: "repo", id: repo.identity }], inspectBtn);
+      else ctx.navigate({ inspect: `repo:${repo.identity}` });
+    });
+    actions.append(inspectBtn);
+
+    if (canOp) {
+      const addMirrorBtn = element("button", undefined, "quiet");
+      addMirrorBtn.type = "button";
+      withIcon(addMirrorBtn, icon("square-plus"), "Add Mirror");
+      addMirrorBtn.addEventListener("click", () => {
+        const attachEl = document.getElementById("repo-import-attach");
+        const roleEl = document.getElementById("repo-import-role");
+        const urlEl = document.getElementById("repo-import-url");
+        if (attachEl) {
+          attachEl.value = repo.identity;
+          attachEl.dispatchEvent(typeof Event === "function" ? new Event("change") : { type: "change" });
+        }
+        if (roleEl && (repo.canonical || remotes.some((r) => r.role === "canonical"))) roleEl.value = "mirror";
+        urlEl?.focus?.();
+      });
+      actions.append(addMirrorBtn);
+    }
+
+    const sourceId = matchLocalSourceId(repo, sources);
+    if (sourceId) {
+      const browse = routeLink(ctx, { page: "source", tab: "source", src: sourceId, rev: "", spath: "", sfile: "", sq: "", sline: "", sview: "" }, undefined, "button quiet", `browse:${repo.identity}`);
+      withIcon(browse, icon("folder"), "Browse Source");
+      actions.append(browse);
+    }
+
+    if (repo.admission?.catalog_imported && canOp && confirmFn && mutateFn) {
+      const removeBtn = element("button", "Remove…", "danger quiet");
+      removeBtn.type = "button";
+      removeBtn.addEventListener("click", async () => {
+        const choice = await confirmFn({
+          title: `Remove ${repo.label || repo.slug || shortId(repo.identity)} from catalog?`,
+          verb: "Remove from catalog",
+          dismiss: "Keep in catalog",
+          danger: true,
+          warning: "Removes this repository registration from Kiln's durable catalog only. Local files and checkouts on disk are NEVER deleted, and no remote repository or Radicle state is modified.",
+          facts: [
+            ["Repository", repo.label || repo.slug || repo.identity],
+            ["Canonical ID", repo.identity],
+            ["Disk checkouts", "Untouched (files on disk are never deleted)"],
+          ],
+          reason: { label: "Removal reason", placeholder: "Why this catalog entry is being removed", required: true },
+          cliCommand: `kiln repositories remove ${repo.identity}`,
+          opener: removeBtn,
+        });
+        if (!choice.confirmed) return;
+        const res = await mutateFn(`/api/repositories/${encodeURIComponent(repo.identity)}/remove`, {
+          reason: choice.reason,
+          request_id: choice.requestId,
+        }, "Repository removed from catalog (disk checkouts untouched).");
+        if (res) await onReload();
+      });
+      actions.append(removeBtn);
+    }
+
+    card.append(head, admRow, remotesWrap, copiesWrap, actions);
+    return card;
+  }
+
+  function renderRepositoriesPage(ctx, catalog, sources, onReload) {
+    const page = element("div", undefined, "src-page repo-hub view-stack");
+    const repositories = Array.isArray(catalog?.repositories) ? catalog.repositories : [];
+    const summary = catalog?.summary || summarizeRepositories(repositories);
+    const canOp = typeof ctx.canOperate === "function" ? ctx.canOperate() : window.KilnFactory?.canOperate?.() === true;
+    const mutateFn = ctx.mutate || window.KilnFactory?.mutate;
+
+    // Header + Summary strip + Refresh census
+    const header = element("section", undefined, "card repo-hub-header");
+    const top = element("div", undefined, "section-heading");
+    const titleGroup = element("div");
+    titleGroup.append(
+      element("h2", "Repositories & Fleet Copies", "card-title"),
+      element("p", `${summary.total} repositories · ${summary.total_local_copies} local copies across fleet · ${summary.total_cairns} active Cairns`, "small"),
+    );
+    const refreshBtn = element("button", undefined, "quiet");
+    refreshBtn.id = "repo-refresh-btn";
+    refreshBtn.type = "button";
+    withIcon(refreshBtn, icon("refresh-cw"), "Refresh census");
+    refreshBtn.disabled = !canOp;
+    if (!canOp) refreshBtn.title = "Census refresh requires operator access.";
+    refreshBtn.addEventListener("click", async () => {
+      if (!canOp || !mutateFn) return;
+      refreshBtn.disabled = true;
+      try {
+        const res = await mutateFn("/api/repositories/refresh", {}, "Repository & Fleet census refreshed.");
+        if (res) await onReload();
+      } finally {
+        if (refreshBtn.isConnected) refreshBtn.disabled = !canOp;
+      }
+    });
+    top.append(titleGroup, refreshBtn);
+
+    const kpis = element("div", undefined, "repo-kpis");
+    for (const [label, value, tone] of [
+      ["Repositories", summary.total, "neutral"],
+      ["Synced", summary.synced, "success"],
+      ["Diverged", summary.diverged, summary.diverged > 0 ? "failure" : "neutral"],
+      ["Dirty", summary.dirty, summary.dirty > 0 ? "warning" : "neutral"],
+      ["Offline / Unknown", summary.unknown, summary.unknown > 0 ? "unknown" : "neutral"],
+      ["Local Only", summary.local_only, "neutral"],
+    ]) {
+      const tile = element("div", undefined, "repo-kpi-tile");
+      tile.dataset.tone = tone;
+      tile.append(element("span", label, "kiln-label"), element("strong", String(value ?? 0), "repo-kpi-value"));
+      kpis.append(tile);
+    }
+
+    const boundary = element("details", undefined, "about-view");
+    const boundaryBody = element("div", undefined, "about-view-body");
+    boundaryBody.append(
+      element("p", "Catalog imports record provider-neutral BLAKE3 repository identities and remote declarations. Importing never executes CI workflows, enrolls Fleet workers, or mutates Radicle state."),
+      element("p", RADICLE_NOTICE),
+    );
+    boundary.append(ui().disclosureSummary("About repository observation & Radicle discipline", "info"), boundaryBody);
+
+    header.append(top, kpis, boundary);
+    page.append(header);
+
+    const healthBanner = renderHealthBanner(catalog);
+    if (healthBanner) page.append(healthBanner);
+
+    page.append(renderImportCard(ctx, repositories, onReload));
+
+    // Filter toolbar & Matrix
+    const matrixPanel = element("section", undefined, "card repo-matrix-panel view-stack");
+    const filterBar = element("div", undefined, "repo-filter-bar");
+    const chips = element("div", undefined, "repo-filter-chips");
+    chips.setAttribute("role", "group");
+    chips.setAttribute("aria-label", "Filter repositories by cross-fleet status");
+
+    const searchWrap = element("div", undefined, "repo-filter-search");
+    const searchLabel = element("label", "Search repositories");
+    searchLabel.htmlFor = "repo-filter-search";
+    const searchInput = element("input");
+    searchInput.id = "repo-filter-search";
+    searchInput.type = "search";
+    searchInput.maxLength = FILTER_MAX_CHARS;
+    searchInput.autocomplete = "off";
+    searchInput.placeholder = "Slug, BLAKE3 ID, remote, or machine…";
+    searchInput.value = repoFilterState.query;
+    searchWrap.append(searchLabel, searchInput);
+
+    const statusLine = element("p", "", "small repo-matrix-status");
+    statusLine.setAttribute("role", "status");
+    const listWrap = element("div", undefined, "repo-matrix view-stack");
+    listWrap.id = "repo-matrix";
+
+    const renderList = () => {
+      for (const chipBtn of chips.querySelectorAll("button")) {
+        chipBtn.setAttribute("aria-pressed", String(chipBtn.dataset.filterStatus === repoFilterState.status));
+      }
+      const matched = filterRepositories(repositories, repoFilterState);
+      statusLine.textContent = `Showing ${matched.length} of ${repositories.length} repositories`;
+      listWrap.replaceChildren();
+      if (!repositories.length) {
+        listWrap.append(emptyState("No repositories observed or imported", "Import a GitHub, Gitea/Forgejo, or Radicle repository above, or configure local checkouts / Fleet scan roots."));
+        return;
+      }
+      if (!matched.length) {
+        listWrap.append(emptyState("No matching repositories", "Clear the status filter or search query to see all catalog repositories."));
+        return;
+      }
+      for (const repo of matched) listWrap.append(renderRepositoryCard(ctx, repo, sources, onReload));
+    };
+
+    for (const [statusKey, label] of [
+      ["all", `All (${repositories.length})`],
+      ["diverged", `Diverged (${summary.diverged ?? 0})`],
+      ["dirty", `Dirty (${summary.dirty ?? 0})`],
+      ["unknown", `Offline/Unknown (${summary.unknown ?? 0})`],
+      ["local_only", `Local Only (${summary.local_only ?? 0})`],
+    ]) {
+      const btn = element("button", label, "chip repo-filter-chip");
+      btn.type = "button";
+      btn.dataset.filterStatus = statusKey;
+      btn.setAttribute("aria-pressed", String(repoFilterState.status === statusKey));
+      btn.addEventListener("click", () => { repoFilterState.status = statusKey; renderList(); });
+      chips.append(btn);
+    }
+
+    searchInput.addEventListener("input", () => { repoFilterState.query = searchInput.value; renderList(); });
+    filterBar.append(chips, searchWrap);
+    matrixPanel.append(filterBar, statusLine, listWrap);
+    renderList();
+    page.append(matrixPanel);
+
+    return page;
+  }
+
+  async function loadRepositories(container, ctx) {
+    const current = ++repoGeneration;
+    if (!container) return;
+    if (repoMounted !== container) { repoMounted?.replaceChildren(); }
+    repoMounted = container;
+    const live = () => current === repoGeneration && container.isConnected;
+    if (!container.firstChild) container.replaceChildren(loadingState("Reading repository catalog and fleet local copies…"));
+
+    const reload = () => loadRepositories(container, ctx);
+    let catalog;
+    let sources = [];
+    try {
+      const [repoResult, sourcesResult] = await Promise.allSettled([
+        ctx.api("/api/repositories"),
+        ctx.api("/api/sources", { quiet: true }),
+      ]);
+      if (!live()) return;
+      if (repoResult.status === "rejected") {
+        if (isAborted(repoResult.reason)) return;
+        container.replaceChildren(errorState(`Repository catalog unavailable: ${explain(repoResult.reason)}`));
+        return;
+      }
+      catalog = repoResult.value;
+      if (sourcesResult.status === "fulfilled" && Array.isArray(sourcesResult.value?.sources)) {
+        sources = sourcesResult.value.sources;
+      }
+    } catch (error) {
+      if (!live() || isAborted(error)) return;
+      container.replaceChildren(errorState(`Repository catalog unavailable: ${explain(error)}`));
+      return;
+    }
+    if (!live()) return;
+    container.replaceChildren(renderRepositoriesPage(ctx, catalog, sources, reload));
+    if (ctx?.route?.repo_focus === "import") {
+      document.getElementById("repo-import-url")?.focus?.();
+    }
+    document.title = "Kiln · Repositories & Fleet Copies";
+  }
+
+  function clearRepositories() {
+    repoGeneration += 1;
+    repoMounted?.replaceChildren();
+    repoMounted = null;
+  }
+
   window.KilnSource = Object.freeze({
     load, clear,
+    loadRepositories, clearRepositories,
     sortEntries, parseLineSelection, splitLines, parseDiff,
+    validateRemoteInput, summarizeRepositories, filterRepositories, formatLocalCopySummary,
+    RADICLE_NOTICE,
   });
 })();

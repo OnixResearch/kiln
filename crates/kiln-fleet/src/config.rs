@@ -37,6 +37,7 @@ pub const MAX_ARGV: usize = 64;
 pub const MAX_ARG_BYTES: usize = 4_096;
 pub const MAX_GROUP_BYTES: usize = 64;
 pub const MAX_CONSOLE_URL_BYTES: usize = 2_048;
+pub const MAX_REPOSITORY_SCAN_ROOTS: usize = 32;
 /// Environment variable naming the unified `kiln-web-service` Factory Control Plane base URL.
 pub const CONSOLE_URL_ENVIRONMENT: &str = "KILN_CONSOLE_URL";
 /// Placeholders substituted as whole arguments in `verify_argv`/`publish_argv`.
@@ -90,6 +91,9 @@ pub struct FleetConfig {
     /// Optional base URL of the unified `kiln-web-service` Factory Control Plane.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub console_url: Option<String>,
+    /// Optional local directory roots scanned shallowly (`1..=2`) for checkout discovery.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub repository_scan_roots: Vec<PathBuf>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -374,6 +378,14 @@ impl FleetConfig {
         }
         if let Some(console_url) = &self.console_url {
             validate_console_url(console_url)?;
+        }
+        if self.repository_scan_roots.len() > MAX_REPOSITORY_SCAN_ROOTS {
+            return Err(format!(
+                "repository_scan_roots must name at most {MAX_REPOSITORY_SCAN_ROOTS} directories"
+            ));
+        }
+        for root in &self.repository_scan_roots {
+            absolute(root, "repository_scan_roots")?;
         }
         self.validate_policy()?;
         self.validate_dispatch()
@@ -953,5 +965,36 @@ mod tests {
                 "{bad:?}"
             );
         }
+    }
+
+    #[test]
+    fn repository_scan_roots_are_optional_bounded_and_absolute() {
+        let mut positive = document();
+        set(
+            &mut positive,
+            "/repository_scan_roots",
+            json!(["/home/brittonr/git", "/var/lib/kiln/repos"]),
+        );
+        let parsed = parse(&positive).unwrap_or_else(|error| unreachable!("{error}"));
+        assert_eq!(parsed.repository_scan_roots.len(), 2);
+
+        assert!(refused(|value| set(
+            value,
+            "/repository_scan_roots",
+            json!(["relative/path"])
+        )));
+        assert!(refused(|value| set(
+            value,
+            "/repository_scan_roots",
+            json!(["/home/../etc"])
+        )));
+        let too_many: Vec<String> = (0..=MAX_REPOSITORY_SCAN_ROOTS)
+            .map(|i| format!("/tmp/scan-{i}"))
+            .collect();
+        assert!(refused(|value| set(
+            value,
+            "/repository_scan_roots",
+            json!(too_many)
+        )));
     }
 }
