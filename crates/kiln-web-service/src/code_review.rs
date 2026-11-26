@@ -982,7 +982,7 @@ impl Workspace {
                 .into_iter()
                 .skip(offset)
                 .take(CHANGE_PAGE_SIZE)
-                .map(|c| summary(c, &state))
+                .map(|c| list_summary(c, &state, profile, &self.projects, ci))
                 .collect();
             let next_offset = (offset.saturating_add(changes.len()) < total)
                 .then_some(offset.saturating_add(changes.len()));
@@ -1041,7 +1041,7 @@ impl Workspace {
                 "saved_views":projection.saved_queries,"notifications":notifications,"notifications_total":notifications_total,
                 "next_notification_offset":next_notification_offset,"operations":operations,"operations_total":pending.len(),"next_operation_offset":next_operation_offset,
                 "contribution_sources":intake::sources(profile,&state,principal)?,"intake_enabled":profile.intake.is_some(),"jj_intake":jj_intake::published(profile),
-                "queue":state.queue,"queue_enabled":profile.queue.is_some(),"noise":noise::published(profile.review.as_ref()),
+                "queue":state.queue,"queue_enabled":profile.queue.is_some(),"queue_windows":queue::window_projections(profile, &state),"noise":noise::published(profile.review.as_ref()),
                 "target_write_boundary":{"scope":"configured_provider_only","targets":profile.provider.target_refs,"unmanaged_writers":"Operator must restrict repository filesystem and other push credentials; service admission does not control external writers"},
                 "bounded":true,"non_claims":["External delivery reports receiver acceptance, not email receipt.","Provider-created commits use the service signature, not an attestation of the original author's identity.","Configured provider policy does not prevent unmanaged repository writers."]}),
             );
@@ -1799,6 +1799,202 @@ fn enriched(
 fn summary(change: &domain::Change, state: &State) -> Value {
     let revision = change.revisions.last().map(|revision|json!({"id":revision.id,"number":revision.number,"commit":revision.commit,"base":revision.base,"author":revision.author,"created_ms":revision.created_ms,"submitted_by":revision.submitted_by}));
     json!({"id":change.id,"version":state.versions.get(&change.id).copied().unwrap_or(0),"project":change.project,"repository":change.repository,"target_ref":change.target_ref,"owner":change.owner,"title":change.title,"state":change.state,"wip":change.wip,"authorship":domain::authorship_class(change),"revisions":revision.into_iter().collect::<Vec<_>>(),"reviewers":change.reviewers,"attention":change.attention,"unresolved":change.threads.iter().filter(|t| !t.resolved).count(),"advisory_current":domain::current_advisory(change).count()})
+}
+
+/// Pure CI readiness summary for a single change on the list projection.
+///
+/// Evaluates the latest full, clean CI fact for the change's current revision
+/// (or its active speculative/serial queue candidate commit) without invoking
+/// provider diffs or N+1 detail queries.
+fn ci_summary_for_change(
+    change: &domain::Change,
+    state: &State,
+    profile: &Profile,
+    projects: &[crate::profile::ProjectProfile],
+    ci: &[domain::CiFact],
+) -> &'static str {
+    let Some(current_rev) = change.revisions.last() else {
+        return "none";
+    };
+    let tested_commit = state
+        .queue
+        .iter()
+        .rev()
+        .find(|entry| {
+            entry.change == change.id
+                && entry.revision == current_rev.id
+                && entry.candidate_commit.is_some()
+                && matches!(
+                    entry.status.as_str(),
+                    "waiting_ci" | "submitting" | "uncertain"
+                )
+        })
+        .and_then(|entry| entry.candidate_commit.as_deref())
+        .unwrap_or(current_rev.commit.as_str());
+    let expected_scope = projects
+        .iter()
+        .find(|project| project.id == change.project)
+        .and_then(|project| project.admitted_scope().ok().flatten())
+        .map(|scope| scope.identity().as_str().to_owned());
+    let exact = |fact: &&domain::CiFact| {
+        fact.repository == change.repository
+            && fact.revision == tested_commit
+            && fact.full_run
+            && fact.clean
+            && !fact.run_id.is_empty()
+    };
+    let primary_all: Vec<&domain::CiFact> = ci
+        .iter()
+        .filter(|fact| fact.project == change.project)
+        .filter(exact)
+        .collect();
+    let latest = if let Some(scope) = expected_scope.as_ref() {
+        let scoped = primary_all
+            .iter()
+            .copied()
+            .filter(|fact| fact.scope_identity.as_ref() == Some(scope))
+            .max_by_key(|fact| fact.ordinal);
+        match scoped {
+            Some(fact) => Some(fact),
+            None if !primary_all.is_empty() => return "unknown",
+            None => None,
+        }
+    } else {
+        primary_all.into_iter().max_by_key(|fact| fact.ordinal)
+    }
+    .or_else(|| {
+        if projects.len() > 1 {
+            ci.iter()
+                .filter(|fact| projects.iter().any(|project| project.id == fact.project))
+                .filter(exact)
+                .max_by_key(|fact| fact.ordinal)
+        } else {
+            None
+        }
+    });
+    let Some(fact) = latest else {
+        return "none";
+    };
+    if fact
+        .untrusted
+        .as_ref()
+        .is_some_and(|gate| gate.state == kiln_core::untrusted::UntrustedState::AwaitingApproval)
+    {
+        return "awaiting_approval";
+    }
+    if !fact.terminal {
+        return "unknown";
+    }
+    if !fact.success {
+        return "fail";
+    }
+    if !fact.satisfies_required() {
+        return "unknown";
+    }
+    if profile.policy.required_checks.is_empty() {
+        return "pass";
+    }
+    let mut all_pass = true;
+    for requirement in &profile.policy.required_checks {
+        let matched = fact.checks.iter().find(|check| {
+            check.kind == requirement.kind
+                && requirement
+                    .name
+                    .as_deref()
+                    .is_none_or(|name| check.name == name)
+        });
+        match matched.map(|check| check.outcome.as_str()) {
+            Some("pass") => {}
+            Some("fail" | "cancelled") => return "fail",
+            _ => all_pass = false,
+        }
+    }
+    if all_pass { "pass" } else { "unknown" }
+}
+
+/// Pure approval progress summary for a change's current revision.
+fn approval_summary_for_change(change: &domain::Change, profile: &Profile) -> Value {
+    let Some(revision) = change.revisions.last() else {
+        return json!({
+            "approvals": 0,
+            "required": profile.policy.minimum_approvals,
+            "vetoed": false,
+        });
+    };
+    let agent_votes_bind = profile.policy.agent_votes == domain::AgentVotes::Binding;
+    let agents: BTreeSet<&str> = profile.agent_principals.iter().map(String::as_str).collect();
+    let eligible = |vote: &&domain::Vote| {
+        vote.revision == revision.id
+            && vote.actor != change.owner
+            && vote.actor != revision.author
+            && change.reviewers.get(&vote.actor) == Some(&domain::ReviewerRole::Reviewer)
+            && profile.policy.eligible_reviewers.contains(&vote.actor)
+            && (agent_votes_bind || !agents.contains(vote.actor.as_str()))
+    };
+    let approvals = change
+        .votes
+        .iter()
+        .filter(eligible)
+        .filter(|vote| vote.value == domain::VoteValue::Approve)
+        .count();
+    let vetoed = change
+        .votes
+        .iter()
+        .filter(eligible)
+        .any(|vote| matches!(vote.value, domain::VoteValue::Veto | domain::VoteValue::NeedsRevision));
+    json!({
+        "approvals": approvals,
+        "required": profile.policy.minimum_approvals,
+        "vetoed": vetoed,
+    })
+}
+
+/// 1-based active queue position and status for `change` on its `target_ref`.
+fn queue_position_for_change<'a>(
+    change: &domain::Change,
+    state: &'a State,
+) -> (Option<usize>, Option<&'a str>) {
+    state
+        .queue
+        .iter()
+        .filter(|entry| {
+            entry.target_ref == change.target_ref
+                && matches!(
+                    entry.status.as_str(),
+                    "queued" | "preparing" | "waiting_ci" | "submitting" | "uncertain"
+                )
+        })
+        .enumerate()
+        .find(|(_, entry)| entry.change == change.id)
+        .map_or((None, None), |(index, entry)| {
+            (Some(index + 1), Some(entry.status.as_str()))
+        })
+}
+
+// r[impl kiln.review.workbench_three_pane]
+fn list_summary(
+    change: &domain::Change,
+    state: &State,
+    profile: &Profile,
+    projects: &[crate::profile::ProjectProfile],
+    ci: &[domain::CiFact],
+) -> Value {
+    let mut value = summary(change, state);
+    if let Some(object) = value.as_object_mut() {
+        let (queue_position, queue_status) = queue_position_for_change(change, state);
+        object.insert(
+            "ci_summary".into(),
+            Value::String(ci_summary_for_change(change, state, profile, projects, ci).into()),
+        );
+        object.insert(
+            "approval_summary".into(),
+            approval_summary_for_change(change, profile),
+        );
+        object.insert("queue_position".into(), json!(queue_position));
+        object.insert("queue_status".into(), json!(queue_status));
+        object.insert("jj_stack".into(), jj_intake::stack_view(state, change));
+    }
+    value
 }
 fn search_query(query: &BTreeMap<String, String>) -> Result<domain::SearchQuery, Failure> {
     let kind = match query.get("view").map_or("all", String::as_str) {

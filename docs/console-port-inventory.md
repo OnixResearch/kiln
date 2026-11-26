@@ -35,49 +35,51 @@ A failing check names the entry and the missing reference, for example
 same change that adds, removes or renames a destination, panel, module, global,
 stylesheet, anchor, API path or Node test.
 
-For **Cairn changes** (2.7), inventory both read-only workspace GET routes and
+For **Delivery & Cairn** (2.1), inventory both read-only workspace GET routes and
 the shared campaign inbox/command paths used solely for inbox-admitted answer
 and issue actions. Its URL state records repository, change, expanded unit,
 search, lane, blocker and open-decision filters, and List/Board view. The
 inventory is a description of the served console, not a new command surface:
 the canonical campaign owner still admits every decision command separately.
 
-For **Fleet** (2.8), `/api/fleet/events` is one persistent SSE response over
-the fleet coordinator's loopback API, emitting snapshots when its aggregate
-state identity changes and heartbeats while idle. The same `/api/fleet/*` paths
-carry the operator's acquire, renew, release, answer and cancel commands. The
-page keeps no URL state; the stream closes after 45 minutes and reconnects, and
-visibility changes restart it immediately. The fleet service remains the
+For **Fleet & Workers** (3.1), live updates arrive over the shared
+multiplexed `/api/events` SSE stream (`fleet` frames) backed by a single
+coordinator watcher in `kiln-web-service`. The `/api/fleet/*` paths carry the
+machine slot census, visible-only live `herdr` pane reads, dispatch pause/resume,
+and operator claim/attempt/decision commands. The fleet service remains the
 authority for every command.
 
 ## Cohorts
 
 | Order | Cohort | Routes |
 | --- | --- | --- |
-| 1 | Runs pilot and shared shell | 0.0 Guide, 1.1 Overview, 1.2 Runs |
-| 2 | Work and planning | 2.1 Issues, 2.2 My inbox, 2.3 Planning, 2.5 Requests & triage, 2.6 Saved views, 2.7 Cairn changes, 2.8 Fleet |
-| 3 | Code review | 2.4 Code review |
-| 4 | Projects and source | 1.3 CI projects, 1.3 CI project, 3.1 Source |
-| 5 | Workers and inventories | 1.4 Workers |
-| 6 | Receipts, feeds, administration and the rest | 3.2 Patchgate receipts, 3.3 Activity, 3.4 Feeds, 3.5 Evidence, 4.1 Automation, 4.2 Operations, 4.3 Raw collaboration history, 4.4 Settings |
+| 1 | Runs pilot and shared shell | 0.0 Guide, 1.1 Factory, 2.2 Runs & Evidence |
+| 2 | Work and planning | 1.2 Attention (incl. Requests & triage), 2.1 Delivery & Cairn (incl. Issues, Planning, Saved views), 3.1 Fleet & Workers |
+| 3 | Code review | 2.3 Code Review & Queue |
+| 4 | Projects and source | 2.2 CI projects / CI project / Runbooks, 3.2 System & Source |
+| 5 | Workers and inventories | 3.1 Worker targets |
+| 6 | Receipts, feeds, administration and the rest | 2.2 Patchgate receipts / Evidence, 3.2 Activity / Feeds / Automation / Operations / Raw collaboration history, 4.4 Settings |
 
 Overview and the Guide join the first cohort because they are the shell's landing
 and orientation surfaces. The order follows #68's rollout list; it does not
 qualify any route.
 
-## Recorded coverage gaps
+## Recorded coverage
 
-The renderers of Workers, Code review, Cairn changes, Source and Patchgate
-receipts are loaded by Node tests. Fleet, its coordinator proxy and the page's
-operator commands are covered by Rust route tests and live console rails; no Node
-test loads `fleet.js` yet. The other pages have no Node test that loads
-their renderer: `web.js` renders Guide, Overview, Runs, CI projects, Activity,
-Feeds, Evidence, Automation, Operations, Raw collaboration history and Settings;
-`project.js` renders CI project; and `work.js` renders the work pages, where only
-the board module is loaded by Node tests. Any coverage these pages have comes from
-browser-level rails (the service smoke, the Bombadil exploration and the
-explorer's named examples) rather than Node tests, so the port must capture each
-of them through #66 before it replaces them.
+Every route's renderer is covered by Node module tests in addition to Rust route
+tests and live console rails:
+- `tests/live-console-ui.test.mjs` loads `ui.js`, `source.js`, `receipts.js`, `workers.js`, `runbooks.js`, `cairn.js`, and `code-review.js`.
+- `tests/inventory-ui.test.mjs` loads `inventory.js`.
+- `tests/preview-compare.test.mjs` loads `preview-review.js`.
+- `tests/work-views.test.mjs` loads `work-board.js`.
+- `tests/web-module.test.mjs` loads `web.js` (Guide, Overview, Runs, CI projects, Activity, Feeds, Evidence, Automation, Operations, Raw collaboration history, Settings).
+- `tests/fleet-ui.test.mjs` loads `fleet.js` (Fleet & Workers coordinator, machine census, claims/attempt controls, Fair-Admission & SSE handling).
+- `tests/work-module.test.mjs` loads `work.js` and `work-evidence.js` (Issues, Inbox, Planning, Triage, Saved views).
+- `tests/project-ui.test.mjs` loads `project.js` (CI project).
+
+Browser-level rails (the service smoke, the Bombadil exploration and the
+explorer's named examples) complement these Node module tests for full end-to-end
+visual parity through #66 before porting a cohort.
 
 ## Preservation rules
 

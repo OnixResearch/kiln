@@ -38,7 +38,10 @@ const hasAnchor = (html, anchor) =>
 
 function problems(inventory, kiln) {
   const found = [];
-  const served = (file) => kiln.server.includes(`"/${file}" =>`);
+  const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const served = (file) =>
+    kiln.server.includes(`"/${file}" =>`) ||
+    new RegExp(`\\(\\s*"/${escapeRegExp(file)}"\\s*,`).test(kiln.server);
   const stylesheet = (owner, css) => {
     if (!served(css)) found.push(`${owner}: stylesheet ${css} is not served`);
     if (!kiln.html.includes(`href="/${css}"`)) found.push(`${owner}: stylesheet ${css} is not linked by web.html`);
@@ -139,7 +142,7 @@ test("omitted, unknown, duplicated or misfiled destinations fail", () => {
     [(value) => { value.routes = value.routes.filter((entry) => entry.page !== "feeds"); }, "destination feeds is not inventoried"],
     [(value) => { value.routes.push({ ...route(value, "feeds"), page: "ledger" }); }, "route ledger is not a registered destination"],
     [(value) => { value.routes.push(route(value, "cobs")); }, "route cobs is inventoried twice"],
-    [(value) => { route(value, "source").number = "3.9"; }, "route source: number 3.9 differs from registered 3.1"],
+    [(value) => { route(value, "source").number = "3.9"; }, "route source: number 3.9 differs from registered 3.2"],
     [(value) => { route(value, "source").cohort = "graphics"; }, "route source: cohort graphics is not declared"],
     [(value) => { value.cohorts.push({ id: "native", order: 7, title: "Native client" }); }, "cohort native has no route"],
     [(value) => { route(value, "runs").cohort = "receipts-administration"; }, "route runs is not in the first cohort"],

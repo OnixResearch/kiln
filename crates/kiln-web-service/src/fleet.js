@@ -8,6 +8,8 @@
   const CAIRN_REFRESH_MS = 15_000;
   const CAIRN_INDEX = "/api/implementation/cairn";
   const MACHINES = "/api/fleet/machines";
+  const CLAIMS_INCLUDE = "/api/fleet/claims?include=foreign,expired";
+  const DISPATCH_STATUS = "/api/fleet/dispatch/status";
   const NATIVE_WORK = "/api/work";
   const MACHINE_STATES = new Map([
     ["reporting", ["Reporting", "good"]], ["unreachable", ["Unreachable", "failure"]],
@@ -24,6 +26,7 @@
   ]);
   const AGGREGATE_REFRESH_MS = CAIRN_REFRESH_MS;
   const STREAM_BACKOFF_MAX_MS = 30_000;
+  const CONTROL_FRESHNESS_MS = 30_000;
   const LEASE_NOTICE_MS = 15 * 60_000;
   const ATTENTION_LIMIT = 8;
   const IDENTITY = /^[0-9a-f]{64}$/;
@@ -146,14 +149,6 @@
     return wrap;
   }
 
-  function cockpitLink(identity) {
-    if (!IDENTITY.test(text(identity))) return identityCell(identity);
-    const link = element("a", undefined, "row-link");
-    link.href = `?${new URLSearchParams({ page: "cockpit", work_id_exact: identity })}`;
-    link.append(identityCell(identity));
-    return link;
-  }
-
   function when(ms) {
     return count(ms) === null ? element("span", "Not recorded", "not-recorded") : ui().timeElement(ms);
   }
@@ -273,26 +268,89 @@
     return wrap;
   }
 
+  function machineSlotsCell(row) {
+    if (row.health === "unavailable") {
+      const wrap = element("div", undefined, "fleet-machine-unavailable");
+      const badge = element("span", "OFFLINE · Unavailable", "state-badge");
+      badge.dataset.tone = "failure";
+      wrap.append(badge);
+      const detail = text(row.error?.detail) || text(row.error?.code) || text(row.error?.class);
+      if (detail) wrap.append(element("div", detail, "small warning"));
+      return wrap;
+    }
+    if (record(row.slots) && Object.keys(row.slots).length) {
+      const entries = Object.entries(row.slots).map(([kind, s]) => `${kind}: ${s?.used ?? 0}/${s?.capacity ?? 0}`);
+      return entries.join(" · ");
+    }
+    return "Not reported";
+  }
+
   function renderMachines(state) {
     if (!state.listedMachines) return;
     const roster = new Set(state.listedMachines.map(({ machine }) => machine));
     const attempts = machineCounts(state.listedAttempts, attemptMachine, roster);
     const claims = machineCounts(state.listedClaims, claimMachine, roster);
     const signature = JSON.stringify([state.listedMachines, attempts ? [...attempts.byMachine] : null,
-      claims ? [...claims.byMachine] : null, attempts?.missing, attempts?.unmatched, claims?.missing, claims?.unmatched]);
+      claims ? [...claims.byMachine] : null, attempts?.missing, attempts?.unmatched, claims?.missing, claims?.unmatched,
+      state.context.canOperate?.() !== false]);
     if (signature === state.machineSignature) return;
     state.machineSignature = signature;
     const showCore = state.listedMachines.some((row) => Object.hasOwn(row, "core"));
     const rows = state.listedMachines.map((row) => {
       const sessions = row.sessions === null ? "Not observed" : `${row.sessions}${row.state === "reporting" ? "" : " (last reported)"}`;
-      return [element("code", row.machine), row.placement_configured ? "Configured" : "Not configured", machineStateBadge(row.state),
-        when(row.observed_at_ms), when(row.last_seen_at_ms), sessions,
+      const obsCell = element("div", undefined, "fleet-actions");
+      obsCell.append(machineStateBadge(row.state));
+      if (row.draining) {
+        const drainBadge = element("span", "Draining", "state-badge");
+        drainBadge.dataset.tone = "warning";
+        obsCell.append(drainBadge);
+      }
+      const actions = element("div", undefined, "fleet-actions");
+      if (state.context.canOperate?.() !== false) {
+        const draining = Boolean(row.draining);
+        const drainBtn = element("button", draining ? "Undrain" : "Drain", "quiet");
+        drainBtn.type = "button";
+        drainBtn.addEventListener("click", async () => {
+          const nextDraining = !draining;
+          const choice = await confirmGuardedFleetMutation(state, {
+            title: `${nextDraining ? "Drain" : "Undrain"} machine ${row.machine}?`,
+            verb: nextDraining ? "Drain machine" : "Undrain machine",
+            dismiss: nextDraining ? "Keep active" : "Keep draining",
+            danger: nextDraining,
+            warning: nextDraining
+              ? "Stops new attempt placement onto this machine. Existing running work continues unless separately cancelled."
+              : "Allows new attempt placement onto this machine again.",
+            facts: [
+              ["Machine", row.machine],
+              ["Current state", row.health === "unavailable" ? "Unavailable" : label(row.state)],
+              ["Drain status", draining ? "Draining" : "Active"],
+            ],
+            reason: nextDraining ? { label: "Drain reason", placeholder: "Why this machine is being drained", required: true, maxLength: REASON_MAX } : null,
+            cliCommand: `kiln-fleet machines ${nextDraining ? "drain" : "undrain"} ${row.machine}`,
+            opener: drainBtn,
+          });
+          if (!choice.confirmed) return;
+          const reqId = typeof crypto?.randomUUID === "function" ? crypto.randomUUID() : `drain-${Date.now()}`;
+          void mutate(state, drainBtn, `/api/fleet/machines/${encodeURIComponent(row.machine)}/drain`, {
+            draining: nextDraining,
+            ...(choice.reason ? { reason: choice.reason } : {}),
+            request_id: reqId,
+          });
+        });
+        actions.append(drainBtn);
+      } else {
+        actions.append(element("span", "Read only", "small"));
+      }
+      return [element("code", row.machine), row.placement_configured ? "Configured" : "Not configured", obsCell,
+        machineSlotsCell(row), when(row.observed_at_ms), when(row.last_seen_at_ms), sessions,
         attempts ? String(attempts.byMachine.get(row.machine) ?? 0) : "Not available",
         claims ? String(claims.byMachine.get(row.machine) ?? 0) : "Not available",
-        ...(showCore ? [coreObservation(row.core)] : [])];
+        ...(showCore ? [coreObservation(row.core)] : []),
+        actions];
     });
-    const headers = ["Machine", "Placement", "Observation", "Observed at", "Last seen", "Sessions", "Assigned attempts", "Held claims"];
+    const headers = ["Machine", "Placement", "Observation", "Slots / Health", "Observed at", "Last seen", "Sessions", "Assigned attempts", "Held claims"];
     if (showCore) headers.push("Herdr Core");
+    headers.push("Actions");
     state.machineRows.replaceChildren(table(headers, rows, "No enrolled machines listed", "No machine rows were returned by the roster endpoint."));
     const gaps = [[attempts, "Attempts", "session machine"], [claims, "Claims", "holder machine"]].flatMap(([counts, name, field]) => {
       if (!counts) return [`${name} not yet available.`];
@@ -448,36 +506,279 @@
       state.listedClaims && state.cairnWorkerCells ? "No listed Cairn changes or claim leases need attention." : "Waiting for Cairn or Fleet observations.", "small"));
   }
 
+  function isSnapshotFresh(state, now = Date.now()) {
+    return state.connection?.dataset?.state === "live"
+      && Number.isFinite(state.observedAt)
+      && state.observedAt > 0
+      && (now - state.observedAt) < CONTROL_FRESHNESS_MS;
+  }
+
+  async function openConfirmDialog(state, options) {
+    if (typeof state.context?.confirmControl === "function") {
+      return state.context.confirmControl(options);
+    }
+    const dialog = typeof document?.getElementById === "function" ? document.getElementById("control-dialog") : null;
+    const form = typeof document?.getElementById === "function" ? document.getElementById("control-form") : null;
+    if (!dialog || !form) {
+      notice(state.command, "Confirmation dialog is unavailable; no command was sent.");
+      return { confirmed: false, reason: "" };
+    }
+    const byId = (id) => document.getElementById(id);
+    const title = byId("confirm-title");
+    const warning = byId("confirm-warning");
+    const facts = byId("confirm-facts");
+    const confirmBtn = byId("confirm-control");
+    const dismissBtn = byId("dismiss-control");
+    const reasonField = byId("confirm-reason-field");
+    const reasonLabel = byId("confirm-reason-label");
+    const reasonInput = byId("confirm-reason");
+    const reasonError = byId("confirm-reason-error");
+    if (title) title.textContent = options.title || "Confirm action";
+    if (warning) warning.textContent = options.warning || "";
+    if (confirmBtn) {
+      confirmBtn.textContent = options.verb || "Confirm";
+      confirmBtn.className = options.danger ? "danger" : "primary";
+    }
+    if (dismissBtn) dismissBtn.textContent = options.dismiss || "Cancel";
+    if (facts) {
+      facts.replaceChildren();
+      for (const [term, value] of options.facts || []) {
+        if (value === undefined || value === null || value === "") continue;
+        facts.append(element("dt", term), element("dd", value));
+      }
+    }
+    if (reasonField && reasonInput) {
+      if (options.reason) {
+        reasonField.hidden = false;
+        if (reasonLabel) reasonLabel.textContent = options.reason.label || "Reason";
+        reasonInput.placeholder = options.reason.placeholder || "";
+        reasonInput.maxLength = options.reason.maxLength || REASON_MAX;
+        reasonInput.required = Boolean(options.reason.required);
+        reasonInput.value = options.reason.initial || "";
+      } else {
+        reasonField.hidden = true;
+        reasonInput.required = false;
+        reasonInput.value = "";
+      }
+      if (reasonError) { reasonError.textContent = ""; reasonError.hidden = true; }
+    }
+    const cliWrap = byId("confirm-cli-parity");
+    const cliCmd = byId("confirm-cli-cmd");
+    const cliStatus = byId("confirm-cli-status");
+    if (cliWrap && cliCmd) {
+      if (options.cliCommand) {
+        cliWrap.hidden = false;
+        cliCmd.textContent = options.cliCommand;
+        if (cliStatus) cliStatus.textContent = "";
+      } else {
+        cliWrap.hidden = true;
+        cliCmd.textContent = "";
+        if (cliStatus) cliStatus.textContent = "";
+      }
+    }
+    return new Promise((resolve) => {
+      let settled = false;
+      const cleanup = () => {
+        form.removeEventListener("submit", onSubmit);
+        dismissBtn?.removeEventListener("click", onCancel);
+        dialog.removeEventListener("cancel", onCancel);
+        if (dialog.open) dialog.close();
+        if (reasonField) reasonField.hidden = true;
+        if (reasonInput) { reasonInput.value = ""; reasonInput.required = false; }
+        if (reasonError) { reasonError.textContent = ""; reasonError.hidden = true; }
+        if (cliWrap) cliWrap.hidden = true;
+        if (cliCmd) cliCmd.textContent = "";
+        if (cliStatus) cliStatus.textContent = "";
+      };
+      const finish = (result) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        options.opener?.focus?.();
+        resolve(result);
+      };
+      const onCancel = () => finish({ confirmed: false, reason: "" });
+      const onSubmit = (event) => {
+        event.preventDefault();
+        const max = options.reason?.maxLength || REASON_MAX;
+        const reason = (reasonInput?.value || "").trim().slice(0, max);
+        if (options.reason?.required && !reason) {
+          if (reasonError) { reasonError.textContent = "A reason is required."; reasonError.hidden = false; }
+          reasonInput?.focus?.();
+          return;
+        }
+        finish({ confirmed: true, reason, requestId: typeof crypto?.randomUUID === "function" ? crypto.randomUUID() : `fleet-${Date.now()}` });
+      };
+      form.addEventListener("submit", onSubmit);
+      dismissBtn?.addEventListener("click", onCancel);
+      dialog.addEventListener("cancel", onCancel);
+      dialog.showModal();
+      (options.reason?.required ? reasonInput : dismissBtn)?.focus?.();
+    });
+  }
+
+  async function confirmGuardedFleetMutation(state, options) {
+    if (!isSnapshotFresh(state)) {
+      notice(state.command, "Fleet observation snapshot is stale or disconnected (older than 30s). Wait for a live snapshot before mutating.");
+      return { confirmed: false, reason: "" };
+    }
+    const expectedVersion = state.version;
+    const choice = await openConfirmDialog(state, options);
+    if (!choice?.confirmed) return { confirmed: false, reason: "" };
+    if (!state.context?.isCurrent?.() || !isSnapshotFresh(state) || (expectedVersion && state.version !== expectedVersion)) {
+      notice(state.command, "Fleet observation became stale or changed before confirmation completed. Nothing was sent.");
+      return { confirmed: false, reason: "" };
+    }
+    return choice;
+  }
+
   function renderClaims(state, claims) {
     state.listedClaims = claims;
     renderAttention(state);
     const now = Date.now();
     const open = claims.filter((claim) => stateText(claim.state) === "open" && (claim.expires_ms || 0) > now).length;
     state.metrics.claims.textContent = String(open);
+    const known = new Set(claims.map((c) => c.identity));
+    for (const id of [...state.selectedClaims]) if (!known.has(id)) state.selectedClaims.delete(id);
+    const bulkWrap = state.claimsBulk;
+    const renderBulk = () => {
+      if (!bulkWrap) return;
+      const countSelected = state.selectedClaims.size;
+      if (!countSelected) { bulkWrap.replaceChildren(); bulkWrap.hidden = true; return; }
+      bulkWrap.hidden = false;
+      const labelNode = element("span", `${countSelected} claim${countSelected === 1 ? "" : "s"} selected`, "small");
+      const bulkRenew = element("button", "Renew selected (+30m)", "quiet");
+      bulkRenew.type = "button";
+      bulkRenew.addEventListener("click", async () => {
+        const selected = (state.listedClaims || []).filter((c) => state.selectedClaims.has(c.identity));
+        if (!selected.length) return;
+        const choice = await confirmGuardedFleetMutation(state, {
+          title: `Renew ${selected.length} selected claim${selected.length === 1 ? "" : "s"}?`,
+          verb: `Renew ${selected.length}`,
+          dismiss: "Keep current leases",
+          danger: false,
+          warning: "Renews each selected claim sequentially using its recorded fence.",
+          facts: [["Count", String(selected.length)], ["Leases", selected.map((c) => c.identity.slice(0, 10)).join(", ")]],
+          cliCommand: selected.map((c) => `kiln-fleet claims renew ${c.identity} --fence ${c.fence}`).join(" && "),
+          opener: bulkRenew,
+        });
+        if (!choice.confirmed) return;
+        for (const claim of selected) {
+          await state.context.api(`/api/fleet/claims/${claim.identity}/renew`, { method: "POST", body: { fence: claim.fence } });
+        }
+        state.selectedClaims.clear();
+        restart(state);
+      });
+      const bulkRelease = element("button", "Release selected", "danger");
+      bulkRelease.type = "button";
+      bulkRelease.addEventListener("click", async () => {
+        const selected = (state.listedClaims || []).filter((c) => state.selectedClaims.has(c.identity));
+        if (!selected.length) return;
+        const choice = await confirmGuardedFleetMutation(state, {
+          title: `Release ${selected.length} selected claim${selected.length === 1 ? "" : "s"}?`,
+          verb: `Release ${selected.length}`,
+          dismiss: "Keep claims",
+          danger: true,
+          warning: "Releases all selected coordination claims at their exact fences. Requires an explicit reason.",
+          facts: [["Count", String(selected.length)], ["Claims", selected.map((c) => c.identity.slice(0, 10)).join(", ")]],
+          reason: { label: "Bulk release reason", placeholder: "Why these claims are being released", required: true, maxLength: REASON_MAX },
+          cliCommand: selected.map((c) => `kiln-fleet claims release ${c.identity} --fence ${c.fence}`).join(" && "),
+          opener: bulkRelease,
+        });
+        if (!choice.confirmed) return;
+        const bounded = text(choice.reason).trim().slice(0, REASON_MAX);
+        if (!bounded) return;
+        for (const claim of selected) {
+          await state.context.api(`/api/fleet/claims/${claim.identity}/release`, { method: "POST", body: { fence: claim.fence, note: bounded } });
+        }
+        state.selectedClaims.clear();
+        restart(state);
+      });
+      const clearSel = element("button", "Clear", "quiet");
+      clearSel.type = "button";
+      clearSel.addEventListener("click", () => { state.selectedClaims.clear(); renderClaims(state, state.listedClaims || []); });
+      bulkWrap.replaceChildren(labelNode, bulkRenew, bulkRelease, clearSel);
+    };
     const rows = claims.map((claim) => {
+      const check = document.createElement("input");
+      check.type = "checkbox";
+      check.checked = state.selectedClaims.has(claim.identity);
+      check.setAttribute("aria-label", `Select claim ${claim.identity.slice(0, 12)}`);
+      check.addEventListener("change", () => {
+        if (check.checked) state.selectedClaims.add(claim.identity);
+        else state.selectedClaims.delete(claim.identity);
+        renderBulk();
+      });
       const actions = element("div", undefined, "fleet-actions");
       actions.id = `fleet-claim-${claim.identity}`;
+      if (typeof state.context.openInspector === "function") {
+        const inspect = element("button", "Inspect", "quiet");
+        inspect.type = "button";
+        inspect.addEventListener("click", () => state.context.openInspector("claim", claim.identity, { opener: inspect }));
+        actions.append(inspect);
+      }
       const renew = element("button", "Renew", "quiet");
       renew.type = "button";
-      renew.addEventListener("click", () => mutate(state, renew, `/api/fleet/claims/${claim.identity}/renew`, { fence: claim.fence }));
+      renew.addEventListener("click", async () => {
+        const choice = await confirmGuardedFleetMutation(state, {
+          title: `Renew claim ${claim.identity.slice(0, 12)}?`,
+          verb: "Renew claim",
+          dismiss: "Keep current lease",
+          danger: false,
+          warning: "Renews this coordination claim lease for the exact fence shown. Requires a fresh snapshot (within 30s).",
+          facts: [
+            ["Claim", claim.identity],
+            ["Scope", scopeText(claim.scope)],
+            ["Holder", holderText(claim.holder)],
+            ["Fence", String(claim.fence)],
+          ],
+          reason: { label: "Renewal note (optional)", placeholder: "Optional context for this renewal", required: false, maxLength: REASON_MAX },
+          cliCommand: `kiln-fleet claims renew ${claim.identity} --fence ${claim.fence}`,
+          opener: renew,
+        });
+        if (!choice.confirmed) return;
+        void mutate(state, renew, `/api/fleet/claims/${claim.identity}/renew`, { fence: claim.fence });
+      });
       const release = element("button", "Release", "quiet");
       release.type = "button";
-      release.addEventListener("click", () => mutate(state, release, `/api/fleet/claims/${claim.identity}/release`, { fence: claim.fence }));
+      release.addEventListener("click", async () => {
+        const choice = await confirmGuardedFleetMutation(state, {
+          title: `Release claim ${claim.identity.slice(0, 12)}?`,
+          verb: "Release claim",
+          dismiss: "Keep claim",
+          danger: true,
+          warning: "Releases this coordination claim for the exact fence shown. Requires a fresh snapshot (within 30s) and explicit reason.",
+          facts: [
+            ["Claim", claim.identity],
+            ["Scope", scopeText(claim.scope)],
+            ["Holder", holderText(claim.holder)],
+            ["Fence", String(claim.fence)],
+          ],
+          reason: { label: "Release reason", placeholder: "Why this claim is being released", required: true, maxLength: REASON_MAX },
+          cliCommand: `kiln-fleet claims release ${claim.identity} --fence ${claim.fence} --note "${text(scopeText(claim.scope)).replace(/"/g, "'")}"`,
+          opener: release,
+        });
+        if (!choice.confirmed) return;
+        const bounded = text(choice.reason).trim().slice(0, REASON_MAX);
+        if (!bounded) { notice(state.command, "A release reason is required."); return; }
+        void mutate(state, release, `/api/fleet/claims/${claim.identity}/release`, { fence: claim.fence, note: bounded });
+      });
       actions.append(renew, release);
-      return [identityCell(claim.identity), scopeText(claim.scope), holderText(claim.holder), text(claim.purpose), when(claim.expires_ms), actions];
+      return [check, identityCell(claim.identity), scopeText(claim.scope), holderText(claim.holder), text(claim.purpose), when(claim.expires_ms), actions];
     });
-    state.claims.replaceChildren(table(["ID", "Scope", "Holder", "Purpose", "Expires", "Actions"], rows, "No live claims", "The coordinator reports no live claims."));
+    renderBulk();
+    state.claims.replaceChildren(table(["", "ID", "Scope", "Holder", "Purpose", "Expires", "Actions"], rows, "No live claims", "The coordinator reports no live claims."));
   }
 
   function renderWork(state, work) {
     state.metrics.ready.textContent = String(work.ready_unclaimed);
     const ready = work.ranked.map((item) => [
-      cockpitLink(item.identity), text(item.repository), text(item.title),
+      identityCell(item.identity), text(item.repository), text(item.title),
       item.interactive ? element("span", "Interactive", "state-badge fleet-tag") : "Not interactive",
     ]);
     state.ready.replaceChildren(table(["ID", "Repository", "Title", "Mode"], ready, "No ranked work", "The coordinator reports no ranked work."));
     const blocked = work.blocked.map((item) => [
-      cockpitLink(item.identity), text(item.repository), text(item.title),
+      identityCell(item.identity), text(item.repository), text(item.title),
       Array.isArray(item.reasons) ? item.reasons.map(blockReason).join(" · ") : "Not recorded",
     ]);
     state.blocked.replaceChildren(table(["ID", "Repository", "Title", "Reasons"], blocked, "Nothing blocked", "The coordinator reports no blocked work."));
@@ -495,25 +796,90 @@
   }
 
   function renderAttemptRows(state, attempts, filtering) {
+    const known = new Set(attempts.map((a) => a.attempt));
+    for (const id of [...state.selectedAttempts]) if (!known.has(id)) state.selectedAttempts.delete(id);
+    const bulkWrap = state.attemptsBulk;
+    const renderBulk = () => {
+      if (!bulkWrap) return;
+      const countSelected = state.selectedAttempts.size;
+      if (!countSelected) { bulkWrap.replaceChildren(); bulkWrap.hidden = true; return; }
+      bulkWrap.hidden = false;
+      const labelNode = element("span", `${countSelected} attempt${countSelected === 1 ? "" : "s"} selected`, "small");
+      const bulkCancel = element("button", "Cancel selected", "danger");
+      bulkCancel.type = "button";
+      bulkCancel.addEventListener("click", async () => {
+        const selected = (state.listedAttempts || []).filter((a) => state.selectedAttempts.has(a.attempt));
+        if (!selected.length) return;
+        const choice = await confirmGuardedFleetMutation(state, {
+          title: `Cancel ${selected.length} selected attempt${selected.length === 1 ? "" : "s"}?`,
+          verb: `Cancel ${selected.length}`,
+          dismiss: "Keep attempts",
+          danger: true,
+          warning: "Cancels all selected attempts sequentially at the fleet coordinator. Requires an explicit reason.",
+          facts: [["Count", String(selected.length)], ["Attempts", selected.map((a) => a.attempt.slice(0, 10)).join(", ")]],
+          reason: { label: "Bulk cancel reason", placeholder: "Why these attempts are being cancelled", required: true, maxLength: REASON_MAX },
+          cliCommand: selected.map((a) => `kiln-fleet attempts cancel ${a.attempt}`).join(" && "),
+          opener: bulkCancel,
+        });
+        if (!choice.confirmed) return;
+        const bounded = text(choice.reason).trim().slice(0, REASON_MAX);
+        if (!bounded) return;
+        for (const attempt of selected) {
+          await state.context.api(`/api/fleet/attempts/${attempt.attempt}/cancel`, { method: "POST", body: { reason: bounded } });
+        }
+        state.selectedAttempts.clear();
+        restart(state);
+      });
+      const clearSel = element("button", "Clear", "quiet");
+      clearSel.type = "button";
+      clearSel.addEventListener("click", () => { state.selectedAttempts.clear(); renderAttemptRows(state, attempts, filtering); });
+      bulkWrap.replaceChildren(labelNode, bulkCancel, clearSel);
+    };
     const rows = attempts.map((attempt) => {
+      const check = document.createElement("input");
+      check.type = "checkbox";
+      check.checked = state.selectedAttempts.has(attempt.attempt);
+      check.setAttribute("aria-label", `Select attempt ${attempt.attempt.slice(0, 12)}`);
+      check.addEventListener("change", () => {
+        if (check.checked) state.selectedAttempts.add(attempt.attempt);
+        else state.selectedAttempts.delete(attempt.attempt);
+        renderBulk();
+      });
       const session = record(attempt.session) ? attempt.session : {};
       const actions = element("div", undefined, "fleet-actions");
+      if (typeof state.context.openInspector === "function") {
+        const inspect = element("button", "Inspect", "quiet");
+        inspect.type = "button";
+        inspect.addEventListener("click", () => state.context.openInspector("attempt", attempt.attempt, { opener: inspect }));
+        actions.append(inspect);
+      }
       const cancel = element("button", "Cancel", "quiet");
       cancel.type = "button";
-      cancel.addEventListener("click", () => {
-        const reason = prompt("Cancel reason");
-        if (reason === null) return;
-        const bounded = reason.trim().slice(0, REASON_MAX);
+      cancel.addEventListener("click", async () => {
+        const choice = await confirmGuardedFleetMutation(state, {
+          title: `Cancel attempt ${attempt.attempt.slice(0, 12)}?`,
+          verb: "Cancel attempt",
+          dismiss: "Keep attempt",
+          danger: true,
+          warning: "Cancels this attempt at the fleet coordinator. Requires a fresh snapshot (within 30s) and explicit reason.",
+          facts: [
+            ["Attempt", attempt.attempt],
+            ["Work", text(attempt.title) || text(attempt.work) || "Not recorded"],
+            ["State", label(attempt.state)],
+            ["Session", `${text(session.machine) || "Machine not recorded"} ${text(session.agent_name) || ""}`.trim()],
+          ],
+          reason: { label: "Cancel reason", placeholder: "Why this attempt is being cancelled", required: true, maxLength: REASON_MAX },
+          cliCommand: `kiln-fleet attempts cancel ${attempt.attempt} --reason "Cancelled via console"`,
+          opener: cancel,
+        });
+        if (!choice.confirmed) return;
+        const bounded = text(choice.reason).trim().slice(0, REASON_MAX);
         if (!bounded) { notice(state.command, "A cancel reason is required."); return; }
-        mutate(state, cancel, `/api/fleet/attempts/${attempt.attempt}/cancel`, { reason: bounded });
+        void mutate(state, cancel, `/api/fleet/attempts/${attempt.attempt}/cancel`, { reason: bounded });
       });
       actions.append(cancel);
-      if (IDENTITY.test(text(attempt.work))) {
-        const link = element("a", "Open work", "row-link");
-        link.href = `?${new URLSearchParams({ page: "cockpit", work_id_exact: attempt.work })}`;
-        actions.prepend(link);
-      }
       return [
+        check,
         identityCell(attempt.attempt),
         `${label(attempt.state)}\nPhase: ${label(attempt.phase)}`,
         `${text(attempt.repository) || "Repository not recorded"}\n${text(attempt.title) || "Title not recorded"}`,
@@ -522,7 +888,8 @@
         actions,
       ];
     });
-    state.attempts.replaceChildren(table(["ID", "State", "Work", "Session", "Lease", "Actions"], rows,
+    renderBulk();
+    state.attempts.replaceChildren(table(["", "ID", "State", "Work", "Session", "Lease", "Actions"], rows,
       filtering ? "No matching attempts" : "No attempts",
       filtering ? "Clear the filters to see all listed attempts." : "The coordinator reports no attempts."));
   }
@@ -812,7 +1179,8 @@
     if (sourcesChanged) renderWorkSources(state, snapshot.work, snapshot.attempts);
     renderMachines(state);
     state.machine.textContent = `${snapshot.health.machine} · fleet ${snapshot.health.version}`;
-    const received = new Date();
+    state.observedAt = Date.now();
+    const received = new Date(state.observedAt);
     state.updated.dateTime = received.toISOString();
     state.updated.textContent = `Last snapshot · ${received.toLocaleString()}`;
   }
@@ -828,6 +1196,7 @@
     }
     if (frame.event === "heartbeat") {
       if (!state.version) throw new Error("Fleet has not supplied a snapshot.");
+      state.observedAt = Date.now();
       live(state);
       return true;
     }
@@ -901,6 +1270,10 @@
   }
 
   function restart(state) {
+    if (typeof state.context.subscribeEvents === "function") {
+      for (const poll of state.polls || []) void pollProjection(state, poll);
+      return;
+    }
     state.epoch += 1;
     state.controller?.abort();
     state.inFlight = false;
@@ -1074,7 +1447,21 @@
     reconcile.addEventListener("click", async () => {
       const controller = state.inspectorController;
       if (!reviewedDigest || !controller || reconcile.disabled || !state.context.isCurrent()) return;
-      if (!confirm(`Reconcile the original request for attempt ${attempt.identity}, fence ${attempt.fence}? This does not start a replacement.`)) return;
+      const choice = await openConfirmDialog(state, {
+        title: `Reconcile original dispatch for attempt ${attempt.identity.slice(0, 12)}?`,
+        verb: "Reconcile original dispatch",
+        dismiss: "Keep unconfirmed",
+        danger: false,
+        warning: "Probes/reconciles the original retained dispatch request. This does not start a replacement.",
+        facts: [
+          ["Attempt", attempt.identity],
+          ["Fence", String(attempt.fence)],
+          ["Work", attempt.work_identity],
+          ["Request digest", reviewedDigest],
+        ],
+        opener: reconcile,
+      });
+      if (!choice.confirmed || state.inspectorController !== controller || !state.context.isCurrent()) return;
       const request_digest = reviewedDigest;
       reviewedDigest = "";
       reconcile.hidden = true;
@@ -1096,7 +1483,7 @@
     status.setAttribute("role", "status");
     button.addEventListener("click", async () => {
       const controller = state.inspectorController;
-      if (!controller || !state.context.isCurrent()) return;
+      if (!controller) return;
       const current = () => state.inspectorController === controller && state.context.isCurrent();
       button.disabled = true;
       reviewedDigest = "";
@@ -1215,7 +1602,7 @@
     const rows = [
       ["Attempt", identityCell(attempt.identity)], ["Fence", String(attempt.fence)],
       ["Work revision", `${label(attempt.applicability)} · ${attempt.work_revision ?? "Not recorded"}`],
-      ["Work identity", cockpitLink(attempt.work_identity)], ["Claimed", when(attempt.claimed_at_ms)],
+      ["Work identity", identityCell(attempt.work_identity)], ["Claimed", when(attempt.claimed_at_ms)],
       ["Recorded lease deadline", when(attempt.lease_until_ms)],
       ["Fleet session", fleetedAttempt(state, attempt)],
       ["Dispatch", [label(attempt.dispatch), attempt.unknown_outcome && label(attempt.unknown_outcome)].filter(Boolean).join(" · ")],
@@ -1380,13 +1767,114 @@
     }
   }
 
+  function handleMultiplexedEvent(state, eventName, payload) {
+    if (active !== state || !state.context.isCurrent()) return;
+    try {
+      if (eventName === "fleet") {
+        if (payload?.unavailable) {
+          connection(state, state.version ? "stale" : "unavailable", state.version ? "Stale · last snapshot shown" : "Unavailable");
+          notice(state.transport, text(payload.error) || "The coordinator did not answer.");
+          return;
+        }
+        applySnapshot(state, payload);
+        state.version = String(payload.version);
+        live(state);
+      } else if (eventName === "heartbeat") {
+        if (!state.version) return;
+        state.observedAt = Date.now();
+        live(state);
+      } else if (eventName === "cairn") {
+        void pollCairn(state);
+      }
+    } catch (error) {
+      connection(state, state.version ? "stale" : "unavailable", state.version ? "Stale · last snapshot shown" : "Unavailable");
+      notice(state.transport, error?.message || "Invalid fleet event payload.");
+    }
+  }
+
+  function renderDispatchBar(state, status) {
+    if (!state.dispatchBar) return;
+    if (!record(status)) { state.dispatchBar.hidden = true; return; }
+    state.dispatchBar.hidden = false;
+    const paused = status.paused === true || text(status.state).toLowerCase() === "paused";
+    const deferred = Number.isSafeInteger(status.deferred_count) ? status.deferred_count : 0;
+    const badge = element("span", paused ? `DISPATCH PAUSED · ${deferred} deferred` : "DISPATCH RUNNING", "state-badge");
+    badge.dataset.tone = paused ? "warning" : "good";
+    const detail = element("span", status.reason ? `Reason: ${text(status.reason)}` : `${deferred} deferred attempt${deferred === 1 ? "" : "s"}`, "small");
+    const items = [badge, detail];
+    if (state.context.canOperate?.() !== false) {
+      const btn = element("button", paused ? "Resume dispatch" : "Pause dispatch", paused ? "primary" : "quiet");
+      btn.type = "button";
+      btn.addEventListener("click", async () => {
+        const nextPause = !paused;
+        const choice = await confirmGuardedFleetMutation(state, {
+          title: nextPause ? "Pause fleet dispatch?" : "Resume fleet dispatch?",
+          verb: nextPause ? "Pause dispatch" : "Resume dispatch",
+          dismiss: "Keep current dispatch state",
+          danger: nextPause,
+          warning: nextPause
+            ? "Halts new attempt admissions across the factory while letting running attempts finish."
+            : "Resumes queued and deferred attempt admissions.",
+          facts: [["Current state", paused ? "PAUSED" : "RUNNING"], ["Deferred count", String(deferred)]],
+          reason: nextPause ? { label: "Pause reason", placeholder: "Why dispatch is being paused", required: true, maxLength: REASON_MAX } : null,
+          cliCommand: `kiln-fleet dispatch ${nextPause ? "pause" : "resume"}`,
+          opener: btn,
+        });
+        if (!choice.confirmed) return;
+        const reqId = typeof crypto?.randomUUID === "function" ? crypto.randomUUID() : `dispatch-${Date.now()}`;
+        await state.context.api(`/api/fleet/dispatch/${nextPause ? "pause" : "resume"}`, {
+          method: "POST",
+          body: { ...(choice.reason ? { reason: choice.reason } : {}), request_id: reqId },
+        });
+        restart(state);
+      });
+      items.push(btn);
+    }
+    state.dispatchBar.replaceChildren(...items);
+  }
+
+  function buildFleetAtlas(state) {
+    const nodes = new Map();
+    const routes = [];
+    for (const m of state.listedMachines || []) {
+      const id = `machine:${m.machine}`;
+      if (!nodes.has(id)) nodes.set(id, { id, label: m.machine, role: m.state || "machine", kind: "machine" });
+    }
+    for (const entry of state.cairnWorkerCells || []) {
+      const row = entry.row;
+      const cid = `change:${row.change}`;
+      if (!nodes.has(cid)) nodes.set(cid, { id: cid, label: row.change, role: row.lane || "change", lane: row.lane, kind: "unit" });
+      for (const a of row.activeAssignments || []) {
+        const aid = `attempt:${text(a.attempt).slice(0, 12)}`;
+        if (!nodes.has(aid)) nodes.set(aid, { id: aid, label: aid, role: "attempt", kind: "attempt" });
+        routes.push({ from: cid, to: aid, label: "declared assignment", provenance: "declared" });
+        const session = (state.listedAttempts || []).find((x) => x.attempt === a.attempt && x.fence === a.fence)?.session;
+        if (text(session?.machine)) {
+          const mid = `machine:${session.machine}`;
+          if (!nodes.has(mid)) nodes.set(mid, { id: mid, label: session.machine, role: "observed host", kind: "machine" });
+          routes.push({ from: aid, to: mid, label: "observed session", provenance: "observed", evidence_ref: a.attempt, digest: a.attempt });
+        }
+      }
+    }
+    return {
+      identity: text(state.version) || "fleet-atlas-projection",
+      title: "Fleet & Cairn execution topology",
+      nodes: [...nodes.values()],
+      routes,
+      packets: [],
+      chapters: [],
+      open_questions: [],
+    };
+  }
+
   let active = null;
   function load(root, context) {
     clear();
     const state = {
       context, controller: null, timer: 0, inFlight: false, mutating: false, signatures: [],
-      root, principal: currentPrincipal(),
+      root, principal: currentPrincipal(), observedAt: 0,
       version: "", epoch: 0, failures: 0, answerInputs: new Map(),
+      selectedClaims: new Set(), selectedAttempts: new Set(), unsubscribeEvents: null,
     };
     const page = element("div", undefined, "fleet-page");
     const head = element("section", undefined, "panel fleet-summary");
@@ -1400,6 +1888,9 @@
     statusChip.setAttribute("role", "status");
     status.append(statusChip, machine, updated);
     headRow.append(headline, status);
+    const dispatchBar = element("div", undefined, "fleet-dispatch-bar");
+    dispatchBar.hidden = true;
+    state.dispatchBar = dispatchBar;
     const metrics = element("dl", undefined, "fleet-metrics");
     const claimMetric = metric("Open claims", null), readyMetric = metric("Ready & unclaimed", null), attemptMetric = metric("Listed attempts", null), decisionMetric = metric("Listed open decisions", null);
     metrics.append(claimMetric, readyMetric, attemptMetric, decisionMetric);
@@ -1409,7 +1900,7 @@
       banner.setAttribute("role", "alert");
       banner.hidden = true;
     }
-    head.append(headRow, transport, command, metrics);
+    head.append(headRow, dispatchBar, transport, command, metrics);
     // r[impl kiln.fleet.aggregate_workspace]
     const machinesPanel = element("section", undefined, "panel fleet-section");
     machinesPanel.id = "fleet-machines";
@@ -1440,8 +1931,14 @@
     claimsHead.append(element("h2", "Claims"), element("p", "Live coordination claims with their current lease. Renew or release uses the claim's recorded fence.", "small"));
     const acquire = element("div");
     claimsHead.append(acquire);
+    const claimsBulk = element("div", undefined, "bulk-toolbar");
+    claimsBulk.hidden = true;
+    state.claimsBulk = claimsBulk;
+    const claimsForeignStatus = observationStatus("");
+    claimsForeignStatus.hidden = true;
+    state.claimsForeignStatus = claimsForeignStatus;
     const claims = element("div");
-    claimsPanel.append(claimsHead, claims);
+    claimsPanel.append(claimsHead, claimsBulk, claimsForeignStatus, claims);
     const work = element("div", undefined, "fleet-work");
     const readyPanel = element("section", undefined, "panel fleet-section");
     readyPanel.append(element("h2", "Ranked work"), element("p", "Coordinator ranking. This list can include claimed work and is separate from the ready-and-unclaimed count.", "small"));
@@ -1474,9 +1971,12 @@
       applyAttemptFilters(state);
     });
     filterBar.append(result, clearFilters);
+    const attemptsBulk = element("div", undefined, "bulk-toolbar");
+    attemptsBulk.hidden = true;
+    state.attemptsBulk = attemptsBulk;
     const attempts = element("div");
     attempts.id = "fleet-attempt-register";
-    attemptsPanel.append(charts, filterBar, attempts);
+    attemptsPanel.append(charts, filterBar, attemptsBulk, attempts);
     const decisionsPanel = element("section", undefined, "panel fleet-section");
     state.attention = element("div");
     decisionsPanel.append(element("h2", "Operator inbox"), element("p", "Listed Cairn blockers, claims due within 15 minutes, and Fleet decisions. Check the source status before acting on a retained observation.", "small"), state.attention, element("h3", "Fleet decisions"));
@@ -1512,19 +2012,35 @@
     inspectorHead.append(state.inspectorTitle, close);
     state.inspectorBody = element("div", undefined, "fleet-inspector-body");
     state.inspector.append(inspectorHead, state.inspectorBody);
+    const fleetAtlasToggle = element("button", "Open opt-in Atlas topology (off by default)", "quiet fleet-atlas-toggle");
+    fleetAtlasToggle.type = "button";
+    fleetAtlasToggle.setAttribute("aria-expanded", "false");
+    const fleetAtlasHost = element("div", undefined, "fleet-atlas-host");
+    fleetAtlasHost.hidden = true;
+    fleetAtlasToggle.addEventListener("click", () => {
+      const nextOpen = fleetAtlasHost.hidden;
+      fleetAtlasHost.hidden = !nextOpen;
+      fleetAtlasToggle.setAttribute("aria-expanded", String(nextOpen));
+      fleetAtlasToggle.textContent = nextOpen ? "Hide opt-in Atlas topology" : "Open opt-in Atlas topology (off by default)";
+      if (nextOpen) {
+        const doc = buildFleetAtlas(state);
+        if (typeof window.KilnCairn?.renderAtlasTopology === "function") {
+          fleetAtlasHost.replaceChildren(window.KilnCairn.renderAtlasTopology(doc));
+        } else if (doc.nodes.length > 64) {
+          fleetAtlasHost.replaceChildren(element("p", `Atlas topology graph refused: ${doc.nodes.length} nodes exceeds 64-node cap.`, "warning"));
+        } else {
+          fleetAtlasHost.replaceChildren(table(["From", "To", "Route", "Provenance"], doc.routes.map((r) => [r.from, r.to, r.label, r.provenance]), "No Atlas routes", "No active Cairn/Fleet routes observed."));
+        }
+      }
+    });
     cairnPanel.append(element("h2", "Cairn progress"), cairnStatusBar,
       element("p", "Dispatch bindings describe the plan, not the running host or model that served a request. Session freshness follows Fleet status above.", "small"),
-      state.cairnCoverage, state.cairnRows);
+      state.cairnCoverage, state.cairnRows, fleetAtlasToggle, fleetAtlasHost);
     state.runtime = element("div");
     state.campaign = element("div", undefined, "fleet-work");
     state.capacity = element("div");
-    const contextTitle = element("h2", "Supporting observations");
-    contextTitle.id = "fleet-observations-title";
-    const observations = element("section", undefined, "view-stack");
-    observations.setAttribute("aria-labelledby", contextTitle.id);
-    observations.append(contextTitle, cairnPanel, issuesPanel, sourcesPanel, state.runtime, state.campaign, swarmsPanel);
-    page.append(head, decisionsPanel, state.inspector, machinesPanel, attemptsPanel, claimsPanel,
-      window.KilnFleetCapacity ? state.capacity : work, observations);
+    page.append(head, machinesPanel, decisionsPanel, cairnPanel, state.inspector, issuesPanel, attemptsPanel, state.runtime,
+      claimsPanel, window.KilnFleetCapacity ? state.capacity : work, sourcesPanel, state.campaign, swarmsPanel);
     root.replaceChildren(page);
     state.machine = machine;
     state.updated = updated;
@@ -1560,15 +2076,44 @@
         notice(state.issueStatus, "Native issues and requests disconnected · no authorized snapshot available.");
       },
     }];
+    if (typeof context.subscribeEvents === "function") {
+      state.polls.push({
+        path: DISPATCH_STATUS,
+        apply: (payload) => renderDispatchBar(state, payload),
+        fail() {},
+      }, {
+        path: CLAIMS_INCLUDE,
+        apply(payload) {
+          const foreign = Array.isArray(payload?.foreign_claims) ? payload.foreign_claims.length : 0;
+          const expired = Array.isArray(payload?.expired_claims) ? payload.expired_claims.length : 0;
+          const mirrorErr = payload?.foreign_mirror?.error ? ` · Mirror: ${text(payload.foreign_mirror.error)}` : "";
+          const parts = [];
+          if (foreign > 0) parts.push(`${foreign} foreign claim conflict${foreign === 1 ? "" : "s"}`);
+          if (expired > 0) parts.push(`${expired} expired lease${expired === 1 ? "" : "s"}`);
+          notice(state.claimsForeignStatus, parts.length || mirrorErr ? `${parts.join(" · ")}${mirrorErr}` : "");
+        },
+        fail() {},
+      });
+    }
     renderAcquire(state);
     active = state;
     renderAttention(state);
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("kiln-session-changed", onSessionChanged);
-    void stream(state);
+    if (typeof context.subscribeEvents === "function") {
+      state.unsubscribeEvents = context.subscribeEvents((eventName, payload) => handleMultiplexedEvent(state, eventName, payload));
+      const initialFleet = window.KilnFactory?.eventsState?.()?.fleet;
+      if (initialFleet) handleMultiplexedEvent(state, "fleet", initialFleet);
+    } else {
+      void stream(state);
+    }
     void pollCairn(state);
     for (const poll of state.polls) void pollProjection(state, poll);
-    void window.KilnFleetCapacity?.mount(state.capacity, context);
+    void window.KilnFleetCapacity?.mount(state.capacity, {
+      ...context,
+      isFresh: () => isSnapshotFresh(state),
+      confirmControl: (opts) => confirmGuardedFleetMutation(state, opts),
+    });
     if (window.KilnInventory?.loadFleetCampaign) {
       void window.KilnInventory.loadFleetCampaign(state.campaign, context, context.route?.worker_campaign || "", (campaign) => {
         if (context.isCurrent() && campaign !== (context.route?.worker_campaign || "")) context.navigate?.({ worker_campaign: campaign });
@@ -1583,6 +2128,10 @@
       state.epoch += 1;
       clearTimeout(state.timer);
       state.controller?.abort();
+      if (typeof state.unsubscribeEvents === "function") {
+        state.unsubscribeEvents();
+        state.unsubscribeEvents = null;
+      }
       clearTimeout(state.cairnTimer);
       state.cairnController?.abort();
       state.inspectorController?.abort();
@@ -1600,11 +2149,5 @@
     window.removeEventListener("kiln-session-changed", onSessionChanged);
   }
 
-  function exactRecoveryReadout(context, attempt) {
-    if (context.canOperate !== true || !context.isCurrent() || !IDENTITY.test(text(attempt?.identity))
-      || !IDENTITY.test(text(attempt?.work_identity)) || !Number.isSafeInteger(attempt.fence) || attempt.fence < 1) return null;
-    return recoveryReadout({ context: { ...context, canOperate: () => true }, inspectorController: new AbortController() }, attempt);
-  }
-
-  window.KilnFleet = Object.freeze({ load, clear, recoveryReadout: exactRecoveryReadout });
+  window.KilnFleet = Object.freeze({ load, clear });
 })();

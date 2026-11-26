@@ -82,7 +82,7 @@ fn usage() -> i32 {
         "       kiln-web-service worker-target --provider-profile <id> --socket <path> --platform <id>"
     );
     eprintln!(
-        "       serve/check observations: [--inventory <path>] [--implementation-work <database>] [--campaign-controls <profile>] [--dispatch-recovery <profile>] [--native-runtime-evidence <profile>] [--artifact-previews <catalog>] [--preview-observations <owned-directory>]"
+        "       serve/check observations: [--inventory <path>] [--implementation-work <database>] [--campaign-controls <profile>] [--dispatch-recovery <profile>] [--native-runtime-evidence <profile>] [--delivery-observations <path>] [--artifact-previews <catalog>] [--preview-observations <owned-directory>]"
     );
     eprintln!("       kiln-web-service verify-implementation --help");
     eprintln!("       kiln-web-service implementation-verification-graph --help");

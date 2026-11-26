@@ -378,27 +378,28 @@
   function campaignCard(route) {
     const panel = element("section", undefined, "panel workers-campaign-card");
     panel.append(element("h2", "Selected campaign progress and blockers"), element("p", "The campaign snapshot is read-only. Controls appear only where this service admits them for you; each goes through the canonical campaign owner and grants no reservation, dispatch, landing or lifecycle authority.", "small"));
-    const form = element("form", undefined, "workers-campaign-lookup");
-    const label = element("label", "Exact campaign ID"); label.htmlFor = "workers-campaign-id";
-    const input = element("input"); Object.assign(input, { id: "workers-campaign-id", type: "text", value: route.campaign, maxLength: CAMPAIGN_ID_MAX_CHARS, autocomplete: "off", placeholder: "Campaign ID (up to 256 characters)" });
-    const lookup = element("button", "Load campaign"); lookup.type = "submit";
-    const clearSelection = element("button", "Clear campaign selection"); clearSelection.type = "button";
+    const controls = element("div", undefined, "workers-campaign-lookup");
+    const indexRoot = element("div", undefined, "workers-campaign-index");
+    indexRoot.dataset.campaignIndexRoot = "true";
+    const clearSelection = element("button", "Clear campaign selection"); clearSelection.type = "button"; clearSelection.disabled = !route.campaign;
     const refresh = element("button", "Refresh campaign"); refresh.type = "button"; refresh.disabled = !route.campaign;
-    const status = element("p", route.campaign ? `Selected campaign: ${route.campaign}` : "No campaign selected. Enter one exact ID to inspect it.", "small"); status.setAttribute("role", "status");
-    form.append(label, input, lookup, clearSelection, refresh, status);
+    const refreshIndex = element("button", "Refresh list", "quiet"); refreshIndex.type = "button";
+    const status = element("p", route.campaign ? `Selected campaign: ${route.campaign}` : "No campaign selected. Choose one from the live campaign list.", "small"); status.setAttribute("role", "status");
+    controls.append(indexRoot, clearSelection, refresh, refreshIndex, status);
     const campaignRoot = element("div", undefined, "workers-campaign-projection"); campaignRoot.dataset.campaignRoot = "true";
-    if (!route.campaign) campaignRoot.append(element("p", "Campaign data is not requested until an exact ID is selected. No absence or completion is inferred.", "small"));
-    form.addEventListener("submit", (event) => {
-      event.preventDefault();
-      const id = campaignId(input.value);
-      if (!id) { status.textContent = `Enter a non-empty campaign ID of at most ${CAMPAIGN_ID_MAX_CHARS} characters without control characters.`; input.focus(); return; }
-      navigate({ worker: route.worker, worker_q: route.q, worker_status: route.status, worker_campaign: id });
-    });
+    if (!route.campaign) campaignRoot.append(element("p", "Campaign data is not requested until a campaign is selected. No absence or completion is inferred.", "small"));
+    const loadIndex = () => {
+      if (!context?.isCurrent?.()) return;
+      void window.KilnInventory?.loadCampaignIndex?.(indexRoot, context, route.campaign, (id) => {
+        navigate({ worker: route.worker, worker_q: route.q, worker_status: route.status, worker_campaign: id });
+      }, { selectId: "workers-campaign-select" });
+    };
     clearSelection.addEventListener("click", () => navigate({ worker: route.worker, worker_q: route.q, worker_status: route.status, worker_campaign: "" }));
     refresh.addEventListener("click", () => {
       if (!route.campaign || !context?.isCurrent()) return;
       void window.KilnInventory?.loadCampaign(campaignRoot, context, route.campaign);
     });
+    refreshIndex.addEventListener("click", loadIndex);
     // Previews are read only when asked for; an unconfigured service is not polled.
     const definitions = element("details", undefined, "inventory-disclosure workers-campaign-definitions");
     const definitionsRoot = element("div");
@@ -407,7 +408,7 @@
       if (!definitions.open || !context?.isCurrent()) return;
       void window.KilnInventory?.loadDefinitions(definitionsRoot, context, (id) => navigate({ worker: route.worker, worker_q: route.q, worker_status: route.status, worker_campaign: id }));
     });
-    panel.append(form, campaignRoot, definitions);
+    panel.append(controls, campaignRoot, definitions);
     return panel;
   }
   function render(inventory, items, route) {
@@ -419,12 +420,12 @@
       browser.classList.add("workers-browse");
       page.append(browser);
     }
+    page.append(campaignCard(route));
     if (window.KilnInventory) {
       const observed = element("div", undefined, "workers-observed-inventories");
       observed.dataset.inventoryRoot = "true";
-      page.append(observed);
+      page.append(disclosure("Observed resource inventories", "observed-inventories", observed));
     }
-    page.append(campaignCard(route));
     return page;
   }
   function title() {
@@ -436,6 +437,14 @@
     if (!active || !root.contains(active)) return "";
     if (active.classList.contains("workers-back")) return "@back";
     return active.dataset.worker || (["workers-q", "workers-status"].includes(active.id) ? `#${active.id}` : "");
+  }
+  function loadCampaignSelection(root, ctx, route) {
+    const indexRoot = root.querySelector("[data-campaign-index-root]");
+    if (indexRoot) void window.KilnInventory?.loadCampaignIndex?.(indexRoot, ctx, route.campaign, (id) => {
+      navigate({ worker: route.worker, worker_q: route.q, worker_status: route.status, worker_campaign: id });
+    }, { selectId: "workers-campaign-select" });
+    const campaignRoot = root.querySelector("[data-campaign-root]");
+    if (campaignRoot && route.campaign) void window.KilnInventory?.loadCampaign(campaignRoot, ctx, route.campaign);
   }
   // r[impl kiln.dashboard.workers.view] r[impl kiln.dashboard.workers.view.scenario.restore]
   async function load(root, ctx) {
@@ -464,8 +473,7 @@
       root.replaceChildren(render(inventory, model.rows, route));
       const observed = root.querySelector("[data-inventory-root]");
       if (observed) void window.KilnInventory.load(observed, ctx);
-      const campaignRoot = root.querySelector("[data-campaign-root]");
-      if (campaignRoot && route.campaign) void window.KilnInventory?.loadCampaign(campaignRoot, ctx, route.campaign);
+      loadCampaignSelection(root, ctx, route);
       if (prior === route.worker) for (const node of root.querySelectorAll("details[data-worker-disclosure]")) if (open.has(node.dataset.workerDisclosure)) node.open = open.get(node.dataset.workerDisclosure);
       shown = route;
       if (focus.startsWith("#")) root.querySelector(focus)?.focus({ preventScroll: true });
@@ -494,8 +502,7 @@
         root.prepend(observed);
         void window.KilnInventory.load(observed, ctx);
       }
-      const campaignRoot = root.querySelector("[data-campaign-root]");
-      if (campaignRoot && route.campaign) void window.KilnInventory?.loadCampaign(campaignRoot, ctx, route.campaign);
+      loadCampaignSelection(root, ctx, route);
     } finally {
       if (live()) root.removeAttribute("aria-busy");
     }

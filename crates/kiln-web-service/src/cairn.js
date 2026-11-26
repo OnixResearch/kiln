@@ -148,6 +148,19 @@
     ["native_lifecycle_complete", "Native lifecycle complete"],
   ]);
   const LIFECYCLE_ACTIONS = vocabulary([["observe_reviewed_sync", "Reviewed sync"], ["observe_reviewed_archive", "Reviewed archive"]]);
+  const PLAN_GATES = vocabulary([
+    ["no_plan", "No plan", "warning", "No plan has been proposed for this work identity."],
+    ["unresolved", "Unresolved annotations", "warning", "Blocking annotations must be resolved before acceptance."],
+    ["unreviewed", "Awaiting review", "info", "Proposed plan awaits reviewer decision."],
+    ["changes_requested", "Changes requested", "warning", "Reviewer requested changes on this plan revision."],
+    ["accepted", "Accepted", "good", "Plan accepted for this exact work identity."],
+  ]);
+  const RECOVERY_LIFECYCLE_ACTIONS = Object.freeze([
+    { action: "prepare-publication", label: "Prepare publication", danger: false, tier: "Tier 2", warning: "Prepares a bounded publication plan for this exact verified candidate. Does not publish or merge." },
+    { action: "publish", label: "Publish", danger: true, tier: "Tier 3", warning: "Delegates external publication to the configured owner command for this exact candidate. Requires explicit operator authority." },
+    { action: "recover-integration", label: "Recover integration", danger: false, tier: "Tier 2", warning: "Reconciles integration state from retained provider/owner evidence for this exact candidate." },
+    { action: "close-source", label: "Close source", danger: true, tier: "Tier 3", warning: "Reconciles and closes the source item after observed integration. Fails closed if integration or authority is missing." },
+  ]);
   // r[impl kiln.cairn.workspace.agents.scenario.slots] Revision facts of definitions, worker pins and workflow revisions
   // share one vocabulary. Unmanaged, unknown (with its owner), recorded, none recorded and not published never share words.
   const SLOT_STATES = vocabulary([
@@ -748,7 +761,7 @@
     const heading = element("h2", "Changes");
     heading.id = titleId;
     const intro = element("div");
-    intro.append(heading, element("p", "Each Cairn change named by canonical work or a selected campaign member, keyed by repository identity and change name. A lane is where the change's least-advanced unit stands; a stop anywhere needs attention.", "small"));
+    intro.append(heading, element("p", "Each lane shows the change’s least-advanced unit. A stop in any unit needs attention.", "small"));
     head.append(intro);
     panel.append(head);
     if (index.error) {
@@ -1123,12 +1136,532 @@
     }
     return item;
   }
-  function cockpitWork(identity) {
-    if (typeof identity !== "string" || !/^[0-9a-f]{64}$/.test(identity)) return copyable(identity, "Work identity");
-    const link = element("a", `Open work ${short(identity)}`, "row-link");
-    link.href = `?${new URLSearchParams({ page: "cockpit", work_id_exact: identity })}`;
-    link.title = identity;
-    return link;
+  function newRequestId() {
+    if (typeof crypto?.randomUUID === "function") return crypto.randomUUID();
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    return `cairn-${[...bytes].map((b) => b.toString(16).padStart(2, "0")).join("")}`;
+  }
+
+  async function confirmCairnControl(options) {
+    if (typeof context?.confirmControl === "function") {
+      return context.confirmControl(options);
+    }
+    const byId = (id) => (typeof document?.getElementById === "function" ? document.getElementById(id) : null);
+    const dialog = byId("control-dialog");
+    const form = byId("control-form");
+    if (!dialog || !form) {
+      return { confirmed: false, reason: "", unavailable: true };
+    }
+    const title = byId("confirm-title");
+    const warning = byId("confirm-warning");
+    const factsEl = byId("confirm-facts");
+    const confirmBtn = byId("confirm-control");
+    const dismissBtn = byId("dismiss-control");
+    const reasonField = byId("confirm-reason-field");
+    const reasonLabel = byId("confirm-reason-label");
+    const reasonInput = byId("confirm-reason");
+    const reasonError = byId("confirm-reason-error");
+    const cliWrap = byId("confirm-cli-parity");
+    const cliCmd = byId("confirm-cli-cmd");
+    const cliStatus = byId("confirm-cli-status");
+    if (title) title.textContent = options.title || "Confirm action";
+    if (warning) warning.textContent = options.warning || "";
+    if (confirmBtn) {
+      confirmBtn.textContent = options.verb || "Confirm";
+      confirmBtn.className = options.danger ? "danger" : "primary";
+    }
+    if (dismissBtn) dismissBtn.textContent = options.dismiss || "Cancel";
+    if (factsEl) {
+      factsEl.replaceChildren();
+      for (const [term, val] of options.facts || []) {
+        if (val === undefined || val === null || val === "") continue;
+        factsEl.append(element("dt", term), element("dd", String(val)));
+      }
+    }
+    if (reasonField && reasonInput) {
+      if (options.reason) {
+        reasonField.hidden = false;
+        if (reasonLabel) reasonLabel.textContent = options.reason.label || "Reason";
+        reasonInput.placeholder = options.reason.placeholder || "";
+        reasonInput.maxLength = options.reason.maxLength || 1024;
+        reasonInput.required = Boolean(options.reason.required);
+        reasonInput.value = options.reason.initial || "";
+      } else {
+        reasonField.hidden = true;
+        reasonInput.required = false;
+        reasonInput.value = "";
+      }
+      if (reasonError) { reasonError.textContent = ""; reasonError.hidden = true; }
+    }
+    if (cliWrap && cliCmd) {
+      if (options.cliCommand) {
+        cliWrap.hidden = false;
+        cliCmd.textContent = options.cliCommand;
+        if (cliStatus) cliStatus.textContent = "";
+      } else {
+        cliWrap.hidden = true;
+        cliCmd.textContent = "";
+      }
+    }
+    return new Promise((resolve) => {
+      let settled = false;
+      const cleanup = () => {
+        form.removeEventListener("submit", onSubmit);
+        dismissBtn?.removeEventListener("click", onCancel);
+        dialog.removeEventListener("cancel", onCancel);
+        if (dialog.open) dialog.close();
+      };
+      const finish = (res) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        options.opener?.focus?.();
+        resolve(res);
+      };
+      const onCancel = () => finish({ confirmed: false, reason: "" });
+      const onSubmit = (event) => {
+        event.preventDefault();
+        const reason = (reasonInput?.value || "").trim().slice(0, 1024);
+        if (options.reason?.required && !reason) {
+          if (reasonError) { reasonError.textContent = "A reason is required."; reasonError.hidden = false; }
+          reasonInput?.focus?.();
+          return;
+        }
+        finish({ confirmed: true, reason, requestId: newRequestId() });
+      };
+      form.addEventListener("submit", onSubmit);
+      dismissBtn?.addEventListener("click", onCancel);
+      dialog.addEventListener("cancel", onCancel);
+      dialog.showModal();
+    });
+  }
+
+  function formatAnnotationRegion(ann) {
+    const reg = ann?.region;
+    if (typeof reg === "string" && reg) return reg;
+    if (reg && typeof reg === "object") {
+      if (reg.kind === "span" || Number.isSafeInteger(reg.start)) {
+        return `step ${str(reg.step || ann.step_id)} [${reg.start ?? 0}..${reg.end ?? "?"})`;
+      }
+      if (reg.step || ann.step_id) return `step ${str(reg.step || ann.step_id)}`;
+    }
+    return ann?.step_id ? `step ${str(ann.step_id)}` : "plan";
+  }
+
+  function formatAnnotationNote(ann) {
+    const note = ann?.note;
+    if (typeof note === "string") return note;
+    if (note && typeof note === "object") {
+      if (note.kind === "delete") return "Delete step";
+      if (note.kind === "replace") return `Replace with: ${str(note.text)}`;
+      return str(note.text || note.comment || JSON.stringify(note));
+    }
+    return str(ann?.comment) || "";
+  }
+
+  function annotationMatchesStep(ann, stepId) {
+    if (!stepId) return false;
+    if (str(ann?.step_id) === stepId) return true;
+    if (ann?.region && typeof ann.region === "object" && str(ann.region.step) === stepId) return true;
+    return false;
+  }
+
+  // r[impl kiln.implementation.plan_review_console_surface]
+  function renderPlanReview(container, opts = {}) {
+    if (!container) return null;
+    let workId = str(opts.workId || opts.work_id);
+    let planId = str(opts.planId || opts.plan_id || opts.plan?.identity);
+    let revision = count(opts.revision ?? opts.plan?.revision);
+    let gate = str(opts.gate) || "unreviewed";
+    let author = str(opts.author || opts.plan?.author);
+    let steps = list(opts.steps ?? opts.plan?.steps);
+    let annotations = [...list(opts.annotations ?? opts.items)];
+    let comparison = opts.comparison && typeof opts.comparison === "object" ? opts.comparison : null;
+    let receiptDigest = str(opts.receiptDigest || opts.receipt_digest || planId);
+    const canOp = opts.canOperate !== undefined ? Boolean(opts.canOperate) : (context?.canOperate ? Boolean(context.canOperate()) : true);
+    const apiFn = opts.api || context?.api;
+
+    const panel = element("section", undefined, "cairn-plan-review");
+    const header = element("div", undefined, "cairn-plan-head");
+    const badgesWrap = element("div", undefined, "badges");
+    const receiptRow = element("p", undefined, "small cairn-plan-receipt");
+    const metaFactsHost = element("div");
+    const diffHost = element("div");
+
+    const drawHeader = () => {
+      badgesWrap.replaceChildren(
+        badge(lookup(PLAN_GATES, gate), "Plan gate"),
+        revision !== null ? badge(word(`Revision ${revision}`, "info")) : null,
+      );
+      receiptRow.replaceChildren(
+        element("span", "Receipt BLAKE3 digest: "),
+        receiptDigest ? copyable(receiptDigest, "Plan receipt digest") : element("span", "Not recorded", "not-recorded"),
+      );
+      metaFactsHost.replaceChildren(facts([
+        ["Work identity", workId ? copyable(workId, "Work identity") : "Not recorded"],
+        ["Plan identity", planId ? copyable(planId, "Plan identity") : "Not recorded"],
+        ["Author", author || "Not recorded"],
+      ]));
+      diffHost.replaceChildren();
+      if (comparison) {
+        const diffSummary = [
+          `kept: ${list(comparison.kept).length}`,
+          `changed: ${list(comparison.changed).length}`,
+          `added: ${list(comparison.added).length}`,
+          `removed: ${list(comparison.removed).length}`,
+          comparison.reordered ? "reordered" : "order preserved",
+        ].join(" · ");
+        diffHost.append(element("p", `Revision comparison vs ${short(comparison.previous)}: ${diffSummary}`, "small cairn-plan-diff"));
+      }
+    };
+    header.append(element("h4", "Implementation plan review", "cairn-subhead"), badgesWrap, metaFactsHost, receiptRow, diffHost);
+    drawHeader();
+    panel.append(header);
+
+    const statusBanner = element("p", undefined, "small cairn-plan-status");
+    statusBanner.setAttribute("role", "status");
+    statusBanner.hidden = true;
+    const errorBanner = element("p", undefined, "warning error-state cairn-plan-error");
+    errorBanner.setAttribute("role", "alert");
+    errorBanner.hidden = true;
+
+    let staleLocked = false;
+    const decisionButtons = [];
+    const setStatus = (msg) => {
+      statusBanner.textContent = msg;
+      statusBanner.hidden = !msg;
+      if (msg) errorBanner.hidden = true;
+    };
+    const setError = (msg, isStale = false) => {
+      errorBanner.textContent = msg;
+      errorBanner.hidden = !msg;
+      if (isStale) {
+        staleLocked = true;
+        for (const btn of decisionButtons) btn.disabled = true;
+      }
+    };
+
+    const applyFeedbackSnapshot = (fb) => {
+      if (!fb || typeof fb !== "object") return;
+      if (str(fb.work_id)) workId = fb.work_id;
+      if (str(fb.plan_id)) planId = fb.plan_id;
+      if (count(fb.revision) !== null) revision = fb.revision;
+      if (str(fb.gate)) gate = fb.gate;
+      if (str(fb.author)) author = fb.author;
+      if (Array.isArray(fb.steps)) steps = fb.steps;
+      if (Array.isArray(fb.items)) annotations = [...fb.items];
+      if (fb.comparison && typeof fb.comparison === "object") comparison = fb.comparison;
+      if (str(fb.receipt_digest)) receiptDigest = fb.receipt_digest;
+      staleLocked = false;
+      for (const btn of decisionButtons) btn.disabled = false;
+      drawHeader();
+    };
+
+    const stepsList = element("ol", undefined, "cairn-plan-steps");
+    const renderSteps = () => {
+      stepsList.replaceChildren();
+      if (!steps.length) {
+        stepsList.append(element("li", "No plan steps recorded for this revision.", "small"));
+        return;
+      }
+      for (const [idx, step] of steps.entries()) {
+        const stepId = str(step?.id) || `step-${idx + 1}`;
+        const stepText = str(step?.text) || (typeof step === "string" ? step : "");
+        const li = element("li", undefined, "cairn-plan-step");
+        li.dataset.stepId = stepId;
+        const stepHead = element("div", undefined, "cairn-plan-step-head");
+        stepHead.append(element("code", stepId, "cairn-short"), element("span", stepText));
+        if (comparison) {
+          if (list(comparison.added).includes(stepId)) stepHead.append(badge(word("Added", "info")));
+          else if (list(comparison.changed).includes(stepId)) stepHead.append(badge(word("Changed", "warning")));
+        }
+        li.append(stepHead);
+
+        const stepAnns = annotations.filter((a) => annotationMatchesStep(a, stepId));
+        if (stepAnns.length) {
+          const annList = element("ul", undefined, "cairn-plan-annotations");
+          for (const ann of stepAnns) {
+            const annLi = element("li", undefined, "cairn-plan-annotation");
+            annLi.dataset.blocking = String(Boolean(ann.blocking));
+            const badgesNode = badges(
+              badge(word(ann.blocking ? "Blocking" : "Note", ann.blocking ? "failure" : "info")),
+              ann.resolved_in ? badge(word(`Resolved in r${ann.resolved_in}`, "good")) : null,
+            );
+            annLi.append(
+              badgesNode,
+              element("span", `${str(ann.reviewer) || "reviewer"} (r${ann.revision ?? revision ?? "?"} · ${formatAnnotationRegion(ann)}): `, "small"),
+              element("span", formatAnnotationNote(ann)),
+            );
+            if (str(ann.quoted)) annLi.append(element("q", ann.quoted, "small"));
+            annList.append(annLi);
+          }
+          li.append(annList);
+        }
+
+        if (canOp && workId && planId && typeof apiFn === "function") {
+          const fbDetails = element("details", undefined, "cairn-plan-feedback-box");
+          fbDetails.append(element("summary", "Annotate step"));
+          const form = element("form", undefined, "cairn-plan-feedback-form");
+          const input = element("input");
+          Object.assign(input, { type: "text", placeholder: `Feedback on ${stepId}`, maxLength: 2048, required: true, autocomplete: "off" });
+          input.setAttribute("aria-label", `Feedback on step ${stepId}`);
+          const kindSelect = element("select");
+          kindSelect.setAttribute("aria-label", `Feedback kind for ${stepId}`);
+          for (const [val, lbl] of [["comment", "Comment"], ["replace", "Suggest replacement"], ["delete", "Request deletion"]]) {
+            const opt = element("option", lbl);
+            opt.value = val;
+            kindSelect.append(opt);
+          }
+          const blockingLabel = element("label", undefined, "small");
+          const blockingCheck = element("input");
+          blockingCheck.type = "checkbox";
+          blockingLabel.append(blockingCheck, element("span", "Blocking"));
+          const submitBtn = element("button", "Add feedback", "quiet");
+          submitBtn.type = "submit";
+          form.append(kindSelect, input, blockingLabel, submitBtn);
+          form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const comment = input.value.trim();
+            if (!comment && kindSelect.value !== "delete") return;
+            if (staleLocked) return;
+            submitBtn.disabled = true;
+            try {
+              const reqBody = {
+                work_id: workId,
+                plan_id: planId,
+                ...(revision !== null ? { expected_revision: revision } : {}),
+                action: "annotate",
+                step_id: stepId,
+                ...(comment ? { comment } : {}),
+                note_kind: kindSelect.value,
+                blocking: blockingCheck.checked,
+                request_id: newRequestId(),
+              };
+              const res = await apiFn("/api/implementation/plan-feedback", { method: "POST", body: reqBody, quiet: true });
+              if (Array.isArray(res?.items)) {
+                applyFeedbackSnapshot(res);
+              } else {
+                annotations.push({
+                  annotation: str(res?.annotation_id) || `local-${Date.now()}`,
+                  step_id: stepId,
+                  region: { kind: "step", step: stepId },
+                  note: kindSelect.value === "delete" ? { kind: "delete" } : { kind: kindSelect.value, text: comment },
+                  blocking: blockingCheck.checked,
+                  reviewer: str(res?.reviewer) || "operator",
+                  revision: res?.revision ?? revision,
+                });
+                if (str(res?.receipt_digest)) {
+                  receiptDigest = res.receipt_digest;
+                  drawHeader();
+                }
+              }
+              input.value = "";
+              blockingCheck.checked = false;
+              setStatus(`Added step feedback on ${stepId}.`);
+              renderSteps();
+              opts.onFeedback?.(res);
+            } catch (error) {
+              const isConflict = error?.status === 409 || /implementation_plan_revision|revision|stale|conflict/i.test(str(error?.message));
+              if (isConflict) {
+                setError(`Stale plan revision mismatch (409): ${explain(error)} Inspect the new plan revision before annotating.`, true);
+              } else {
+                setError(`Feedback refused: ${explain(error)}`);
+              }
+            } finally {
+              submitBtn.disabled = false;
+            }
+          });
+          fbDetails.append(form);
+          li.append(fbDetails);
+        }
+        stepsList.append(li);
+      }
+      const unattached = annotations.filter((a) => !steps.some((s, i) => annotationMatchesStep(a, str(s?.id) || `step-${i + 1}`)));
+      if (unattached.length) {
+        const extraLi = element("li", undefined, "cairn-plan-step");
+        extraLi.append(element("strong", "Unresolved / general annotations"));
+        const annList = element("ul", undefined, "cairn-plan-annotations");
+        for (const ann of unattached) {
+          annList.append(element("li", `${str(ann.reviewer) || "reviewer"} (${formatAnnotationRegion(ann)}): ${formatAnnotationNote(ann)}`));
+        }
+        extraLi.append(annList);
+        stepsList.append(extraLi);
+      }
+    };
+    renderSteps();
+    panel.append(stepsList, statusBanner, errorBanner);
+
+    if (canOp && workId && planId && (typeof apiFn === "function" || typeof opts.onDecision === "function")) {
+      const actions = element("div", undefined, "cluster cairn-plan-actions");
+      const submitDecision = async (verdict, btn) => {
+        if (staleLocked) return;
+        btn.disabled = true;
+        try {
+          const reqBody = {
+            work_id: workId,
+            plan_id: planId,
+            ...(revision !== null ? { expected_revision: revision } : {}),
+            verdict,
+            request_id: newRequestId(),
+          };
+          const res = typeof opts.onDecision === "function"
+            ? await opts.onDecision(verdict, reqBody)
+            : await apiFn("/api/implementation/plan-review", { method: "POST", body: reqBody, quiet: true });
+          const nextDigest = str(res?.receipt_digest || res?.receipt || res?.plan_id || planId);
+          if (nextDigest) receiptDigest = nextDigest;
+          if (str(res?.gate)) gate = res.gate;
+          if (res?.feedback && typeof res.feedback === "object") applyFeedbackSnapshot(res.feedback);
+          else drawHeader();
+          setStatus(`Recorded plan decision (${verdict})${receiptDigest ? ` · receipt ${short(receiptDigest)}` : ""}.`);
+          await opts.onReviewed?.(verdict, res);
+        } catch (error) {
+          const isConflict = error?.status === 409 || /implementation_plan_revision|revision|stale|conflict/i.test(str(error?.message));
+          if (isConflict) {
+            setError(`Stale plan revision mismatch (409): plan revision changed concurrently${revision !== null ? ` (expected revision ${revision})` : ""}. Inspect the new plan revision before deciding.`, true);
+          } else {
+            setError(`Plan decision refused: ${explain(error)}`);
+          }
+        } finally {
+          if (!staleLocked) btn.disabled = false;
+        }
+      };
+      const acceptBtn = element("button", "Accept plan", "primary");
+      acceptBtn.type = "button";
+      acceptBtn.addEventListener("click", () => { void submitDecision("accepted", acceptBtn); });
+      const changesBtn = element("button", "Request changes", "quiet");
+      changesBtn.type = "button";
+      changesBtn.addEventListener("click", () => { void submitDecision("changes_requested", changesBtn); });
+      decisionButtons.push(acceptBtn, changesBtn);
+      actions.append(acceptBtn, changesBtn);
+      if (HEX.test(workId) && typeof apiFn === "function") {
+        const refreshBtn = element("button", "Reload latest plan", "quiet");
+        refreshBtn.type = "button";
+        refreshBtn.addEventListener("click", async () => {
+          refreshBtn.disabled = true;
+          try {
+            const fb = await apiFn(`/api/implementation/plan-feedback?work=${encodeURIComponent(workId)}`, { quiet: true });
+            applyFeedbackSnapshot(fb);
+            renderSteps();
+            setStatus(`Loaded latest plan revision ${revision ?? "?"}.`);
+          } catch (error) {
+            setError(`Unable to reload plan: ${explain(error)}`);
+          } finally {
+            refreshBtn.disabled = false;
+          }
+        });
+        actions.append(refreshBtn);
+      }
+      panel.append(actions);
+    } else if (!canOp) {
+      panel.append(element("p", "Read-only: operator authority is required to annotate or decide on this plan.", "small"));
+    }
+    container.replaceChildren(panel);
+    return panel;
+  }
+
+  // r[impl kiln.cairn.gate_passport_surface]
+  function attemptLifecycleControls(attempt) {
+    const wrap = element("div", undefined, "cairn-lifecycle-controls");
+    const canOp = context?.canOperate ? Boolean(context.canOperate()) : false;
+    const candidateId = attempt.candidate_identity || attempt.candidate || attempt.verification?.candidate || null;
+    const candidateDisplay = typeof candidateId === "string"
+      ? candidateId
+      : str(candidateId?.native_id);
+    const workId = str(attempt.work_identity);
+    const attemptId = str(attempt.identity);
+    const fence = count(attempt.fence);
+    const isCurrent = attempt.applicability === "current";
+    const crossedLifecycle = attempt.lifecycle && attempt.lifecycle.binding !== "matches_attempt";
+    const statusNode = element("p", undefined, "small cairn-lifecycle-status");
+    statusNode.setAttribute("role", "status");
+    statusNode.hidden = true;
+    const errorNode = element("p", undefined, "warning error-state cairn-lifecycle-error");
+    errorNode.setAttribute("role", "alert");
+    errorNode.hidden = true;
+
+    let failClosedReason = "";
+    if (!canOp) failClosedReason = "Operator authority required: publication and integration recovery actions are disabled.";
+    else if (!isCurrent) failClosedReason = "Stale/historical attempt: candidate is superseded; publication and integration recovery are blocked.";
+    else if (!candidateDisplay) failClosedReason = "Missing candidate identity: no candidate is bound to this attempt, failing closed.";
+    else if (!workId || !attemptId || fence === null) failClosedReason = "Missing exact work/attempt/fence identity: failing closed.";
+    else if (crossedLifecycle) failClosedReason = "Crossed lifecycle receipt detected: failing closed until reconciled.";
+
+    if (failClosedReason) {
+      const diag = element("p", failClosedReason, "small cairn-lifecycle-diagnostic");
+      diag.dataset.failClosed = "true";
+      wrap.append(diag);
+    }
+
+    const row = element("div", undefined, "cluster cairn-lifecycle-buttons");
+    for (const spec of RECOVERY_LIFECYCLE_ACTIONS) {
+      const btn = element("button", spec.label, spec.danger ? "quiet danger" : "quiet");
+      btn.type = "button";
+      btn.dataset.lifecycleAction = spec.action;
+      if (failClosedReason) btn.disabled = true;
+      btn.addEventListener("click", async () => {
+        if (failClosedReason || typeof context?.api !== "function") return;
+        const cli = `kiln-implementer ${spec.action} --work ${workId} --attempt ${attemptId} --fence ${fence} --candidate ${candidateDisplay}`;
+        const choice = await confirmCairnControl({
+          title: `${spec.label} (${spec.tier})?`,
+          verb: spec.label,
+          dismiss: "Keep unchanged",
+          danger: spec.danger,
+          warning: spec.warning,
+          facts: [
+            ["Action", spec.action],
+            ["Work ID", workId],
+            ["Attempt / Fence", `${attemptId} / ${fence}`],
+            ["Exact candidate", candidateDisplay],
+          ],
+          reason: { label: "Operator reason", placeholder: `Why ${spec.action} is requested`, required: true, maxLength: 1024 },
+          cliCommand: cli,
+          opener: btn,
+        });
+        if (!choice?.confirmed) {
+          if (choice?.unavailable) {
+            errorNode.textContent = "Confirmation dialog unavailable; failing closed without mutating.";
+            errorNode.hidden = false;
+          }
+          return;
+        }
+        const reason = str(choice.reason).trim();
+        if (!reason) {
+          errorNode.textContent = "An explicit operator reason is required.";
+          errorNode.hidden = false;
+          return;
+        }
+        btn.disabled = true;
+        errorNode.hidden = true;
+        statusNode.textContent = `Sending ${spec.action}…`;
+        statusNode.hidden = false;
+        try {
+          const res = await context.api(`/api/implementation/lifecycle/${spec.action}`, {
+            method: "POST",
+            body: {
+              work_id: workId,
+              attempt_id: attemptId,
+              fence,
+              candidate_identity: candidateId,
+              reason,
+              request_id: choice.requestId || newRequestId(),
+            },
+          });
+          const dig = str(res?.publication_digest || res?.receipt?.native_id || res?.receipt);
+          statusNode.textContent = `${spec.label} ${res?.already_recorded ? "already recorded" : "recorded"}${dig ? ` · ${short(dig)}` : ""}.`;
+        } catch (error) {
+          statusNode.hidden = true;
+          const cliParity = str(error?.cli_parity || error?.payload?.cli_parity);
+          errorNode.textContent = `${spec.label} refused (${error?.status || "error"}): ${explain(error)}${cliParity ? ` CLI parity: ${cliParity}` : ""}`;
+          errorNode.hidden = false;
+        } finally {
+          btn.disabled = Boolean(failClosedReason);
+        }
+      });
+      row.append(btn);
+    }
+    wrap.append(row, statusNode, errorNode);
+    return wrap;
   }
 
   function attemptItem(attempt) {
@@ -1170,11 +1703,14 @@
     if (attempt.applicability !== "current") item.append(element("p", "Historical: this attempt ran on a superseded work version, so its records do not apply to the current version.", "small"));
     item.append(disclosure("Exact attempt identities", `attempt:${attempt.identity}`, facts([
       ["Attempt", copyable(attempt.identity, "Attempt identity")],
-      ["Work", cockpitWork(attempt.work_identity)],
+      ["Work", copyable(attempt.work_identity, "Work identity")],
       ["Candidate", attempt.candidate?.native_id ? code(`${attempt.candidate.native_kind || "candidate"} ${attempt.candidate.native_id}`) : "Not recorded"],
       ["Verification profile", verification?.verification_profile ? shortCode(verification.verification_profile) : undefined],
       ["Lifecycle receipt", lifecycle?.lifecycle_receipt?.native_id ? shortCode(lifecycle.lifecycle_receipt.native_id) : undefined],
     ])));
+    if (context?.canOperate !== undefined || attempt.candidate || attempt.candidate_identity) {
+      item.append(attemptLifecycleControls(attempt));
+    }
     return item;
   }
   // r[impl kiln.cairn.workspace.scenario.evidence] Attempts oldest first; a historical attempt is muted and labelled and
@@ -1200,6 +1736,48 @@
         ["Canonical key", copyable(work.canonical_key, "Canonical key")],
         ["Readiness snapshot", copyable(work.readiness_snapshot, "Readiness snapshot")],
       ])));
+      const planReviewData = work.plan_review || unit.plan_review || detail.plan_reviews?.[work.identity];
+      if (planReviewData && typeof planReviewData === "object") {
+        const planBox = element("div", undefined, "cairn-work-plan-review");
+        renderPlanReview(planBox, {
+          workId: work.identity,
+          planId: planReviewData.plan_id || planReviewData.plan,
+          revision: planReviewData.revision,
+          gate: planReviewData.gate,
+          author: planReviewData.author,
+          steps: planReviewData.steps,
+          annotations: planReviewData.items || planReviewData.annotations,
+          comparison: planReviewData.comparison,
+          receiptDigest: planReviewData.receipt_digest,
+        });
+        head.append(planBox);
+      } else if (list(work.block_reasons).includes("plan_not_accepted") && typeof context?.api === "function" && HEX.test(str(work.identity))) {
+        const planBox = element("div", undefined, "cairn-work-plan-review");
+        const loadPlanBtn = element("button", "Inspect & review implementation plan", "quiet");
+        loadPlanBtn.type = "button";
+        loadPlanBtn.addEventListener("click", async () => {
+          loadPlanBtn.disabled = true;
+          try {
+            const fb = await context.api(`/api/implementation/plan-feedback?work=${encodeURIComponent(work.identity)}`, { quiet: true });
+            renderPlanReview(planBox, {
+              workId: fb.work_id || work.identity,
+              planId: fb.plan_id,
+              revision: fb.revision,
+              gate: fb.gate,
+              author: fb.author,
+              steps: fb.steps,
+              annotations: fb.items,
+              comparison: fb.comparison,
+              receiptDigest: fb.receipt_digest,
+            });
+          } catch (error) {
+            loadPlanBtn.disabled = false;
+            planBox.replaceChildren(loadPlanBtn, errorState(`Plan review unavailable: ${explain(error)}`));
+          }
+        });
+        planBox.append(loadPlanBtn);
+        head.append(planBox);
+      }
       node.append(head);
     }
     const superseded = list(unit.superseded_work);
@@ -1287,6 +1865,430 @@
     return section("Units", "cairn-units-title", missing, invalid, wrap);
   }
   const SVG_NS = "http://www.w3.org/2000/svg";
+  const ATLAS_MAX_NODES = 64;
+  const ATLAS_MAX_ROUTES = 128;
+  const ATLAS_MAX_CHAPTERS = 16;
+  const ATLAS_MAX_OPEN_QUESTIONS = 64;
+  const ATLAS_MAX_PACKETS = 16;
+  const ATLAS_MAX_HOPS_PER_PACKET = 32;
+  const ATLAS_MAX_PAYLOAD_BYTES = 16 * 1024;
+  const ATLAS_DECLARED_QUALIFIER = "Representative payload: design-implied, not measured traffic";
+
+  function admitAtlasDocument(doc) {
+    if (!doc || typeof doc !== "object" || Array.isArray(doc) || !Array.isArray(doc.nodes) || !Array.isArray(doc.routes)) {
+      return { ok: false, reason: "atlas_document_malformed", message: "Atlas document must declare nodes and routes arrays." };
+    }
+    if (doc.nodes.length > ATLAS_MAX_NODES) {
+      return { ok: false, reason: "atlas_node_bound_exceeded", limit: ATLAS_MAX_NODES, actual: doc.nodes.length, message: `Atlas projection has ${doc.nodes.length} nodes, exceeding the strict ${ATLAS_MAX_NODES}-node cap. Graph rendering refused; showing bounded summary table.` };
+    }
+    if (doc.routes.length > ATLAS_MAX_ROUTES) {
+      return { ok: false, reason: "atlas_route_bound_exceeded", limit: ATLAS_MAX_ROUTES, actual: doc.routes.length, message: `Atlas projection has ${doc.routes.length} routes, exceeding the strict ${ATLAS_MAX_ROUTES}-route cap.` };
+    }
+    const nodeIds = new Set();
+    const nodes = [];
+    for (const raw of doc.nodes) {
+      const id = str(raw?.id);
+      if (!id || nodeIds.has(id)) {
+        return { ok: false, reason: "atlas_document_malformed", message: id ? `Duplicate Atlas node id: ${id}` : "Atlas node missing unique id." };
+      }
+      nodeIds.add(id);
+      nodes.push({
+        id,
+        label: str(raw.label) || id,
+        role: str(raw.role) || "node",
+        lane: str(raw.lane),
+        kind: str(raw.kind) || "unit",
+        link: str(raw.link),
+        chapter: str(raw.chapter),
+      });
+    }
+    const routeKeys = new Set();
+    const routes = [];
+    for (const raw of doc.routes) {
+      const from = str(raw?.from);
+      const to = str(raw?.to);
+      if (!nodeIds.has(from) || !nodeIds.has(to)) {
+        return { ok: false, reason: "atlas_document_malformed", message: `Atlas route references unknown endpoint (${from || "?"} -> ${to || "?"}).` };
+      }
+      const provenance = raw.provenance === "observed" ? "observed" : raw.provenance === "declared" ? "declared" : "";
+      if (!provenance) {
+        return { ok: false, reason: "atlas_document_malformed", message: `Atlas route ${from} -> ${to} has invalid provenance.` };
+      }
+      const key = `${from}\n${to}\n${str(raw.label)}`;
+      routeKeys.add(`${from}\n${to}`);
+      routes.push({
+        key,
+        from,
+        to,
+        label: str(raw.label) || (provenance === "observed" ? "observed execution" : "declared dependency"),
+        provenance,
+        evidence_ref: str(raw.evidence_ref),
+        digest: str(raw.digest),
+      });
+    }
+    const chapters = list(doc.chapters);
+    if (chapters.length > ATLAS_MAX_CHAPTERS) {
+      return { ok: false, reason: "atlas_chapter_bound_exceeded", limit: ATLAS_MAX_CHAPTERS, actual: chapters.length, message: `Atlas chapters (${chapters.length}) exceed ${ATLAS_MAX_CHAPTERS}.` };
+    }
+    for (const ch of chapters) {
+      for (const nid of list(ch?.nodes)) if (!nodeIds.has(str(nid))) return { ok: false, reason: "atlas_document_malformed", message: `Chapter references unknown node ${nid}.` };
+    }
+    const openQuestions = list(doc.open_questions);
+    if (openQuestions.length > ATLAS_MAX_OPEN_QUESTIONS) {
+      return { ok: false, reason: "atlas_question_bound_exceeded", limit: ATLAS_MAX_OPEN_QUESTIONS, actual: openQuestions.length, message: `Open questions (${openQuestions.length}) exceed ${ATLAS_MAX_OPEN_QUESTIONS}.` };
+    }
+    const packets = list(doc.packets);
+    if (packets.length > ATLAS_MAX_PACKETS) {
+      return { ok: false, reason: "atlas_packet_bound_exceeded", limit: ATLAS_MAX_PACKETS, actual: packets.length, message: `Atlas packets (${packets.length}) exceed ${ATLAS_MAX_PACKETS}.` };
+    }
+    for (const pkt of packets) {
+      const hops = list(pkt?.hops);
+      if (hops.length > ATLAS_MAX_HOPS_PER_PACKET) {
+        return { ok: false, reason: "atlas_hop_bound_exceeded", limit: ATLAS_MAX_HOPS_PER_PACKET, actual: hops.length, message: `Packet hops (${hops.length}) exceed ${ATLAS_MAX_HOPS_PER_PACKET}.` };
+      }
+      for (const hop of hops) {
+        if (!routeKeys.has(`${str(hop?.from)}\n${str(hop?.to)}`)) {
+          return { ok: false, reason: "atlas_document_malformed", message: `Packet hop ${str(hop?.from)} -> ${str(hop?.to)} is off declared routes.` };
+        }
+        const payloadText = typeof hop?.payload === "string" ? hop.payload : JSON.stringify(hop?.payload ?? "");
+        if (utf8Bytes(payloadText) > ATLAS_MAX_PAYLOAD_BYTES) {
+          return { ok: false, reason: "atlas_payload_bound_exceeded", limit: ATLAS_MAX_PAYLOAD_BYTES, actual: utf8Bytes(payloadText), message: `Packet hop payload exceeds ${ATLAS_MAX_PAYLOAD_BYTES} bytes.` };
+        }
+        if (hop?.provenance !== "observed" && hop?.provenance !== "declared") {
+          return { ok: false, reason: "atlas_document_malformed", message: "Packet hop payload must declare provenance: observed or declared." };
+        }
+      }
+    }
+    return {
+      ok: true,
+      document: {
+        identity: str(doc.identity) || "derived-projection",
+        title: str(doc.title) || "Atlas topology",
+        nodes,
+        routes,
+        chapters,
+        open_questions: openQuestions,
+        packets,
+      },
+    };
+  }
+
+  function buildCairnAtlas(detail) {
+    const graph = dependencyGraph(detail);
+    const nodes = graph.nodes.map((n) => ({
+      id: n.id,
+      label: n.label,
+      role: n.kind === "unit" ? (n.lane || "unit") : n.kind,
+      lane: n.lane,
+      kind: n.kind,
+    }));
+    const routes = graph.edges.map((e) => ({
+      from: e.from,
+      to: e.to,
+      label: "depends_on",
+      provenance: "declared",
+    }));
+    const packets = [];
+    for (const unit of list(detail?.units)) {
+      const unitId = `unit:${detail?.repository_identity || "?"}/${unit?.native_id}`;
+      for (const att of list(unit?.attempts)) {
+        if (att?.verification?.run_id && att?.work_identity) {
+          const runNodeId = `run:${att.verification.run_id}`;
+          if (!nodes.some((n) => n.id === runNodeId)) {
+            nodes.push({ id: runNodeId, label: `Run ${short(att.verification.run_id)}`, role: att.verification.success ? "verified" : "failed", lane: att.verification.success ? "verified" : "attention", kind: "observed_run" });
+          }
+          if (nodes.some((n) => n.id === unitId)) {
+            routes.push({ from: unitId, to: runNodeId, label: "observed verification", provenance: "observed", evidence_ref: att.verification.run_id, digest: att.identity });
+            packets.push({
+              id: `verify:${att.identity}`,
+              label: `Attempt ${att.ordinal ?? "?"} -> ${short(att.verification.run_id)}`,
+              hops: [{
+                from: unitId,
+                to: runNodeId,
+                provenance: "observed",
+                observation_id: `run:${att.verification.run_id} / attempt:${att.identity}`,
+                digest: att.identity,
+                payload: { success: att.verification.success, checks: list(att.verification.checks).length },
+              }],
+            });
+          }
+        }
+      }
+    }
+    return {
+      identity: str(detail?.identity) || "cairn-change-atlas",
+      title: `${str(detail?.change) || "Change"} topology`,
+      nodes,
+      routes,
+      packets: packets.slice(0, ATLAS_MAX_PACKETS),
+      chapters: [],
+      open_questions: [],
+    };
+  }
+
+  function renderAtlasBoundedFallback(doc, admission) {
+    const wrap = element("section", undefined, "cairn-atlas-bounded-fallback");
+    wrap.setAttribute("role", "status");
+    const heading = element("h4", `Atlas topology graph refused: ${ATLAS_MAX_NODES}-node bound exceeded`, "cairn-subhead");
+    const note = element("p", admission.message, "warning");
+    note.dataset.atlasRefusal = admission.reason;
+    wrap.append(heading, note);
+    const rawNodes = Array.isArray(doc?.nodes) ? doc.nodes : [];
+    if (rawNodes.length) {
+      const tableWrap = element("div", undefined, "data-table-wrap");
+      const tbl = element("table", undefined, "data-table data-table-stack cairn-atlas-summary-table");
+      const thead = element("thead");
+      const hr = element("tr");
+      for (const title of ["Node ID", "Label", "Role"]) {
+        const th = element("th", title); th.scope = "col"; hr.append(th);
+      }
+      thead.append(hr);
+      const tbody = element("tbody");
+      for (const raw of rawNodes.slice(0, ATLAS_MAX_NODES)) {
+        const tr = element("tr");
+        tr.append(element("td", str(raw?.id) || "unknown"), element("td", str(raw?.label || raw?.id) || "unknown"), element("td", str(raw?.role || raw?.kind) || "node"));
+        tbody.append(tr);
+      }
+      tbl.append(thead, tbody);
+      tableWrap.append(tbl);
+      wrap.append(tableWrap);
+      if (rawNodes.length > ATLAS_MAX_NODES) {
+        wrap.append(element("p", `Bounded summary shows ${ATLAS_MAX_NODES} of ${rawNodes.length} nodes; ${rawNodes.length - ATLAS_MAX_NODES} omitted under the 64-node cap.`, "small"));
+      }
+    }
+    return wrap;
+  }
+
+  function renderAtlasTopology(doc, options = {}) {
+    const admission = admitAtlasDocument(doc);
+    if (!admission.ok) {
+      return renderAtlasBoundedFallback(doc, admission);
+    }
+    const atlas = admission.document;
+    const panel = element("section", undefined, "cairn-atlas");
+    panel.dataset.atlasIdentity = atlas.identity;
+    const head = element("div", undefined, "cairn-atlas-head");
+    head.append(
+      element("h4", `${atlas.title} · Opt-in Atlas (${atlas.nodes.length}/${ATLAS_MAX_NODES} nodes, ${atlas.routes.length}/${ATLAS_MAX_ROUTES} routes)`, "cairn-subhead"),
+      element("p", `Document identity: ${atlas.identity}. Declared topology is context, not runtime evidence or dispatch authority.`, "small"),
+    );
+    const legend = element("div", undefined, "cairn-atlas-legend");
+    const obsBadge = element("span", "Observed (solid)", "state-badge cairn-atlas-provenance-observed");
+    const decBadge = element("span", "Declared (dashed)", "state-badge cairn-atlas-provenance-declared");
+    legend.append(obsBadge, decBadge);
+    const modeGroup = element("div", undefined, "segmented cairn-atlas-modes");
+    modeGroup.setAttribute("role", "group");
+    modeGroup.setAttribute("aria-label", "Atlas layout mode");
+    let viewMode = options.flat ? "flat" : "canvas";
+    const canvasBtn = element("button", "Canvas graph"); canvasBtn.type = "button";
+    const flatBtn = element("button", "Flat graph"); flatBtn.type = "button";
+    modeGroup.append(canvasBtn, flatBtn);
+    panel.append(head, legend, modeGroup);
+
+    let pinnedId = "";
+    let activeChapter = "";
+    const graphHost = element("div", undefined, "cairn-atlas-host-inner");
+    const inspectorHost = element("div", undefined, "cairn-atlas-inspector");
+
+    const isRevealed = (nodeId) => {
+      if (!activeChapter || !atlas.chapters.length) return true;
+      const idx = atlas.chapters.findIndex((c) => str(c?.id || c?.title) === activeChapter);
+      if (idx < 0) return true;
+      return atlas.chapters.slice(0, idx + 1).some((c) => list(c.nodes).includes(nodeId));
+    };
+
+    const drawAtlasEdges = (canvas, buttons) => {
+      if (!canvas.isConnected) return;
+      canvas.querySelector("svg")?.remove();
+      const svg = document.createElementNS(SVG_NS, "svg");
+      svg.setAttribute("width", String(canvas.scrollWidth || 800));
+      svg.setAttribute("height", String(canvas.scrollHeight || 400));
+      svg.setAttribute("aria-hidden", "true");
+      for (const route of atlas.routes) {
+        const source = buttons.get(route.from);
+        const target = buttons.get(route.to);
+        if (!source || !target) continue;
+        const startX = (source.offsetLeft || 0) + (source.parentElement?.offsetLeft || 0) + (source.offsetWidth || 120);
+        const startY = (source.offsetTop || 0) + (source.parentElement?.offsetTop || 0) + (source.offsetHeight || 40) / 2;
+        const endX = (target.offsetLeft || 0) + (target.parentElement?.offsetLeft || 0);
+        const endY = (target.offsetTop || 0) + (target.parentElement?.offsetTop || 0) + (target.offsetHeight || 40) / 2;
+        const middle = (startX + endX) / 2;
+        const path = document.createElementNS(SVG_NS, "path");
+        path.setAttribute("d", `M${startX},${startY} C${middle},${startY} ${middle},${endY} ${endX},${endY}`);
+        path.setAttribute("class", `dag-edge cairn-atlas-edge cairn-atlas-edge-${route.provenance}`);
+        path.dataset.provenance = route.provenance;
+        if (route.provenance === "declared") path.setAttribute("stroke-dasharray", "6 4");
+        svg.append(path);
+      }
+      canvas.prepend(svg);
+    };
+
+    const renderView = () => {
+      canvasBtn.setAttribute("aria-pressed", String(viewMode === "canvas"));
+      flatBtn.setAttribute("aria-pressed", String(viewMode === "flat"));
+      if (viewMode === "flat") {
+        const tableWrap = element("div", undefined, "data-table-wrap");
+        const tbl = element("table", undefined, "data-table data-table-stack cairn-atlas-flat-table");
+        const thead = element("thead");
+        const hr = element("tr");
+        for (const h of ["From", "To", "Route", "Provenance", "Evidence / Digest"]) {
+          const th = element("th", h); th.scope = "col"; hr.append(th);
+        }
+        thead.append(hr);
+        const tbody = element("tbody");
+        for (const r of atlas.routes) {
+          if (pinnedId && r.from !== pinnedId && r.to !== pinnedId) continue;
+          const tr = element("tr");
+          tr.dataset.provenance = r.provenance;
+          const prov = element("span", r.provenance === "observed" ? "Observed" : "Declared", `state-badge cairn-atlas-provenance-${r.provenance}`);
+          const provTd = element("td"); provTd.append(prov);
+          tr.append(element("td", r.from), element("td", r.to), element("td", r.label), provTd, element("td", r.provenance === "observed" ? (r.digest || r.evidence_ref || "Unavailable") : ATLAS_DECLARED_QUALIFIER));
+          tbody.append(tr);
+        }
+        if (!atlas.routes.length) {
+          const tr = element("tr");
+          const td = element("td", "No routes declared in this Atlas document.");
+          td.colSpan = 5;
+          tr.append(td);
+          tbody.append(tr);
+        }
+        tbl.append(thead, tbody);
+        tableWrap.append(tbl);
+        graphHost.replaceChildren(tableWrap);
+        return;
+      }
+      // Compute topological depth for canvas columns.
+      const incoming = new Map(atlas.nodes.map((n) => [n.id, 0]));
+      const outgoing = new Map(atlas.nodes.map((n) => [n.id, []]));
+      for (const r of atlas.routes) {
+        incoming.set(r.to, (incoming.get(r.to) || 0) + 1);
+        outgoing.get(r.from).push(r.to);
+      }
+      const depth = new Map();
+      const q = atlas.nodes.map((n) => n.id).filter((id) => incoming.get(id) === 0);
+      for (const id of q) depth.set(id, 0);
+      for (let i = 0; i < q.length; i += 1) {
+        const id = q[i];
+        for (const next of outgoing.get(id)) {
+          depth.set(next, Math.max(depth.get(next) || 0, (depth.get(id) || 0) + 1));
+          incoming.set(next, incoming.get(next) - 1);
+          if (incoming.get(next) === 0) q.push(next);
+        }
+      }
+      const placed = new Set(q);
+      const maxD = Math.max(0, ...q.map((id) => depth.get(id) || 0));
+      const cols = [];
+      for (const n of atlas.nodes) {
+        const level = placed.has(n.id) ? (depth.get(n.id) || 0) : maxD + 1;
+        (cols[level] ||= []).push(n);
+      }
+      const scroller = element("div", undefined, "cairn-graph");
+      const canvas = element("div", undefined, "dag-canvas cairn-atlas-canvas");
+      const buttons = new Map();
+      cols.filter(Boolean).forEach((colNodes, idx) => {
+        const stage = element("div", undefined, "dag-stage");
+        stage.append(element("h3", idx === 0 ? "Roots" : `Hop ${idx + 1}`));
+        for (const n of colNodes) {
+          const btn = element("button", undefined, "dag-node cairn-graph-node cairn-atlas-node");
+          btn.type = "button";
+          btn.dataset.nodeId = n.id;
+          btn.dataset.revealed = String(isRevealed(n.id));
+          if (pinnedId === n.id) btn.setAttribute("aria-current", "true");
+          if (LANE_STATE[n.lane]) btn.dataset.state = LANE_STATE[n.lane];
+          btn.append(element("strong", n.label), element("span", n.role, "small"));
+          btn.addEventListener("click", () => {
+            pinnedId = pinnedId === n.id ? "" : n.id;
+            renderView();
+          });
+          buttons.set(n.id, btn);
+          stage.append(btn);
+        }
+        canvas.append(stage);
+      });
+      scroller.append(canvas);
+      graphHost.replaceChildren(scroller);
+      if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => drawAtlasEdges(canvas, buttons));
+      else drawAtlasEdges(canvas, buttons);
+    };
+
+    canvasBtn.addEventListener("click", () => { viewMode = "canvas"; renderView(); });
+    flatBtn.addEventListener("click", () => { viewMode = "flat"; renderView(); });
+
+    if (atlas.chapters.length) {
+      const chWrap = element("div", undefined, "cairn-chips cairn-atlas-chapters");
+      const allCh = element("button", "All chapters", "chip"); allCh.type = "button";
+      allCh.addEventListener("click", () => { activeChapter = ""; renderView(); });
+      chWrap.append(allCh);
+      for (const ch of atlas.chapters) {
+        const chId = str(ch?.id || ch?.title);
+        const btn = element("button", str(ch?.title || chId), "chip"); btn.type = "button";
+        btn.addEventListener("click", () => { activeChapter = chId; renderView(); });
+        chWrap.append(btn);
+      }
+      panel.append(chWrap);
+    }
+
+    // Pin list (keyboard/screen-reader index)
+    const pinWrap = element("div", undefined, "cairn-atlas-pins");
+    pinWrap.append(element("span", "Pin node: ", "small"));
+    for (const [i, n] of atlas.nodes.entries()) {
+      const pinBtn = element("button", `${String.fromCharCode(65 + (i % 26))} · ${n.label}`, "quiet cairn-atlas-pin");
+      pinBtn.type = "button";
+      pinBtn.addEventListener("click", () => { pinnedId = pinnedId === n.id ? "" : n.id; renderView(); });
+      pinWrap.append(pinBtn);
+    }
+    panel.append(pinWrap, graphHost, inspectorHost);
+
+    // Packet inspector (declared vs observed)
+    if (atlas.packets.length) {
+      const pktSection = element("div", undefined, "cairn-atlas-packets");
+      pktSection.append(element("h5", "Packets & Hop Payloads"));
+      for (const pkt of atlas.packets) {
+        const pktCard = element("div", undefined, "cairn-atlas-packet");
+        pktCard.append(element("strong", str(pkt.label || pkt.id)));
+        const hopList = element("ol", undefined, "cairn-bullets");
+        for (const hop of list(pkt.hops)) {
+          const li = element("li", undefined, "cairn-atlas-hop");
+          li.dataset.provenance = hop.provenance;
+          const badgeEl = element("span", hop.provenance === "observed" ? "Observed" : "Declared", `state-badge cairn-atlas-provenance-${hop.provenance}`);
+          li.append(badgeEl, document.createTextNode(` ${hop.from} → ${hop.to}: `));
+          if (hop.provenance === "declared") {
+            li.append(element("em", ATLAS_DECLARED_QUALIFIER), document.createTextNode(` · ${typeof hop.payload === "string" ? hop.payload : JSON.stringify(hop.payload)}`));
+          } else {
+            const obsId = str(hop.observation_id || hop.identity);
+            const dig = str(hop.digest);
+            if (!obsId && !dig) {
+              li.append(element("span", "Evidence unavailable or expired", "not-recorded"));
+            } else {
+              li.append(element("code", `${obsId}${dig ? ` (${short(dig)})` : ""}`), document.createTextNode(` · ${typeof hop.payload === "string" ? hop.payload : JSON.stringify(hop.payload)}`));
+            }
+          }
+          hopList.append(li);
+        }
+        pktCard.append(hopList);
+        pktSection.append(pktCard);
+      }
+      panel.append(pktSection);
+    }
+
+    if (atlas.open_questions.length) {
+      const qList = element("ul", undefined, "cairn-bullets cairn-atlas-questions");
+      for (const q of atlas.open_questions) {
+        qList.append(element("li", `[${str(q?.state) || "open"}] ${str(q?.id)}: ${str(q?.text)}`));
+      }
+      panel.append(element("h5", "Open questions"), qList);
+    }
+
+    // Deterministic prose twin
+    const proseLines = [
+      `Atlas document ${atlas.identity} (${atlas.nodes.length} nodes, ${atlas.routes.length} routes).`,
+      ...atlas.routes.map((r) => `- ${r.from} -> ${r.to} (${r.label}) [${r.provenance === "declared" ? `declared: ${ATLAS_DECLARED_QUALIFIER}` : `observed: ${r.digest || r.evidence_ref || "unavailable"}`}]`),
+    ];
+    panel.append(disclosure("Prose twin (deterministic export)", "atlas-prose-twin", element("pre", proseLines.join("\n"), "cairn-atlas-prose")));
+    renderView();
+    return panel;
+  }
+
   function drawEdges(canvas, graph, buttons) {
     if (!canvas.isConnected) return;
     canvas.querySelector("svg")?.remove();
@@ -1317,7 +2319,21 @@
   const LANE_STATE = { attention: "failed", in_progress: "running", verified: "completed", integrated: "completed", recorded: "completed" };
   function graphSection(detail) {
     const graph = dependencyGraph(detail);
-    if (!graph.edges.length) return section("Dependencies", "cairn-graph-title", element("p", "No dependency between this change's units, or on other work, is recorded.", "small"));
+    const atlasToggle = element("button", "Open opt-in Atlas topology (off by default)", "quiet cairn-atlas-toggle");
+    atlasToggle.type = "button";
+    atlasToggle.setAttribute("aria-expanded", "false");
+    const atlasHost = element("div", undefined, "cairn-atlas-host");
+    atlasHost.hidden = true;
+    atlasToggle.addEventListener("click", () => {
+      const nextOpen = atlasHost.hidden;
+      atlasHost.hidden = !nextOpen;
+      atlasToggle.setAttribute("aria-expanded", String(nextOpen));
+      atlasToggle.textContent = nextOpen ? "Hide opt-in Atlas topology" : "Open opt-in Atlas topology (off by default)";
+      if (nextOpen && !atlasHost.firstChild) {
+        atlasHost.replaceChildren(renderAtlasTopology(buildCairnAtlas(detail)));
+      }
+    });
+    if (!graph.edges.length) return section("Dependencies", "cairn-graph-title", element("p", "No dependency between this change's units, or on other work, is recorded.", "small"), atlasToggle, atlasHost);
     const scroller = element("div", undefined, "cairn-graph");
     const canvas = element("div", undefined, "dag-canvas cairn-graph-canvas");
     const buttons = new Map();
@@ -1352,7 +2368,7 @@
     const draw = () => drawEdges(canvas, graph, buttons);
     if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => requestAnimationFrame(draw));
     const legend = element("p", `Arrows point from a prerequisite to the work that depends on it. ${graph.cyclic ? "Some nodes sit in or after a dependency cycle and are drawn in the last column." : ""}`.trim(), "small");
-    return section("Dependencies", "cairn-graph-title", legend, scroller);
+    return section("Dependencies", "cairn-graph-title", legend, scroller, atlasToggle, atlasHost);
   }
   function membershipCard(membership) {
     const card = element("article", undefined, "cairn-member");
@@ -1376,7 +2392,7 @@
       ["Pending effects", bullets(effects, "None")],
     ]));
     card.append(disclosure("Exact member bindings", `member:${membership.campaign_id}:${membership.member}`, facts([
-      ["Bound work", membership.work_identity ? cockpitWork(membership.work_identity) : "Not bound"],
+      ["Bound work", membership.work_identity ? copyable(membership.work_identity, "Bound work identity") : "Not bound"],
       ["Bound attempt", membership.attempt_identity ? shortCode(membership.attempt_identity) : "None"],
       ["Attempt fence", membership.attempt_fence ?? "None"],
       ["Store version", String(membership.store_version)],
@@ -1825,5 +2841,7 @@
     load, clear,
     facets: FACETS, lanes: LANES, facet, lane, binding, condition, normalizeRoute, filterPatch, detailPath, indexRows, matches, filterCounts, neighbors, admitDetail, dependencyGraph,
     slotStates: SLOT_STATES, provenance: PROVENANCE, selections: SELECTIONS, workerPairings: WORKER_PAIRINGS, slotText, familyProvenance, admitAgents,
+    admitAtlasDocument, buildCairnAtlas, renderAtlasTopology, ATLAS_MAX_NODES, ATLAS_DECLARED_QUALIFIER,
+    renderPlanReview, attemptLifecycleControls,
   });
 })();

@@ -3,16 +3,44 @@
 // r[impl kiln.review.parity.ergonomics]
 // r[impl kiln.review.parity.delivery]
 // r[impl kiln.review.parity.queue]
+// r[impl kiln.review.workbench_three_pane]
+// r[impl kiln.review.queue.speculative.visual_train]
 (() => {
   "use strict";
   const ROOT = "/api/code-review";
-  const state = { container: null, context: null, route: {}, epoch: 0, request: 0, diffRequest: 0, snapshot: null, detail: null, diff: null, error: "", diffError: "", pending: false, pinnedRevision: "", forms: new Map(), dialogs: new Set(), mode: "unified" };
+  const WIDE_QUERY = "(min-width: 90rem)";
+  const WIDE_VIEWPORT_PX = 1440;
+  const ASIDE_TABS = Object.freeze([
+    Object.freeze({ id: "checklist", label: "Checklist & Votes" }),
+    Object.freeze({ id: "ci", label: "CI & Previews" }),
+    Object.freeze({ id: "queue", label: "Queue & Stack" }),
+    Object.freeze({ id: "history", label: "History & Ops" }),
+  ]);
+  const ACTIVE_QUEUE_STATUSES = new Set(["queued", "preparing", "waiting_ci", "submitting", "uncertain"]);
+  const CI_SUMMARY_BADGES = Object.freeze({
+    pass: ["CI passed", "success"],
+    passed: ["CI passed", "success"],
+    fail: ["CI failed", "failure"],
+    failed: ["CI failed", "failure"],
+    awaiting_approval: ["Awaiting approval", "queued"],
+    pending: ["CI running", "running"],
+    running: ["CI running", "running"],
+    unknown: ["CI unknown", "unknown"],
+    none: ["No CI", "cancelled"],
+  });
+  const state = {
+    container: null, context: null, route: {}, epoch: 0, request: 0, diffRequest: 0,
+    snapshot: null, detail: null, diff: null, error: "", diffError: "", pending: false,
+    pinnedRevision: "", forms: new Map(), dialogs: new Set(), mode: "unified",
+    asideTab: "checklist", railManual: null, stackExpanded: false,
+  };
   const node = (tag, text, cls) => { const n = document.createElement(tag); if (text !== undefined && text !== null) n.textContent = String(text); if (cls) n.className = cls; return n; };
   const arr = value => Array.isArray(value) ? value : [];
   const label = value => String(value ?? "").replaceAll("_", " ");
   const message = error => error?.message || String(error);
   const path = id => `${ROOT}/changes/${encodeURIComponent(id)}`;
   const selected = () => state.route.review_change || "";
+  const reviewTab = () => state.route.review_tab === "queue" ? "queue" : "changes";
   const current = () => arr(state.detail?.change?.revisions).at(-1);
   // r[impl kiln.review.interdiff.route] `review_interdiff=<from>..<to>` names exact Kiln revision ids; `to` is the selected revision.
   const interdiffRoute = () => { const m = /^([0-9a-f]{64})\.\.([0-9a-f]{64})$/.exec(state.route.review_interdiff || ""); return m ? { from: m[1], to: m[2] } : null; };
@@ -25,6 +53,29 @@
   // r[impl kiln.review.advisory] Advisory approve/withdraw are the only commands a read principal may send.
   const sendable = readAdmitted => readAdmitted ? state.snapshot?.configured === true && !state.pending : writable();
   const short = value => String(value || "").length > 20 ? `${String(value).slice(0, 12)}…${String(value).slice(-6)}` : String(value || "");
+  function isNarrowViewport() {
+    if (typeof window !== "undefined" && typeof window.matchMedia === "function") return !window.matchMedia(WIDE_QUERY).matches;
+    if (typeof window !== "undefined" && Number.isFinite(window.innerWidth)) return window.innerWidth < WIDE_VIEWPORT_PX;
+    return false;
+  }
+  const isRailAutoCollapsed = (mode = state.mode) => mode === "split" || isNarrowViewport();
+  const isRailOpen = () => state.railManual !== null ? state.railManual : !isRailAutoCollapsed();
+  function syncWorkbenchRail() {
+    const workbench = state.container?.querySelector(".cr-workbench");
+    if (!workbench) return;
+    const collapsed = isRailAutoCollapsed() || state.railManual === false;
+    const open = isRailOpen();
+    workbench.classList.toggle("is-rail-collapsed", collapsed);
+    workbench.classList.toggle("is-rail-drawer-open", collapsed && open);
+    const rail = workbench.querySelector("#cr-file-rail");
+    if (rail) rail.hidden = !open;
+    const toggle = state.container.querySelector("#cr-file-rail-toggle");
+    if (toggle) {
+      toggle.setAttribute("aria-expanded", String(open));
+      const labelNode = toggle.querySelector(".cr-file-rail-toggle-label");
+      if (labelNode) labelNode.textContent = open ? "Hide files" : "Show files";
+    }
+  }
   // r[impl kiln.review.keyboard] r[impl kiln.review.keyboard.navigation] r[impl kiln.review.keyboard.actions]
   // One table drives both the key handler and the help overlay, so documented commands cannot drift from bound ones.
   const SHORTCUTS = Object.freeze([
@@ -63,7 +114,78 @@
   }
   const editableTarget = target => target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable]:not([contenteditable='false']), [role='textbox']"));
   const RENDER_LIMIT = 65536, TOKEN_LIMIT = 4096;
-  const ALL_CHANGES = { review_change: "", review_revision: "", review_base: "", review_interdiff: "", review_interdiff_change: "", review_commits: "", review_file: "", review_side: "", review_line: "", review_preview_compare: "", review_preview_structural: "" };
+  const ALL_CHANGES = { review_change: "", review_revision: "", review_base: "", review_interdiff: "", review_interdiff_change: "", review_commits: "", review_file: "", review_side: "", review_line: "", review_preview_compare: "", review_preview_structural: "", review_tab: "" };
+  function ciSummaryValue(change) {
+    const raw = change?.ci_summary;
+    if (typeof raw === "string") return raw.trim().toLowerCase();
+    if (raw && typeof raw === "object") return String(raw.status || raw.state || raw.outcome || "").trim().toLowerCase();
+    return "";
+  }
+  function ciSummaryPill(change) {
+    const key = ciSummaryValue(change);
+    if (!key) return null;
+    const entry = Object.hasOwn(CI_SUMMARY_BADGES, key) ? CI_SUMMARY_BADGES[key] : [human(key), "unknown"];
+    return pill(key, "CI readiness", entry[0], entry[1]);
+  }
+  function titleForSnapshot(snapshot, detail, id) {
+    if (detail?.change?.id === id) return detail.change.title;
+    return arr(snapshot?.changes).find(c => c.id === id)?.title || arr(detail?.stack?.dependencies).find(c => c.id === id)?.title || arr(detail?.stack?.dependents).find(c => c.id === id)?.title || "";
+  }
+  function buildMergeTrainTargets(snapshot) {
+    if (!snapshot || typeof snapshot !== "object") return [];
+    const windows = arr(snapshot.queue_windows);
+    const entries = arr(snapshot.queue);
+    const targets = [];
+    for (const w of windows) if (w?.target_ref && !targets.includes(w.target_ref)) targets.push(w.target_ref);
+    for (const e of entries) if (e?.target_ref && !targets.includes(e.target_ref)) targets.push(e.target_ref);
+    return targets.map(targetRef => {
+      const win = windows.find(w => w?.target_ref === targetRef) || null;
+      const targetEntries = entries.filter(e => e?.target_ref === targetRef);
+      const isSpeculative = win ? win.mode === "speculative" : targetEntries.some(e => !!e?.chain);
+      const mode = isSpeculative ? "speculative" : "serial";
+      const depth = isSpeculative && Number.isSafeInteger(win?.depth) ? win.depth : null;
+      const bounds = isSpeculative && win?.bounds && Number.isSafeInteger(win.bounds.floor) && Number.isSafeInteger(win.bounds.ceiling)
+        ? { floor: win.bounds.floor, ceiling: win.bounds.ceiling, increase: win.bounds.increase ?? null, decrease: win.bounds.decrease ?? null }
+        : null;
+      const activeEntries = targetEntries.filter(e => ACTIVE_QUEUE_STATUSES.has(e.status));
+      const blockedEntries = targetEntries.filter(e => e.status === "blocked");
+      const uncertainEntries = targetEntries.filter(e => e.status === "uncertain");
+      const retiredEntries = targetEntries.filter(e => arr(e.superseded_chains).length > 0 || e.status === "blocked");
+      return { target_ref: targetRef, mode, is_speculative: isSpeculative, depth, bounds, active: activeEntries, blocked: blockedEntries, uncertain: uncertainEntries, retired: retiredEntries, all: targetEntries };
+    });
+  }
+  function summarizeMergeTrains(snapshot) {
+    return buildMergeTrainTargets(snapshot).map(target => {
+      const head = target.active[0] || null;
+      const counts = { queued: 0, preparing: 0, waiting_ci: 0, submitting: 0 };
+      for (const e of target.active) if (Object.hasOwn(counts, e.status)) counts[e.status] += 1;
+      const supersededCount = target.all.reduce((sum, e) => sum + arr(e.superseded_chains).length, 0);
+      const modeText = target.is_speculative
+        ? `Speculative ${target.depth ?? "?"}/${target.bounds?.ceiling ?? "?"}${target.bounds ? ` (${target.bounds.floor}..${target.bounds.ceiling})` : ""}`
+        : "Serial";
+      const headText = head ? ` · #1 ${human(head.status)}` : "";
+      const blockedText = target.blocked.length ? ` · ${target.blocked.length} ejected` : "";
+      const uncertainText = target.uncertain.length ? ` · ${target.uncertain.length} uncertain` : "";
+      return {
+        target_ref: target.target_ref,
+        mode: target.mode,
+        depth: target.depth,
+        bounds: target.bounds,
+        active_count: target.active.length,
+        queued_count: counts.queued,
+        waiting_ci_count: counts.waiting_ci,
+        preparing_count: counts.preparing,
+        submitting_count: counts.submitting,
+        blocked_count: target.blocked.length,
+        uncertain_count: target.uncertain.length,
+        superseded_count: supersededCount,
+        status: target.uncertain.length ? "uncertain" : target.blocked.length ? "blocked" : target.active.length ? "active" : "idle",
+        head_entry: head ? { id: head.id, change: head.change, title: titleForSnapshot(snapshot, null, head.change), status: head.status, generation: head.generation, ci_run: head.ci_run || null } : null,
+        summary_text: `${target.target_ref} · ${modeText} · ${target.active.length} active${headText}${blockedText}${uncertainText}`,
+        href: `?${new URLSearchParams({ page: "code-review", review_tab: "queue" })}`,
+      };
+    });
+  }
   // r[impl kiln.web.readable_observations]
   // Presentation only: KilnUi (loaded before this script) humanizes times; exact instants stay in title/datetime.
   const ui = () => window.KilnUi;
@@ -162,8 +284,7 @@
   // Exact identifier as secondary text: a shortened visible form with the exact value in its title (as before for change IDs).
   function exactId(value, cls = "cr-exact-id") { const code = node("code", short(value), cls); code.title = String(value ?? ""); return code; }
   function titleFor(id) {
-    if (state.detail?.change?.id === id) return state.detail.change.title;
-    return arr(state.snapshot?.changes).find(c => c.id === id)?.title || arr(state.detail?.stack?.dependencies).find(c => c.id === id)?.title || "";
+    return titleForSnapshot(state.snapshot, state.detail, id);
   }
   function changeRef(id) { const title = titleFor(id), a = changeLink(id, title || id); if (title) a.title = id; return a; }
   function loading(text) {
@@ -468,8 +589,21 @@
     const next = { ...state.route, ...patch };
     if (JSON.stringify(next) !== JSON.stringify(state.route)) load(state.container, { ...state.context, route: next });
   }
-  function href(patch) { const q = new URLSearchParams(window.location.search); q.set("page", "code-review"); for (const [k, v] of Object.entries(patch)) v == null || v === "" ? q.delete(k) : q.set(k, String(v)); return `?${q}`; }
+  function href(patch) {
+    const search = typeof window !== "undefined" && window.location?.search ? window.location.search : "";
+    const q = new URLSearchParams(search);
+    q.set("page", state.route.page || "code-review");
+    for (const [k, v] of Object.entries(patch)) v == null || v === "" ? q.delete(k) : q.set(k, String(v));
+    return `?${q}`;
+  }
   function backLink() { const a = link("All changes", ALL_CHANGES, "cr-back"); a.prepend(icon("arrow-left")); return a; }
+  function detailNav() {
+    const bar = node("div", null, "cr-detail-nav");
+    const queue = link("Merge queue", { ...ALL_CHANGES, review_tab: "queue" }, "cr-back");
+    queue.prepend(icon("layers"));
+    bar.append(backLink(), queue);
+    return bar;
+  }
   function link(text, patch, cls) { const a = node("a", text, cls); a.href = href(patch); a.addEventListener("click", event => { if (!event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey && event.button === 0) { event.preventDefault(); route(patch); } }); return a; }
   function changeLink(id, text = id) { return link(text, { review_change: id, review_revision: "", review_base: "", review_file: "", review_side: "", review_line: "", review_preview_compare: "", review_preview_structural: "" }); }
   // r[impl kiln.web.design_system]
@@ -576,6 +710,18 @@
       group.append(writeButton("Create change…", createChange, "primary"));
     });
   }
+  function setAsideTab(tabId) {
+    if (!ASIDE_TABS.some(t => t.id === tabId)) return;
+    state.asideTab = tabId;
+    const aside = state.container?.querySelector(".cr-aside");
+    if (!aside) return;
+    for (const btn of aside.querySelectorAll('.cr-aside-tabs > [role="tab"]')) {
+      btn.setAttribute("aria-selected", String(btn.dataset.crTab === tabId));
+    }
+    for (const panelNode of aside.querySelectorAll('.cr-aside-panel[role="tabpanel"]')) {
+      panelNode.hidden = panelNode.dataset.crTab !== tabId;
+    }
+  }
   function detailHeader() {
     const c = state.detail.change, header = node("section", null, "card cr-change-header"), heading = node("div", null, "cr-change-heading"), meta = node("div", null, "cr-header-meta"), actions = node("div", null, "cr-change-actions");
     meta.append(pill(c.state, "Change state")); if (c.wip) meta.append(chip("Work in progress"));
@@ -583,15 +729,43 @@
     const selectedRevision = arr(c.revisions).find(item => item.id === revision()) || current();
     if (selectedRevision?.submitted_by) { const attested = selectedRevision.submitted_by; meta.append(chip(`Agent: ${attested.principal}${attested.agent ? ` · ${attested.agent.harness}${attested.agent.model ? ` / ${attested.agent.model}` : ""}` : ""} (declared)`)); }
     const target = node("span", null, "cr-muted"), owner = node("span", "Owner ", "cr-muted"); target.append(exactId(c.repository), " → ", node("code", c.target_ref)); owner.append(principalNode(c.owner)); meta.append(owner, target);
-    // One-glance attention: the observed submit readiness links to the requirements card (also below the main column on narrow screens).
+    // One-glance attention: the observed submit readiness links to the requirements card (activates Checklist & Votes tab).
     const items = arr(state.detail.checklist?.items), ready = state.detail.checklist?.ready === true, readiness = node("a", null, "cr-readiness"); readiness.href = "#cr-requirements";
     readiness.append(state.detail.checklist ? pill(`ready=${ready}`, "Submit checklist", ready ? "Ready to submit" : "Submit blocked", ready ? "success" : "failure") : pill(null, "Submit checklist", "Checklist unavailable", "failure"), node("span", `${items.filter(item => item.satisfied).length} of ${items.length} requirements met`));
-    readiness.addEventListener("click", event => { const card = document.getElementById("cr-requirements"); if (!card) return; event.preventDefault(); card.scrollIntoView({ block: "start" }); card.querySelector("h3")?.focus({ preventScroll: true }); });
+    readiness.addEventListener("click", event => {
+      event.preventDefault();
+      setAsideTab("checklist");
+      const card = document.getElementById("cr-requirements");
+      if (!card) return;
+      card.scrollIntoView({ block: "start" });
+      card.querySelector("h3")?.focus({ preventScroll: true });
+    });
     meta.append(readiness);
     heading.append(node("h2", c.title, "cr-change-name"), meta, access()); aboutPage(heading);
     const rev = field(actions, "Review revision", "select", revision(), arr(c.revisions).map(item => [item.id, `Revision ${item.number} · ${short(item.commit)}${item.id === current()?.id ? " · current" : ""}`]));
     rev.dataset.crKey = "header-revision"; rev.addEventListener("change", () => route({ review_revision: rev.value, review_base: "base", review_file: "", review_side: "", review_line: "" }));
-    header.append(heading, actions); return [backLink(), header];
+    header.append(heading, actions); return [detailNav(), header];
+  }
+  function drawModeSwitcher(root) {
+    const activeTab = reviewTab();
+    const activeQueueCount = arr(state.snapshot?.queue).filter(e => ACTIVE_QUEUE_STATUSES.has(e.status)).length;
+    const bar = node("div", null, "cr-mode-bar"), tabs = node("div", null, "cr-mode-tabs");
+    tabs.setAttribute("role", "tablist");
+    tabs.setAttribute("aria-label", "Code review mode");
+    const makeTab = (id, text, badgeText) => {
+      const b = button(text, () => route({ review_tab: id === "queue" ? "queue" : "", review_change: "" }));
+      b.setAttribute("role", "tab");
+      b.setAttribute("aria-selected", String(activeTab === id));
+      b.dataset.crMode = id;
+      if (badgeText) b.append(chip(badgeText));
+      return b;
+    };
+    tabs.append(
+      makeTab("changes", "Changes", state.snapshot?.total != null ? String(state.snapshot.total) : null),
+      makeTab("queue", "Merge Queue", activeQueueCount ? `${activeQueueCount} active` : state.snapshot?.queue_enabled === false ? "Off" : null),
+    );
+    bar.append(tabs, access());
+    root.append(bar);
   }
   function draw() {
     const focused = document.activeElement; const key = focused?.dataset?.crKey; const start = focused?.selectionStart, end = focused?.selectionEnd;
@@ -606,16 +780,151 @@
       headerActions(null); begin(); const box = stateBox("Interactive review is not configured", "A separately admitted collaboration provider, actors, policy and durable store are required. Existing review receipts remain available in the receipts section.");
       const receipts = node("a", "Open Patchgate receipts", "cr-state-link"); receipts.href = "?page=reviews"; box.append(receipts); root.append(box); return;
     }
-    if (!selected()) { listActions(); begin(aboutPage(document.createDocumentFragment())); drawList(root); }
+    if (!selected()) {
+      listActions();
+      begin(aboutPage(document.createDocumentFragment()));
+      drawModeSwitcher(root);
+      if (reviewTab() === "queue") drawMergeQueue(root);
+      else drawList(root);
+    }
     else if (state.detail) { headerActions(null); begin(...detailHeader()); drawDetail(root); }
-    else if (!state.error) { headerActions(null); begin(backLink()); root.append(loading("Loading change…")); }
-    else { headerActions(null); begin(backLink()); const box = stateBox("Selected change is unavailable", "Retry, or return to the change list. A missing change is never replaced by another."); box.append(button("Retry", refresh, "quiet")); root.append(box); }
+    else if (!state.error) { headerActions(null); begin(detailNav()); root.append(loading("Loading change…")); }
+    else { headerActions(null); begin(detailNav()); const box = stateBox("Selected change is unavailable", "Retry, or return to the change list. A missing change is never replaced by another."); box.append(button("Retry", refresh, "quiet")); root.append(box); }
     for (const d of root.querySelectorAll("details")) { const k = detailsKey(d); if (opened.has(k) && d.dataset.crForceOpen !== "true") { d.open = opened.get(k); if (d.dataset.crSection) d.dataset.crTouched = "true"; } }
     if (key) { const next = Array.from(root.querySelectorAll("[data-cr-key]")).find(n => n.dataset.crKey === key); if (next) { next.focus({ preventScroll: true }); if (typeof start === "number" && next.setSelectionRange && next.type !== "checkbox" && next.tagName !== "SELECT") { try { next.setSelectionRange(start, end); } catch {} } } }
   }
   function layout(root, name, cls = "") {
     const grid = node("div", null, `cr-layout ${cls}`.trim()), main = node("div", null, "cr-main"), aside = node("aside", null, "cr-aside"); aside.setAttribute("aria-label", name);
     grid.append(main, aside); root.append(grid); return { main, aside };
+  }
+  function drawMergeQueue(root) {
+    const wrap = node("div", null, "cr-merge-queue");
+    const intro = node("section", null, "card cr-card");
+    const introHead = node("div", null, "cr-row-head");
+    const introTitle = node("h2", "Speculative Merge Train", "card-title");
+    introHead.append(introTitle, chip(state.snapshot.queue_enabled === false ? "Disabled" : "Active"));
+    intro.append(introHead);
+    about(intro, "About the merge train", "In speculative mode, candidates stack on assumed predecessors inside an adaptive window (floor..ceiling). Each candidate tests its exact combined commit; any predecessor ejection or target movement retires the superseded chain and triggers a fresh build in a new generation. Serial mode advances one head entry at a time without speculative window bounds.");
+    wrap.append(intro);
+    const targets = buildMergeTrainTargets(state.snapshot);
+    if (!targets.length) {
+      const disabled = state.snapshot.queue_enabled === false;
+      wrap.append(disabled
+        ? stateBox("Merge queue not configured", "This service has no merge queue profile, so CI-bound merge automation is unavailable. Submit changes from their checklist instead.", "empty-state empty-state-inline")
+        : stateBox("No merge queue activity", "No queue windows or active merge train entries are currently recorded.", "empty-state empty-state-inline"));
+      root.append(wrap);
+      return;
+    }
+    const entryById = new Map(arr(state.snapshot.queue).map(e => [e.id, e]));
+    for (const target of targets) {
+      const card = node("section", null, "card cr-card cr-train-card");
+      card.dataset.targetRef = target.target_ref;
+      card.dataset.queueMode = target.mode;
+      const head = node("div", null, "cr-train-head"), meta = node("div", null, "cr-train-meta");
+      const targetName = node("h3"); targetName.append(principalNode(target.target_ref, "cr-principal", "code"));
+      meta.append(targetName, pill(target.mode, "Queue mode", target.is_speculative ? "Speculative" : "Serial", target.is_speculative ? "running" : "queued"));
+      if (target.is_speculative) {
+        const depthText = target.depth != null ? `${target.depth}/${target.bounds?.ceiling ?? "?"}` : "Unbounded";
+        const boundsText = target.bounds ? ` (${target.bounds.floor}..${target.bounds.ceiling})` : "";
+        meta.append(chip(`Window ${depthText}${boundsText}`, "cr-train-window"));
+      } else {
+        meta.append(chip("Head-only (serial)"));
+      }
+      meta.append(chip(`${target.active.length} active`));
+      if (target.blocked.length) meta.append(chip(`${target.blocked.length} ejected`, "cr-chip-attention"));
+      head.append(meta);
+      card.append(head);
+      if (target.active.length) {
+        const graph = node("ol", null, "cr-train-graph");
+        graph.setAttribute("aria-label", `Active merge train for ${target.target_ref}`);
+        target.active.forEach((entry, index) => {
+          const step = node("li", null, "cr-train-step");
+          if (index > 0) {
+            const arrow = node("span", "<-", "cr-train-link-arrow");
+            arrow.setAttribute("aria-hidden", "true");
+            step.append(arrow);
+          }
+          const box = node("article", null, "cr-train-node");
+          box.dataset.queueStatus = entry.status;
+          const rowHead = node("div", null, "cr-row-head");
+          rowHead.append(chip(`#${index + 1}`), pill(entry.status, "Queue status"), changeRef(entry.change));
+          box.append(rowHead);
+          const tags = node("div", null, "cr-tags");
+          if (entry.generation != null) tags.append(chip(`Gen ${entry.generation}`));
+          if (entry.chain?.root_target) tags.append(chip(`Root ${short(entry.chain.root_target)}`));
+          if (entry.chain?.id) tags.append(exactId(entry.chain.id));
+          const preds = arr(entry.chain?.predecessors);
+          if (preds.length) {
+            const predLabels = preds.map(linkItem => {
+              const predEntry = entryById.get(linkItem.queue_id);
+              const predIdx = predEntry ? target.active.findIndex(e => e.id === predEntry.id) + 1 : 0;
+              const predName = predEntry ? (titleFor(predEntry.change) || short(predEntry.change)) : short(linkItem.queue_id);
+              return `${predIdx > 0 ? `#${predIdx} ` : ""}${predName} (gen ${linkItem.generation})`;
+            });
+            box.append(node("p", `Stacked on ${predLabels.join(" + ")}`, "cr-muted"));
+          } else if (entry.chain) {
+            box.append(node("p", `Head candidate on root ${short(entry.chain.root_target)}`, "cr-muted"));
+          } else {
+            box.append(node("p", target.is_speculative ? "Awaiting speculative candidate construction" : "Serial head candidate", "cr-muted"));
+          }
+          if (tags.childElementCount) box.append(tags);
+          if (entry.detail) box.append(node("p", entry.detail, "cr-muted"));
+          const runIds = arr(entry.ci_runs).length ? arr(entry.ci_runs) : entry.ci_run ? [entry.ci_run] : [];
+          if (runIds.length) {
+            const runLinks = node("div", null, "cr-tags");
+            for (const runId of runIds) {
+              const runLink = node("a", `CI ${short(runId)}`, "cr-ci-run");
+              runLink.href = `?${new URLSearchParams({ page: "runs", run: runId, view: "pipeline" })}`;
+              runLinks.append(runLink);
+            }
+            box.append(runLinks);
+          }
+          step.append(box);
+          graph.append(step);
+        });
+        card.append(graph);
+      } else {
+        card.append(node("p", `No active queued candidates for ${target.target_ref}.`, "cr-muted"));
+      }
+      if (target.retired.length) {
+        const retired = node("div", null, "cr-train-retired");
+        retired.append(node("h4", "Retired chains & predecessor ejections"));
+        const list = node("ul", null, "cr-rows");
+        list.setAttribute("aria-label", `Retired chains for ${target.target_ref}`);
+        const blockedCauses = target.blocked.map(b => `${titleFor(b.change) || short(b.change)}: ${b.detail || "blocked"}`);
+        for (const entry of target.retired) {
+          const li = node("li", null, "list-row cr-operation");
+          const rowHead = node("div", null, "cr-row-head");
+          rowHead.append(pill(entry.status, "Queue status"), changeRef(entry.change), chip(`Gen ${entry.generation ?? 0}`));
+          li.append(rowHead);
+          const chains = arr(entry.superseded_chains);
+          if (chains.length) {
+            const chainLabels = chains.map(item => typeof item === "string" ? short(item) : short(item?.id || item?.chain_id || ""));
+            const chainNote = node("p", `Retired superseded_chains (${chains.length}): ${chainLabels.join(", ")}`, "cr-muted");
+            li.append(chainNote);
+            for (const item of chains) {
+              if (item && typeof item === "object" && (item.reason || item.cause)) {
+                li.append(node("p", `Cause: ${item.reason || item.cause}`, "cr-text"));
+              }
+            }
+          }
+          if (entry.detail) li.append(node("p", entry.detail, "cr-text"));
+          if (entry.status !== "blocked" && blockedCauses.length) {
+            li.append(node("p", `Predecessor ejection: ${blockedCauses.join("; ")}`, "cr-muted"));
+          }
+          if (entry.ci_run) {
+            const runLink = node("a", "Inspect failed/retired CI run", "cr-ci-run");
+            runLink.href = `?${new URLSearchParams({ page: "runs", run: entry.ci_run, view: "pipeline" })}`;
+            li.append(runLink);
+          }
+          list.append(li);
+        }
+        retired.append(list);
+        card.append(retired);
+      }
+      wrap.append(card);
+    }
+    root.append(wrap);
   }
   function drawList(root) {
     const { main, aside } = layout(root, "Review activity", "cr-list-layout");
@@ -663,6 +972,19 @@
     }
     const save = node("div", null, "toolbar cr-toolbar"); const name = field(save, "Save current query as", "text", "", [], "view-name"); save.append(writeButton("Save personal view", async () => { if (!name.value.trim()) throw new Error("A saved view name is required."); await command({ type: "save_view", name: name.value.trim(), query: savedQueryForRoute(state.route) }, null); clearFields("view-name"); }));
     disclosure(views, "Save current query as a personal view").append(save); list.append(views);
+    // Client-side join of queue positions from snapshot.queue (no N+1 detail fetches).
+    const queueSlotByChange = new Map();
+    const targetCounts = new Map();
+    for (const entry of arr(state.snapshot.queue)) {
+      if (!entry?.change) continue;
+      if (ACTIVE_QUEUE_STATUSES.has(entry.status)) {
+        const pos = (targetCounts.get(entry.target_ref) || 0) + 1;
+        targetCounts.set(entry.target_ref, pos);
+        queueSlotByChange.set(entry.change, { position: pos, status: entry.status, generation: entry.generation });
+      } else if (!queueSlotByChange.has(entry.change) && entry.status === "blocked") {
+        queueSlotByChange.set(entry.change, { position: null, status: entry.status, generation: entry.generation });
+      }
+    }
     const changes = arr(state.snapshot.changes), offset = Number(state.route.review_offset) || 0;
     if (changes.length) {
       const wrap = node("div", null, "data-table-wrap"), table = node("table", null, "data-table data-table-stack cr-change-table"), head = node("thead"), hr = node("tr"), body = node("tbody");
@@ -672,6 +994,26 @@
         const tr = node("tr"), latest = arr(change.revisions).at(-1), cell = (name, ...content) => { const td = node("td"); td.dataset.label = name; td.append(...content); tr.append(td); return td; };
         const title = changeLink(change.id, change.title); title.classList.add("cr-change-title");
         const meta = node("p", null, "cr-muted cr-change-meta"); meta.append(exactId(change.id));
+        const ciBadge = ciSummaryPill(change);
+        if (ciBadge) meta.append(ciBadge);
+        if (change.approval_summary && typeof change.approval_summary === "object") {
+          const { approvals = 0, required = 0, vetoed = false } = change.approval_summary;
+          meta.append(chip(`${approvals}/${required} approvals${vetoed ? " · vetoed" : ""}`, vetoed ? "cr-chip-attention" : ""));
+        } else if (change.reviewers && Object.keys(change.reviewers).length) {
+          const count = Object.keys(change.reviewers).length;
+          meta.append(chip(`${count} reviewer${count === 1 ? "" : "s"}`));
+        }
+        const qPos = Number.isSafeInteger(change.queue_position) ? change.queue_position : queueSlotByChange.get(change.id)?.position ?? null;
+        const qStatus = change.queue_status || queueSlotByChange.get(change.id)?.status || null;
+        if (qPos != null || qStatus) {
+          const qText = qPos != null ? `Queue #${qPos}${qStatus ? ` · ${human(qStatus)}` : ""}` : `Queue · ${human(qStatus)}`;
+          meta.append(chip(qText, qStatus === "blocked" || qStatus === "uncertain" ? "cr-chip-attention" : ""));
+        }
+        if (change.jj_stack) {
+          if (change.jj_stack.removed) meta.append(chip("Removed from jj stack", "cr-chip-attention"));
+          else if (change.jj_stack.stack && Number.isSafeInteger(change.jj_stack.position)) meta.append(chip(`jj stack ${change.jj_stack.position}/${change.jj_stack.size || "?"}`));
+          else if (change.jj_stack.jj_change_id) meta.append(chip(`jj ${String(change.jj_stack.jj_change_id).slice(0, 8)}`));
+        }
         if (change.unresolved) meta.append(chip(`${change.unresolved} unresolved`));
         if (change.advisory_current) meta.append(chip(`${change.advisory_current} advisory (non-binding)`, "cr-chip-advisory"));
         if (latest?.submitted_by) { const attested = latest.submitted_by; meta.append(chip(`Agent: ${attested.principal}${attested.agent ? ` · ${attested.agent.harness}${attested.agent.model ? ` / ${attested.agent.model}` : ""}` : ""} (declared)`)); }
@@ -742,6 +1084,27 @@
     }, "primary"));
     title.focus();
   }
+  function drawGatePassport(root) {
+    if (typeof window === "undefined" || !window.KilnReceipts?.renderGatePassport) return;
+    const c = state.detail.change;
+    const selectedRevision = arr(c.revisions).find(r => r.id === revision()) || current();
+    const matchingCi = arr(state.detail.ci_runs).filter(fact => fact.project === c.project && fact.repository === c.repository && fact.revision === selectedRevision?.commit);
+    const card = panel(root, "Gate & Receipt Passport", "gate-passport", true);
+    const passport = window.KilnReceipts.renderGatePassport({
+      current_candidate_id: c.candidate?.id || c.submission?.candidate?.id || "",
+      current_revision: current()?.commit || selectedRevision?.commit || "",
+      ci_runs: matchingCi,
+      checks: arr(state.detail.checks),
+      cairn_completion: state.detail.cairn_completion || state.detail.authoritative_completion || null,
+      handoff: state.detail.handoff || selectedRevision?.handoff || null,
+      patchgate: state.detail.patchgate_receipts || state.detail.patchgate || state.detail.reviews || null,
+      provenance: state.detail.provenance || state.detail.in_toto || null,
+      plan_review: state.detail.plan_review || state.detail.plan_review_receipt || null,
+      semantic_merge: state.detail.semantic_merge || null,
+      reports: arr(state.detail.reports),
+    }, { title: "Gate & Receipt Passport" });
+    card.append(passport);
+  }
   function drawCi(root) {
     const c = state.detail.change, selectedRevision = arr(c.revisions).find(r => r.id === revision());
     const matching = arr(state.detail.ci_runs).filter(fact => fact.project === c.project && fact.repository === c.repository && fact.revision === selectedRevision?.commit);
@@ -801,13 +1164,166 @@
       });
     }).catch(() => { if (card.isConnected) card.append(node("p", "Preview adapter unavailable. CI evidence is unchanged.", "cr-muted")); });
   }
+  function drawStackRail(parent) {
+    const c = state.detail.change;
+    const jjStack = state.detail.jj_stack;
+    const evolog = arr(state.detail.jj_evolog);
+    const deps = arr(state.detail.stack?.dependencies);
+    const dependents = arr(state.detail.stack?.dependents);
+    if (!jjStack && !evolog.length && !deps.length && !dependents.length) return;
+    const rail = node("section", null, "card cr-stack-rail");
+    rail.setAttribute("aria-label", jjStack ? "jj Stack Rail" : "Dependency Stack Rail");
+    const head = node("div", null, "cr-stack-rail-head"), meta = node("div", null, "cr-stack-rail-meta"), tools = node("div", null, "cr-actions");
+    meta.append(node("strong", jjStack ? "jj Stack" : "Stack"));
+    if (jjStack?.jj_change_id) meta.append(exactId(jjStack.jj_change_id, "cr-jj-id"));
+    if (jjStack?.stack) {
+      meta.append(chip(jjStack.removed ? "Removed from stack" : `Position ${jjStack.position || "?"} of ${jjStack.size || "?"}`, jjStack.removed ? "cr-chip-attention" : ""));
+    } else if (deps.length || dependents.length) {
+      meta.append(chip(`${deps.length} upstream · ${dependents.length} downstream`));
+    }
+    const currentEvolog = evolog.find(row => row.revision === revision()) || evolog.at(-1);
+    const interdiffId = currentEvolog?.interdiff || (() => {
+      const revs = arr(c.revisions);
+      const idx = revs.findIndex(item => item.id === revision());
+      return idx > 0 ? `${revs[idx - 1].id}..${revs[idx].id}` : "";
+    })();
+    if (interdiffId) {
+      const activeInter = state.route.review_interdiff === interdiffId;
+      const interLink = activeInter
+        ? link("Exit interdiff", { review_revision: revision(), review_base: "base", review_interdiff: "", review_interdiff_change: "", review_file: "", review_side: "", review_line: "" }, "chip")
+        : link("Interdiff vs previous", { review_interdiff: interdiffId, review_interdiff_change: "", review_commits: "", review_revision: "", review_base: "", review_file: "", review_side: "", review_line: "" }, "chip");
+      if (activeInter) interLink.setAttribute("aria-pressed", "true");
+      tools.append(interLink);
+    }
+    const expandBtn = button(state.stackExpanded ? "Hide evolog" : "Expand stack", () => {
+      state.stackExpanded = !state.stackExpanded;
+      expandBtn.setAttribute("aria-expanded", String(state.stackExpanded));
+      expandBtn.textContent = state.stackExpanded ? "Hide evolog" : "Expand stack";
+      const details = rail.querySelector(".cr-stack-rail-details");
+      if (details) details.hidden = !state.stackExpanded;
+    }, "quiet");
+    expandBtn.setAttribute("aria-expanded", String(state.stackExpanded));
+    tools.append(expandBtn);
+    head.append(meta, tools);
+    rail.append(head);
+    if (jjStack?.removed === true) {
+      const warn = node("p", "Warning: this change was removed from its submitted jj stack (`jj_stack.removed`). It remains open until explicitly abandoned or re-submitted.", "cr-notice cr-stack-removed");
+      warn.setAttribute("role", "status");
+      rail.append(warn);
+    }
+    const nodes = node("ol", null, "cr-stack-nodes");
+    nodes.setAttribute("aria-label", "Stack changes");
+    const addNode = (id, titleText, stateVal, ciVal, isSelf, extraCode = "") => {
+      if (nodes.childElementCount > 0) {
+        const arrow = node("span", "->", "cr-stack-arrow");
+        arrow.setAttribute("aria-hidden", "true");
+        nodes.append(arrow);
+      }
+      const li = node("li", null, "cr-stack-node");
+      if (isSelf) li.setAttribute("aria-current", "step");
+      li.append(isSelf ? node("strong", titleText) : changeLink(id, titleText));
+      if (extraCode) li.append(node("code", extraCode.slice(0, 8)));
+      if (stateVal) li.append(pill(stateVal, "Stack member state"));
+      if (ciVal === "pass" || ciVal === "passed") li.append(chip("CI Passed"));
+      nodes.append(li);
+    };
+    if (arr(jjStack?.members).length) {
+      for (const m of jjStack.members) {
+        const mId = typeof m.change === "string" ? m.change : m.change?.id;
+        const snap = arr(state.snapshot?.changes).find(item => item.id === mId) || (mId === c.id ? c : null);
+        const mTitle = (typeof m.change === "object" && m.change?.title) || snap?.title || (mId === c.id ? c.title : m.jj_change_id?.slice(0, 12) || "Change");
+        const mState = (typeof m.change === "object" && m.change?.state) || snap?.state || "";
+        addNode(mId || c.id, mTitle, mState, ciSummaryValue(snap), mId === c.id, m.jj_change_id || "");
+      }
+    } else {
+      for (const dep of deps) addNode(dep.id, dep.title || short(dep.id), dep.state, ciSummaryValue(dep), false);
+      addNode(c.id, c.title, c.state, ciSummaryValue(c), true, jjStack?.jj_change_id || "");
+      for (const dep of dependents) addNode(dep.id, dep.title || short(dep.id), dep.state, ciSummaryValue(dep), false);
+    }
+    rail.append(nodes);
+    const details = node("div", null, "cr-stack-rail-details");
+    details.hidden = !state.stackExpanded;
+    if (evolog.length) {
+      const evoList = node("ol", null, "cr-history");
+      for (const row of evolog) {
+        const li = node("li");
+        if (row.revision === revision()) li.setAttribute("aria-current", "true");
+        li.append(link(`Revision ${row.number}`, { review_revision: row.revision, review_base: "base", review_file: "", review_side: "", review_line: "" }), exactId(row.commit));
+        if (row.predecessor_matches_previous === false) li.append(chip("Rebased / non-linear predecessor"));
+        if (row.interdiff) li.append(link("Interdiff", { review_interdiff: row.interdiff, review_interdiff_change: "", review_commits: "", review_revision: "", review_base: "", review_file: "", review_side: "", review_line: "" }, "chip"));
+        evoList.append(li);
+      }
+      details.append(evoList);
+    } else {
+      details.append(node("p", "No jj evolog revisions recorded for this change.", "cr-muted"));
+    }
+    rail.append(details);
+    parent.append(rail);
+  }
+  function drawBindingStrip(root) {
+    const c = state.detail.change, r = arr(c.revisions).find(item => item.id === revision()) || current();
+    const observedTarget = state.detail.source?.current_target;
+    const strip = node("div", null, "cr-binding-strip");
+    strip.append(node("h4", "Exact revision binding & target drift"));
+    facts(strip, [
+      ["Selected revision", r ? `Rev ${r.number} · ${short(r.id)}` : "Not recorded"],
+      ["Exact source commit", r?.commit],
+      ["Target ref", c.target_ref],
+      ["Observed target", observedTarget],
+    ]).classList.add("cr-facts-compact");
+    if (c.candidate && observedTarget && c.candidate.target && c.candidate.target !== observedTarget) {
+      strip.append(node("p", `Target drifted since candidate ${short(c.candidate.id)} was built (candidate target ${short(c.candidate.target)} != observed ${short(observedTarget)}). Re-prepare or rebuild before submission.`, "cr-notice"));
+    }
+    root.append(strip);
+  }
+  function drawChangeQueueSlot(root) {
+    const c = state.detail.change;
+    const allQueue = arr(state.snapshot?.queue);
+    const activeOnTarget = allQueue.filter(e => e.target_ref === c.target_ref && ACTIVE_QUEUE_STATUSES.has(e.status));
+    const slotIdx = activeOnTarget.findIndex(e => e.change === c.id);
+    const entry = (Array.isArray(state.detail.queue) ? state.detail.queue[0] : state.detail.queue) || allQueue.slice().reverse().find(e => e.change === c.id);
+    const win = arr(state.snapshot?.queue_windows).find(w => w.target_ref === c.target_ref);
+    const card = node("section", null, "card cr-card cr-queue-slot-card");
+    const head = node("div", null, "cr-row-head");
+    head.append(node("h3", "Merge train slot"), slotIdx >= 0 ? chip(`Slot #${slotIdx + 1} of ${activeOnTarget.length}`) : chip(entry ? human(entry.status) : "Not queued"));
+    card.append(head);
+    if (win) {
+      card.append(node("p", win.mode === "speculative"
+        ? `Target ${c.target_ref} · Speculative window ${win.depth ?? "?"}/${win.bounds?.ceiling ?? "?"}${win.bounds ? ` (${win.bounds.floor}..${win.bounds.ceiling})` : ""}`
+        : `Target ${c.target_ref} · Serial mode (head-only)`, "cr-muted"));
+    }
+    if (entry) {
+      facts(card, [
+        ["Queue status", human(entry.status)],
+        ["Generation", entry.generation ?? 0],
+        ...(entry.chain ? [["Chain root target", entry.chain.root_target], ["Assumed predecessors", arr(entry.chain.predecessors).length]] : []),
+        ...(arr(entry.superseded_chains).length ? [["Retired chains", arr(entry.superseded_chains).length]] : []),
+      ]).classList.add("cr-facts-compact");
+      if (entry.detail) card.append(node("p", entry.detail, "cr-muted"));
+    } else {
+      card.append(node("p", "This change has no current entry in the merge queue.", "cr-muted"));
+    }
+    card.append(link("Open Merge Queue view", { ...ALL_CHANGES, review_tab: "queue" }, "cr-ci-run"));
+    root.append(card);
+  }
   function drawDetail(root) {
     const c = state.detail.change, r = arr(c.revisions).find(item => item.id === revision());
     if (revision() !== current()?.id) root.append(node("p", "Historical revision selected. Comments and drafts retain this exact revision and comparison base. Optional votes always apply to the current revision shown in the publication confirmation; provider actions require the current revision.", "cr-notice"));
     if (!r) root.append(node("p", "The requested revision is not part of this change. Choose an admitted revision.", "cr-notice"));
-    const { main, aside } = layout(root, "Submit requirements and change details", "cr-detail-layout");
+    const workbench = node("div", null, "cr-workbench");
+    const fileRail = node("aside", null, "cr-file-rail"); fileRail.id = "cr-file-rail"; fileRail.setAttribute("aria-label", "Changed files");
+    const main = node("div", null, "cr-workbench-main");
+    const aside = node("aside", null, "cr-aside cr-aside-sticky"); aside.setAttribute("aria-label", "Submit requirements and change details");
+    workbench.append(fileRail, main, aside);
+    root.append(workbench);
     const description = section(main, "Description"); description.append(String(c.description ?? "").trim() ? markdown(c.description) : node("p", "No description provided.", "cr-muted"));
+    drawStackRail(main);
     const diff = section(main, "Changed files and diff", "cr-diff-card"), controls = node("div", null, "toolbar cr-toolbar cr-diff-toolbar");
+    const railToggle = button("", () => { state.railManual = !isRailOpen(); syncWorkbenchRail(); }, "quiet split-toggle cr-file-rail-toggle");
+    railToggle.id = "cr-file-rail-toggle";
+    railToggle.setAttribute("aria-controls", "cr-file-rail");
+    railToggle.append(icon("panel-left"), node("span", "Hide files", "cr-file-rail-toggle-label"));
+    controls.append(railToggle);
     // r[impl kiln.review.interdiff.route] "Changes since revision N" removes base movement; the route restores it.
     const earlier = arr(c.revisions).filter(item => item.number < (r?.number || 0)), inter = interdiffRoute();
     const base = field(controls, "Compare against", "select", inter ? `interdiff:${inter.from}` : commitsRoute() ? "commits" : state.route.review_base || "base", [["base", "Selected revision's base"], ...earlier.map(item => [item.id, `Revision ${item.number} · ${short(item.commit)}`]), ...earlier.map(item => [`interdiff:${item.id}`, `Changes since revision ${item.number}`]), ...(commitsRoute() ? [["commits", "Commit range (below)"]] : [])]);
@@ -818,14 +1334,76 @@
     const comparisonMode = field(controls, "Comparison mode", "select", state.route.review_mode || "line", [["line", "Line diff"], ["structural", "Structural (syntax-aware)"]]);
     comparisonMode.dataset.crKey = "diff-mode"; comparisonMode.addEventListener("change", () => route({ review_mode: comparisonMode.value === "line" ? "" : comparisonMode.value }));
     const modeField = node("div", null, "cr-field"), modeLabel = node("span", "Diff layout"), modes = node("div", null, "segmented"); modeLabel.id = `cr-${crypto.randomUUID()}`; modes.setAttribute("role", "group"); modes.setAttribute("aria-labelledby", modeLabel.id);
-    for (const [value, text] of [["unified", "Unified"], ["split", "Side by side"]]) { const b = button(text, () => { state.mode = value; for (const other of modes.children) other.setAttribute("aria-pressed", String(other === b)); drawDiff(); }); b.setAttribute("aria-pressed", String(state.mode === value)); modes.append(b); }
-    modeField.append(modeLabel, modes); controls.append(modeField); diff.append(controls, node("div", null, "cr-diff-host")); drawDiff();
-    const comparisonSlot = node("div", null, "cr-preview-slot"); main.append(comparisonSlot);
+    for (const [value, text] of [["unified", "Unified"], ["split", "Side by side"]]) {
+      const b = button(text, () => {
+        state.mode = value;
+        state.railManual = null;
+        for (const other of modes.children) other.setAttribute("aria-pressed", String(other === b));
+        drawDiff();
+        syncWorkbenchRail();
+      });
+      b.setAttribute("aria-pressed", String(state.mode === value));
+      modes.append(b);
+    }
+    modeField.append(modeLabel, modes); controls.append(modeField); diff.append(controls, node("div", null, "cr-diff-host"));
+    const comparisonSlot = node("div", null, "cr-preview-slot");
+    drawDiff();
+    syncWorkbenchRail();
+    main.append(comparisonSlot);
     drawDiscussion(main); drawSuggestions(main);
-    drawApproval(aside); drawReviewers(aside); drawCi(aside); drawPreviews(aside, comparisonSlot); drawIdentity(aside); drawEvolog(aside); drawStack(aside);
-    const traceContext = sessionTraceContext(arr(c.revisions).find(item => item.id === revision())); if (traceContext) aside.append(traceContext);
-    drawQueue(aside, Array.isArray(state.detail.queue) ? state.detail.queue : state.detail.queue ? [state.detail.queue] : arr(state.snapshot.queue).filter(e => e.change === c.id));
-    drawSubscriptions(aside); drawOperations(aside); drawAuthorActions(aside);
+
+    // 4-tab sticky right aside
+    const tabBar = node("div", null, "cr-aside-tabs");
+    tabBar.setAttribute("role", "tablist");
+    tabBar.setAttribute("aria-label", "Review inspector tabs");
+    const panels = new Map();
+    const ops = arr(state.detail.operations);
+    const hasUncertain = ops.some(op => op.state === "uncertain" || op.state === "pending");
+    const tabBadges = {
+      checklist: state.detail.checklist?.ready ? "Ready" : null,
+      ci: arr(state.detail.ci_runs).length ? String(arr(state.detail.ci_runs).length) : null,
+      queue: state.detail.jj_stack?.removed ? "Removed" : null,
+      history: hasUncertain ? "Uncertain" : ops.length ? String(ops.length) : null,
+    };
+    for (const tab of ASIDE_TABS) {
+      const btn = button(tab.label, () => setAsideTab(tab.id));
+      btn.setAttribute("role", "tab");
+      btn.id = `cr-aside-tab-${tab.id}`;
+      btn.dataset.crTab = tab.id;
+      btn.setAttribute("aria-controls", `cr-aside-panel-${tab.id}`);
+      btn.setAttribute("aria-selected", String(state.asideTab === tab.id));
+      if (tabBadges[tab.id]) btn.append(chip(tabBadges[tab.id], tab.id === "history" && hasUncertain || tab.id === "queue" && state.detail.jj_stack?.removed ? "cr-chip-attention" : ""));
+      tabBar.append(btn);
+      const panelNode = node("div", null, "cr-aside-panel");
+      panelNode.id = `cr-aside-panel-${tab.id}`;
+      panelNode.dataset.crTab = tab.id;
+      panelNode.setAttribute("role", "tabpanel");
+      panelNode.setAttribute("aria-labelledby", btn.id);
+      panelNode.hidden = state.asideTab !== tab.id;
+      panels.set(tab.id, panelNode);
+    }
+    aside.append(tabBar, ...panels.values());
+
+    // Tab 1: Checklist & Votes
+    const checklistPanel = panels.get("checklist");
+    drawApproval(checklistPanel); drawReviewers(checklistPanel); drawAuthorActions(checklistPanel);
+
+    // Tab 2: CI & Previews
+    const ciPanel = panels.get("ci");
+    drawBindingStrip(ciPanel); drawGatePassport(ciPanel); drawCi(ciPanel); drawPreviews(ciPanel, comparisonSlot);
+
+    // Tab 3: Queue & Stack
+    const queuePanel = panels.get("queue");
+    drawChangeQueueSlot(queuePanel);
+    drawQueue(queuePanel, Array.isArray(state.detail.queue) ? state.detail.queue : state.detail.queue ? [state.detail.queue] : arr(state.snapshot.queue).filter(e => e.change === c.id));
+    drawStack(queuePanel); drawEvolog(queuePanel);
+
+    // Tab 4: History & Ops
+    const historyPanel = panels.get("history");
+    drawOperations(historyPanel); drawIdentity(historyPanel);
+    const traceContext = sessionTraceContext(arr(c.revisions).find(item => item.id === revision()));
+    if (traceContext) historyPanel.append(traceContext);
+    drawSubscriptions(historyPanel);
   }
   // r[impl kiln.review.agent.console]
   function drawIdentity(root) {
@@ -1156,7 +1734,68 @@
     for (const [start, end] of arr(spans)) { if (start > at) code.append(value.slice(at, start)); code.append(node("mark", value.slice(start, end), "cr-novel")); at = end; }
     code.append(value.slice(at)); td.append(code); return td;
   }
-  function appendStructural(body, view, coordinate) {
+  function renderThreadArticle(thread, c) {
+    const article = node("article", null, "cr-thread"), a = thread.anchor || {}, head = node("div", null, "cr-row-head");
+    // r[impl kiln.review.keyboard.navigation] Stable selector for unresolved-thread navigation; the pill keeps the visible state.
+    article.dataset.resolved = String(!!thread.resolved);
+    const where = node("div", null, "cr-row-main");
+    if (a.file) {
+      const anchorMeta = node("span", `${human(a.side)} side · base `, "cr-muted");
+      anchorMeta.append(exactId(a.base_commit));
+      where.append(link(`${a.file}:${a.start_line}–${a.end_line}`, anchorRoute(a), "cr-anchor"), anchorMeta);
+    } else {
+      where.append(node("span", "General change discussion", "cr-row-title"));
+    }
+    head.append(where, pill(thread.resolved ? "resolved" : "open", "Thread", thread.resolved ? "Resolved" : "Open", thread.resolved ? "success" : thread.blocking ? "warning" : "queued"), chip(thread.blocking ? "Blocking" : "Non-blocking"));
+    if (thread.agent) head.append(chip("Agent thread"));
+    if (thread.outcome) head.append(chip(`Outcome: ${human(thread.outcome)}`));
+    article.append(head);
+    for (const comment of arr(thread.comments)) {
+      const item = node("div", null, "cr-comment"), byline = node("h4", null, "cr-byline"), author = node("strong");
+      author.append(principalNode(comment.author));
+      byline.append(author, " · ", when(comment.created_ms));
+      item.append(byline, markdown(comment.body));
+      article.append(item);
+    }
+    const actions = node("div", null, "cr-actions");
+    const reply = field(article, "Private reply", "textarea", "", [], `reply-${thread.id}`);
+    reply.rows = 2; reply.parentElement.classList.add("cr-reply");
+    actions.append(writeButton("Save reply draft", async () => {
+      if (!reply.value.trim()) throw new Error("Reply text is required.");
+      const result = await command({ type: "save_draft", anchor: thread.anchor || null, thread: thread.id, body: reply.value, blocking: thread.blocking }, c);
+      if (result) { clearFields(`reply-${thread.id}`); draw(); }
+    }));
+    actions.append(writeButton(thread.resolved ? "Unresolve" : "Resolve", () => command({ type: "resolve", thread: thread.id, resolved: !thread.resolved }, c), "quiet"));
+    article.append(actions);
+    return article;
+  }
+  function renderInlineThreadRow(thread, c) {
+    const tr = node("tr", null, "cr-inline-thread-row");
+    tr.dataset.threadId = thread.id;
+    tr.dataset.resolved = String(!!thread.resolved);
+    const td = node("td", null, "cr-inline-thread-cell");
+    td.colSpan = 4;
+    const details = node("details", null, "cr-inline-thread");
+    details.dataset.crSection = `inline-thread-${thread.id}`;
+    details.open = !thread.resolved;
+    const summary = node("summary");
+    summary.addEventListener("click", () => { details.dataset.crTouched = "true"; });
+    const a = thread.anchor || {};
+    const firstAuthor = arr(thread.comments)[0]?.author;
+    const count = arr(thread.comments).length;
+    summary.append(
+      pill(thread.resolved ? "resolved" : "open", "Thread", thread.resolved ? "Resolved" : "Open", thread.resolved ? "success" : thread.blocking ? "warning" : "queued"),
+      chip(thread.blocking ? "Blocking" : "Non-blocking"),
+      node("span", `${human(a.side)} ${a.start_line}–${a.end_line} · ${count} comment${count === 1 ? "" : "s"}${firstAuthor ? ` · ${firstAuthor}` : ""}`),
+    );
+    if (thread.agent) summary.append(chip("Agent"));
+    if (thread.outcome) summary.append(chip(human(thread.outcome)));
+    details.append(summary, renderThreadArticle(thread, c));
+    td.append(details);
+    tr.append(td);
+    return tr;
+  }
+  function appendStructural(body, view, coordinate, appendThreadsFor) {
     const note = text => { const tr = node("tr", null, "cr-hunk cr-structural-note"), th = node("th", text); th.colSpan = 4; tr.append(th); body.append(tr); };
     if (!arr(view.hunks).length && !arr(view.moved).length) note("No syntax changes: this file differs only in formatting or layout.");
     for (const m of arr(view.moved)) note(`Moved without syntax changes: base lines ${m.old_start}–${m.old_end} → revision lines ${m.new_start}–${m.new_end}. Commenting is disabled for this region; switch to the line diff to comment on it.`);
@@ -1167,6 +1806,7 @@
         if (state.mode === "split") tr.append(coordinate(row.old_line, "base"), row.old_line == null ? codeCell("") : novelCell(row.text, row.side === "old" ? row.novel : []), coordinate(row.new_line, "revision"), row.new_line == null ? codeCell("") : novelCell(row.text, row.side === "new" ? row.novel : []));
         else tr.append(coordinate(row.old_line, "base"), coordinate(row.new_line, "revision"), node("td", ({ addition: "+", deletion: "−", context: " " })[kind], "cr-diff-sign"), novelCell(row.text, row.novel));
         body.append(tr);
+        appendThreadsFor?.(row.old_line, row.new_line);
       }
     }
   }
@@ -1193,11 +1833,67 @@
     const base = anchor.base_commit === r?.base ? "base" : revisions.find(item => item.commit === anchor.base_commit)?.id;
     return { review_revision: anchor.revision, review_base: base || "base", review_file: anchor.file, review_side: anchor.side, review_line: String(anchor.start_line) };
   }
+  function unresolvedThreadsByFile(comparison) {
+    const counts = new Map();
+    const rev = revision();
+    for (const thread of arr(state.detail?.change?.threads)) {
+      if (thread.resolved || thread.anchor?.revision !== rev || !thread.anchor?.file) continue;
+      counts.set(thread.anchor.file, (counts.get(thread.anchor.file) || 0) + 1);
+    }
+    if (comparison) {
+      for (const file of arr(comparison.files)) {
+        const canonical = filePath(file);
+        if (file.old_path && file.old_path !== canonical && counts.has(file.old_path)) {
+          counts.set(canonical, (counts.get(canonical) || 0) + counts.get(file.old_path));
+        }
+      }
+    }
+    return counts;
+  }
+  function drawFileRail(comparison) {
+    const rail = state.container?.querySelector("#cr-file-rail");
+    if (!rail) return;
+    rail.replaceChildren();
+    if (!comparison) {
+      rail.append(node("p", state.diffError ? "File tree unavailable." : "Loading changed files…", "cr-muted"));
+      return;
+    }
+    const progress = file => hunkEntry(file), fullyViewed = file => (progress(file)?.total || 0) > 0 && progress(file).viewed === progress(file).total;
+    const preViewed = file => typeof noiseRule === "function" && !!noiseRule(file);
+    const unresolvedMap = unresolvedThreadsByFile(comparison);
+    const files = node("nav", null, "cr-files"), list = node("ul", null, "cr-file-list"), shownFile = state.route.review_file || defaultFile(comparison);
+    files.setAttribute("aria-label", "Changed files");
+    files.append(node("p", `${comparison.files.length} file${comparison.files.length === 1 ? "" : "s"} · ${comparison.files.filter(fullyViewed).length} viewed`, "cr-files-head cr-muted"));
+    for (const file of comparison.files) {
+      const name = filePath(file), row = node("li", null, "cr-file-row");
+      const a = link(`${file.renamed ? `${file.old_path} → ` : ""}${name}${file.binary ? " · binary" : ""}${file.truncated ? " · truncated" : ""}`, { review_file: name, review_side: "", review_line: "" });
+      if (name === shownFile) a.setAttribute("aria-current", "true");
+      // r[impl kiln.web.design_system] A toggle: constant label, persistent pressed state, file named in its accessible name.
+      // r[impl kiln.review.hunks] "Mark all" writes one private marker per hunk; the count is this principal's progress.
+      const entry = progress(file), marked = fullyViewed(file), mark = writeButton("Viewed", () => { requireCurrent(); return command({ type: "mark_reviewed", file: name, reviewed: !marked }); }, "quiet cr-mark");
+      mark.dataset.reviewed = String(marked); mark.dataset.hunksTotal = String(entry?.total ?? 0); mark.dataset.hunksViewed = String(entry?.viewed ?? 0); mark.setAttribute("aria-pressed", String(marked)); mark.setAttribute("aria-label", `Viewed, all hunks: ${name}`); mark.prepend(icon("circle-check"));
+      const blocked = hunkBlocked(file); if (blocked) { mark.disabled = true; mark.dataset.crBlocked = "true"; mark.title = blocked; }
+      const badges = node("span", null, "cr-file-badges");
+      const count = node("span", preViewed(file) ? "Noise · viewed" : entry ? `${entry.viewed}/${entry.total}${entry.new_since_viewed ? ` · ${entry.new_since_viewed} new` : ""}` : "", "cr-muted cr-hunk-count");
+      if (count.textContent) badges.append(count);
+      const unresolved = unresolvedMap.get(name) || 0;
+      if (unresolved > 0) badges.append(chip(`${unresolved} open`, "cr-chip-attention"));
+      row.append(a, badges, mark);
+      list.append(row);
+    }
+    files.append(list);
+    noiseGroup(files, list, comparison);
+    rail.append(files);
+  }
   function drawDiff() {
-    const host = state.container?.querySelector(".cr-diff-host"); if (!host) return; host.replaceChildren();
-    if (state.diffError) { host.append(node("p", state.diffError, "cr-notice")); return; }
-    if (!state.diff) { host.append(loading("Loading the exact provider diff…")); return; }
+    state.inlineThreadIds = new Set();
+    const host = state.container?.querySelector(".cr-diff-host");
+    if (!host) return;
+    host.replaceChildren();
+    if (state.diffError) { drawFileRail(null); host.append(node("p", state.diffError, "cr-notice")); return; }
+    if (!state.diff) { drawFileRail(null); host.append(loading("Loading the exact provider diff…")); return; }
     const comparison = state.diff, exactWhitespace = (state.route.review_whitespace || "exact") === "exact";
+    drawFileRail(comparison);
     facts(host, [["Old commit", comparison.old_commit], ["New commit", comparison.new_commit]]).classList.add("cr-facts-compact");
     if (!exactWhitespace) host.append(node("p", "Whitespace-filtered comparison: omitted changes are not reviewed. Displayed line numbers and saved anchors remain exact provider coordinates; switch to exact to inspect all whitespace.", "cr-notice"));
     if (comparison.truncated) host.append(node("p", "The provider bounded this diff. Not all files or lines are shown; omitted content is not implicitly reviewed.", "cr-notice"));
@@ -1207,29 +1903,13 @@
     const highlight = ui().highlightLines(comparison.highlight, diffLines.map(line => typeof line?.text === "string" ? line.text : ""));
     const fragmentsOf = new Map(highlight.fragments ? diffLines.map((line, index) => [line, highlight.fragments[index]]) : []);
     if (highlight.note) { const note = node("p", highlight.note, highlight.state === "invalid" ? "cr-notice" : "cr-muted"); note.dataset.highlight = highlight.state; host.append(note); }
-    const progress = file => hunkEntry(file), fullyViewed = file => (progress(file)?.total || 0) > 0 && progress(file).viewed === progress(file).total;
-    const preViewed = file => typeof noiseRule === "function" && !!noiseRule(file);
-    const files = node("nav", null, "cr-files"), list = node("ul", null, "cr-file-list"), shownFile = state.route.review_file || defaultFile(comparison); files.setAttribute("aria-label", "Changed files");
-    files.append(node("p", `${comparison.files.length} changed file${comparison.files.length === 1 ? "" : "s"} · ${comparison.files.filter(fullyViewed).length} fully viewed by you`, "cr-files-head cr-muted"));
-    for (const file of comparison.files) {
-      const name = filePath(file), row = node("li", null, "cr-file-row"); const a = link(`${file.renamed ? `${file.old_path} → ` : ""}${name}${file.binary ? " · binary" : ""}${file.truncated ? " · truncated" : ""}`, { review_file: name, review_side: "", review_line: "" });
-      if (name === shownFile) a.setAttribute("aria-current", "true");
-      // r[impl kiln.web.design_system] A toggle: constant label, persistent pressed state, file named in its accessible name.
-      // r[impl kiln.review.hunks] "Mark all" writes one private marker per hunk; the count is this principal's progress.
-      const entry = progress(file), marked = fullyViewed(file), mark = writeButton("Viewed", () => { requireCurrent(); return command({ type: "mark_reviewed", file: name, reviewed: !marked }); }, "quiet cr-mark");
-      mark.dataset.reviewed = String(marked); mark.dataset.hunksTotal = String(entry?.total ?? 0); mark.dataset.hunksViewed = String(entry?.viewed ?? 0); mark.setAttribute("aria-pressed", String(marked)); mark.setAttribute("aria-label", `Viewed, all hunks: ${name}`); mark.prepend(icon("circle-check"));
-      const blocked = hunkBlocked(file); if (blocked) { mark.disabled = true; mark.dataset.crBlocked = "true"; mark.title = blocked; }
-      const count = node("span", preViewed(file) ? "Noise · shown as viewed" : entry ? `${entry.viewed} of ${entry.total} hunk${entry.total === 1 ? "" : "s"} viewed${entry.new_since_viewed ? ` · ${entry.new_since_viewed} new since revision ${comparison.review_hunks?.last_viewed?.number ?? "?"}` : ""}` : "", "cr-muted cr-hunk-count");
-      row.append(a, count, mark); list.append(row);
-    }
-    files.append(list); noiseGroup(files, list, comparison); host.append(files);
     if (!comparison.files.length) { host.append(node("p", "The exact comparison contains no changed files.", "cr-muted")); return; }
     const wantedFile = state.route.review_file || defaultFile(comparison);
-    if (!wantedFile) { host.append(node("p", "Every changed file matches a display-only noise rule. Expand the noise group to view one.", "cr-muted")); return; }
+    if (!wantedFile) { host.append(node("p", "Every changed file matches a display-only noise rule. Expand the noise group in the file rail to view one.", "cr-muted")); return; }
     const file = comparison.files.find(f => f.new_path === wantedFile || f.old_path === wantedFile);
     if (!file) { host.append(node("p", "The requested file is not present in this exact comparison. Select a listed file.", "cr-notice")); return; }
     const shownNoise = noiseRule(file); if (shownNoise) host.append(node("p", `Noise rule ${shownNoise.id}${shownNoise.reason ? `: ${shownNoise.reason}` : ""}. Expanded on request; it still counts for ownership, approvals, threads and CI.`, "cr-notice cr-noise-note"));
-    host.append(node("h4", filePath(file), file.binary ? "cr-file-title" : "sr-only"), node("p", file.binary ? "Binary content: no textual line anchors are available." : "Line numbers are permalinks. Use the anchored draft editor below to discuss an exact line or range.", "cr-muted"));
+    host.append(node("h4", filePath(file), file.binary ? "cr-file-title" : "sr-only"), node("p", file.binary ? "Binary content: no textual line anchors are available." : "Line numbers are permalinks. Anchored threads appear inline below their target lines.", "cr-muted"));
     if (file.binary) return;
     const scroll = node("div", null, "cr-diff-scroll"); scroll.tabIndex = 0; scroll.setAttribute("role", "region"); scroll.setAttribute("aria-label", `${state.mode === "split" ? "Side-by-side" : "Unified"} diff for ${filePath(file)}`);
     const table = node("table", null, `cr-diff cr-${state.mode}`); const caption = node("caption", `${filePath(file)} · ${short(comparison.old_commit)} → ${short(comparison.new_commit)}`, "sr-only"); table.append(caption);
@@ -1246,7 +1926,54 @@
       if (anchorBaseFor(comparison, selectedRev, side) == null) { const span = node("span", line, "cr-line-plain"); span.title = "Not an exact revision coordinate in this view; switch to an exact comparison to comment."; td.append(span); return td; }
       const a = link(line, { ...viewPatch(), review_file: (side === "base" ? file.old_path : file.new_path) || filePath(file), review_side: side, review_line: String(line) }); a.setAttribute("aria-label", `${side} line ${line}`); if (state.route.review_side === side && Number(state.route.review_line) === line) { a.classList.add("cr-line-selected"); a.setAttribute("aria-current", "location"); } td.append(a); return td;
     };
-    const structuralView = structuralOf(host, file); if (structuralView) appendStructural(body, structuralView, coordinate);
+    const structuralView = structuralOf(host, file);
+    // Index rendered coordinates so anchored threads attach inline directly beneath their target diff line.
+    const renderedCoords = new Set();
+    if (structuralView) {
+      for (const hunk of arr(structuralView.hunks)) {
+        for (const row of arr(hunk.rows)) {
+          if (row.old_line != null) renderedCoords.add(`base:${row.old_line}`);
+          if (row.new_line != null) renderedCoords.add(`revision:${row.new_line}`);
+        }
+      }
+    } else {
+      for (const hunk of arr(file.hunks)) {
+        for (const line of arr(hunk.lines)) {
+          if (line.old_line != null) renderedCoords.add(`base:${line.old_line}`);
+          if (line.new_line != null) renderedCoords.add(`revision:${line.new_line}`);
+        }
+      }
+    }
+    const threadBases = [comparison.old_commit, anchorBaseFor(comparison, selectedRev, "revision")].filter(Boolean);
+    const related = arr(state.detail?.change?.threads).filter(thread => thread.anchor?.revision === revision() && threadBases.includes(thread.anchor.base_commit) && [file.old_path, file.new_path].includes(thread.anchor.file));
+    const threadsByCoord = new Map();
+    const unplacedThreads = [];
+    for (const thread of related) {
+      const a = thread.anchor;
+      const side = a.side === "base" ? "base" : "revision";
+      const endKey = `${side}:${a.end_line}`;
+      const startKey = `${side}:${a.start_line}`;
+      const targetKey = renderedCoords.has(endKey) ? endKey : renderedCoords.has(startKey) ? startKey : null;
+      if (targetKey) {
+        if (!threadsByCoord.has(targetKey)) threadsByCoord.set(targetKey, []);
+        threadsByCoord.get(targetKey).push(thread);
+      } else {
+        unplacedThreads.push(thread);
+      }
+    }
+    const appendedInline = new Set();
+    const appendThreadsFor = (oldLine, newLine) => {
+      for (const key of [oldLine != null ? `base:${oldLine}` : null, newLine != null ? `revision:${newLine}` : null]) {
+        if (!key || !threadsByCoord.has(key)) continue;
+        for (const thread of threadsByCoord.get(key)) {
+          if (appendedInline.has(thread.id)) continue;
+          appendedInline.add(thread.id);
+          state.inlineThreadIds.add(thread.id);
+          body.append(renderInlineThreadRow(thread, state.detail.change));
+        }
+      }
+    };
+    if (structuralView) appendStructural(body, structuralView, coordinate, appendThreadsFor);
     for (const [index, hunk] of (structuralView ? [] : arr(file.hunks)).entries()) {
       const marker = node("tr", null, "cr-hunk"), title = node("th"), heading = node("div", null, "cr-hunk-head"); heading.append(node("span", hunk.header || `@@ -${hunk.old_start},${hunk.old_lines} +${hunk.new_start},${hunk.new_lines} @@`)); const tools = hunkToggle(file, index); if (tools) heading.append(tools); title.append(heading); title.colSpan = 4; marker.append(title); body.append(marker);
       for (const line of arr(hunk.lines)) {
@@ -1255,31 +1982,28 @@
         if (state.mode === "split") { tr.append(coordinate(line.old_line, "base"), line.old_line == null ? codeCell("") : codeCell(line.text, fragments), coordinate(line.new_line, "revision"), line.new_line == null && line.kind !== "no_newline" ? codeCell("") : codeCell(line.text, fragments)); }
         else tr.append(coordinate(line.old_line, "base"), coordinate(line.new_line, "revision"), node("td", ({ addition: "+", deletion: "−", context: " ", no_newline: "\\" })[line.kind] || "", "cr-diff-sign"), codeCell(line.text, fragments));
         body.append(tr);
+        appendThreadsFor(line.old_line, line.new_line);
       }
+    }
+    for (const thread of unplacedThreads) {
+      state.inlineThreadIds.add(thread.id);
+      body.append(renderInlineThreadRow(thread, state.detail.change));
     }
     table.append(body); scroll.append(table); host.append(scroll);
     const target = host.querySelector(".cr-line-selected"); if (target) target.scrollIntoView({ block: "nearest", inline: "nearest" });
     if (file.truncated) host.append(node("p", "This file is truncated. Missing text cannot be anchored, and this display cannot certify the whole file as reviewed.", "cr-notice"));
-    const threadBases = [comparison.old_commit, anchorBaseFor(comparison, selectedRev, "revision")]; const related = arr(state.detail.change.threads).filter(thread => thread.anchor.revision === revision() && threadBases.includes(thread.anchor.base_commit) && [file.old_path, file.new_path].includes(thread.anchor.file));
-    if (related.length) { const threads = node("ul", null, "cr-thread-links"); threads.setAttribute("aria-label", "Threads on this file"); for (const thread of related) { const line = thread.anchor.start_line, li = node("li"); const summary = link(`${thread.resolved ? "Resolved" : "Open"}${thread.blocking ? " blocking" : ""} thread · ${thread.anchor.side} ${line}–${thread.anchor.end_line}`, anchorRoute(thread.anchor)); summary.classList.add("cr-thread-link"); summary.dataset.resolved = String(!!thread.resolved); summary.dataset.blocking = String(!!thread.blocking && !thread.resolved); li.append(summary); if (thread.agent) li.append(chip("Agent")); if (thread.outcome) li.append(chip(`Outcome: ${human(thread.outcome)}`)); threads.append(li); } host.append(threads); }
   }
   function drawDiscussion(root) {
     const c = state.detail.change, card = section(root, "Discussion and drafts", "cr-discussion");
-    const threads = arr(c.threads).filter(thread => thread.anchor.revision === revision());
-    for (const thread of threads) {
-      const article = node("article", null, "cr-thread"), a = thread.anchor, head = node("div", null, "cr-row-head");
-      // r[impl kiln.review.keyboard.navigation] Stable selector for unresolved-thread navigation; the pill keeps the visible state.
-      article.dataset.resolved = String(!!thread.resolved);
-      // The exact file and range lead; side and comparison base follow as secondary metadata.
-      const where = node("div", null, "cr-row-main"), anchorMeta = node("span", `${human(a.side)} side · base `, "cr-muted"); anchorMeta.append(exactId(a.base_commit)); where.append(link(`${a.file}:${a.start_line}–${a.end_line}`, anchorRoute(a), "cr-anchor"), anchorMeta);
-      head.append(where, pill(thread.resolved ? "resolved" : "open", "Thread", thread.resolved ? "Resolved" : "Open", thread.resolved ? "success" : thread.blocking ? "warning" : "queued"), chip(thread.blocking ? "Blocking" : "Non-blocking")); if (thread.agent) head.append(chip("Agent thread")); if (thread.outcome) head.append(chip(`Outcome: ${human(thread.outcome)}`)); article.append(head);
-      for (const comment of arr(thread.comments)) { const item = node("div", null, "cr-comment"), byline = node("h4", null, "cr-byline"), author = node("strong"); author.append(principalNode(comment.author)); byline.append(author, " · ", when(comment.created_ms)); item.append(byline, markdown(comment.body)); article.append(item); }
-      const actions = node("div", null, "cr-actions");
-      const reply = field(article, "Private reply", "textarea", "", [], `reply-${thread.id}`); reply.rows = 2; reply.parentElement.classList.add("cr-reply");
-      actions.append(writeButton("Save reply draft", async () => { if (!reply.value.trim()) throw new Error("Reply text is required."); const result = await command({ type: "save_draft", anchor: a, thread: thread.id, body: reply.value, blocking: thread.blocking }, c); if (result) { clearFields(`reply-${thread.id}`); draw(); } }));
-      actions.append(writeButton(thread.resolved ? "Unresolve" : "Resolve", () => command({ type: "resolve", thread: thread.id, resolved: !thread.resolved }, c), "quiet")); article.append(actions); card.append(article);
+    const allThreads = arr(c.threads).filter(thread => !thread.anchor?.revision || thread.anchor.revision === revision());
+    const remainingThreads = allThreads.filter(thread => !state.inlineThreadIds?.has(thread.id));
+    if (state.inlineThreadIds?.size) {
+      card.append(node("p", `${state.inlineThreadIds.size} anchored thread${state.inlineThreadIds.size === 1 ? "" : "s"} displayed inline in the diff table above.`, "cr-muted"));
     }
-    if (!threads.length) card.append(node("p", "No published threads on the selected revision.", "cr-muted"));
+    for (const thread of remainingThreads) {
+      card.append(renderThreadArticle(thread, c));
+    }
+    if (!allThreads.length) card.append(node("p", "No published threads on the selected revision.", "cr-muted"));
     const compose = disclosure(card, "Write an anchored private draft");
     if (state.route.review_line) { compose.parentElement.open = true; compose.parentElement.dataset.crForceOpen = "true"; }
     compose.append(node("p", "Choose a line number in the diff to seed this editor.", "cr-muted"));
@@ -1335,7 +2059,7 @@
     state.epoch++; state.request++; state.diffRequest++;
     for (const dialog of state.dialogs) { dialog.close(); dialog.remove(); } state.dialogs.clear();
     state.container?.replaceChildren(); state.container = null; state.context = null; state.snapshot = null; state.detail = null; state.diff = null; state.forms.clear(); state.pending = false; state.pinnedRevision = "";
-    state.error = ""; state.diffError = ""; state.route = {};
+    state.error = ""; state.diffError = ""; state.route = {}; state.asideTab = "checklist"; state.railManual = null; state.stackExpanded = false; state.inlineThreadIds = new Set();
     headerActions(null, null, false);
   }
   // r[impl kiln.review.keyboard] Keyboard actions locate the existing control and invoke it, so confirmation,
@@ -1408,7 +2132,7 @@
       case "toggle-file-viewed": { const row = displayedFileLink()?.closest(".cr-file-row"); const toggle = row?.querySelector(".cr-mark"); if (!toggle) return false; toggle.click(); return true; }
       case "start-draft": return startDraft();
       case "publish": { const publish = state.container?.querySelector(".cr-publish button[data-cr-write]"); if (!publish) return false; publish.click(); return true; }
-      case "requirements": { const card = document.getElementById("cr-requirements"); if (!card) return false; card.scrollIntoView({ block: "start" }); card.firstElementChild?.focus({ preventScroll: true }); return true; }
+      case "requirements": { setAsideTab("checklist"); const card = document.getElementById("cr-requirements"); if (!card) return false; card.scrollIntoView({ block: "start" }); card.firstElementChild?.focus({ preventScroll: true }); return true; }
       case "help": showShortcutHelp(); return true;
       default: return false;
     }
@@ -1425,6 +2149,13 @@
     if (listening || typeof document === "undefined") return;
     listening = true;
     document.addEventListener("keydown", onKeydown);
+    if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
+      const mql = window.matchMedia(WIDE_QUERY);
+      mql?.addEventListener?.("change", () => {
+        state.railManual = null;
+        if (state.container?.isConnected) syncWorkbenchRail();
+      });
+    }
   }
   function load(container, context) {
     listen();
@@ -1433,11 +2164,11 @@
     const changed = state.container !== container || state.context?.principal !== context.principal || JSON.stringify(state.route) !== JSON.stringify(nextRoute);
     if (state.context?.principal !== context.principal) clear();
     if (selected() !== nextRoute.review_change || state.route.review_revision !== nextRoute.review_revision) state.pinnedRevision = nextRoute.review_revision || "";
-    if (changed) { state.epoch++; state.request++; state.diffRequest++; for (const dialog of state.dialogs) { dialog.close(); dialog.remove(); } state.dialogs.clear(); state.diff = null; state.diffError = ""; if (selected() !== nextRoute.review_change) state.detail = null; }
+    if (changed) { state.epoch++; state.request++; state.diffRequest++; for (const dialog of state.dialogs) { dialog.close(); dialog.remove(); } state.dialogs.clear(); state.diff = null; state.diffError = ""; if (selected() !== nextRoute.review_change) { state.detail = null; state.asideTab = "checklist"; state.railManual = null; state.stackExpanded = false; } }
     state.container = container; state.context = context; state.route = nextRoute;
     if (changed) clearFields("draft-file", "draft-side", "draft-start", "draft-end");
     draw();
     return refresh();
   }
-  window.KilnCodeReview = Object.freeze({ load, refresh, clear, keys: Object.freeze({ resolve: resolveShortcut, commands: SHORTCUT_COMMANDS }), hunks: hunkApi, comparison: Object.freeze({ anchorFor, anchorBaseFor, diffMatches }), authorship: Object.freeze({ payload: authorshipPayload, label: authorshipLabel, classLabel: authorshipClassLabel, limit: AUTHORSHIP_TEXT_BYTES }), sessionTraces: Object.freeze({ render: sessionTraceContext }), savedQuery: savedQueryForRoute, savedView: savedViewRoute });
+  window.KilnCodeReview = Object.freeze({ load, refresh, clear, summarizeMergeTrains, keys: Object.freeze({ resolve: resolveShortcut, commands: SHORTCUT_COMMANDS }), hunks: hunkApi, comparison: Object.freeze({ anchorFor, anchorBaseFor, diffMatches }), authorship: Object.freeze({ payload: authorshipPayload, label: authorshipLabel, classLabel: authorshipClassLabel, limit: AUTHORSHIP_TEXT_BYTES }), sessionTraces: Object.freeze({ render: sessionTraceContext }), savedQuery: savedQueryForRoute, savedView: savedViewRoute });
 })();

@@ -46,6 +46,13 @@ struct ProjectRequest {
     project_id: String,
     request_id: String,
 }
+#[derive(Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ReconcileRequest {
+    #[serde(default)]
+    request_id: Option<String>,
+}
+
 #[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct ControlRequest {
@@ -540,6 +547,9 @@ impl Engine {
             });
         }
         if let Some((id, resource, artifact)) = run_route {
+            if !crate::profile::identifier(id) || id == "." || id == ".." {
+                return error(400, "run_id_invalid");
+            }
             let Some(run) = self.state.runs.get(id) else {
                 return error(404, "run_missing");
             };
@@ -575,6 +585,12 @@ impl Engine {
                 }
                 ("POST", Some("rerun"), None) if params.is_empty() => {
                     return self.rerun(id, body, principal);
+                }
+                ("POST", Some("reconcile"), None) => {
+                    if !params.is_empty() {
+                        return error(400, "query_invalid");
+                    }
+                    return self.reconcile_run(id, body);
                 }
                 ("POST", Some("approve"), None) if params.is_empty() => {
                     return self.approve_untrusted(id, body, principal);
@@ -621,6 +637,57 @@ impl Engine {
             }
         }
         error(404, "route_missing")
+    }
+    // r[impl kiln.web.run_supersession_and_reconcile]
+    pub(super) fn reconcile_run(&mut self, id: &str, body: &[u8]) -> Result<ApiResponse, String> {
+        if !body.is_empty() {
+            let req: ReconcileRequest = match serde_json::from_slice(body) {
+                Ok(v) => v,
+                Err(_) => return error(400, "reconcile_invalid"),
+            };
+            if let Some(request_id) = req.request_id.as_deref()
+                && !crate::profile::identifier(request_id)
+            {
+                return error(400, "request_id_invalid");
+            }
+        }
+        let run = self.state.runs.get(id).ok_or("run missing")?;
+        let was_waiting = run.waiting();
+        let was_engine_owned = run.is_engine_owned_execution();
+        let was_terminal = run.outcome().is_terminal();
+        self.refresh(id)?;
+        let view = self.state.runs.get(id).ok_or("run missing")?.view();
+        let outcome = view.outcome;
+        let phase = view.phase.clone();
+        let error_code = view.error_code.clone();
+        let still_unknown =
+            outcome == kiln_core::domain::Outcome::Unknown || phase == "unknown";
+        let reconciled = !still_unknown && !was_waiting && !was_engine_owned;
+        let note = if still_unknown {
+            "Provider remains unreachable or execution outcome is still unknown; do not blindly rerun."
+        } else if was_waiting {
+            "Run has not been dispatched yet; no provider execution exists to reconcile."
+        } else if was_engine_owned {
+            "Execution is engine-owned; no external provider reconciliation applies."
+        } else if was_terminal {
+            "Run already has a terminal outcome."
+        } else if outcome.is_terminal() {
+            "Provider observation reconciled terminal execution state."
+        } else {
+            "Provider observation refreshed; execution remains active."
+        };
+        json_response(
+            200,
+            json!({
+                "run": view,
+                "reconciled": reconciled,
+                "still_unknown": still_unknown,
+                "outcome": outcome,
+                "phase": phase,
+                "error_code": error_code,
+                "note": note,
+            }),
+        )
     }
     // r[impl kiln.web.controls]
     pub(super) fn control(&mut self, id: &str, body: &[u8]) -> Result<ApiResponse, String> {

@@ -20,6 +20,8 @@ pub const MIN_FLEET_TIMEOUT_MS: u64 = 250;
 pub const MAX_FLEET_TIMEOUT_MS: u64 = 10_000;
 pub const MIN_FLEET_RESPONSE_BYTES: usize = 65_536;
 pub const MAX_FLEET_RESPONSE_BYTES: usize = 4_194_304;
+pub const MAX_MACHINE_LABEL_BYTES: usize = 63;
+pub const MAX_PANE_READ_LINES: u32 = 1_000;
 
 /// Runtime-only console projection policy. It is deliberately outside the
 /// canonical service profile: adding an observation endpoint must not change
@@ -68,9 +70,30 @@ pub(crate) struct Client {
     max_response_bytes: usize,
 }
 
+pub(crate) const JSON_CONTENT_TYPE: &str = "application/json; charset=utf-8";
+pub(crate) const PROMETHEUS_CONTENT_TYPE: &str = "text/plain; version=0.0.4; charset=utf-8";
+pub(crate) const TEXT_CONTENT_TYPE: &str = "text/plain; charset=utf-8";
+
 pub(crate) struct Reply {
     pub(crate) status: u16,
+    pub(crate) content_type: &'static str,
     pub(crate) body: Vec<u8>,
+}
+
+pub(crate) fn classify_content_type(header: Option<&str>) -> &'static str {
+    let Some(raw) = header else {
+        return JSON_CONTENT_TYPE;
+    };
+    let normalized = raw.trim().to_ascii_lowercase();
+    if normalized.starts_with("text/plain") {
+        if normalized.contains("version=0.0.4") {
+            PROMETHEUS_CONTENT_TYPE
+        } else {
+            TEXT_CONTENT_TYPE
+        }
+    } else {
+        JSON_CONTENT_TYPE
+    }
 }
 
 #[derive(Deserialize)]
@@ -118,6 +141,12 @@ impl Client {
         }
         let response = request.send().map_err(|_| ())?;
         let status = response.status().as_u16();
+        let content_type = classify_content_type(
+            response
+                .headers()
+                .get(reqwest::header::CONTENT_TYPE)
+                .and_then(|value| value.to_str().ok()),
+        );
         let mut bytes = Vec::new();
         response
             .take((self.max_response_bytes + 1) as u64)
@@ -128,6 +157,7 @@ impl Client {
         }
         Ok(Reply {
             status,
+            content_type,
             body: bytes,
         })
     }
@@ -222,9 +252,15 @@ impl Client {
 /// or unvalidated query reaches the fleet service. Swarm routes are strictly
 /// read-only (`GET`).
 // r[impl kiln.fleet.swarm.console]
+// r[impl kiln.fleet.unified_console_surface]
+// r[impl kiln.fleet.live_pane_and_machine_census]
 pub fn upstream_path(method: &str, target: &str) -> Option<String> {
     let rest = target.strip_prefix("/api/fleet/")?;
-    if rest.contains('#') {
+    if rest.contains('#')
+        || rest
+            .bytes()
+            .any(|byte| byte.is_ascii_control() || byte.is_ascii_whitespace())
+    {
         return None;
     }
     let (path, query) = match rest.split_once('?') {
@@ -241,10 +277,34 @@ pub fn upstream_path(method: &str, target: &str) -> Option<String> {
     match (method, segments.as_slice()) {
         ("GET", ["health"]) if query.is_none() => Some("/v1/health".into()),
         ("GET", ["machines"]) if query.is_none() => Some("/v1/machines".into()),
-        ("GET", ["claims"]) if query.is_none() => Some("/v1/claims".into()),
+        ("POST", ["machines", name, "drain"])
+            if query.is_none() && machine_label(name) =>
+        {
+            Some(format!("/v1/machines/{name}/drain"))
+        }
+        ("GET", ["claims"]) => {
+            let suffix = match query {
+                None => String::new(),
+                Some(raw) => format!("?{}", validated_claims_query(raw)?),
+            };
+            Some(format!("/v1/claims{suffix}"))
+        }
         ("GET", ["work"]) if query.is_none() => Some("/v1/work".into()),
         ("GET", ["attempts"]) if query.is_none() => Some("/v1/attempts".into()),
+        ("GET", ["attempts", id, "pane"]) if identity(id) => {
+            let suffix = match query {
+                None => String::new(),
+                Some(raw) => format!("?{}", validated_pane_query(raw)?),
+            };
+            Some(format!("/v1/attempts/{id}/pane{suffix}"))
+        }
         ("GET", ["decisions"]) if query.is_none() => Some("/v1/decisions".into()),
+        ("GET", ["metrics"]) if query.is_none() => Some("/v1/metrics".into()),
+        ("GET", ["version"]) if query.is_none() => Some("/v1/version".into()),
+        ("GET", ["dispatch", "status"]) if query.is_none() => Some("/v1/dispatch/status".into()),
+        ("POST", ["dispatch", action @ ("pause" | "resume")]) if query.is_none() => {
+            Some(format!("/v1/dispatch/{action}"))
+        }
         ("GET", ["swarms"]) if query.is_none() => Some("/v1/swarms".into()),
         ("GET", ["swarms", id]) if query.is_none() && identity(id) => {
             Some(format!("/v1/swarms/{id}"))
@@ -269,14 +329,74 @@ pub fn upstream_path(method: &str, target: &str) -> Option<String> {
         {
             Some(format!("/v1/claims/{id}/{action}"))
         }
-        ("POST", ["attempts", id, "cancel"]) if query.is_none() && identity(id) => {
-            Some(format!("/v1/attempts/{id}/cancel"))
+        ("POST", ["attempts", id, action @ ("cancel" | "prompt" | "interrupt")])
+            if query.is_none() && identity(id) =>
+        {
+            Some(format!("/v1/attempts/{id}/{action}"))
         }
         ("POST", ["decisions", id, "answer"]) if query.is_none() && identity(id) => {
             Some(format!("/v1/decisions/{id}/answer"))
         }
         _ => None,
     }
+}
+
+fn machine_label(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= MAX_MACHINE_LABEL_BYTES
+        && value
+            .bytes()
+            .next()
+            .is_some_and(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
+}
+
+fn validated_claims_query(raw: &str) -> Option<String> {
+    if raw.is_empty() {
+        return None;
+    }
+    let (key, value) = raw.split_once('=')?;
+    if key != "include" || value.is_empty() || value.contains('&') {
+        return None;
+    }
+    let mut seen_foreign = false;
+    let mut seen_expired = false;
+    let mut tokens = Vec::new();
+    for token in value.split(',') {
+        match token {
+            "foreign" if !seen_foreign => {
+                seen_foreign = true;
+                tokens.push("foreign");
+            }
+            "expired" if !seen_expired => {
+                seen_expired = true;
+                tokens.push("expired");
+            }
+            _ => return None,
+        }
+    }
+    Some(format!("include={}", tokens.join(",")))
+}
+
+fn validated_pane_query(raw: &str) -> Option<String> {
+    if raw.is_empty() {
+        return None;
+    }
+    let (key, value) = raw.split_once('=')?;
+    if key != "lines"
+        || value.is_empty()
+        || value.contains('&')
+        || !value.bytes().all(|b| b.is_ascii_digit())
+    {
+        return None;
+    }
+    let parsed = value.parse::<u32>().ok()?;
+    if !(1..=MAX_PANE_READ_LINES).contains(&parsed) {
+        return None;
+    }
+    Some(format!("lines={parsed}"))
 }
 
 fn validated_graph_query(raw: &str) -> Option<String> {
@@ -381,6 +501,39 @@ mod tests {
         }
         assert_eq!(upstream_path("DELETE", "/api/fleet/claims"), None);
         assert_eq!(upstream_path("POST", "/api/fleet/health"), None);
+        // Metrics and version proxy allowlist (r[kiln.fleet.unified_console_surface]).
+        assert_eq!(
+            upstream_path("GET", "/api/fleet/metrics").as_deref(),
+            Some("/v1/metrics")
+        );
+        assert_eq!(
+            upstream_path("GET", "/api/fleet/version").as_deref(),
+            Some("/v1/version")
+        );
+        for refused in [
+            ("POST", "/api/fleet/metrics"),
+            ("PUT", "/api/fleet/metrics"),
+            ("DELETE", "/api/fleet/metrics"),
+            ("POST", "/api/fleet/version"),
+            ("DELETE", "/api/fleet/version"),
+            ("GET", "/api/fleet/metrics/"),
+            ("GET", "/api/fleet/metrics/extra"),
+            ("GET", "/api/fleet/version/extra"),
+            ("GET", "/api/fleet/metrics?x=1"),
+            ("GET", "/api/fleet/metrics?"),
+            ("GET", "/api/fleet/version?x=1"),
+            ("GET", "/api/fleet/metrics#frag"),
+            ("GET", "/api/fleet/version#frag"),
+            ("GET", "/api/fleet/metrics/../claims"),
+            ("GET", "/api/fleet/../metrics"),
+            ("GET", "/api/fleet/%2e%2e/metrics"),
+            ("GET", "/api/fleet/metrics%2f.."),
+            ("GET", "/api/fleet/metrics%3fx=1"),
+            ("GET", "/api/fleet/metrics\r\n"),
+            ("GET", "/api/fleet//metrics"),
+        ] {
+            assert_eq!(upstream_path(refused.0, refused.1), None, "{refused:?}");
+        }
         // Read-only swarm proxy allowlist.
         assert_eq!(
             upstream_path("GET", "/api/fleet/swarms").as_deref(),
@@ -415,6 +568,91 @@ mod tests {
             ),
             ("GET", format!("/api/fleet/swarms/{ID}/board?bogus=1")),
             ("GET", format!("/api/fleet/swarms/{ID}?x=1")),
+        ] {
+            assert_eq!(upstream_path(refused.0, &refused.1), None, "{refused:?}");
+        }
+    }
+
+    #[test]
+    // r[verify kiln.fleet.live_pane_and_machine_census]
+    fn p1_control_plane_routes_are_strictly_allowlisted() {
+        assert_eq!(
+            upstream_path("POST", "/api/fleet/machines/aspen3/drain").as_deref(),
+            Some("/v1/machines/aspen3/drain")
+        );
+        assert_eq!(
+            upstream_path("GET", &format!("/api/fleet/attempts/{ID}/pane")).as_deref(),
+            Some(format!("/v1/attempts/{ID}/pane").as_str())
+        );
+        assert_eq!(
+            upstream_path("GET", &format!("/api/fleet/attempts/{ID}/pane?lines=200")).as_deref(),
+            Some(format!("/v1/attempts/{ID}/pane?lines=200").as_str())
+        );
+        assert_eq!(
+            upstream_path("GET", &format!("/api/fleet/attempts/{ID}/pane?lines=1000")).as_deref(),
+            Some(format!("/v1/attempts/{ID}/pane?lines=1000").as_str())
+        );
+        assert_eq!(
+            upstream_path("POST", &format!("/api/fleet/attempts/{ID}/prompt")).as_deref(),
+            Some(format!("/v1/attempts/{ID}/prompt").as_str())
+        );
+        assert_eq!(
+            upstream_path("POST", &format!("/api/fleet/attempts/{ID}/interrupt")).as_deref(),
+            Some(format!("/v1/attempts/{ID}/interrupt").as_str())
+        );
+        assert_eq!(
+            upstream_path("GET", "/api/fleet/claims?include=foreign").as_deref(),
+            Some("/v1/claims?include=foreign")
+        );
+        assert_eq!(
+            upstream_path("GET", "/api/fleet/claims?include=expired").as_deref(),
+            Some("/v1/claims?include=expired")
+        );
+        assert_eq!(
+            upstream_path("GET", "/api/fleet/claims?include=foreign,expired").as_deref(),
+            Some("/v1/claims?include=foreign,expired")
+        );
+        assert_eq!(
+            upstream_path("GET", "/api/fleet/dispatch/status").as_deref(),
+            Some("/v1/dispatch/status")
+        );
+        assert_eq!(
+            upstream_path("POST", "/api/fleet/dispatch/pause").as_deref(),
+            Some("/v1/dispatch/pause")
+        );
+        assert_eq!(
+            upstream_path("POST", "/api/fleet/dispatch/resume").as_deref(),
+            Some("/v1/dispatch/resume")
+        );
+
+        for refused in [
+            ("GET", "/api/fleet/machines/aspen3/drain".to_string()),
+            ("POST", "/api/fleet/machines/Aspen3/drain".to_string()),
+            ("POST", "/api/fleet/machines/../drain".to_string()),
+            ("POST", "/api/fleet/machines/aspen3/drain?x=1".to_string()),
+            ("POST", format!("/api/fleet/attempts/{ID}/pane")),
+            ("GET", format!("/api/fleet/attempts/{ID}/pane?")),
+            ("GET", format!("/api/fleet/attempts/{ID}/pane?lines=0")),
+            ("GET", format!("/api/fleet/attempts/{ID}/pane?lines=1001")),
+            ("GET", format!("/api/fleet/attempts/{ID}/pane?lines=abc")),
+            ("GET", format!("/api/fleet/attempts/{ID}/pane?lines=10&extra=1")),
+            ("GET", format!("/api/fleet/attempts/{ID}/pane?foo=1")),
+            ("GET", format!("/api/fleet/attempts/not-hex/pane")),
+            ("GET", format!("/api/fleet/attempts/{ID}/prompt")),
+            ("POST", format!("/api/fleet/attempts/{ID}/prompt?x=1")),
+            ("GET", format!("/api/fleet/attempts/{ID}/interrupt")),
+            ("POST", format!("/api/fleet/attempts/{ID}/interrupt?x=1")),
+            ("GET", "/api/fleet/claims?".to_string()),
+            ("GET", "/api/fleet/claims?include=".to_string()),
+            ("GET", "/api/fleet/claims?include=bogus".to_string()),
+            ("GET", "/api/fleet/claims?include=foreign,foreign".to_string()),
+            ("GET", "/api/fleet/claims?include=foreign,".to_string()),
+            ("GET", "/api/fleet/claims?other=1".to_string()),
+            ("POST", "/api/fleet/dispatch/status".to_string()),
+            ("GET", "/api/fleet/dispatch/pause".to_string()),
+            ("GET", "/api/fleet/dispatch/resume".to_string()),
+            ("POST", "/api/fleet/dispatch/pause?x=1".to_string()),
+            ("GET", "/api/fleet/dispatch/status?x=1".to_string()),
         ] {
             assert_eq!(upstream_path(refused.0, &refused.1), None, "{refused:?}");
         }
@@ -466,10 +704,85 @@ mod tests {
             .call("POST", "/v1/claims", Some(br#"{"scope":"repo"}"#))
             .unwrap_or_else(|_| unreachable!("reply"));
         assert_eq!(reply.status, 200);
+        assert_eq!(reply.content_type, JSON_CONTENT_TYPE);
         assert_eq!(reply.body, br#"{"attempts":[]}"#);
         let (request, body) = server.join().unwrap_or_else(|_| unreachable!("server"));
         assert!(request.starts_with("POST /v1/claims HTTP/1.1\r\n"));
         assert_eq!(body, br#"{"scope":"repo"}"#);
+    }
+
+    #[test]
+    // r[verify kiln.fleet.unified_console_surface.scenario.proxy]
+    fn preserves_prometheus_and_json_content_types_for_metrics_and_version() {
+        let listener =
+            TcpListener::bind("127.0.0.1:0").unwrap_or_else(|_| unreachable!("listener"));
+        let address = listener
+            .local_addr()
+            .unwrap_or_else(|_| unreachable!("address"));
+        let server = std::thread::spawn(move || {
+            for _ in 0..3 {
+                let (stream, _) = listener.accept().unwrap_or_else(|_| unreachable!("accept"));
+                let mut reader =
+                    BufReader::new(stream.try_clone().unwrap_or_else(|_| unreachable!("clone")));
+                let mut request_line = String::new();
+                reader
+                    .read_line(&mut request_line)
+                    .unwrap_or_else(|_| unreachable!("request"));
+                loop {
+                    let mut line = String::new();
+                    reader
+                        .read_line(&mut line)
+                        .unwrap_or_else(|_| unreachable!("header"));
+                    if line == "\r\n" || line.is_empty() {
+                        break;
+                    }
+                }
+                let path = request_line.split_whitespace().nth(1).unwrap_or("/");
+                let (status, content_type, body) = match path {
+                    "/v1/metrics" => (
+                        "200 OK",
+                        "text/plain; version=0.0.4; charset=utf-8",
+                        "# TYPE kiln_fleet_claims gauge\nkiln_fleet_claims 2\n",
+                    ),
+                    "/v1/version" => (
+                        "200 OK",
+                        "application/json",
+                        r#"{"machine":"m","version":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}"#,
+                    ),
+                    _ => ("404 Not Found", "application/json", r#"{"error":"nope"}"#),
+                };
+                let response = format!(
+                    "HTTP/1.1 {status}\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+                stream
+                    .try_clone()
+                    .unwrap_or_else(|_| unreachable!("response"))
+                    .write_all(response.as_bytes())
+                    .unwrap_or_else(|_| unreachable!("write"));
+            }
+        });
+        let client = Client::new(&profile(address)).unwrap_or_else(|_| unreachable!("client"));
+        let metrics = client
+            .call("GET", "/v1/metrics", None)
+            .unwrap_or_else(|_| unreachable!("metrics"));
+        assert_eq!(metrics.status, 200);
+        assert_eq!(metrics.content_type, PROMETHEUS_CONTENT_TYPE);
+        assert!(String::from_utf8_lossy(&metrics.body).contains("kiln_fleet_claims 2"));
+
+        let version = client
+            .call("GET", "/v1/version", None)
+            .unwrap_or_else(|_| unreachable!("version"));
+        assert_eq!(version.status, 200);
+        assert_eq!(version.content_type, JSON_CONTENT_TYPE);
+        assert!(String::from_utf8_lossy(&version.body).contains("aaaaaaaaaaaaaaaa"));
+
+        let missing = client
+            .call("GET", "/v1/unknown", None)
+            .unwrap_or_else(|_| unreachable!("missing"));
+        assert_eq!(missing.status, 404);
+        assert_eq!(missing.content_type, JSON_CONTENT_TYPE);
+        server.join().unwrap_or_else(|_| unreachable!("server"));
     }
 
     #[test]

@@ -1937,8 +1937,8 @@ all read:
 | Group | Destinations |
 | --- | --- |
 | 0 Start here | 0.0 Guide |
-| 1 Continuous integration | 1.1 Overview, 1.2 Runs, 1.3 CI projects (a project's history shares 1.3), 1.4 Workers |
-| 2 Work | 2.1 Issues, 2.2 My inbox, 2.3 Planning, 2.4 Code review, 2.5 Requests & triage, 2.6 Saved views, 2.7 Cairn changes |
+| 1 Continuous integration | 1.1 Overview, 1.2 Runs, 1.3 CI projects (a project's history shares 1.3), 1.4 Workers, 1.5 Runbooks |
+| 2 Work | 2.1 Issues, 2.2 My inbox, 2.3 Planning, 2.4 Code review, 2.7 Cairn changes, 2.8 Fleet (and under **More work**: 2.5 Requests & triage, 2.6 Saved views) |
 | 3 Inspect | 3.1 Source, 3.2 Patchgate receipts, 3.3 Activity, 3.4 Feeds, 3.5 Evidence |
 | 4 Administration | 4.1 Automation, 4.2 Operations, 4.3 Raw collaboration history, 4.4 Settings |
 
@@ -1983,7 +1983,10 @@ button that refreshes and reconnects live observations.
 The top bar holds the search/command trigger (**Ctrl K**), the running count, a
 live-connection indicator and an account menu with the signed-in identity, an
 **Appearance** switch (System, Light, Dark), **Appearance & settings** and
-**Clear session**. The switch and **Settings → Appearance** write the same URL
+**Clear session** (sessions remain active across browser `pagehide`/sleep
+transitions and clear only on explicit **Clear session** or rejected
+authorization; bearer tokens stay in memory only). The switch and
+**Settings → Appearance** write the same URL
 state. **Density** changes spacing without shrinking mobile touch targets.
 Menus and dialogs arrive with one short fade; page changes are immediate, and a
 reduced-motion preference removes every transition and animation.
@@ -3616,33 +3619,6 @@ operator authority. Do not delete state to force a restart: durable state binds
 the exact profile and recovers original operations without blind redispatch.
 Restore the same profile, UID and state after a crash. Changed profiles require
 explicit operator review; this helper provides no automatic state migration.
-
-#### Factory and Delivery observations
-
-Factory reads Fleet claims, work and decisions, the Cairn change index and
-selected change details, and bounded CI run pages independently. A failed
-source is not an empty queue. The change cockpit expects an exact Kiln work
-version; verify links at the owning service when a record is absent from its
-bounded result. Operations reuses the owner’s original-dispatch reconciliation
-rail, not a replacement dispatch.
-
-Delivery can read a deployment owner’s export via `--delivery-observations
-/absolute/path/to/environments.json`. The operator must select a trusted,
-redacted producer and keep the directory writable only by that producer and
-its administrator. Replace the export atomically. Kiln neither queries nor
-modifies targets through this input. Without an export, environments are
-unconfigured; this does not say any target is undeployed.
-
-The JSON export has `schema: "kiln.delivery-environments.v1"` and an
-`observations` array (at most 128 unique `environment`/`service` pairs, total
-128 KiB). Each row names `environment`, `service`, `owner`, `observed_at_ms`,
-and `health` (`healthy`, `degraded`, `unhealthy`, `unknown`). It can include
-`intended_revision`, `observed_revision`, and `rollback_revision` as exact
-40- or 64-character lowercase hexadecimal identities, and `blocker` as a
-redacted explanation. Missing values remain unknown. After five minutes the
-console labels the observation stale; a matching revision does not imply
-health or rollback authorization. The read is not exposed in restricted
-projection mode. Activation and rollback remain with the deployment owner.
 
 #### Maintained desktop user-service updates
 

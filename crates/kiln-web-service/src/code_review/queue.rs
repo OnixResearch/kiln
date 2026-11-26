@@ -94,12 +94,55 @@ impl Profile {
         }
         Ok(())
     }
-    fn window_policy(&self) -> Option<WindowPolicy> {
+    pub(super) fn window_policy(&self) -> Option<WindowPolicy> {
         (self.mode == QueueMode::Speculative)
             .then_some(self.window)
             .flatten()
             .map(WindowPolicy::from)
     }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub(super) struct QueueWindowProjection<'a> {
+    pub target_ref: &'a str,
+    pub mode: QueueMode,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub depth: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bounds: Option<QueueWindow>,
+}
+
+// r[impl kiln.review.queue.speculative.window_projection]
+pub(super) fn window_projections<'a>(
+    profile: &'a super::Profile,
+    state: &super::State,
+) -> Vec<QueueWindowProjection<'a>> {
+    let Some(queue) = profile.queue.as_ref() else {
+        return Vec::new();
+    };
+    let policy = queue.window_policy();
+    profile
+        .provider
+        .target_refs
+        .iter()
+        .map(|target_ref| match (queue.mode, policy, queue.window) {
+            (QueueMode::Speculative, Some(policy), Some(bounds)) => QueueWindowProjection {
+                target_ref,
+                mode: QueueMode::Speculative,
+                depth: Some(speculation::current_window(
+                    state.queue_windows.get(target_ref).copied(),
+                    policy,
+                )),
+                bounds: Some(bounds),
+            },
+            _ => QueueWindowProjection {
+                target_ref,
+                mode: QueueMode::Serial,
+                depth: None,
+                bounds: None,
+            },
+        })
+        .collect()
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

@@ -1697,3 +1697,124 @@ fn review_friction_renders_agent_submitted_counts() {
     assert!(html.contains("<tr><th scope=\"row\">agent</th><td>3</td><td>2</td><td class=\"mono\">1000 / 1000 / 10000</td><td class=\"mono\">1 / 1 / 3</td><td class=\"mono\">4 / 1 / 3</td><td>2</td><td>1</td><td>500</td><td>0</td><td>0</td><td>1</td></tr>"));
     assert!(html.contains("Agent harnesses: omp (1)."));
 }
+
+// r[verify kiln.web.causal_timeline_and_failure_digest]
+#[test]
+fn html_causal_timeline_renders_stages_copyable_blake3_and_raw_disclosure() {
+    let bytes = journal_commands([
+        Command::StartRun {
+            run_id: identity("run-causal"),
+            attempt_id: attempt_identity("attempt-0"),
+            provider_profile: provider_identity("build-v1"),
+            effect_id: effect_identity("effect-0"),
+        },
+        Command::CompleteAttempt {
+            attempt_id: attempt_identity("attempt-0"),
+            outcome: Outcome::DomainFailure,
+            external_reference: None,
+            products: Vec::new(),
+            metrics: Vec::new(),
+        },
+        Command::Retry {
+            run_id: identity("run-causal"),
+            prior_attempt_id: attempt_identity("attempt-0"),
+            next_attempt_id: attempt_identity("attempt-1"),
+            provider_profile: provider_identity("build-v1"),
+            effect_id: effect_identity("effect-1"),
+        },
+        Command::RecordUnknown {
+            attempt_id: attempt_identity("attempt-1"),
+            external_reference: None,
+        },
+        Command::ReconcileAttempt {
+            attempt_id: attempt_identity("attempt-1"),
+            outcome: Outcome::Success,
+            external_reference: None,
+        },
+    ]);
+    let document = JournalDocument::parse(&bytes).unwrap_or_else(|_| unreachable!());
+    let journal = admit_document(&document).unwrap_or_else(|_| unreachable!());
+    let mut profile = dashboard_profile();
+    profile.observation.bounds.max_event_records = 8;
+    let html_report = build_html_report(&profile, &journal, &DashboardSelection::default())
+        .unwrap_or_else(|_| unreachable!());
+    let html = kiln_dashboard::render::html::render_html(&html_report);
+    assert!(html.contains("class=\"causal-stage-rail\""));
+    assert!(html.contains("class=\"causal-timeline\""));
+    assert!(html.contains("data-stage=\"admitted\" data-reached=\"true\""));
+    assert!(html.contains("data-stage=\"dispatched\" data-reached=\"true\""));
+    assert!(html.contains("data-stage=\"controls_unknown\" data-reached=\"true\""));
+    assert!(html.contains("data-stage=\"terminal\" data-reached=\"true\""));
+    assert!(html.contains("class=\"causal-identity-prefix mono\""));
+    assert!(html.contains("class=\"disclosure causal-raw\""));
+    assert!(html.contains("<summary>Raw event record</summary>"));
+    assert!(!html.contains("<form"));
+    assert!(!html.contains("method=\"post\""));
+}
+
+// r[verify kiln.cairn.gate_passport_surface]
+#[test]
+fn html_gate_passport_enforces_provenance_borders_stale_attempts_and_unverified_cairn() {
+    let bytes = journal_commands([
+        Command::StartRun {
+            run_id: identity("run-passport"),
+            attempt_id: attempt_identity("attempt-old"),
+            provider_profile: provider_identity("build-v1"),
+            effect_id: effect_identity("effect-old"),
+        },
+        Command::CompleteAttempt {
+            attempt_id: attempt_identity("attempt-old"),
+            outcome: Outcome::DomainFailure,
+            external_reference: None,
+            products: Vec::new(),
+            metrics: Vec::new(),
+        },
+        Command::Retry {
+            run_id: identity("run-passport"),
+            prior_attempt_id: attempt_identity("attempt-old"),
+            next_attempt_id: attempt_identity("attempt-new"),
+            provider_profile: provider_identity("build-v1"),
+            effect_id: effect_identity("effect-new"),
+        },
+    ]);
+    let document = JournalDocument::parse(&bytes).unwrap_or_else(|_| unreachable!());
+    let mut window = review_window();
+    window
+        .changes
+        .first_mut()
+        .unwrap_or_else(|| unreachable!())
+        .agent_submitted = true;
+    let journal = admit_document(&document)
+        .unwrap_or_else(|_| unreachable!())
+        .with_review(Some(window));
+    let mut profile = dashboard_profile();
+    profile.observation.bounds.max_attempts_per_run = 4;
+    let html_report = build_html_report(&profile, &journal, &DashboardSelection::default())
+        .unwrap_or_else(|_| unreachable!());
+    let html = kiln_dashboard::render::html::render_html(&html_report);
+
+    assert!(html.contains("id=\"gate-passport\""));
+    assert!(html.contains("--passport-observed: var(--success);"));
+    assert!(html.contains("--passport-agent-claim: var(--warning);"));
+    assert!(html.contains("--passport-declared: var(--border-emphasis);"));
+    assert!(html.contains("border: 1px solid var(--passport-observed);"));
+    assert!(html.contains("border: 1px dotted var(--passport-agent-claim);"));
+    assert!(html.contains("border: 1px dashed var(--passport-declared);"));
+    assert!(html.contains("data-provenance=\"observed\""));
+    assert!(html.contains("data-provenance=\"agent-claim\""));
+    assert!(html.contains("data-provenance=\"declared\""));
+    // Honesty invariant: cairn-authoritative-completion never renders passed without independent canonical receipt.
+    assert!(html.contains("cairn-authoritative-completion"));
+    assert!(html.contains("Unverified / Pending"));
+    assert!(!html.contains("cairn-authoritative-completion</strong></div>\n<p class=\"note\">Passed"));
+    // Superseded attempt is flagged historical/stale, active attempt is current.
+    assert!(html.contains("data-stale=\"true\""));
+    assert!(html.contains("historical/stale"));
+    assert!(html.contains("data-stale=\"false\""));
+    assert!(html.contains("Attempt attempt-old"));
+    assert!(html.contains("Attempt attempt-new"));
+    // Read-only: zero mutation controls.
+    assert!(!html.contains("<form"));
+    assert!(!html.contains("Accept plan"));
+    assert!(!html.contains("Cancel run"));
+}

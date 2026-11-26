@@ -135,6 +135,48 @@ impl Engine {
         crate::work::ci::CiFacts::new(projects, runs)
     }
 
+    /// Monotonic durable CI state version for SSE invalidation.
+    #[must_use]
+    pub(crate) fn state_version(&self) -> u64 {
+        self.state.version
+    }
+
+    /// Bounded live CI snapshot JSON matching `/api/live` and `/api/events` (`ci` frame).
+    pub(crate) fn live_snapshot_json(&self) -> Result<(u64, Vec<u8>), String> {
+        let runs: Vec<model::RunView> = self.state.runs.values().map(model::RunRecord::view).collect();
+        let bytes = serde_json::to_vec(&serde_json::json!({
+            "version": self.state.version,
+            "runs": runs,
+        }))
+        .map_err(|_| "snapshot encoding failed".to_owned())?;
+        Ok((self.state.version, bytes))
+    }
+
+    /// Runs currently requiring human attention (untrusted awaiting approval or Unknown outcome).
+    #[must_use]
+    pub(crate) fn attention_runs(&self) -> Vec<model::RunView> {
+        self.state
+            .runs
+            .values()
+            .filter(|run| {
+                run.phase == untrusted::AWAITING_APPROVAL
+                    || run.outcome() == kiln_core::domain::Outcome::Unknown
+                    || run.phase == "unknown"
+            })
+            .map(model::RunRecord::view)
+            .collect()
+    }
+
+    /// Canonical repositories enrolled in the CI service profile.
+    #[must_use]
+    pub(crate) fn project_repositories(&self) -> Vec<String> {
+        self.profile
+            .projects
+            .iter()
+            .map(|project| crate::profile::canonical_repository(&project.repository_path))
+            .collect()
+    }
+
     pub fn open(profile: ServiceProfile) -> Result<Self, String> {
         profile.admit()?;
         let mut ports: BTreeMap<String, Box<dyn WorkflowPort + Send>> = BTreeMap::new();

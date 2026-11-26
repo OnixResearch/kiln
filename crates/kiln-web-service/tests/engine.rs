@@ -29,6 +29,8 @@ struct Backend {
     registered_node_sets: Option<std::collections::BTreeSet<Vec<String>>>,
     /// Fail only the first N dispatch attempts, then observe success.
     fail_first_dispatches: Option<usize>,
+    /// Fail `recover_dispatch`, `observe`, and `reconcile` while set.
+    reconcile_fail: bool,
 }
 struct Port {
     profile: CapabilityProfile,
@@ -155,11 +157,23 @@ impl WorkflowPort for Port {
         let mut state = self.backend.lock();
         state.recoveries += 1;
         assert_eq!(state.plan.as_ref(), Some(plan));
+        if state.reconcile_fail {
+            return Err(PortFailure::Infrastructure(InfrastructureFailure {
+                code: "provider_unreachable".into(),
+                message: "reconcile probe failed".into(),
+            }));
+        }
         Ok(observation(plan, &state))
     }
     fn observe(&mut self, _: &EffectId) -> PortResult<WorkflowObservation> {
         let mut state = self.backend.lock();
         state.observations += 1;
+        if state.reconcile_fail {
+            return Err(PortFailure::Infrastructure(InfrastructureFailure {
+                code: "provider_unreachable".into(),
+                message: "observe probe failed".into(),
+            }));
+        }
         Ok(observation(
             state
                 .plan
@@ -1769,6 +1783,145 @@ fn restart_removes_only_owned_unadmitted_log_files_and_recovers_publication_pair
     drop(engine);
     checked(std::os::unix::fs::symlink(&retained, &orphan));
     assert!(try_open(profile, backend).is_err());
+}
+
+// r[verify kiln.web.run_supersession_and_reconcile]
+// r[verify kiln.web.run_supersession_and_reconcile.scenario.unknown]
+#[test]
+fn reconcile_endpoint_refreshes_unknown_runs_without_creating_replacement_runs() {
+    let (_root, profile, _) = fixture();
+    let backend = Arc::new(Mutex::new(Backend {
+        disconnect: true,
+        reconcile_fail: true,
+        ..Backend::default()
+    }));
+    let mut engine = open(profile, backend.clone());
+    enroll(&mut engine);
+    let started = value(&start(&mut engine, "reconcile-unknown"));
+    let run_id = field(&started, "id")
+        .as_str()
+        .unwrap_or_else(|| unreachable!("run id"))
+        .to_owned();
+    assert_eq!(field(&started, "outcome"), "Unknown");
+
+    // Viewer, Worker, missing run, malformed ID, invalid body, and query params are rejected.
+    let reconcile_path = format!("/api/runs/{run_id}/reconcile");
+    assert_eq!(
+        call(&mut engine, "POST", &reconcile_path, json!({}), Role::Viewer).status,
+        403
+    );
+    assert_eq!(
+        call(&mut engine, "POST", &reconcile_path, json!({}), Role::Worker).status,
+        403
+    );
+    assert_eq!(
+        call(
+            &mut engine,
+            "POST",
+            "/api/runs/no-such-run/reconcile",
+            json!({}),
+            Role::Operator
+        )
+        .status,
+        404
+    );
+    assert_eq!(
+        call(
+            &mut engine,
+            "POST",
+            "/api/runs/bad%20id/reconcile",
+            json!({}),
+            Role::Operator
+        )
+        .status,
+        400
+    );
+    assert_eq!(
+        call(
+            &mut engine,
+            "POST",
+            &reconcile_path,
+            json!({"unexpected": true}),
+            Role::Operator
+        )
+        .status,
+        400
+    );
+    assert_eq!(
+        call(
+            &mut engine,
+            "POST",
+            &reconcile_path,
+            json!({"request_id": "bad id!"}),
+            Role::Operator
+        )
+        .status,
+        400
+    );
+    assert_eq!(
+        call(
+            &mut engine,
+            "POST",
+            &format!("{reconcile_path}?extra=1"),
+            json!({}),
+            Role::Operator
+        )
+        .status,
+        400
+    );
+
+    // While provider remains unreachable, reconcile returns Unknown honestly and creates no new run.
+    let unreachable = call(
+        &mut engine,
+        "POST",
+        &reconcile_path,
+        json!({"request_id": "probe-1"}),
+        Role::Operator,
+    );
+    assert_eq!(unreachable.status, 200);
+    let body = value(&unreachable);
+    assert_eq!(field(&body, "still_unknown"), true);
+    assert_eq!(field(&body, "reconciled"), false);
+    assert_eq!(field(&body, "outcome"), "Unknown");
+    assert_eq!(field(&body, "phase"), "unknown");
+    assert_eq!(field(&body, "error_code"), "provider_unavailable");
+    assert_eq!(body["run"]["id"], run_id);
+    assert_eq!(
+        field(&value(&get(&mut engine, "/api/runs", Role::Operator)), "runs")
+            .as_array()
+            .map(Vec::len),
+        Some(1)
+    );
+
+    // Once provider recovers with a terminal observation, reconcile updates the same run in place.
+    {
+        let mut state = backend.lock();
+        state.reconcile_fail = false;
+        state.terminal = true;
+        state.sequence = 1;
+    }
+    let resolved = call(
+        &mut engine,
+        "POST",
+        &reconcile_path,
+        json!({"request_id": "probe-2"}),
+        Role::Operator,
+    );
+    assert_eq!(resolved.status, 200);
+    let body = value(&resolved);
+    assert_eq!(field(&body, "still_unknown"), false);
+    assert_eq!(field(&body, "reconciled"), true);
+    assert_eq!(field(&body, "outcome"), "Success");
+    assert_eq!(field(&body, "phase"), "terminal");
+    assert!(body["error_code"].is_null());
+    assert_eq!(body["run"]["id"], run_id);
+    assert_eq!(body["run"]["outcome"], "Success");
+    assert_eq!(
+        field(&value(&get(&mut engine, "/api/runs", Role::Operator)), "runs")
+            .as_array()
+            .map(Vec::len),
+        Some(1)
+    );
 }
 
 #[path = "engine/runtime.rs"]

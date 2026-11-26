@@ -52,6 +52,38 @@
     node.append(element("summary", title), element("pre", JSON.stringify(value, null, 2), "inventory-evidence"));
     return node;
   }
+  function structuredTable(headers, rows, emptyMessage) {
+    if (!rows.length) return element("p", emptyMessage, "small");
+    const wrap = element("div", undefined, "data-table-wrap");
+    const tbl = element("table", undefined, "data-table data-table-stack inventory-table");
+    const thead = element("thead");
+    const headRow = element("tr");
+    for (const label of headers) {
+      const th = element("th", label);
+      th.scope = "col";
+      headRow.append(th);
+    }
+    thead.append(headRow);
+    const tbody = element("tbody");
+    for (const cells of rows) {
+      const tr = element("tr");
+      cells.forEach((value, idx) => {
+        const td = element("td", text(value));
+        td.dataset.label = headers[idx] || "";
+        tr.append(td);
+      });
+      tbody.append(tr);
+    }
+    tbl.append(thead, tbody);
+    wrap.append(tbl);
+    return wrap;
+  }
+  function formatMetricValue(value) {
+    if (value === null || value === undefined || value === "") return "not recorded";
+    if (Number.isSafeInteger(value)) return String(value);
+    if (typeof value === "object") return JSON.stringify(value);
+    return String(value);
+  }
   function row(projection, item, title, values, extra) {
     const node = element("article", undefined, "inventory-row");
     node.append(element("h4", title), element("p", refText(item.meta.reference), "inventory-reference"),
@@ -141,23 +173,76 @@
       facts([["Selected members", projection.members.length], ["Observed members", projection.members.filter((member) => member.observed === true).length],
         ["Observed stages of selected members", [...stages].map(([stage, count]) => `${stage}: ${count}`).join("; ") || "None supplied"]]),
       element("p", "Read-only admitted snapshot. A proposed next action is not a grant, reservation, dispatch, landing, or lifecycle authorization.", "small"));
+    page.append(header);
     const nodes = projection.members.map((member) => {
       const article = element("article", undefined, "inventory-row campaign-member");
+      const freshnessRows = Array.isArray(member.input_freshness)
+        ? member.input_freshness.map((entry) => Array.isArray(entry)
+          ? [text(entry[0]), text(entry[1])]
+          : [text(entry?.subject || entry?.kind), text(entry?.state || entry?.freshness)])
+        : [];
+      const waitCategoryRows = Array.isArray(member.wait_categories)
+        ? member.wait_categories.map((entry) => [text(entry?.category), text(entry?.state)])
+        : [];
       article.append(element("h4", `${member.change}${member.tasks.length ? ` · ${member.tasks.join(", ")}` : ""}`),
-        facts([["Selected member", member.member], ["Goal", member.goal], ["Current observed stage", member.stage], ["Enumeration", member.enumeration], ["Owner snapshot", member.owner_snapshot], ["Work identity / canonical status / revision", `${text(member.work_identity)} / ${text(member.canonical_work_state)} / ${number(member.canonical_work_revision)}`], ["Attempt / fence", `${text(member.attempt_identity)} / ${number(member.attempt_fence)}`], ["Candidate", member.candidate_identity], ["Integration target", member.integration_target_identity], ["Checks satisfied", member.checks_satisfied], ["Reviews satisfied", member.reviews_satisfied]]),
-        details("Freshness, dependencies, evidence, pending effects and exact resource binding", { freshness: member.input_freshness, dependencies: member.dependencies, evidence: member.evidence, pending_effect_ids: member.pending_effect_ids, resource_inventory_identity: member.resource_inventory_identity, resource_binding_state: member.resource_binding_state, resource_binding: member.resource_binding, required_checks: member.required_checks, required_reviews: member.required_reviews, wait_categories: member.wait_categories }),
+        facts([["Selected member", member.member], ["Goal", member.goal], ["Current observed stage", member.stage], ["Enumeration", member.enumeration], ["Owner snapshot", member.owner_snapshot], ["Work identity / canonical status / revision", `${text(member.work_identity)} / ${text(member.canonical_work_state)} / ${number(member.canonical_work_revision)}`], ["Attempt / fence", `${text(member.attempt_identity)} / ${number(member.attempt_fence)}`], ["Candidate", member.candidate_identity], ["Integration target", member.integration_target_identity], ["Checks satisfied", member.checks_satisfied], ["Reviews satisfied", member.reviews_satisfied], ["Resource binding state", member.resource_binding_state], ["Required checks", list(member.required_checks)], ["Required reviews", list(member.required_reviews)]]),
         element("p", `Wait categories: ${member.waits.length ? member.waits.join(", ") : "none explicitly represented; not readiness evidence"}`),
         element("p", `Remaining obligations: ${member.remaining_obligations.length ? member.remaining_obligations.join(", ") : "none supplied"}`),
-        selectionHold(member.selection_hold));
+        selectionHold(member.selection_hold),
+        structuredTable(["Input freshness subject", "State"], freshnessRows, "No input freshness entries recorded."),
+        structuredTable(["Wait category", "Observed state"], waitCategoryRows, "No structured wait categories recorded."),
+        details("Raw member freshness, evidence and exact resource binding JSON", { freshness: member.input_freshness, dependencies: member.dependencies, evidence: member.evidence, pending_effect_ids: member.pending_effect_ids, resource_inventory_identity: member.resource_inventory_identity, resource_binding_state: member.resource_binding_state, resource_binding: member.resource_binding, required_checks: member.required_checks, required_reviews: member.required_reviews, wait_categories: member.wait_categories }));
       const listNode = element("ul", undefined, "inventory-blockers");
       if (!member.blockers.length) listNode.append(element("li", "No blocker strings supplied; do not infer eligibility."));
       else for (const blocker of member.blockers) listNode.append(element("li", blocker));
       article.append(listNode); return article;
     });
     page.append(section("Every selected member, including blocked and incomplete members", "campaign-members", nodes));
-    page.append(section("Pending effects, human decisions, aggregate budget, next-action proposal", "campaign-obligations", [
-      details("Snapshot-level obligations and non-claims", { campaign_identity: projection.campaign_identity, resource_inventory_identity: projection.resource_inventory_identity, pending_effects: projection.pending_effects, decisions: projection.decisions, budget: projection.budget, next_action: projection.next_action, selection_basis: projection.selection_basis, source: projection.source, non_claims: projection.non_claims }),
-    ]));
+    const budget = record(projection.budget) ? projection.budget : {};
+    const budgetEntries = Object.entries(budget).map(([k, v]) => [k.replaceAll("_", " "), formatMetricValue(v)]);
+    const nextAction = record(projection.next_action) ? projection.next_action : {};
+    const pendingEffectRows = projection.pending_effects.map((eff) => [
+      text(eff?.effect_id || eff?.id),
+      text(eff?.operation),
+      text(eff?.owner),
+      text(eff?.state),
+      eff?.progress_applied === undefined ? "not recorded" : String(eff.progress_applied),
+    ]);
+    const decisionRows = projection.decisions.map((dec) => [
+      text(dec?.identity),
+      text(dec?.category),
+      text(dec?.state),
+      text(dec?.member),
+      text(dec?.question),
+      dec?.resolved_answer ?? "not recorded",
+    ]);
+    const nonClaimsList = element("ul", undefined, "inventory-blockers");
+    if (!projection.non_claims.length) nonClaimsList.append(element("li", "No non-claims supplied."));
+    else for (const item of projection.non_claims) nonClaimsList.append(element("li", text(item)));
+    const obligationBody = element("div", undefined, "inventory-obligations-structured");
+    obligationBody.append(
+      element("h4", "Selection basis and next-action proposal"),
+      facts([
+        ["Campaign identity", projection.campaign_identity],
+        ["Resource inventory identity", projection.resource_inventory_identity ?? "not recorded"],
+        ["Selection basis", projection.selection_basis],
+        ["Snapshot source", projection.source],
+        ["Proposed operation", nextAction.operation ?? "not recorded"],
+        ["Target member", nextAction.member ?? "none"],
+        ["Owner", nextAction.owner ?? "not recorded"],
+        ["Reason", nextAction.reason ?? "not recorded"],
+      ]),
+      element("h4", "Aggregate budget"),
+      budgetEntries.length ? facts(budgetEntries) : element("p", "No aggregate budget fields recorded.", "small"),
+      element("h4", "Pending effects"),
+      structuredTable(["Effect ID", "Operation", "Owner", "State", "Progress applied"], pendingEffectRows, "No pending effects recorded."),
+      element("h4", "Human decisions"),
+      structuredTable(["Identity", "Category", "State", "Member", "Question", "Resolved"], decisionRows, "No human decisions recorded."),
+      element("h4", "Non-claims"),
+      nonClaimsList,
+      details("Raw snapshot-level obligations and non-claims JSON", { campaign_identity: projection.campaign_identity, resource_inventory_identity: projection.resource_inventory_identity, pending_effects: projection.pending_effects, decisions: projection.decisions, budget: projection.budget, next_action: projection.next_action, selection_basis: projection.selection_basis, source: projection.source, non_claims: projection.non_claims }),
+    );
+    page.append(section("Pending effects, human decisions, aggregate budget, next-action proposal", "campaign-obligations", [obligationBody]));
     return page;
   }
   // r[impl kiln.implementation.campaign.controls.scenario.console]
@@ -585,6 +670,79 @@
       root.replaceChildren(panel);
     } finally { if (live()) root.removeAttribute("aria-busy"); }
   }
+  const CAMPAIGN_INDEX_SCHEMA = "kiln.implementation-campaigns.v1";
+  function validateCampaignIndex(value) {
+    if (!record(value) || value.schema !== CAMPAIGN_INDEX_SCHEMA || !Array.isArray(value.campaigns)
+      || value.campaigns.length > MAX_ITEMS || typeof value.bounded !== "boolean" || typeof value.truncated !== "boolean") {
+      throw new Error("Campaign index response is invalid.");
+    }
+    for (const item of value.campaigns) {
+      if (!record(item) || typeof item.campaign_id !== "string" || !item.campaign_id.trim() || item.campaign_id.length > 256
+        || typeof item.status !== "string" || !Number.isSafeInteger(item.pending_decisions) || item.pending_decisions < 0) {
+        throw new Error("Campaign index entry is invalid.");
+      }
+    }
+    return value;
+  }
+  function formatCampaignLabel(item) {
+    const count = item.pending_decisions;
+    return `${item.campaign_id} · ${item.status} · ${count} pending decision${count === 1 ? "" : "s"}`;
+  }
+  function renderCampaignIndex(value, selectedId, onSelect, options = {}) {
+    const listing = validateCampaignIndex(value);
+    const wrap = element("div", undefined, "campaign-index");
+    if (!listing.campaigns.length) {
+      const empty = element("p", "No active or recent implementation campaigns in the store.", "small");
+      empty.setAttribute("role", "status");
+      wrap.append(empty);
+      if (selectedId) {
+        const deep = element("p", `Deep-linked campaign: ${selectedId} (not in current index)`, "small");
+        wrap.append(deep);
+      }
+      return wrap;
+    }
+    const label = element("label", "Implementation campaign");
+    const selectId = options.selectId || "";
+    if (selectId) label.htmlFor = selectId;
+    const select = element("select");
+    if (selectId) select.id = selectId;
+    select.setAttribute("aria-label", "Implementation campaign");
+    const placeholder = element("option", "Select a campaign…");
+    placeholder.value = "";
+    select.append(placeholder);
+    let foundSelected = !selectedId;
+    for (const item of listing.campaigns) {
+      const option = element("option", formatCampaignLabel(item));
+      option.value = item.campaign_id;
+      if (item.campaign_id === selectedId) foundSelected = true;
+      select.append(option);
+    }
+    if (selectedId && !foundSelected) {
+      const deep = element("option", `${selectedId} · deep-linked (not in current index)`);
+      deep.value = selectedId;
+      select.append(deep);
+    }
+    select.value = selectedId || "";
+    select.addEventListener("change", () => {
+      if (onSelect) onSelect(select.value);
+    });
+    wrap.append(label, select);
+    if (listing.truncated) {
+      wrap.append(element("p", "Campaign index is bounded; older campaigns may be omitted.", "small"));
+    }
+    return wrap;
+  }
+  async function loadCampaignIndex(holder, ctx, selectedId = "", onSelect = () => {}, options = {}) {
+    holder.replaceChildren(element("p", "Reading campaign index…", "small"));
+    try {
+      const listing = validateCampaignIndex(await ctx.api("/api/implementation/campaigns", { quiet: true }));
+      if (!holder.isConnected || !ctx.isCurrent?.()) return;
+      holder.replaceChildren(renderCampaignIndex(listing, selectedId, onSelect, options));
+    } catch (error) {
+      if (!holder.isConnected || error?.name === "AbortError" || ctx.isCurrent?.() === false) return;
+      holder.replaceChildren(controlsUnavailable(error, "Campaign index"));
+    }
+  }
   let fleetCampaignGeneration = 0;
   let fleetCampaignMounted = null;
   function clearFleetCampaign() {
@@ -600,11 +758,27 @@
     const current = fleetCampaignGeneration;
     fleetCampaignMounted = root;
     const live = () => fleetCampaignGeneration === current && root.isConnected && ctx.isCurrent();
+    const indexRoot = element("section", undefined, "panel fleet-campaign-index");
     const definitionsRoot = element("div", undefined, "fleet-campaign-definitions");
     const selectedRoot = element("div", undefined, "fleet-campaign-selected");
-    root.replaceChildren(definitionsRoot, selectedRoot);
+    root.replaceChildren(indexRoot, definitionsRoot, selectedRoot);
     let selectionGeneration = 0;
     let chosenId = campaignId;
+    let indexGeneration = 0;
+    async function campaignIndex() {
+      const readGeneration = ++indexGeneration;
+      const indexLive = () => live() && indexGeneration === readGeneration;
+      indexRoot.replaceChildren(element("h3", "Implementation campaigns"), element("p", "Reading campaign index…", "small"));
+      try {
+        const listing = validateCampaignIndex(await ctx.api("/api/implementation/campaigns", { quiet: true }));
+        if (!indexLive()) return;
+        indexRoot.replaceChildren(element("h3", "Implementation campaigns"), renderCampaignIndex(listing, chosenId, select, { selectId: "fleet-campaign-select" }));
+      } catch (error) {
+        if (indexLive() && error?.name !== "AbortError") {
+          indexRoot.replaceChildren(element("h3", "Implementation campaigns"), controlsUnavailable(error, "Campaign index"));
+        }
+      }
+    }
     async function selected(id, notice = "") {
       const selectedGeneration = ++selectionGeneration;
       chosenId = id;
@@ -625,7 +799,7 @@
         if (projection.campaign_id !== id) throw new Error("The projection names a different campaign.");
         const controlsRoot = element("div", undefined, "campaign-controls-root");
         const refreshButton = controlButton("Refresh exact campaign");
-        refreshButton.addEventListener("click", () => { if (selectedLive()) { void selected(id); void definitions(); } });
+        refreshButton.addEventListener("click", () => { if (selectedLive()) { void selected(id); void definitions(); void campaignIndex(); } });
         selectedRoot.replaceChildren(renderCampaign(projection), cairnLinks(projection), refreshButton, controlsRoot);
         try {
           const inbox = await readInbox(ctx, id);
@@ -635,7 +809,7 @@
             return;
           }
           const panel = {};
-          const refresh = (message) => { if (selectedLive()) { void selected(id, message); void definitions(); } };
+          const refresh = (message) => { if (selectedLive()) { void selected(id, message); void definitions(); void campaignIndex(); } };
           const ui = runnerUi(panel, refresh, (_result, message) => refresh(message), notice);
           const runner = commandRunner(ctx, ui);
           panel.current = renderControls(inbox, (intent) => { if (selectedLive()) void runner.start(intent); });
@@ -662,7 +836,7 @@
         if (!definitionsLive()) return;
         const panel = {};
         const ui = runnerUi(panel, (message) => { if (definitionsLive()) void definitions(message); }, (result) => {
-          if (definitionsLive()) { select(result.campaign_id); void definitions(); }
+          if (definitionsLive()) { select(result.campaign_id); void definitions(); void campaignIndex(); }
         }, notice);
         const runner = commandRunner(ctx, ui);
         panel.current = renderDefinitions(listing, (intent) => { if (definitionsLive()) void runner.start(intent); }, select);
@@ -671,7 +845,7 @@
         if (definitionsLive() && error?.name !== "AbortError") definitionsRoot.replaceChildren(controlsUnavailable(error, "Campaign definitions"));
       } finally { if (definitionsLive()) definitionsRoot.removeAttribute("aria-busy"); }
     }
-    await Promise.all([definitions(), selected(chosenId)]);
+    await Promise.all([campaignIndex(), definitions(), selected(chosenId)]);
   }
-  window.KilnInventory = Object.freeze({ validate, sourceBasis, refText, render, validateCampaign, renderCampaign, cairnLinks, validateInbox, validateDefinitions, renderControls, renderDefinitions, commandRunner, runnerUi, decisionAnswer, readInbox, controlsUnavailable, newRequestId, load, loadCampaign, loadDefinitions, loadFleetCampaign, clearFleetCampaign, clear, scopes: SCOPE });
+  window.KilnInventory = Object.freeze({ validate, sourceBasis, refText, render, validateCampaign, validateCampaignIndex, renderCampaignIndex, loadCampaignIndex, renderCampaign, cairnLinks, validateInbox, validateDefinitions, renderControls, renderDefinitions, commandRunner, runnerUi, decisionAnswer, readInbox, controlsUnavailable, newRequestId, load, loadCampaign, loadDefinitions, loadFleetCampaign, clearFleetCampaign, clear, scopes: SCOPE });
 })();

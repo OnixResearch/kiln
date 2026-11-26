@@ -228,3 +228,30 @@ button.cairn-subject { min-height: 0; padding: 0; color: var(--foreground); text
   .cairn-fleet-counts > div:last-child { border-bottom: 0; }
   .cairn-fleet-list li { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Opt-in bounded Atlas topology (docs/atlas-view.md): square corners, semantic tokens, solid Observed vs dashed Declared. */
+.cairn-atlas-toggle { justify-self: start; }
+.cairn-atlas, .cairn-atlas-bounded-fallback { display: grid; gap: var(--space-3); padding: var(--space-3); border: 1px solid var(--border-emphasis); background: var(--secondary); min-width: 0; }
+.cairn-atlas-head h4, .cairn-atlas-head p, .cairn-atlas-bounded-fallback h4, .cairn-atlas-bounded-fallback p { margin: 0; }
+.cairn-atlas-legend, .cairn-atlas-pins { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.cairn-atlas-provenance-observed { border: 1px solid var(--success); }
+.cairn-atlas-provenance-declared { border: 1px dashed var(--info); }
+.cairn-atlas-edge-observed { stroke: var(--success); stroke-width: 2; fill: none; }
+.cairn-atlas-edge-declared { stroke: var(--info); stroke-width: 2; stroke-dasharray: 6 4; fill: none; }
+.cairn-atlas-node[data-revealed="false"] { opacity: 0.45; }
+.cairn-atlas-packets { display: grid; gap: var(--space-2); }
+.cairn-atlas-packet { padding: var(--space-2); border: 1px solid var(--border); background: var(--group-box); }
+.cairn-atlas-prose { max-height: 20rem; overflow: auto; white-space: pre-wrap; font: var(--text-xs)/1.5 var(--mono); }
+
+/* Plannotator-style plan review & guarded lifecycle controls */
+.cairn-plan-review, .cairn-lifecycle-controls { display: grid; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--border-emphasis); background: var(--group-box); min-width: 0; }
+.cairn-plan-head { display: grid; gap: var(--space-1); }
+.cairn-plan-head h4 { margin: 0; }
+.cairn-plan-steps { display: grid; gap: var(--space-2); margin: 0; padding-left: 1.25rem; }
+.cairn-plan-step { display: grid; gap: var(--space-1); padding: var(--space-2); border: 1px solid var(--border); background: var(--secondary); }
+.cairn-plan-step-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); }
+.cairn-plan-annotations { display: grid; gap: var(--space-1); margin: 0; padding-left: 1rem; }
+.cairn-plan-annotation[data-blocking="true"] { border-left: 3px solid var(--danger); padding-left: var(--space-2); }
+.cairn-plan-feedback-form { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.cairn-plan-feedback-form input[type="text"] { flex: 1 1 14rem; min-width: 0; }
+.cairn-lifecycle-diagnostic { color: var(--warning); margin: 0; }

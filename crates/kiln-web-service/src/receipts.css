@@ -101,3 +101,43 @@
   .receipt-row[aria-current="true"] { outline: 2px solid Highlight; outline-offset: -2px; }
   .receipt-tally, .receipt-evidence { border: 1px solid CanvasText; }
 }
+
+/* ---------- Gate & Receipt Passport (r[impl kiln.cairn.gate_passport_surface]) ---------- */
+:root {
+  --passport-observed: var(--success);
+  --passport-agent-claim: var(--warning);
+  --passport-declared: var(--border-emphasis);
+}
+.gate-passport { display: grid; gap: var(--space-3); padding: var(--space-4); border: 1px solid var(--frame); background: var(--group-box); min-width: 0; }
+.passport-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-2) var(--space-4); padding-bottom: var(--space-2); border-bottom: 1px solid var(--frame); }
+.passport-title-wrap { display: grid; gap: .15rem; }
+.passport-title-wrap > p { margin: 0; }
+.passport-title { margin: 0; font-size: var(--text-lg); font-weight: 700; }
+.passport-summary-badges { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); }
+.passport-legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--muted-foreground); }
+.passport-legend-item, .passport-badge { display: inline-flex; align-items: center; gap: .3rem; padding: .1rem .45rem; background: var(--secondary); color: var(--foreground); font: 600 .6875rem/1.4 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+.passport-badge[data-provenance="observed"], .passport-legend-item[data-provenance="observed"], .passport-entry[data-provenance="observed"] { border: 1px solid var(--passport-observed); }
+.passport-badge[data-provenance="agent-claim"], .passport-legend-item[data-provenance="agent-claim"], .passport-entry[data-provenance="agent-claim"] { border: 1px dotted var(--passport-agent-claim); }
+.passport-badge[data-provenance="declared"], .passport-legend-item[data-provenance="declared"], .passport-entry[data-provenance="declared"] { border: 1px dashed var(--passport-declared); }
+.passport-badge[data-provenance="observed"] { background: var(--success-background); color: var(--success); }
+.passport-badge[data-provenance="agent-claim"] { background: var(--warning-background); color: var(--warning); }
+.passport-badge[data-provenance="declared"] { background: var(--muted); color: var(--muted-foreground); }
+.passport-binding { padding: var(--space-2) var(--space-3); border: 1px solid var(--border); background: var(--secondary); }
+.passport-category { display: grid; gap: var(--space-2); min-width: 0; }
+.passport-category-title { margin: 0; padding-bottom: var(--space-1); border-bottom: 1px solid var(--border); color: var(--muted-foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; }
+.passport-entries { display: grid; gap: var(--space-2); min-width: 0; }
+.passport-entry { display: grid; gap: var(--space-2); padding: var(--space-3); background: var(--secondary); min-width: 0; }
+.passport-entry[data-stale="true"] { background: var(--muted); }
+.passport-entry-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); min-width: 0; }
+.passport-entry-title { font-size: var(--text-sm); font-weight: 700; overflow-wrap: anywhere; }
+.passport-entry-summary { margin: 0; }
+.passport-identity { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); }
+.passport-id-list { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); }
+.passport-id-prefix { font-family: var(--mono); user-select: all; }
+.passport-digests { display: grid; gap: var(--space-2); }
+.passport-digest-list { margin: 0; padding-left: 1.1rem; display: grid; gap: .2rem; font-size: var(--text-xs); }
+.passport-digest-list code { font-family: var(--mono); overflow-wrap: anywhere; user-select: all; }
+.passport-quartet { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: var(--space-2); }
+.passport-quartet-cell { display: grid; gap: .2rem; padding: var(--space-2); border: 1px solid var(--border); background: var(--muted); min-width: 0; }
+.passport-raw > summary { font-size: var(--text-xs); font-weight: 600; }
+.passport-raw > pre { max-height: 20rem; }

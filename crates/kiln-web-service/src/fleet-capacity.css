@@ -27,3 +27,8 @@
   .fleet-capacity-facts { grid-template-columns: minmax(0, 1fr); }
   .fleet-capacity-form button { width: 100%; }
 }
+.fleet-admission-panel h3 { margin: var(--space-2) 0 0; font-size: var(--text-md); }
+.fleet-admission-account { display: grid; gap: 0.1rem; }
+.fleet-admission-account[data-depth="1"] { padding-left: var(--space-3); border-left: 2px solid var(--border); }
+.fleet-admission-account[data-depth="2"] { padding-left: var(--space-4); border-left: 2px solid var(--border-emphasis); }
+.fleet-admission-controls { display: grid; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--border); background: var(--secondary); }

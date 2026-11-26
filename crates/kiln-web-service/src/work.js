@@ -306,7 +306,12 @@
       if (record.id === state.route.work_view || record.id === state.route.work_id) link.setAttribute("aria-current", "true");
       nav.append(link);
     }
-    if (nav.childElementCount) parent.append(nav);
+    if (nav.childElementCount) {
+      const shortcuts = el("details", undefined, "work-disclosure");
+      shortcuts.open = Boolean(state.route.work_view);
+      shortcuts.append(kui().disclosureSummary("Saved views & favorites"), nav);
+      parent.append(shortcuts);
+    }
   }
   // r[impl kiln.work.usability]
   function creationKind() {
@@ -804,7 +809,8 @@
       parent.append(missing); return;
     }
     if (!writable()) { const notice = el("p", "Read-only work workspace. Creating, editing, commenting and personal preferences require an admitted work writer and writable native store. CI operator authority is separate.", "work-banner meta"); notice.dataset.tone = "info"; parent.append(notice); }
-    navigation(parent); const config = configuration(); toolbar(parent, config);
+    if (state.route.page !== "workviews") navigation(parent);
+    const config = configuration(); toolbar(parent, config);
     const records = visibleRows(config), selectedId = state.route.work_id || "";
     if (state.route.page === "planning") roadmap(parent, records);
     const board = config.layout === "board";
@@ -812,7 +818,8 @@
     const listPane = el("section", undefined, `card work-list-card${split ? " split-list" : ""}`); const prefix = parent.id || "work"; listPane.id = `${prefix}-list-pane`;
     // r[impl kiln.work.kanban.columns] On the Work page the board is the Kanban projection of the same eligible issues.
     const kanbanBoard = board && state.route.page === "work", shown = kanbanBoard ? records.filter(record => record.kind === "issue") : records;
-    const listHead = el("div", undefined, "work-list-head"), listTitle = el("h2", kanbanBoard ? "Board" : "Results", "card-title"); listTitle.id = `${prefix}-list-title`; listPane.setAttribute("aria-labelledby", listTitle.id);
+    const titles = { work: "Issues", inbox: "Inbox items", planning: "Planning items", triage: "Requests", workviews: "Saved views" };
+    const listHead = el("div", undefined, "work-list-head"), listTitle = el("h2", kanbanBoard ? "Board" : titles[state.route.page] || "Results", "card-title"); listTitle.id = `${prefix}-list-title`; listPane.setAttribute("aria-labelledby", listTitle.id);
     const count = el("span", String(shown.length), "work-count"); count.title = `${shown.length} ${kanbanBoard ? "matching issue(s)" : "record(s)"} in the current bounded snapshot`;
     // r[impl kiln.web.page_consistency]
     // Order is described in words, and only when there is something to order.

@@ -164,7 +164,9 @@ pub fn render_html_with_refresh(html: &HtmlReport, refresh_seconds: Option<u64>)
             ));
         }
     }
-    out.push_str("<section id=\"evidence\" aria-labelledby=\"evidence-heading\"><div class=\"section-heading\"><div><p class=\"eyebrow\">Trust boundaries</p><h2 id=\"evidence-heading\">Evidence &amp; provenance</h2></div><span class=\"pill\">Admitted facts, not authority</span></div><p class=\"note\">Local admitted observations only. Filtering and selection do not run jobs or change canonical state.</p>\n<details class=\"disclosure\"><summary>Report provenance</summary><dl class=\"facts\">\n");
+    out.push_str("<section id=\"evidence\" aria-labelledby=\"evidence-heading\"><div class=\"section-heading\"><div><p class=\"eyebrow\">Trust boundaries</p><h2 id=\"evidence-heading\">Evidence &amp; provenance</h2></div><span class=\"pill\">Admitted facts, not authority</span></div><p class=\"note\">Local admitted observations only. Filtering and selection do not run jobs or change canonical state.</p>\n");
+    out.push_str(&gate_passport_section(html));
+    out.push_str("<details class=\"disclosure\"><summary>Report provenance</summary><dl class=\"facts\">\n");
     push_fact(
         &mut out,
         "observation profile",
@@ -528,6 +530,38 @@ fn attempt_detail_body(detail: &AttemptDetailView) -> String {
     out
 }
 
+fn event_stage(event: &EventProjection) -> (&'static str, &'static str) {
+    match event {
+        EventProjection::RunStarted { .. } => ("admitted", "Admitted"),
+        EventProjection::RetryStarted { .. } => ("dispatched", "Dispatched"),
+        EventProjection::AttemptUnknown { .. }
+        | EventProjection::CancellationRequested { .. }
+        | EventProjection::HoldChanged { .. } => ("controls_unknown", "Controls / Unknown"),
+        EventProjection::AttemptCompleted { outcome, .. }
+        | EventProjection::AttemptReconciled { outcome, .. } => {
+            if *outcome == Outcome::Unknown {
+                ("controls_unknown", "Controls / Unknown")
+            } else {
+                ("terminal", "Terminal")
+            }
+        }
+    }
+}
+
+fn copyable_identity_html(full_id: &str) -> String {
+    let prefix: String = full_id.chars().take(12).collect();
+    let suffix = if full_id.chars().count() > 12 {
+        "<span class=\"note\">…</span>"
+    } else {
+        ""
+    };
+    let escaped_full = escape(full_id);
+    let escaped_prefix = escape(&prefix);
+    format!(
+        "<span class=\"causal-identity\"><code class=\"causal-identity-prefix mono\" title=\"{escaped_full}\" data-full-identity=\"{escaped_full}\">{escaped_prefix}</code>{suffix}<button type=\"button\" class=\"js-only quiet-button copy-identity\" data-copy-value=\"{escaped_full}\" aria-label=\"Copy identity {escaped_prefix}\">Copy</button><span class=\"copy-status note\" role=\"status\"></span></span>"
+    )
+}
+
 fn events_section(events: &EventTailView) -> String {
     let mut out = String::new();
     out.push_str("<p>");
@@ -546,16 +580,176 @@ fn events_section(events: &EventTailView) -> String {
         out.push_str("<span class=\"pill\">earlier</span>");
     }
     out.push_str("</p>\n");
-    out.push_str("<table>\n<thead><tr><th>revision</th><th>event</th><th>detail</th></tr></thead>\n<tbody>\n");
-    for record in &events.records {
+
+    let stages = [
+        ("admitted", "Admitted"),
+        ("untrusted_gate", "Untrusted Gate"),
+        ("dispatched", "Dispatched"),
+        ("observations", "Observations"),
+        ("controls_unknown", "Controls / Unknown"),
+        ("terminal", "Terminal"),
+    ];
+    out.push_str("<ol class=\"causal-stage-rail\" aria-label=\"Causal state-machine stages\">\n");
+    for (stage_key, stage_label) in stages {
+        let count = events
+            .records
+            .iter()
+            .filter(|r| event_stage(&r.event).0 == stage_key)
+            .count();
         out.push_str(&format!(
-            "<tr><td class=\"mono\">{}</td><td>{}</td><td class=\"mono\">{}</td></tr>\n",
-            record.revision,
-            escape(&event_name(&record.event)),
-            escape(&event_detail(&record.event))
+            "<li class=\"causal-stage-step\" data-stage=\"{stage_key}\" data-reached=\"{}\"><span>{stage_label}</span>{}</li>\n",
+            count > 0,
+            if count > 0 {
+                format!(" <span class=\"pill\">{count}</span>")
+            } else {
+                String::new()
+            }
         ));
     }
-    out.push_str("</tbody>\n</table>\n");
+    out.push_str("</ol>\n");
+
+    if events.records.is_empty() {
+        out.push_str("<p class=\"note\">No canonical events in this bounded window.</p>\n");
+        return out;
+    }
+
+    let mut ordered: Vec<_> = events.records.iter().collect();
+    ordered.sort_by_key(|r| r.revision);
+    out.push_str("<ol class=\"causal-timeline\">\n");
+    for record in ordered {
+        let (stage_key, stage_label) = event_stage(&record.event);
+        let name = event_name(&record.event);
+        let detail = event_detail(&record.event);
+        let attribution = match &record.command_id {
+            Some(cmd) => format!("command {}", cmd.as_str()),
+            None => "Kiln core".to_string(),
+        };
+        let identity_html = match &record.event_identity {
+            Some(id) => copyable_identity_html(id.native_id.as_str()),
+            None => "<span class=\"note\">Not recorded</span>".to_string(),
+        };
+        let raw_json = serde_json::to_string_pretty(record).unwrap_or_else(|_| detail.clone());
+        out.push_str(&format!(
+            "<li class=\"causal-event\" data-stage=\"{stage_key}\">\n<div class=\"causal-event-head\"><span class=\"pill causal-stage-badge\" data-stage=\"{stage_key}\">{stage_label}</span><strong>{}</strong><span class=\"pill\">rev {}</span></div>\n<p class=\"mono causal-event-detail\">{}</p>\n<dl class=\"facts\">\n<dt>Attribution</dt><dd class=\"mono\">{}</dd>\n<dt>Event identity</dt><dd>{identity_html}</dd>\n</dl>\n<details class=\"disclosure causal-raw\"><summary>Raw event record</summary><pre class=\"mono\">{}</pre></details>\n</li>\n",
+            escape(&name),
+            record.revision,
+            escape(&detail),
+            escape(&attribution),
+            escape(&raw_json)
+        ));
+    }
+    out.push_str("</ol>\n");
+    out
+}
+
+fn gate_passport_section(html: &HtmlReport) -> String {
+    let report = &html.report;
+    let mut attempt_details = std::collections::BTreeMap::new();
+    for view in report.views.attempt_detail.iter().chain(html.attempts.iter()) {
+        if let ViewBody::AttemptDetail(detail) = &view.body {
+            attempt_details.insert(detail.attempt_id.as_str(), detail);
+        }
+    }
+
+    let mut cards: Vec<(&'static str, String)> = Vec::new();
+
+    // 1. Canonical cairn-authoritative-completion gate (Declared / unverified in offline journal observation).
+    cards.push((
+        "declared",
+        "<article class=\"passport-entry\" data-provenance=\"declared\" data-category=\"cairn-completion\">\n<div class=\"passport-entry-head\"><span class=\"passport-badge\" data-provenance=\"declared\">Declared</span><span class=\"pill\">Unverified / Pending</span><strong>cairn-authoritative-completion</strong></div>\n<p class=\"note\">No independent canonical cairn-authoritative-completion receipt is present in this admitted journal observation. Agent claims and local run outcomes never substitute for independent verification.</p>\n</article>\n".to_string(),
+    ));
+
+    // 2. Observed execution & product receipts from admitted runs/attempts.
+    for view in report.views.run_detail.iter().chain(html.runs.iter()) {
+        let ViewBody::RunDetail(run_detail) = &view.body else {
+            continue;
+        };
+        for attempt in &run_detail.attempts {
+            let stale = attempt.attempt_id != run_detail.run.active_attempt;
+            let stale_badge = if stale {
+                "<span class=\"pill passport-stale-badge\">historical/stale</span>"
+            } else {
+                "<span class=\"pill passport-current-badge\">current</span>"
+            };
+            let provider = attempt
+                .provider_profile
+                .as_ref()
+                .map_or("-", |v| v.as_str());
+            let mut products_html = String::new();
+            if let Some(full) = attempt_details.get(attempt.attempt_id.as_str())
+                && !full.products.is_empty()
+            {
+                products_html.push_str("<ul class=\"passport-product-list\">\n");
+                for product in &full.products {
+                    products_html.push_str(&format!(
+                        "<li>{}</li>\n",
+                        copyable_identity_html(product.identity.as_str())
+                    ));
+                }
+                products_html.push_str("</ul>\n");
+            }
+            let card = format!(
+                "<article class=\"passport-entry\" data-provenance=\"observed\" data-category=\"execution\" data-stale=\"{stale}\">\n<div class=\"passport-entry-head\"><span class=\"passport-badge\" data-provenance=\"observed\">Observed Receipt</span><span class=\"pill outcome {}\">{}</span>{stale_badge}<strong>Run {} · Attempt {}</strong></div>\n<dl class=\"facts\">\n<dt>Provider</dt><dd class=\"mono\">{}</dd>\n<dt>Products</dt><dd>{}</dd>\n<dt>Metrics</dt><dd>{}</dd>\n</dl>\n{products_html}</article>\n",
+                outcome_class(attempt.outcome),
+                escape(&format!("{:?}", attempt.outcome)),
+                escape(run_detail.run.run_id.as_str()),
+                escape(attempt.attempt_id.as_str()),
+                escape(provider),
+                attempt.product_count,
+                attempt.metric_count,
+            );
+            cards.push(("observed", card));
+        }
+    }
+
+    // 3. Review friction & self-declared agent authorship / advisory claims.
+    if let Some(review) = report.views.review.as_ref() {
+        if let ViewBody::ReviewFriction(friction) = &review.friction.body {
+            let total_changes: u64 = friction.classes.iter().map(|c| c.changes).sum();
+            let total_approved: u64 = friction.classes.iter().map(|c| c.approved_changes).sum();
+            let total_merged: u64 = friction.classes.iter().map(|c| c.merged_changes).sum();
+            let agent_submitted: u64 = friction.classes.iter().map(|c| c.agent_submitted_changes).sum();
+            let advisory_approvals: u64 = friction.classes.iter().map(|c| c.advisory_approvals).sum();
+            cards.push((
+                "observed",
+                format!(
+                    "<article class=\"passport-entry\" data-provenance=\"observed\" data-category=\"review\">\n<div class=\"passport-entry-head\"><span class=\"passport-badge\" data-provenance=\"observed\">Observed Receipt</span><span class=\"pill\">{} changes</span><strong>Review window observation</strong></div>\n<p class=\"note\">Bounded review observation ({total_approved} approved, {total_merged} merged of {total_changes}). Grants no merge or acceptance authority.</p>\n</article>\n",
+                    total_changes
+                ),
+            ));
+            if agent_submitted > 0 || advisory_approvals > 0 {
+                cards.push((
+                    "agent-claim",
+                    format!(
+                        "<article class=\"passport-entry\" data-provenance=\"agent-claim\" data-category=\"agent-claim\">\n<div class=\"passport-entry-head\"><span class=\"passport-badge\" data-provenance=\"agent-claim\">Agent Claim</span><span class=\"pill\">Claimed / Non-binding</span><strong>Self-declared agent submissions &amp; advisory signals</strong></div>\n<p class=\"note\">{agent_submitted} agent-submitted change(s) (self-declared, unverified) and {advisory_approvals} advisory approval(s) (non-binding). Never satisfies cairn-authoritative-completion.</p>\n</article>\n"
+                    ),
+                ));
+            }
+        }
+    } else {
+        cards.push((
+            "declared",
+            "<article class=\"passport-entry\" data-provenance=\"declared\" data-category=\"review\">\n<div class=\"passport-entry-head\"><span class=\"passport-badge\" data-provenance=\"declared\">Declared</span><span class=\"pill\">Not recorded</span><strong>Patchgate &amp; review receipts</strong></div>\n<p class=\"note\">No review window was supplied to this read-only dashboard observation.</p>\n</article>\n".to_string(),
+        ));
+    }
+
+    let observed_count = cards.iter().filter(|(p, _)| *p == "observed").count();
+    let claim_count = cards.iter().filter(|(p, _)| *p == "agent-claim").count();
+    let declared_count = cards.iter().filter(|(p, _)| *p == "declared").count();
+
+    let mut out = String::new();
+    out.push_str("<section id=\"gate-passport\" class=\"gate-passport\" aria-labelledby=\"gate-passport-heading\">\n");
+    out.push_str("<div class=\"passport-head\"><div><p class=\"eyebrow\">Read-only provenance ledger</p><h3 id=\"gate-passport-heading\">Gate &amp; Receipt Passport</h3></div><div class=\"passport-summary-badges\">");
+    out.push_str(&format!(
+        "<span class=\"passport-badge\" data-provenance=\"observed\">Observed Receipt: {observed_count}</span><span class=\"passport-badge\" data-provenance=\"agent-claim\">Agent Claim: {claim_count}</span><span class=\"passport-badge\" data-provenance=\"declared\">Declared: {declared_count}</span>"
+    ));
+    out.push_str("</div></div>\n");
+    out.push_str("<div class=\"passport-legend\" role=\"note\" aria-label=\"Provenance border legend\"><span class=\"passport-legend-item\" data-provenance=\"observed\">Observed Receipt (solid)</span><span class=\"passport-legend-item\" data-provenance=\"agent-claim\">Agent Claim (dotted)</span><span class=\"passport-legend-item\" data-provenance=\"declared\">Declared (dashed)</span></div>\n");
+    out.push_str("<div class=\"passport-entries\">\n");
+    for (_, card) in cards {
+        out.push_str(&card);
+    }
+    out.push_str("</div>\n</section>\n");
     out
 }
 

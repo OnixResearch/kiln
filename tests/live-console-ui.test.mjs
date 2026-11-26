@@ -241,7 +241,7 @@ test("every destination has one section number in an existing group, and a neste
       assert.equal(parent.number, place.number, `${place.page} shares its parent's number`);
     }
   }
-  assert.equal(ui.destination("project").parent, "projects");
+  assert.equal(ui.destination("project").parent, "runs");
   for (const value of ["", "nope", "__proto__", "toString", null, undefined, 3]) assert.equal(ui.destination(value), null, String(value));
   assert.equal(ui.destinationGroup("9"), null);
 });
@@ -1336,9 +1336,25 @@ class CairnNode {
     const notHidden = selector.endsWith(":not([hidden])");
     const simple = notHidden ? selector.slice(0, -":not([hidden])".length) : selector;
     if (notHidden && this.hidden) return false;
+    if (simple.startsWith("#")) return this.id === simple.slice(1) || this.attributes.get("id") === simple.slice(1);
     if (simple.startsWith(".")) return this.classList.contains(simple.slice(1));
     if (simple === "[data-focus-key]") return Boolean(this.dataset.focusKey);
     if (simple === "details[data-cairn-disclosure]") return this.tagName === "details" && Boolean(this.dataset.cairnDisclosure);
+    if (simple.startsWith("[") && simple.endsWith("]")) {
+      const inner = simple.slice(1, -1);
+      const eq = inner.indexOf("=");
+      if (eq > 0) {
+        const attr = inner.slice(0, eq).trim();
+        const want = inner.slice(eq + 1).trim().replace(/^['"]|['"]$/g, "");
+        return this.attributes.get(attr) === want;
+      }
+      const attr = inner;
+      if (attr.startsWith("data-")) {
+        const key = attr.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+        return Boolean(this.dataset[key]) || this.attributes.has(attr);
+      }
+      return this.attributes.has(attr);
+    }
     return this.tagName === simple;
   }
   querySelectorAll(selector) {
@@ -1348,7 +1364,38 @@ class CairnNode {
   }
   querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
   contains(node) { return node === this || this.children.some((child) => child.contains(node)); }
-  closest(selector) { return selector === "[hidden]" && this.hidden ? this : this.parent?.closest(selector) || null; }
+  closest(selector) {
+    const parts = selector.split(",").map((s) => s.trim());
+    for (let cur = this; cur; cur = cur.parent) if (parts.some((p) => cur.matches?.(p))) return cur;
+    return null;
+  }
+  get nextElementSibling() {
+    if (!this.parent) return null;
+    const idx = this.parent.children.indexOf(this);
+    return idx >= 0 ? this.parent.children[idx + 1] || null : null;
+  }
+  before(...nodes) {
+    if (!this.parent) return;
+    for (const node of nodes) {
+      if (!node) continue;
+      if (node.parent) node.remove();
+      const idx = this.parent.children.indexOf(this);
+      node.parent = this.parent;
+      this.parent.children.splice(idx, 0, node);
+    }
+  }
+  after(...nodes) {
+    if (!this.parent) return;
+    let anchor = this;
+    for (const node of nodes) {
+      if (!node) continue;
+      if (node.parent) node.remove();
+      const idx = this.parent.children.indexOf(anchor);
+      node.parent = this.parent;
+      this.parent.children.splice(idx + 1, 0, node);
+      anchor = node;
+    }
+  }
   focus() { if (this.ownerDocument) this.ownerDocument.activeElement = this; else if (this.parent) this.parent.focusedChild = this; }
   scrollIntoView() {}
 }
@@ -1356,7 +1403,7 @@ function cairnPage() {
   const document = { activeElement: null, title: "" };
   document.createElement = (tag) => Object.assign(new CairnNode(tag), { ownerDocument: document });
   document.createTextNode = (text) => Object.assign(new CairnNode("#text"), { text, ownerDocument: document });
-  const page = { window: {}, document, location: { search: "" }, URLSearchParams, setTimeout, clearTimeout, crypto: webcrypto };
+  const page = { window: { addEventListener() {}, removeEventListener() {} }, document, location: { search: "" }, URLSearchParams, setTimeout, clearTimeout, crypto: webcrypto };
   vm.runInNewContext(asset("inventory.js"), page);
   vm.runInNewContext(asset("cairn.js"), page);
   return page;
@@ -2806,6 +2853,7 @@ test("KilnRunbooks getEnrolledProjects and web.js refreshAll update preview when
     activeElement: null,
     title: "",
     createElement: (tag) => Object.assign(new WebNode(tag), { ownerDocument: webDoc }),
+    createElementNS: (_ns, tag) => Object.assign(new WebNode(tag), { ownerDocument: webDoc }),
     createTextNode: (t) => Object.assign(new WebNode("#text"), { text: t, ownerDocument: webDoc }),
     getElementById: (id) => nodeFor(id),
     querySelectorAll: () => [],
@@ -3324,7 +3372,6 @@ test("runbooks.js dry-run preview button calls /preview and renders effects, bud
 test("Fleet filters survive snapshots alongside drafts and independent stream feedback", async () => {
   const page = cairnPage();
   Object.assign(page.document, { addEventListener() {}, removeEventListener() {} });
-  Object.assign(page.window, { addEventListener() {}, removeEventListener() {} });
   const timers = [];
   Object.assign(page, { Node: CairnNode, AbortController, TextDecoder, DOMException,
     setTimeout(callback, delay) { if (delay === 1000) timers.push(callback); return 0; }, clearTimeout() {} });
@@ -3425,7 +3472,6 @@ test("Fleet filters survive snapshots alongside drafts and independent stream fe
 test("Fleet refreshes exact Cairn changes without coordinator events and retains stale rows", async () => {
   const page = cairnPage();
   Object.assign(page.document, { addEventListener() {}, removeEventListener() {}, visibilityState: "visible" });
-  Object.assign(page.window, { addEventListener() {}, removeEventListener() {} });
   let refresh;
   Object.assign(page, { Node: CairnNode, AbortController, TextDecoder, setTimeout(callback, delay) { if (delay === 15_000) refresh = callback; }, clearTimeout() {} });
   vm.runInNewContext(asset("fleet.js"), page);
@@ -3510,9 +3556,7 @@ test("Fleet refreshes exact Cairn changes without coordinator events and retains
 test("Fleet operator inspector refuses crossed recovery evidence and links the exact verification logs", async () => {
   const page = cairnPage();
   Object.assign(page.document, { addEventListener() {}, removeEventListener() {}, visibilityState: "visible" });
-  Object.assign(page.window, { addEventListener() {}, removeEventListener() {} });
   Object.assign(page, { Node: CairnNode, AbortController, setTimeout() {}, clearTimeout() {} });
-  page.confirm = () => true;
   page.window.KilnUi = { timeElement: () => new CairnNode("time") };
   vm.runInNewContext(asset("fleet.js"), page);
   const root = page.document.createElement("div");
@@ -3530,7 +3574,7 @@ test("Fleet operator inspector refuses crossed recovery evidence and links the e
   const settle = () => new Promise((resolve) => setImmediate(resolve));
   const button = (title) => root.querySelectorAll("button").find((node) => node.textContent.trim() === title);
   try {
-    page.window.KilnFleet.load(root, { isCurrent: () => true, stream: () => new Promise(() => {}),
+    page.window.KilnFleet.load(root, { isCurrent: () => true, confirmControl: async () => ({ confirmed: true, reason: "" }), stream: () => new Promise(() => {}),
       async api(path, options) {
         requested.push(path);
         if (path === "/api/implementation/cairn") return index;
@@ -3618,4 +3662,837 @@ test("Fleet runtime does not attribute a crossed fence, expired device, or synth
   assert.equal(observation(projection, attempt, 95).machine, null);
   projection.snapshot.synthetic = true;
   assert.equal(observation(projection, attempt, 95).worker, null);
+});
+
+// r[verify kiln.web.console_inventory_seven_destinations]
+test("primary rail consolidates to 7 destinations + footer while preserving all nested destinations", () => {
+  const html = asset("web.html");
+  for (const groupId of ["nav-factory", "nav-delivery", "nav-infra"]) {
+    assert.ok(html.includes(`aria-labelledby="${groupId}"`), `missing rail group ${groupId}`);
+  }
+  const railStart = html.indexOf('<aside id="app-sidebar"');
+  const railEnd = html.indexOf("</aside>", railStart);
+  assert.ok(railStart > 0 && railEnd > railStart);
+  const rail = html.slice(railStart, railEnd);
+  const topLevel = [...ui.destinations].filter((place) => place.parent === null);
+  assert.equal(topLevel.length, 9); // 7 primary rail destinations + guide & settings in footer
+  const primaryCount = topLevel.filter((place) => !["guide", "settings"].includes(place.page)).length;
+  assert.equal(primaryCount, 7);
+  for (const place of topLevel) {
+    assert.ok(rail.includes(`data-page="${place.page}"`), `missing rail link for ${place.page}`);
+  }
+  const nested = [...ui.destinations].filter((place) => place.parent !== null);
+  assert.equal(nested.length, 15);
+  assert.equal(ui.destination("workers").parent, "fleet");
+  assert.equal(ui.destination("triage").parent, "inbox");
+  assert.equal(ui.destination("reviews").parent, "runs");
+});
+
+// r[verify kiln.web.factory_p0_control_safety]
+test("Fleet Renew, Release, and Cancel use #control-dialog with reason capture and CONTROL_FRESHNESS_MS guard without prompt or alert", async () => {
+  const fleetSource = asset("fleet.js");
+  assert.doesNotMatch(fleetSource, /\bwindow\.prompt\s*\(|\bprompt\s*\(/);
+  assert.doesNotMatch(fleetSource, /\bwindow\.alert\s*\(|\balert\s*\(/);
+  assert.doesNotMatch(fleetSource, /\bconfirm\s*\(/);
+
+  const originalNow = Date.now;
+  let fakeNow = 1_700_000_000_000;
+  const FakeDate = class extends Date {
+    constructor(...args) { super(...(args.length ? args : [fakeNow])); }
+    static now() { return fakeNow; }
+  };
+  const page = cairnPage();
+  Object.assign(page.document, { addEventListener() {}, removeEventListener() {}, visibilityState: "visible" });
+  Object.assign(page, { Node: CairnNode, AbortController, TextDecoder, DOMException, Date: FakeDate, setTimeout() { return 0; }, clearTimeout() {} });
+  page.window.KilnUi = { timeElement: () => new CairnNode("time") };
+  vm.runInNewContext(fleetSource, page);
+  const root = new CairnNode("div");
+  let stream;
+  const mutations = [];
+  let confirmResponse = { confirmed: false, reason: "" };
+  let beforeConfirmHook = null;
+  const confirmCalls = [];
+  const claimId = "c".repeat(64);
+  const attemptId = "a".repeat(64);
+  const snapshot = {
+    version: "1".repeat(64),
+    health: { api: "v1", machine: "fixture", version: "1" },
+    claims: { claims: [{ identity: claimId, fence: 5, state: "open", expires_ms: fakeNow + 600_000, scope: { target: "onixresearch/kiln", path: "." }, holder: { tool: "omp", host: "desktop", session: "s1" }, purpose: "work" }] },
+    work: { ready_unclaimed: 0, ranked: [], blocked: [] },
+    attempts: { attempts: [{ attempt: attemptId, state: "executing", phase: "running", repository: "onixresearch/kiln", title: "Task", session: { machine: "desktop", state: "working" } }] },
+    decisions: { decisions: [] },
+  };
+  const sendSnapshot = async () => {
+    stream.enqueue(new TextEncoder().encode(`event: snapshot\ndata: ${JSON.stringify(snapshot)}\n\n`));
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+  try {
+    page.window.KilnFleet.load(root, {
+      isCurrent: () => true,
+      stream: () => new ReadableStream({ start(controller) { stream = controller; } }),
+      confirmControl: async (options) => {
+        confirmCalls.push(options);
+        if (beforeConfirmHook) beforeConfirmHook();
+        return confirmResponse;
+      },
+      api: async (path, options = {}) => {
+        if (path === "/api/implementation/cairn") return cairnIndex();
+        mutations.push({ path, method: options.method, body: plain(options.body) });
+        return { ok: true };
+      },
+    });
+    await sendSnapshot();
+    const clickButton = async (label) => {
+      const btn = root.querySelectorAll("button").find((node) => node.textContent.trim() === label);
+      assert.ok(btn, `button ${label} exists`);
+      await btn.listeners.get("click")[0]();
+    };
+
+    // Unconfirmed Release never mutates.
+    confirmResponse = { confirmed: false, reason: "abort" };
+    await clickButton("Release");
+    assert.equal(confirmCalls.length, 1);
+    assert.equal(mutations.length, 0);
+
+    // Blank reason on Cancel never mutates.
+    confirmResponse = { confirmed: true, reason: "   " };
+    await clickButton("Cancel");
+    assert.equal(mutations.length, 0);
+
+    // Valid confirmed Release, Renew, and Cancel send exact payloads.
+    const settle = () => new Promise((resolve) => setImmediate(resolve));
+    confirmResponse = { confirmed: true, reason: "releasing finished scope" };
+    await clickButton("Release");
+    await settle();
+    assert.deepEqual(mutations.at(-1), { path: `/api/fleet/claims/${claimId}/release`, method: "POST", body: { fence: 5, note: "releasing finished scope" } });
+
+    await sendSnapshot();
+    confirmResponse = { confirmed: true, reason: "" };
+    await clickButton("Renew");
+    await settle();
+    assert.deepEqual(mutations.at(-1), { path: `/api/fleet/claims/${claimId}/renew`, method: "POST", body: { fence: 5 } });
+
+    await sendSnapshot();
+    confirmResponse = { confirmed: true, reason: "operator aborted" };
+    await clickButton("Cancel");
+    await settle();
+    assert.deepEqual(mutations.at(-1), { path: `/api/fleet/attempts/${attemptId}/cancel`, method: "POST", body: { reason: "operator aborted" } });
+
+    // Stale snapshot (> 30s) before dialog is blocked without opening dialog or mutating.
+    await sendSnapshot();
+    const countBeforeStale = mutations.length;
+    const callsBeforeStale = confirmCalls.length;
+    fakeNow += 31_000;
+    await clickButton("Release");
+    assert.equal(confirmCalls.length, callsBeforeStale);
+    assert.equal(mutations.length, countBeforeStale);
+    assert.match(root.textContent, /stale or disconnected/i);
+
+    // Snapshot going stale while dialog is open is blocked after confirmation.
+    await sendSnapshot();
+    beforeConfirmHook = () => { fakeNow += 31_000; };
+    confirmResponse = { confirmed: true, reason: "went stale while open" };
+    await clickButton("Cancel");
+    beforeConfirmHook = null;
+    assert.equal(mutations.length, countBeforeStale);
+    assert.match(root.textContent, /became stale or changed/i);
+  } finally {
+    Date.now = originalNow;
+    page.window.KilnFleet.clear();
+    try { stream?.close(); } catch {}
+  }
+});
+
+// Helper for full web.js P0/P1 tests (pagehide, supersession, dirty_snapshot, Unknown Reconciliation Card, P1 Cockpit/Slide-over/SSE/Palette).
+function createWebHarness({ locationSearch = "?page=runs", fetchImpl, loadWorkInteraction = false, loadCodeReview = false }) {
+  class WebNode extends CairnNode {
+    constructor(tag, id = "") {
+      super(tag);
+      this.id = id;
+      this.value = "";
+      this.disabled = false;
+      this.checked = false;
+      this.required = false;
+      this.open = false;
+      this.tabIndex = 0;
+      this.className = "";
+      this.scrollTop = 0;
+      this.scrollHeight = 0;
+      this.href = "";
+      const self = this;
+      this.classList = {
+        add(...names) { const set = new Set((self.className || "").split(/\s+/).filter(Boolean)); for (const n of names) set.add(n); self.className = [...set].join(" "); },
+        remove(...names) { const rm = new Set(names); self.className = (self.className || "").split(/\s+/).filter((x) => x && !rm.has(x)).join(" "); },
+        toggle(name, force) { const has = self.classList.contains(name); const want = force === undefined ? !has : Boolean(force); if (want) self.classList.add(name); else self.classList.remove(name); return want; },
+        contains(name) { return (self.className || "").split(/\s+/).includes(name); },
+      };
+    }
+    get options() { return this.children; }
+    toggleAttribute(name, force) { const has = this.attributes.has(name); const want = force === undefined ? !has : Boolean(force); if (want) this.setAttribute(name, ""); else this.removeAttribute(name); return want; }
+    showModal() { this.open = true; }
+    close() { this.open = false; }
+    getClientRects() { return []; }
+    focus() {}
+    scrollIntoView() {}
+  }
+  const nodes = new Map();
+  const bodyEl = new WebNode("body");
+  const findAttachedById = (id) => {
+    const stack = [bodyEl, ...nodes.values()];
+    const seen = new Set();
+    while (stack.length) {
+      const node = stack.pop();
+      if (!node || seen.has(node)) continue;
+      seen.add(node);
+      if (node.id === id) return node;
+      if (Array.isArray(node.children)) stack.push(...node.children);
+    }
+    return null;
+  };
+  const nodeFor = (id) => {
+    if (nodes.has(id)) return nodes.get(id);
+    const attached = findAttachedById(id);
+    if (attached) return attached;
+    const created = new WebNode("div", id);
+    nodes.set(id, created);
+    return created;
+  };
+  const docEl = new WebNode("html");
+  const docListeners = new Map();
+  const webDoc = {
+    documentElement: docEl,
+    body: bodyEl,
+    activeElement: null,
+    visibilityState: "visible",
+    title: "",
+    createElement: (tag) => Object.assign(new WebNode(tag), { ownerDocument: webDoc }),
+    createElementNS: (_ns, tag) => Object.assign(new WebNode(tag), { ownerDocument: webDoc }),
+    createTextNode: (t) => Object.assign(new WebNode("#text"), { text: t, ownerDocument: webDoc }),
+    getElementById: (id) => nodeFor(id),
+    querySelectorAll: () => [],
+    querySelector: (sel) => (sel === "dialog[open]" ? ([...nodes.values()].find((n) => n.open) || null) : new WebNode("div")),
+    addEventListener(type, fn) { docListeners.set(type, [...(docListeners.get(type) || []), fn]); },
+    removeEventListener(type, fn) { docListeners.set(type, (docListeners.get(type) || []).filter((x) => x !== fn)); },
+    dispatchEvent(event) { for (const fn of docListeners.get(event.type) || []) fn(event); },
+  };
+  const winListeners = new Map();
+  const webWindow = {
+    matchMedia: () => ({ matches: false, addEventListener() {} }),
+    addEventListener(type, fn) { winListeners.set(type, [...(winListeners.get(type) || []), fn]); },
+    removeEventListener(type, fn) { winListeners.set(type, (winListeners.get(type) || []).filter((x) => x !== fn)); },
+    dispatchEvent(event) { for (const fn of winListeners.get(event.type) || []) fn(event); },
+    scrollTo() {},
+  };
+  const mockResponse = (bodyText, contentType = "application/json", status = 200) => {
+    const bytes = new TextEncoder().encode(bodyText);
+    let read = false;
+    return {
+      ok: status >= 200 && status < 300,
+      status,
+      headers: { get: (name) => (String(name).toLowerCase() === "content-type" ? contentType : null) },
+      body: {
+        getReader: () => ({
+          read: async () => { if (read) return { done: true, value: undefined }; read = true; return { done: false, value: bytes }; },
+          cancel: async () => {},
+          releaseLock() {},
+        }),
+      },
+    };
+  };
+  const loc = { search: locationSearch, hash: "", pathname: "/" };
+  const updateLocation = (url) => {
+    if (typeof url === "string") loc.search = new URL(url, "http://localhost").search;
+  };
+  const webCtx = {
+    window: webWindow, document: webDoc, Node: WebNode, Element: WebNode, HTMLElement: WebNode, Event, URL, DOMException,
+    AbortController, URLSearchParams, TextEncoder, TextDecoder, Intl, crypto: webcrypto,
+    MutationObserver: class { observe() {} disconnect() {} takeRecords() { return []; } },
+    location: loc,
+    history: { pushState: (_s, _t, u) => updateLocation(u), replaceState: (_s, _t, u) => updateLocation(u) },
+    fetch: (url, opts) => fetchImpl(url, opts, mockResponse),
+    setTimeout, clearTimeout, setInterval, clearInterval,
+  };
+  webWindow.window = webWindow;
+  vm.runInNewContext(asset("icons.js"), webCtx);
+  vm.runInNewContext(asset("ui.js"), webCtx);
+  vm.runInNewContext(asset("workers.js"), webCtx);
+  if (loadCodeReview) vm.runInNewContext(asset("code-review.js"), webCtx);
+  vm.runInNewContext(asset("web.js"), webCtx);
+  if (loadWorkInteraction) vm.runInNewContext(asset("work-interaction.js"), webCtx);
+  return { nodeFor, webWindow, webCtx, winListeners, docListeners, webDoc, loc };
+}
+
+// r[verify kiln.web.session_continuity_pagehide]
+test("pagehide preserves authenticated session while explicit sign-out clears credentials", async () => {
+  assert.doesNotMatch(asset("web.js"), /addEventListener\(\s*["']pagehide["']/);
+  const { nodeFor, winListeners, webWindow } = createWebHarness({
+    locationSearch: "?page=overview",
+    fetchImpl: async (url, _opts, mockResponse) => {
+      const u = String(url);
+      if (u === "/api/session") return mockResponse(JSON.stringify({ principal: { id: "local:op", label: "Op", role: "operator" }, permissions: { read: true, operate: true } }));
+      if (u === "/api/projects") return mockResponse(JSON.stringify({ available: [], enrolled: [] }));
+      if (u.startsWith("/api/live") || u.startsWith("/api/events")) return mockResponse(": heartbeat\n\n", "text/event-stream");
+      if (u.startsWith("/api/runs")) return mockResponse(JSON.stringify({ runs: [], next_cursor: null, total: 0 }));
+      if (u === "/api/overview") return mockResponse(JSON.stringify({ projects: [], totals: { runs: 0, failed: 0, active: 0, queued: 0, unknown: 0, succeeded: 0, cancelled: 0 } }));
+      if (u === "/api/workers") return mockResponse(JSON.stringify({ schema: "kiln.web-workers.v1", bounded: true, storage_failed: false, summary: { targets: 0, configured_slots: 0, enrolled_slots: 0, active: 0, free_slots: 0, queued: 0 }, workers: [] }));
+      if (u.startsWith("/api/activity")) return mockResponse(JSON.stringify({ events: [], next_cursor: null }));
+      return mockResponse("{}");
+    },
+  });
+  try {
+    await new Promise((r) => setTimeout(r, 40));
+    assert.equal(nodeFor("workspace").hidden, false);
+    assert.equal(nodeFor("login-panel").hidden, true);
+    assert.equal(winListeners.has("pagehide"), false);
+    webWindow.dispatchEvent(new Event("pagehide"));
+    assert.equal(nodeFor("workspace").hidden, false);
+    assert.equal(nodeFor("login-panel").hidden, true);
+    assert.match(nodeFor("auth-status").textContent, /Op/);
+    // Explicit sign-out still clears session immediately.
+    nodeFor("logout").listeners.get("click")[0]();
+    assert.equal(nodeFor("workspace").hidden, true);
+    assert.equal(nodeFor("login-panel").hidden, false);
+    assert.equal(nodeFor("auth-status").textContent, "Signed out");
+  } finally {
+    nodeFor("logout").listeners.get("click")[0]();
+  }
+});
+
+// r[verify kiln.web.run_supersession_and_reconcile]
+test("RunView renders superseded_by, dirty_snapshot, and Unknown Reconciliation Card calling /reconcile without blind reruns", async () => {
+  const calls = [];
+  let reconcileAttempt = 0;
+  const supersededRun = {
+    id: "run-superseded-1", project_id: "proj-1", source_revision: "abc1234567890", canonical_tree: "t".repeat(64),
+    repository: { provider_namespace: "git", native_kind: "repo", native_id: "onixresearch/kiln" },
+    revision: 2, attempt_id: "att-1", outcome: "Cancelled", phase: "superseded",
+    execution: { provider_namespace: "lattice", native_kind: "workflow", native_id: "wf-1" },
+    sequence: 3, nodes: [], controls: { cancel: false, pause: false, resume: false }, error_code: null,
+    superseded_by: "run-newer-2", superseded_revision: "def9876543210",
+    dirty_snapshot: { manifest_id: "man-1", base_revision: "base-rev-001", synthetic_revision: "syn-rev-002" },
+    log_bounds: { maximum_chunk_bytes: 16384, maximum_total_bytes: 65536, maximum_chunks: 16 },
+    ordinal: 1, parent_run_id: null, selected_nodes: [], edges: [],
+    created_at_ms: 1700000000000, started_at_ms: 1700000001000, completed_at_ms: 1700000002000, duration_ms: 1000,
+    report_summary: {}, step_telemetry: [],
+  };
+  const unknownRun = {
+    ...supersededRun, id: "run-unknown-1", outcome: "Unknown", phase: "unknown",
+    superseded_by: null, superseded_revision: null, dirty_snapshot: null,
+    error_code: "provider_unreachable",
+  };
+  let activeRun = supersededRun;
+  const { nodeFor } = createWebHarness({
+    locationSearch: "?page=runs&run=run-superseded-1",
+    fetchImpl: async (url, opts = {}, mockResponse) => {
+      const u = String(url);
+      calls.push({ url: u, method: opts.method || "GET", body: opts.body ? JSON.parse(opts.body) : null });
+      if (u === "/api/session") return mockResponse(JSON.stringify({ principal: { id: "local:op", label: "Op", role: "operator" }, permissions: { read: true, operate: true } }));
+      if (u === "/api/projects") return mockResponse(JSON.stringify({ available: [], enrolled: [{ id: "proj-1", label: "Kiln", repository: "onixresearch/kiln", reference: "refs/heads/main", pipeline_identity: "p" }] }));
+      if (u.startsWith("/api/live") || u.startsWith("/api/events")) return mockResponse(": heartbeat\n\n", "text/event-stream");
+      if (u.startsWith("/api/runs?")) return mockResponse(JSON.stringify({ runs: [activeRun], next_cursor: null, total: 1 }));
+      if (u === "/api/runs/run-superseded-1") return mockResponse(JSON.stringify(supersededRun));
+      if (u === "/api/runs/run-unknown-1") return mockResponse(JSON.stringify(unknownRun));
+      if (u === "/api/runs/run-unknown-1/reconcile" && opts.method === "POST") {
+        reconcileAttempt += 1;
+        if (reconcileAttempt === 1) {
+          return mockResponse(JSON.stringify({
+            run: unknownRun, reconciled: false, still_unknown: true, outcome: "Unknown", phase: "unknown",
+            error_code: "provider_unreachable", note: "Provider remains unreachable; run stays Unknown.",
+          }));
+        }
+        const reconciledRun = { ...unknownRun, outcome: "Success", phase: "terminal", error_code: null };
+        activeRun = reconciledRun;
+        return mockResponse(JSON.stringify({
+          run: reconciledRun, reconciled: true, still_unknown: false, outcome: "Success", phase: "terminal",
+          error_code: null, note: "Provider observation reconciled execution state.",
+        }));
+      }
+      if (u.endsWith("/artifacts")) return mockResponse(JSON.stringify({ artifacts: [] }));
+      if (u.endsWith("/activity")) return mockResponse(JSON.stringify({ events: [], next_cursor: null }));
+      if (u.endsWith("/evidence")) return mockResponse(JSON.stringify({}));
+      return mockResponse("{}");
+    },
+  });
+  try {
+    await new Promise((r) => setTimeout(r, 50));
+    // Verify superseded_by & dirty_snapshot in runTableRow and #run-supersession / #run-exact-facts.
+    const listText = nodeFor("run-list").textContent;
+    assert.match(listText, /Superseded/);
+    assert.match(listText, /Dirty snapshot/);
+    assert.ok(nodeFor("run-list").querySelectorAll("a").some((a) => a.href.includes("run=run-newer-2")), "runTableRow links to superseded_by");
+    assert.equal(nodeFor("run-supersession").hidden, false);
+    const supText = nodeFor("run-supersession").textContent;
+    assert.match(supText, /run-newer-2/);
+    assert.match(supText, /def9876543210/);
+    assert.match(supText, /man-1/);
+    assert.match(supText, /base-rev-001/);
+    assert.match(supText, /syn-rev-002/);
+    assert.ok(nodeFor("run-supersession").querySelectorAll("a").some((a) => a.href.includes("run=run-newer-2")));
+    assert.equal(nodeFor("run-reconcile").hidden, true);
+
+    // Select Unknown run via row click simulation or navigation: update location/load Unknown run.
+    activeRun = unknownRun;
+    nodeFor("refresh-all").listeners.get("click")[0]();
+    await new Promise((r) => setTimeout(r, 50));
+    const unknownRow = nodeFor("run-list").querySelectorAll("tr").find((tr) => tr.dataset?.runId === "run-unknown-1");
+    assert.ok(unknownRow);
+    unknownRow.listeners.get("click")[0]({ target: unknownRow });
+    await new Promise((r) => setTimeout(r, 50));
+
+    assert.equal(nodeFor("run-reconcile").hidden, false);
+    assert.match(nodeFor("run-reconcile").textContent, /Unknown execution · Reconciliation required/);
+    assert.match(nodeFor("run-reconcile").textContent, /Do not blindly rerun/);
+    const probeBtn = nodeFor("run-reconcile").querySelectorAll("button").find((b) => b.id === "reconcile-run");
+    assert.ok(probeBtn);
+
+    // 1st probe: provider remains unreachable -> honest still_unknown retention.
+    await probeBtn.listeners.get("click")[0]();
+    await new Promise((r) => setTimeout(r, 40));
+    assert.equal(calls.filter((c) => c.url.endsWith("/rerun")).length, 0);
+    assert.equal(calls.filter((c) => c.url === "/api/runs/run-unknown-1/reconcile").length, 1);
+    assert.equal(nodeFor("run-reconcile").hidden, false);
+    assert.match(nodeFor("run-reconcile").textContent, /Provider remains unreachable; run stays Unknown/);
+
+    // 2nd probe: provider reconciles to Success -> card hides and notice confirms.
+    const probeBtn2 = nodeFor("run-reconcile").querySelectorAll("button").find((b) => b.id === "reconcile-run");
+    await probeBtn2.listeners.get("click")[0]();
+    await new Promise((r) => setTimeout(r, 40));
+    assert.equal(calls.filter((c) => c.url === "/api/runs/run-unknown-1/reconcile").length, 2);
+    assert.equal(nodeFor("run-reconcile").hidden, true);
+    assert.match(nodeFor("notice").textContent, /Provider reconciliation probed/);
+  } finally {
+    nodeFor("logout").listeners.get("click")[0]();
+  }
+});
+
+// r[verify kiln.implementation.campaign.index_route]
+test("Workers and Fleet populate selectable campaign lists from GET /api/implementation/campaigns with empty state", async () => {
+  const page = cairnPage();
+  Object.assign(page, { Node: CairnNode, AbortController, setTimeout() {}, clearTimeout() {} });
+  page.window.KilnUi = { timeElement: () => new CairnNode("time"), icon: () => new CairnNode("svg") };
+  vm.runInNewContext(asset("workers.js"), page);
+  const root = page.document.createElement("div");
+  const navigated = [];
+  const workersPayload = {
+    schema: "kiln.web-workers.v1", bounded: true, storage_failed: false,
+    summary: { targets: 0, configured_slots: 0, enrolled_slots: 0, active: 0, free_slots: 0, queued: 0 },
+    workers: [],
+  };
+  let indexPayload = {
+    schema: "kiln.implementation-campaigns.v1",
+    campaigns: [
+      { campaign_id: "camp-alpha", status: "active", store_version: 2, revision: 1, repository: "onixresearch/kiln", repository_identity: "a".repeat(64), member_count: 3, pending_decisions: 2, unissued_decisions: 0, pending_effects: 0, paused: false, cancelled: false, complete: false, updated_at: 1700000000000 },
+      { campaign_id: "camp-beta", status: "paused", store_version: 5, revision: 1, repository: "onixresearch/kiln", repository_identity: "a".repeat(64), member_count: 1, pending_decisions: 0, unissued_decisions: 0, pending_effects: 0, paused: true, cancelled: false, complete: false, updated_at: 1699999000000 },
+    ],
+    bounded: true, truncated: false,
+  };
+  const ctx = {
+    route: { page: "workers", worker_campaign: "" },
+    isCurrent: () => true,
+    navigate: (patch) => navigated.push(patch),
+    runLink: () => new CairnNode("a"),
+    projectLink: () => new CairnNode("a"),
+    api: async (path) => {
+      if (path === "/api/workers") return workersPayload;
+      if (path === "/api/inventory") throw new Error("inventory unavailable");
+      if (path === "/api/implementation/campaigns") return indexPayload;
+      if (path === "/api/implementation/campaign-definitions") return { schema: "kiln.campaign-definitions.v1", definitions: [] };
+      throw new Error(`unexpected ${path}`);
+    },
+  };
+  const settle = () => new Promise((resolve) => setImmediate(resolve));
+  await page.window.KilnWorkers.load(root, ctx);
+  await settle();
+  // No raw campaign ID text input.
+  assert.equal(root.querySelectorAll("input").find((n) => n.id === "workers-campaign-id"), undefined);
+  const select = root.querySelectorAll("select").find((n) => n.id === "workers-campaign-select");
+  assert.ok(select, "workers campaign select rendered");
+  assert.match(select.textContent, /camp-alpha · active · 2 pending decisions/);
+  assert.match(select.textContent, /camp-beta · paused · 0 pending decisions/);
+  select.value = "camp-alpha";
+  select.listeners.get("change")[0]();
+  assert.equal(navigated.at(-1).worker_campaign, "camp-alpha");
+
+  // Empty campaign store renders explicit empty state without error.
+  indexPayload = { schema: "kiln.implementation-campaigns.v1", campaigns: [], bounded: true, truncated: false };
+  await page.window.KilnWorkers.load(root, ctx);
+  await settle();
+  assert.match(root.textContent, /No active or recent implementation campaigns in the store/);
+
+  // Fleet loadFleetCampaign renders selectable index too, and honors empty state.
+  const fleetCampaignRoot = page.document.createElement("div");
+  const fleetNav = [];
+  indexPayload = {
+    schema: "kiln.implementation-campaigns.v1",
+    campaigns: [{ campaign_id: "camp-gamma", status: "blocked", store_version: 1, revision: 1, repository: "onixresearch/kiln", repository_identity: "a".repeat(64), member_count: 2, pending_decisions: 1, unissued_decisions: 0, pending_effects: 0, paused: false, cancelled: false, complete: false, updated_at: 1700000000000 }],
+    bounded: true, truncated: false,
+  };
+  await page.window.KilnInventory.loadFleetCampaign(fleetCampaignRoot, ctx, "", (id) => fleetNav.push(id));
+  await settle();
+  const fleetSelect = fleetCampaignRoot.querySelectorAll("select").find((n) => n.id === "fleet-campaign-select");
+  assert.ok(fleetSelect);
+  assert.match(fleetSelect.textContent, /camp-gamma · blocked · 1 pending decision/);
+  fleetSelect.value = "camp-gamma";
+  fleetSelect.listeners.get("change")[0]();
+  assert.deepEqual(fleetNav, ["camp-gamma"]);
+
+  page.window.KilnWorkers.clear();
+  page.window.KilnInventory.clear();
+});
+
+// r[verify kiln.web.console_inventory_seven_destinations]
+test("legacy ?page= aliases route to consolidated destinations preserving scoped params and reject invalid ?inspect=", async () => {
+  const mkHarness = (search) => createWebHarness({
+    locationSearch: search,
+    fetchImpl: async (url, _opts, mockResponse) => {
+      const u = String(url);
+      if (u === "/api/session") return mockResponse(JSON.stringify({ principal: { id: "local:op", label: "Op", role: "operator" }, permissions: { read: true, operate: true } }));
+      if (u === "/api/projects") return mockResponse(JSON.stringify({ available: [], enrolled: [] }));
+      if (u.startsWith("/api/events")) return mockResponse(": heartbeat\n\n", "text/event-stream");
+      if (u.startsWith("/api/runs")) return mockResponse(JSON.stringify({ runs: [], next_cursor: null, total: 0 }));
+      return mockResponse("{}");
+    },
+  });
+
+  const h1 = mkHarness("?page=workers&worker_campaign=camp-9&inspect=attempt:att-1");
+  try {
+    await new Promise((r) => setTimeout(r, 40));
+    assert.equal(h1.webCtx.window.KilnFactory.route().page, "fleet");
+    assert.equal(h1.webCtx.window.KilnFactory.route().tab, "workers");
+    assert.equal(h1.webCtx.window.KilnFactory.route().worker_campaign, "camp-9");
+    assert.equal(h1.webCtx.window.KilnFactory.route().inspect, "attempt:att-1");
+  } finally { h1.nodeFor("logout").listeners.get("click")[0](); }
+
+  const h2 = mkHarness("?page=triage&work_id=w-42");
+  try {
+    await new Promise((r) => setTimeout(r, 40));
+    assert.equal(h2.webCtx.window.KilnFactory.route().page, "inbox");
+    assert.equal(h2.webCtx.window.KilnFactory.route().tab, "triage");
+    assert.equal(h2.webCtx.window.KilnFactory.route().work_id, "w-42");
+  } finally { h2.nodeFor("logout").listeners.get("click")[0](); }
+
+  const h3 = mkHarness("?page=cairn&tab=bogus_tab&inspect=bogus_kind:123");
+  try {
+    await new Promise((r) => setTimeout(r, 40));
+    assert.equal(h3.webCtx.window.KilnFactory.route().page, "cairn");
+    assert.equal(h3.webCtx.window.KilnFactory.route().tab, "cairn");
+    assert.equal(h3.webCtx.window.KilnFactory.route().inspect, "");
+  } finally { h3.nodeFor("logout").listeners.get("click")[0](); }
+});
+
+// r[verify kiln.web.factory_cockpit_and_slideover]
+test("1.1 Factory Cockpit renders auto-compacted vs populated Attention, Offline machine error, pinned Foreign/expiring claims, and Merge Train strip", async () => {
+  const now = Date.now();
+  const claimExp = "b".repeat(64);
+  const claimHealthy = "c".repeat(64);
+  const posts = [];
+  let attentionItems = [];
+  const { nodeFor, webCtx } = createWebHarness({
+    locationSearch: "?page=overview",
+    loadCodeReview: true,
+    fetchImpl: async (url, opts = {}, mockResponse) => {
+      const u = String(url);
+      if (opts.method === "POST") posts.push({ url: u, body: opts.body ? JSON.parse(opts.body) : null });
+      if (u === "/api/session") return mockResponse(JSON.stringify({ principal: { id: "local:op", label: "Op", role: "operator" }, permissions: { read: true, operate: true } }));
+      if (u === "/api/projects") return mockResponse(JSON.stringify({ available: [], enrolled: [{ id: "proj-1", label: "Kiln", repository: "onixresearch/kiln", reference: "refs/heads/main", pipeline_identity: "p" }] }));
+      if (u.startsWith("/api/events")) return mockResponse(": heartbeat\n\n", "text/event-stream");
+      if (u.startsWith("/api/runs")) return mockResponse(JSON.stringify({ runs: [], next_cursor: null, total: 0 }));
+      if (u === "/api/overview") return mockResponse(JSON.stringify({ projects: [], totals: { runs: 0, failed: 0, active: 0, queued: 0, unknown: 0, succeeded: 0, cancelled: 0 } }));
+      if (u === "/api/implementation/attention") {
+        return mockResponse(JSON.stringify({ schema: "kiln.implementation-attention.v1", items: attentionItems, total: attentionItems.length, bounded: true, truncated: false, counts: { escalations: attentionItems.length }, sources: {} }));
+      }
+      if (u === "/api/fleet/machines") {
+        return mockResponse(JSON.stringify({
+          machines: [
+            { machine: "host-ok", placement_configured: true, state: "reporting", observed_at_ms: now, last_seen_at_ms: now, sessions: 2, health: "available", slots: { agent: { used: 1, capacity: 4, free: 3 } }, draining: false },
+            { machine: "host-down", placement_configured: true, state: "unreachable", observed_at_ms: null, last_seen_at_ms: now - 120_000, sessions: null, health: "unavailable", error: { class: "transport", code: "herdr_unreachable", detail: "SSH control socket refused" }, slots: null, draining: false },
+          ],
+        }));
+      }
+      if (u.startsWith("/api/fleet/claims")) {
+        return mockResponse(JSON.stringify({
+          claims: [
+            { identity: claimExp, fence: 2, state: "open", expires_ms: now + 300_000, scope: { target: "onixresearch/kiln", path: "web.js" }, holder: { tool: "omp", host: "host-ok", session: "s1" }, purpose: "expiring soon" },
+            { identity: claimHealthy, fence: 1, state: "open", expires_ms: now + 3_600_000, scope: { target: "onixresearch/kiln", path: "docs" }, holder: { tool: "omp", host: "host-ok", session: "s2" }, purpose: "healthy claim" },
+          ],
+          foreign_claims: [{ identity: "f".repeat(64), scope: { target: "onixresearch/kiln", path: "Cargo.toml" }, holder: { tool: "claude", host: "other-box", session: "ext-1" }, expires_ms: now + 600_000 }],
+          foreign_mirror: { configured: true, status: "ok", error: null },
+          expired_claims: [],
+          expired_truncated: false,
+        }));
+      }
+      if (u === "/api/fleet/dispatch/status") return mockResponse(JSON.stringify({ paused: false, deferred_count: 1, reason: null }));
+      if (u.startsWith("/api/code-review")) {
+        return mockResponse(JSON.stringify({
+          configured: true,
+          queue_windows: [{ target_ref: "refs/heads/main", mode: "speculative", depth: 2, bounds: { floor: 1, ceiling: 4 } }],
+          queue: [{ id: "q-1", target_ref: "refs/heads/main", change: "chg-1", status: "waiting_ci", generation: 3, chain: { root: "abc1234" } }],
+          changes: [{ id: "chg-1", title: "Merge train change" }],
+        }));
+      }
+      return mockResponse("{}");
+    },
+  });
+  try {
+    await new Promise((r) => setTimeout(r, 60));
+    const overview = nodeFor("overview-content");
+    const txt = overview.textContent;
+    // Zero escalations auto-compacts Attention to a 1-line healthy summary bar.
+    assert.match(txt, /0 items need operator attention/i);
+    // Offline machine displays explicit OFFLINE + error detail without 0/0.
+    assert.match(txt, /host-down/);
+    assert.match(txt, /OFFLINE · Unavailable/);
+    assert.match(txt, /SSH control socket refused/);
+    assert.doesNotMatch(txt, /host-down.*0\/0/);
+    // Merge train strip via KilnCodeReview.summarizeMergeTrains.
+    assert.match(txt, /refs\/heads\/main/);
+    assert.match(txt, /Speculative 2\/4/);
+    // Healthy claims are collapsed behind toggle until clicked.
+    assert.match(txt, /Foreign/);
+    const viewHealthyBtn = overview.querySelectorAll("button").find((b) => /View all 1 healthy/i.test(b.textContent));
+    assert.ok(viewHealthyBtn, "healthy claims collapsed behind View all toggle");
+    viewHealthyBtn.listeners.get("click")[0]();
+    assert.match(overview.textContent, /healthy claim/);
+    // Tier-1 +30m Renew button posts directly without modal.
+    const renewBtn = overview.querySelectorAll("button").find((b) => b.textContent.trim() === "+30m");
+    assert.ok(renewBtn, "+30m Renew button present");
+    await renewBtn.listeners.get("click")[0]();
+    assert.ok(posts.some((p) => p.url === `/api/fleet/claims/${claimExp}/renew` && p.body.fence === 2));
+    // Populated Attention renders escalation cards.
+    attentionItems = [{
+      kind: "PlanReviewGate",
+      id: "att-plan-1",
+      title: "Plan awaits operator acceptance",
+      severity: "high",
+      target: { campaign_id: "camp-1", work_id: "w-1", plan_id: "plan-1" },
+      context_preview: { summary: "Review steps", steps: [{ text: "Update router" }, { text: "Run tests" }] },
+    }];
+    await webCtx.window.KilnFactory.refreshOverview();
+    assert.match(overview.textContent, /Plan awaits operator acceptance/);
+  } finally {
+    nodeFor("logout").listeners.get("click")[0]();
+  }
+});
+
+// r[verify kiln.web.factory_cockpit_and_slideover]
+test("Slide-Over Inspector stays non-destructive, tails herdr pane only when visible, accepts plan steps, and enforces Tier-3 CLI parity", async () => {
+  const attemptId = "a".repeat(64);
+  const paneCalls = [];
+  const posts = [];
+  const { nodeFor, webCtx, webDoc } = createWebHarness({
+    locationSearch: "?page=overview",
+    fetchImpl: async (url, opts = {}, mockResponse) => {
+      const u = String(url);
+      if (opts.method === "POST") posts.push({ url: u, body: opts.body ? JSON.parse(opts.body) : null });
+      if (u === "/api/session") return mockResponse(JSON.stringify({ principal: { id: "local:op", label: "Op", role: "operator" }, permissions: { read: true, operate: true } }));
+      if (u === "/api/projects") return mockResponse(JSON.stringify({ available: [], enrolled: [] }));
+      if (u.startsWith("/api/events")) return mockResponse(": heartbeat\n\n", "text/event-stream");
+      if (u.startsWith("/api/runs")) return mockResponse(JSON.stringify({ runs: [], next_cursor: null, total: 0 }));
+      if (u.startsWith(`/api/fleet/attempts/${attemptId}/pane`)) {
+        paneCalls.push(u);
+        return mockResponse(JSON.stringify({ attempt: attemptId, lines: ["step 1 <ok>", "step 2 & running"], status: "working" }));
+      }
+      if (u === "/api/implementation/attention") {
+        return mockResponse(JSON.stringify({
+          schema: "kiln.implementation-attention.v1",
+          items: [
+            { kind: "PlanReviewGate", id: "plan-1", title: "Review plan for task A", severity: "high", target: { campaign_id: "camp-1", work_id: "w-1", plan_id: "plan-id-1" }, context_preview: { summary: "Plan ready", steps: [{ text: "Edit web.js" }, { text: "Verify tests" }] } },
+            { kind: "UnknownTerminationOrDispatch", id: "term-1", title: "Unknown termination on w-9", severity: "high", target: { campaign_id: "camp-1", work_id: "w-9", attempt_id: attemptId, fence: 3, run_id: "run-u1" } },
+          ],
+          total: 2,
+          bounded: true,
+        }));
+      }
+      if (u === "/api/fleet/attempts") {
+        return mockResponse(JSON.stringify({
+          attempts: [{ attempt: attemptId, state: "executing", phase: "running", work: "w-1", title: "Fix router", fence: 3, session: { machine: "host-ok", agent_name: "omp-1", state: "working" } }],
+        }));
+      }
+      if (u === "/api/fleet/claims?include=foreign,expired") return mockResponse(JSON.stringify({ claims: [], foreign_claims: [], expired_claims: [] }));
+      if (u === "/api/fleet/machines") return mockResponse(JSON.stringify({ machines: [] }));
+      if (u === "/api/fleet/dispatch/status") return mockResponse(JSON.stringify({ paused: false, deferred_count: 0 }));
+      return mockResponse("{}");
+    },
+  });
+  try {
+    await new Promise((r) => setTimeout(r, 50));
+    const overviewHtmlSnapshot = nodeFor("overview-content").textContent;
+    // Open attempt in Slide-Over Inspector without unmounting overview DOM.
+    webCtx.window.KilnFactory.openInspector("attempt", attemptId);
+    await new Promise((r) => setTimeout(r, 40));
+    assert.equal(nodeFor("slide-over-inspector").hidden, false);
+    assert.equal(nodeFor("overview-content").textContent, overviewHtmlSnapshot);
+    assert.equal(paneCalls.length, 1);
+    const paneBody = nodeFor("slide-over-body").textContent;
+    assert.match(paneBody, /step 1 <ok>/);
+    // Hiding tab pauses pane polling cleanly.
+    webDoc.visibilityState = "hidden";
+    webDoc.dispatchEvent({ type: "visibilitychange" });
+    assert.match(nodeFor("slide-over-pane-status").textContent, /paused/i);
+    webDoc.visibilityState = "visible";
+    webDoc.dispatchEvent({ type: "visibilitychange" });
+    await new Promise((r) => setTimeout(r, 30));
+    assert.equal(paneCalls.length, 2);
+    // Prompt/Steer posts request_id + text.
+    const promptInput = nodeFor("slide-over-body").querySelectorAll("input").find((i) => /steer|prompt/i.test(i.placeholder || i.getAttribute("aria-label") || ""));
+    assert.ok(promptInput);
+    promptInput.value = "continue with tests";
+    const promptForm = nodeFor("slide-over-body").querySelectorAll("form")[0];
+    await promptForm.listeners.get("submit")[0]({ preventDefault() {} });
+    assert.ok(posts.some((p) => p.url === `/api/fleet/attempts/${attemptId}/prompt` && p.body.text === "continue with tests" && p.body.request_id));
+    // Tier-3 Cancel Attempt opens #control-dialog with required reason + CLI parity.
+    const cancelBtn = nodeFor("slide-over-body").querySelectorAll("button").find((b) => /Cancel attempt/i.test(b.textContent));
+    assert.ok(cancelBtn);
+    const cancelPromise = cancelBtn.listeners.get("click")[0]();
+    assert.equal(nodeFor("control-dialog").open, true);
+    assert.equal(nodeFor("confirm-cli-parity").hidden, false);
+    assert.match(nodeFor("confirm-cli-cmd").textContent, new RegExp(`kiln-fleet cancel ${attemptId}`));
+    nodeFor("confirm-reason").value = "aborting stuck attempt";
+    await nodeFor("control-form").listeners.get("submit")[0]({ preventDefault() {} });
+    await cancelPromise;
+    assert.ok(posts.some((p) => p.url === `/api/fleet/attempts/${attemptId}/cancel` && p.body.reason === "aborting stuck attempt"));
+    // Inspecting plan_not_accepted renders plan steps inline and accepts plan.
+    webCtx.window.KilnFactory.openInspector("attention", "plan-1");
+    await new Promise((r) => setTimeout(r, 40));
+    assert.match(nodeFor("slide-over-body").textContent, /Edit web\.js/);
+    const acceptBtn = nodeFor("slide-over-body").querySelectorAll("button").find((b) => /Accept plan/i.test(b.textContent));
+    assert.ok(acceptBtn);
+    await acceptBtn.listeners.get("click")[0]();
+    assert.ok(posts.some((p) => p.url === "/api/implementation/plan-review" && p.body.verdict === "accepted" && p.body.work_id === "w-1" && p.body.plan_id === "plan-id-1"));
+    // Esc closes Slide-Over and clears ?inspect=.
+    webDoc.dispatchEvent({ type: "keydown", key: "Escape", target: webDoc.body, preventDefault() {} });
+    assert.equal(nodeFor("slide-over-inspector").hidden, true);
+    assert.equal(webCtx.window.KilnFactory.route().inspect, "");
+  } finally {
+    nodeFor("logout").listeners.get("click")[0]();
+  }
+});
+
+// r[verify kiln.web.multiplexed_sse_events]
+test("Single /api/events SSE connection drives Global Live Strip and KilnFleet subscribeEvents without opening /api/fleet/events", async () => {
+  const sseBody = [
+    `event: ready\ndata: ${JSON.stringify({ schema: "kiln.events-ready.v1" })}\n\n`,
+    `event: ci\ndata: ${JSON.stringify({ version: 4, runs: [{ id: "run-1", project_id: "p1", outcome: "Pending", phase: "active", revision: 1, sequence: 1, nodes: [] }] })}\n\n`,
+    `event: attention\ndata: ${JSON.stringify({ total: 3, items: [] })}\n\n`,
+    `event: fleet\ndata: ${JSON.stringify({
+      version: "2".repeat(64),
+      health: { api: "v1", machine: "box-1", version: "1.0" },
+      claims: { claims: [{ identity: "d".repeat(64), fence: 1, state: "open", expires_ms: Date.now() + 60_000, scope: { target: "onixresearch/kiln", path: "." }, holder: { tool: "omp", host: "box-1", session: "s1" }, purpose: "work" }] },
+      work: { ready_unclaimed: 0, ranked: [], blocked: [] },
+      attempts: { attempts: [] },
+      decisions: { decisions: [] },
+    })}\n\n`,
+  ].join("");
+  const fetchedUrls = [];
+  const { nodeFor, webCtx } = createWebHarness({
+    locationSearch: "?page=fleet",
+    fetchImpl: async (url, _opts, mockResponse) => {
+      const u = String(url);
+      fetchedUrls.push(u);
+      if (u === "/api/session") return mockResponse(JSON.stringify({ principal: { id: "local:op", label: "Op", role: "operator" }, permissions: { read: true, operate: true } }));
+      if (u === "/api/projects") return mockResponse(JSON.stringify({ available: [], enrolled: [] }));
+      if (u.startsWith("/api/events")) return mockResponse(sseBody, "text/event-stream");
+      if (u.startsWith("/api/runs")) return mockResponse(JSON.stringify({ runs: [], next_cursor: null, total: 0 }));
+      return mockResponse("{}");
+    },
+  });
+  try {
+    vm.runInNewContext(asset("fleet.js"), webCtx);
+    await new Promise((r) => setTimeout(r, 60));
+    assert.equal(nodeFor("sse-health-badge").textContent, "Live: SSE");
+    assert.equal(nodeFor("global-firing-count").textContent, "1");
+    assert.equal(nodeFor("global-escalations-count").textContent, "3");
+    assert.equal(nodeFor("global-expiring-claims-count").textContent, "1");
+    assert.equal(fetchedUrls.some((u) => u.startsWith("/api/fleet/events")), false, "KilnFleet must reuse multiplexed /api/events via subscribeEvents");
+    assert.match(nodeFor("fleet-content").textContent, /box-1/);
+  } finally {
+    webCtx.window.KilnFleet?.clear?.();
+    nodeFor("logout").listeners.get("click")[0]();
+  }
+});
+
+// r[verify kiln.web.factory_command_palette_and_bulk]
+test("Ctrl/Cmd+K indexes Fleet/Cairn/Reviews/Machines with > operational verbs, g+<key> chords navigate, and Runs x bulk actions gate through #control-dialog", async () => {
+  const posts = [];
+  const claimId = "e".repeat(64);
+  const run1 = {
+    id: "run-bulk-1", project_id: "proj-1", source_revision: "abc1234", canonical_tree: "t".repeat(64),
+    repository: { provider_namespace: "git", native_kind: "repo", native_id: "onixresearch/kiln" },
+    revision: 1, attempt_id: "att-1", outcome: "Pending", phase: "queued",
+    execution: { provider_namespace: "lattice", native_kind: "workflow", native_id: "wf-1" },
+    sequence: 1, nodes: [], controls: { cancel: true, pause: false, resume: false }, error_code: null,
+    ordinal: 1, parent_run_id: null, selected_nodes: [], edges: [], created_at_ms: 1700000000000, report_summary: {}, step_telemetry: [],
+  };
+  const { nodeFor, webCtx, webDoc } = createWebHarness({
+    locationSearch: "?page=runs",
+    loadWorkInteraction: true,
+    fetchImpl: async (url, opts = {}, mockResponse) => {
+      const u = String(url);
+      if (opts.method === "POST") posts.push({ url: u, body: opts.body ? JSON.parse(opts.body) : null });
+      if (u === "/api/session") return mockResponse(JSON.stringify({ principal: { id: "local:op", label: "Op", role: "operator" }, permissions: { read: true, operate: true } }));
+      if (u === "/api/projects") return mockResponse(JSON.stringify({ available: [], enrolled: [{ id: "proj-1", label: "Kiln", repository: "onixresearch/kiln", reference: "refs/heads/main", pipeline_identity: "p" }] }));
+      if (u.startsWith("/api/events")) {
+        return mockResponse(`event: fleet\ndata: ${JSON.stringify({
+          version: "3".repeat(64),
+          health: { api: "v1", machine: "host-a", version: "1" },
+          claims: { claims: [{ identity: claimId, fence: 7, state: "open", expires_ms: Date.now() + 600_000, scope: { target: "onixresearch/kiln", path: "src" }, holder: { tool: "omp", host: "host-a", session: "s1" }, purpose: "edit" }] },
+          work: { ready_unclaimed: 0, ranked: [], blocked: [] },
+          attempts: { attempts: [] },
+          decisions: { decisions: [] },
+        })}\n\n`, "text/event-stream");
+      }
+      if (u.startsWith("/api/runs?")) return mockResponse(JSON.stringify({ runs: [run1], next_cursor: null, total: 1 }));
+      if (u.startsWith("/api/fleet/claims")) return mockResponse(JSON.stringify({ claims: [{ identity: claimId, fence: 7, state: "open", expires_ms: Date.now() + 600_000, scope: { target: "onixresearch/kiln", path: "src" }, holder: { tool: "omp", host: "host-a", session: "s1" }, purpose: "edit" }], foreign_claims: [], expired_claims: [] }));
+      if (u === "/api/fleet/machines") return mockResponse(JSON.stringify({ machines: [{ machine: "host-a", placement_configured: true, state: "reporting", observed_at_ms: Date.now(), last_seen_at_ms: Date.now(), sessions: 1, health: "available" }] }));
+      if (u === "/api/implementation/cairn") return mockResponse(JSON.stringify({ configured: true, changes: [{ change_id: "chg-pal", title: "Palette change" }] }));
+      if (u === "/api/implementation/campaigns") return mockResponse(JSON.stringify({ campaigns: [{ campaign_id: "camp-pal", status: "active" }] }));
+      if (u.startsWith("/api/code-review")) return mockResponse(JSON.stringify({ changes: [] }));
+      if (u === "/api/work") return mockResponse(JSON.stringify({ items: [] }));
+      if (u === "/api/work-views") return mockResponse(JSON.stringify({ views: [] }));
+      return mockResponse("{}");
+    },
+  });
+  try {
+    nodeFor("runs-browser").append(nodeFor("run-list"));
+    await new Promise((r) => setTimeout(r, 60));
+    // Multi-select via x key shows #runs-bulk-toolbar and routes Bulk Cancel through #control-dialog.
+    const row = nodeFor("run-list").querySelectorAll("tr").find((tr) => tr.dataset?.runId === "run-bulk-1");
+    assert.ok(row);
+    row.listeners.get("keydown")[0]({ key: "x", target: row, preventDefault() {} });
+    const bulkToolbar = nodeFor("runs-bulk-toolbar");
+    assert.equal(bulkToolbar.hidden, false);
+    assert.match(bulkToolbar.textContent, /1 run selected/);
+    const bulkCancel = bulkToolbar.querySelectorAll("button").find((b) => /Cancel selected/i.test(b.textContent));
+    assert.ok(bulkCancel);
+    const bulkPromise = bulkCancel.listeners.get("click")[0]();
+    assert.equal(nodeFor("control-dialog").open, true);
+    assert.match(nodeFor("confirm-cli-cmd").textContent, /kiln runs control --run run-bulk-1 --action cancel/);
+    nodeFor("confirm-reason").value = "cancelling queued test run";
+    await nodeFor("control-form").listeners.get("submit")[0]({ preventDefault() {} });
+    await bulkPromise;
+    assert.ok(posts.some((p) => p.url === "/api/runs/run-bulk-1/control" && p.body.action === "cancel" && !Object.hasOwn(p.body, "reason") && Boolean(p.body.request_id)));
+
+    // g + <key> chords ignored inside <input>, active outside inputs.
+    const fakeInput = webDoc.createElement("input");
+    fakeInput.closest = (sel) => (sel.includes("input") ? fakeInput : null);
+    webDoc.dispatchEvent({ type: "keydown", key: "g", target: fakeInput, preventDefault() {} });
+    webDoc.dispatchEvent({ type: "keydown", key: "a", target: fakeInput, preventDefault() {} });
+    assert.equal(webCtx.window.KilnFactory.route().page, "runs");
+
+    webDoc.dispatchEvent({ type: "keydown", key: "g", target: webDoc.body, preventDefault() {} });
+    webDoc.dispatchEvent({ type: "keydown", key: "a", target: webDoc.body, preventDefault() {} });
+    assert.equal(webCtx.window.KilnFactory.route().page, "inbox");
+
+    // Ctrl+K opens factory command palette with > verbs and Fleet/Cairn indexing.
+    webDoc.dispatchEvent({ type: "keydown", key: "k", ctrlKey: true, target: webDoc.body, preventDefault() {} });
+    await new Promise((r) => setTimeout(r, 60));
+    const paletteInput = nodeFor("work-command-query");
+    paletteInput.value = "> renew";
+    paletteInput.listeners.get("input")[0]();
+    await new Promise((r) => setTimeout(r, 260));
+    const listText = nodeFor("work-command-results").textContent;
+    assert.match(listText, /Renew claim/i);
+  } finally {
+    nodeFor("logout").listeners.get("click")[0]();
+  }
 });

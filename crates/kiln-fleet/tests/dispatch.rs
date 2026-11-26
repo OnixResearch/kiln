@@ -67,11 +67,18 @@ case "$group-$op" in
     # A coordinator crash before the first prompt was delivered.
     if [ -f "$state/prompt-lost" ]; then echo '{"id":"cli","error":{"code":"timeout","message":"prompt lost"}}' >&2; exit 1; fi
     printf '%s' "$2" > "$state/prompt.txt"
+    printf '%s\n' "$2" >> "$state/prompts.log"
     ok "{\"type\":\"agent_prompted\",\"agent\":$(agent_json "$1")}" ;;
+  agent-read)
+    if [ -f "$state/pane-offline" ]; then echo '{"id":"cli","error":{"code":"server_not_running","message":"herdr offline"}}' >&2; exit 1; fi
+    if [ -f "$state/pane.txt" ]; then cat "$state/pane.txt"
+    else printf '\033[33mblocked>\033[0m question line 1\nquestion line 2\nquestion line 3\n'; fi ;;
   agent-get)
     if [ -f "$state/agent" ]; then ok "{\"type\":\"agent_info\",\"agent\":$(agent_json "$1")}"
     else echo '{"id":"cli","error":{"code":"agent_not_found","message":"no agent"}}' >&2; exit 1; fi ;;
-  agent-send-keys) ok '{"type":"ok"}' ;;
+  agent-send-keys)
+    printf '%s\n' "$2" >> "$state/keys.log"
+    ok '{"type":"ok"}' ;;
   workspace-close) rm -f "$state/agent"; ok '{"type":"ok"}' ;;
   *) echo "{\"id\":\"cli\",\"error\":{\"code\":\"unscripted\",\"message\":\"$group $op\"}}" >&2; exit 1 ;;
 esac
@@ -686,10 +693,53 @@ fn enrolled_roster_reports_only_fresh_successful_herdr_counts() -> TestResult {
         assert_eq!(response.status, 200);
         response.body
     };
-    let not_reporting = |machine, placement_configured| json!({
-        "machine": machine, "placement_configured": placement_configured, "state": "not_reporting",
-        "observed_at_ms": null, "last_seen_at_ms": null, "sessions": null,
-    });
+    let not_reporting = |machine: &str, placement_configured: bool| {
+        let error_code = if placement_configured {
+            "not_reporting"
+        } else {
+            "placement_not_configured"
+        };
+        let error_detail = if placement_configured {
+            "machine has not reported occupancy yet"
+        } else {
+            "machine is not configured in herdr inventory"
+        };
+        let inv = if !placement_configured {
+            Value::Null
+        } else if machine == PEER {
+            json!({
+                "herdr_machine": "private-route",
+                "ssh_target": "private-target",
+                "worktree_root": root,
+                "repositories": [],
+                "agents": [],
+            })
+        } else {
+            json!({
+                "herdr_machine": null,
+                "ssh_target": null,
+                "worktree_root": root,
+                "repositories": [],
+                "agents": [{ "kind": "omp", "slots": 1 }],
+            })
+        };
+        json!({
+            "machine": machine,
+            "placement_configured": placement_configured,
+            "state": "not_reporting",
+            "observed_at_ms": null,
+            "last_seen_at_ms": null,
+            "sessions": null,
+            "health": "unavailable",
+            "error": { "class": "unavailable", "code": error_code, "detail": error_detail },
+            "slots": null,
+            "active_attempts": [],
+            "draining": false,
+            "drain_reason": null,
+            "drained_at_ms": null,
+            "inventory": inv,
+        })
+    };
     assert_eq!(read_roster(1_000), json!({ "machines": [
         not_reporting("aspen1", false), not_reporting(PEER, true), not_reporting(COORDINATOR, true),
     ] }));
@@ -702,9 +752,15 @@ fn enrolled_roster_reports_only_fresh_successful_herdr_counts() -> TestResult {
     assert_eq!(read_roster(2_001), json!({ "machines": [
         not_reporting("aspen1", false),
         { "machine": PEER, "placement_configured": true, "state": "reporting",
-          "observed_at_ms": 2_000, "last_seen_at_ms": 2_000, "sessions": 0 },
+          "observed_at_ms": 2_000, "last_seen_at_ms": 2_000, "sessions": 0,
+          "health": "available", "error": null, "slots": {},
+          "active_attempts": [], "draining": false, "drain_reason": null, "drained_at_ms": null,
+          "inventory": { "herdr_machine": "private-route", "ssh_target": "private-target", "worktree_root": root, "repositories": [], "agents": [] } },
         { "machine": COORDINATOR, "placement_configured": true, "state": "reporting",
-          "observed_at_ms": 2_000, "last_seen_at_ms": 2_000, "sessions": 1 },
+          "observed_at_ms": 2_000, "last_seen_at_ms": 2_000, "sessions": 1,
+          "health": "available", "error": null, "slots": { "omp": { "used": 0, "capacity": 1, "free": 1 } },
+          "active_attempts": [], "draining": false, "drain_reason": null, "drained_at_ms": null,
+          "inventory": { "herdr_machine": null, "ssh_target": null, "worktree_root": root, "repositories": [], "agents": [{ "kind": "omp", "slots": 1 }] } },
     ] }));
 
     ROSTER_CLOCK.set(3_000);
@@ -714,18 +770,30 @@ fn enrolled_roster_reports_only_fresh_successful_herdr_counts() -> TestResult {
     assert_eq!(failure, json!({ "machines": [
         not_reporting("aspen1", false),
         { "machine": PEER, "placement_configured": true, "state": "unreachable",
-          "observed_at_ms": 3_000, "last_seen_at_ms": 2_000, "sessions": null },
+          "observed_at_ms": 3_000, "last_seen_at_ms": 2_000, "sessions": null,
+          "health": "unavailable", "error": { "class": "unavailable", "code": null, "detail": "private remote failure details" }, "slots": null,
+          "active_attempts": [], "draining": false, "drain_reason": null, "drained_at_ms": null,
+          "inventory": { "herdr_machine": "private-route", "ssh_target": "private-target", "worktree_root": root, "repositories": [], "agents": [] } },
         { "machine": COORDINATOR, "placement_configured": true, "state": "reporting",
-          "observed_at_ms": 3_000, "last_seen_at_ms": 3_000, "sessions": 1 },
+          "observed_at_ms": 3_000, "last_seen_at_ms": 3_000, "sessions": 1,
+          "health": "available", "error": null, "slots": { "omp": { "used": 0, "capacity": 1, "free": 1 } },
+          "active_attempts": [], "draining": false, "drain_reason": null, "drained_at_ms": null,
+          "inventory": { "herdr_machine": null, "ssh_target": null, "worktree_root": root, "repositories": [], "agents": [{ "kind": "omp", "slots": 1 }] } },
     ] }));
 
     let stale = read_roster(3_000 + service.config.policy.tick_ms * 3);
     assert_eq!(stale, json!({ "machines": [
         not_reporting("aspen1", false),
         { "machine": PEER, "placement_configured": true, "state": "stale",
-          "observed_at_ms": 3_000, "last_seen_at_ms": 2_000, "sessions": null },
+          "observed_at_ms": 3_000, "last_seen_at_ms": 2_000, "sessions": null,
+          "health": "unavailable", "error": { "class": "unavailable", "code": "observation_stale", "detail": "machine occupancy observation exceeded its stale window" }, "slots": null,
+          "active_attempts": [], "draining": false, "drain_reason": null, "drained_at_ms": null,
+          "inventory": { "herdr_machine": "private-route", "ssh_target": "private-target", "worktree_root": root, "repositories": [], "agents": [] } },
         { "machine": COORDINATOR, "placement_configured": true, "state": "stale",
-          "observed_at_ms": 3_000, "last_seen_at_ms": 3_000, "sessions": null },
+          "observed_at_ms": 3_000, "last_seen_at_ms": 3_000, "sessions": null,
+          "health": "unavailable", "error": { "class": "unavailable", "code": "observation_stale", "detail": "machine occupancy observation exceeded its stale window" }, "slots": null,
+          "active_attempts": [], "draining": false, "drain_reason": null, "drained_at_ms": null,
+          "inventory": { "herdr_machine": null, "ssh_target": null, "worktree_root": root, "repositories": [], "agents": [{ "kind": "omp", "slots": 1 }] } },
     ] }));
     assert_eq!(fs::read_to_string(log)?, concat!(
         "--session kiln-test agent list\n--machine private-route agent list\n",
@@ -805,5 +873,272 @@ fn a_recovered_agent_is_prompted_while_its_dispatch_is_admitted() -> TestResult 
         let prompt = fs::read_to_string(fleet.state.join("prompt.txt"))?;
         assert!(prompt.contains(session.attempt.as_str()), "{lost:?}");
     }
+    Ok(())
+}
+
+#[test]
+// r[verify kiln.fleet.live_pane_and_machine_census]
+// r[verify kiln.fleet.live_pane_and_machine_census.scenario.pane_read]
+fn drain_and_dispatch_pause_prevent_new_dispatches_and_pane_steering_works() -> TestResult {
+    let mut fleet = fleet(false)?;
+    let call = |machine: &str, method: &str, path: &str, query: Option<&str>, body: Option<Value>| {
+        fleet.service.route(
+            machine,
+            &Request {
+                method: method.to_owned(),
+                path: path.to_owned(),
+                query: query.map(str::to_owned),
+                body: body
+                    .map(|value| value.to_string().into_bytes())
+                    .unwrap_or_default(),
+            },
+            now(),
+        )
+    };
+
+    // 1. Pause dispatch globally: tick runs observations/sweeps, launches no new attempt.
+    let paused = call(
+        COORDINATOR,
+        "POST",
+        "/v1/dispatch/pause",
+        None,
+        Some(json!({ "reason": "maintenance window", "request_id": "pause-1" })),
+    );
+    assert_eq!(paused.status, 200);
+    assert_eq!(paused.body["state"], "paused");
+    assert_eq!(paused.body["paused_reason"], "maintenance window");
+
+    let report = fleet.dispatcher.tick(now())?;
+    assert_eq!(report.free_slots, 0);
+    assert!(report.performed.is_empty());
+
+    let status = call(PEER, "GET", "/v1/dispatch/status", None, None);
+    assert_eq!(status.status, 200);
+    assert_eq!(status.body["state"], "paused");
+    assert_eq!(
+        status.body.pointer("/last_tick/deferral_counts/dispatch is paused: maintenance window"),
+        Some(&json!(1))
+    );
+
+    // Non-operator cannot resume or drain.
+    assert_eq!(
+        call(PEER, "POST", "/v1/dispatch/resume", None, None).status,
+        403
+    );
+    assert_eq!(
+        call(
+            PEER,
+            "POST",
+            &format!("/v1/machines/{COORDINATOR}/drain"),
+            None,
+            Some(json!({ "draining": true, "reason": "nope" }))
+        )
+        .status,
+        403
+    );
+
+    // 2. Resume dispatch, then drain the only configured machine: tick still defers new dispatch.
+    let resumed = call(
+        COORDINATOR,
+        "POST",
+        "/v1/dispatch/resume",
+        None,
+        Some(json!({ "request_id": "resume-1" })),
+    );
+    assert_eq!(resumed.status, 200);
+    assert_eq!(resumed.body["state"], "running");
+
+    let drained = call(
+        COORDINATOR,
+        "POST",
+        &format!("/v1/machines/{COORDINATOR}/drain"),
+        None,
+        Some(json!({ "draining": true, "reason": "rebooting host", "request_id": "drain-1" })),
+    );
+    assert_eq!(drained.status, 200);
+    assert_eq!(drained.body["draining"], true);
+    assert_eq!(drained.body["drain_reason"], "rebooting host");
+
+    let report = fleet.dispatcher.tick(now())?;
+    assert_eq!(report.free_slots, 0);
+    assert!(report.performed.is_empty());
+
+    let status = call(COORDINATOR, "GET", "/v1/dispatch/status", None, None);
+    assert_eq!(status.body["draining_machines"], json!([COORDINATOR]));
+    assert_eq!(
+        status.body.pointer("/last_tick/deferral_counts/all available machines are draining"),
+        Some(&json!(1))
+    );
+
+    // 3. Un-drain machine and run two ticks to claim + place + start + prompt session.
+    let undrained = call(
+        COORDINATOR,
+        "POST",
+        &format!("/v1/machines/{COORDINATOR}/drain"),
+        None,
+        Some(json!({ "draining": false, "request_id": "drain-2" })),
+    );
+    assert_eq!(undrained.status, 200);
+    assert_eq!(undrained.body["draining"], false);
+
+    fleet.dispatcher.tick(now())?;
+    fleet.dispatcher.tick(now())?;
+    let session = fleet.session()?;
+    let attempt_id = session.attempt.as_str().to_owned();
+    assert_eq!(session.state, SessionState::Prompted);
+
+    // 4. Third tick observes live herdr occupancy: 1/1 omp slot used + active attempt.
+    fleet.dispatcher.tick(now())?;
+    let machines = call(PEER, "GET", "/v1/machines", None, None);
+    assert_eq!(machines.status, 200);
+    let coord_row = machines.body["machines"]
+        .as_array()
+        .and_then(|rows| rows.iter().find(|row| row["machine"] == COORDINATOR))
+        .ok_or("missing coordinator machine row")?;
+    assert_eq!(coord_row["health"], "available");
+    assert_eq!(
+        coord_row.pointer("/slots/omp"),
+        Some(&json!({ "used": 1, "capacity": 1, "free": 0 }))
+    );
+    assert_eq!(coord_row["active_attempts"][0]["attempt"], attempt_id);
+
+    // 5. Read bounded, ANSI-stripped live pane lines; reject out-of-range lines queries.
+    let pane = call(
+        PEER,
+        "GET",
+        &format!("/v1/attempts/{attempt_id}/pane"),
+        Some("lines=2"),
+        None,
+    );
+    assert_eq!(pane.status, 200);
+    assert_eq!(pane.body["machine"], COORDINATOR);
+    assert_eq!(pane.body["truncated"], true);
+    assert_eq!(
+        pane.body["lines"],
+        json!(["question line 2", "question line 3"])
+    );
+    assert_eq!(
+        pane.body["text"],
+        json!("question line 2\nquestion line 3")
+    );
+    let full_pane = call(
+        PEER,
+        "GET",
+        &format!("/v1/attempts/{attempt_id}/pane"),
+        None,
+        None,
+    );
+    assert_eq!(full_pane.status, 200);
+    assert_eq!(full_pane.body["truncated"], false);
+    assert_eq!(
+        full_pane.body["lines"][0],
+        "blocked> question line 1"
+    );
+
+    for bad_query in ["lines=0", "lines=1001", "lines=abc", "unknown=1"] {
+        assert_eq!(
+            call(
+                PEER,
+                "GET",
+                &format!("/v1/attempts/{attempt_id}/pane"),
+                Some(bad_query),
+                None,
+            )
+            .status,
+            400,
+            "{bad_query}"
+        );
+    }
+
+    // Offline herdr failure returns explicit 503 with failure metadata.
+    fs::write(fleet.state.join("pane-offline"), "")?;
+    let offline = call(
+        PEER,
+        "GET",
+        &format!("/v1/attempts/{attempt_id}/pane"),
+        None,
+        None,
+    );
+    assert_eq!(offline.status, 503);
+    assert_eq!(offline.body["code"], "fleet_herdr_unavailable");
+    assert_eq!(
+        offline.body.pointer("/failure/code"),
+        Some(&json!("server_not_running"))
+    );
+    fs::remove_file(fleet.state.join("pane-offline"))?;
+
+    // 6. Prompt & interrupt steering + request_id deduplication and conflict check.
+    let prompt_resp = call(
+        COORDINATOR,
+        "POST",
+        &format!("/v1/attempts/{attempt_id}/prompt"),
+        None,
+        Some(json!({ "text": "Use BLAKE3 for ids", "request_id": "steer-1" })),
+    );
+    assert_eq!(prompt_resp.status, 200);
+    assert_eq!(prompt_resp.body["prompted"], true);
+    assert_eq!(fs::read_to_string(fleet.state.join("prompt.txt"))?, "Use BLAKE3 for ids");
+
+    let prompt_count_before = fs::read_to_string(fleet.state.join("prompts.log"))?
+        .lines()
+        .count();
+    let replay = call(
+        COORDINATOR,
+        "POST",
+        &format!("/v1/attempts/{attempt_id}/prompt"),
+        None,
+        Some(json!({ "text": "Use BLAKE3 for ids", "request_id": "steer-1" })),
+    );
+    assert_eq!(replay.status, 200);
+    assert_eq!(
+        fs::read_to_string(fleet.state.join("prompts.log"))?
+            .lines()
+            .count(),
+        prompt_count_before
+    );
+    let conflict = call(
+        COORDINATOR,
+        "POST",
+        &format!("/v1/attempts/{attempt_id}/prompt"),
+        None,
+        Some(json!({ "text": "Different text", "request_id": "steer-1" })),
+    );
+    assert_eq!(conflict.status, 409);
+
+    let interrupt_resp = call(
+        COORDINATOR,
+        "POST",
+        &format!("/v1/attempts/{attempt_id}/interrupt"),
+        None,
+        Some(json!({ "reason": "stop runaway loop", "request_id": "int-1" })),
+    );
+    assert_eq!(interrupt_resp.status, 200);
+    assert_eq!(interrupt_resp.body["interrupted"], true);
+    assert_eq!(fs::read_to_string(fleet.state.join("keys.log"))?.trim(), "ctrl+c");
+
+    // 7. Ended/cancelled attempt refuses pane/prompt/interrupt cleanly with 409.
+    let cancelled = call(
+        COORDINATOR,
+        "POST",
+        &format!("/v1/attempts/{attempt_id}/cancel"),
+        None,
+        Some(json!({ "reason": "operator cancel" })),
+    );
+    assert_eq!(cancelled.status, 200);
+    for (method, suffix, body) in [
+        ("GET", "pane", None),
+        ("POST", "prompt", Some(json!({ "text": "hello" }))),
+        ("POST", "interrupt", Some(json!({ "reason": "stop" }))),
+    ] {
+        let resp = call(
+            COORDINATOR,
+            method,
+            &format!("/v1/attempts/{attempt_id}/{suffix}"),
+            None,
+            body,
+        );
+        assert_eq!(resp.status, 409, "{method} {suffix}");
+    }
+
     Ok(())
 }

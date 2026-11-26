@@ -665,40 +665,39 @@
     const kind = runTiming(run)[field === "started_at_ms" ? "started" : "completed"];
     return Object.hasOwn(PENDING_TIMING, kind) ? pendingTiming(kind) : timeElement(kind === "recorded" ? run[field] : null);
   }
-  // r[impl kiln.web.wayfinding] One numbered register of console destinations. The rail, the page title block, the
+  // r[impl kiln.web.wayfinding] r[impl kiln.web.console_inventory_seven_destinations]
+  // One numbered register of console destinations. The rail, the page title block, the
   // Guide and the command palette all read it, so a destination's number, name and purpose cannot drift between them.
-  // Numbers follow the rail's reading order, as sections of a standards manual: 0 start here, 1 continuous
-  // integration, 2 work, 3 inspection, 4 administration. The project history page sits under CI projects.
+  // Primary rail exposes 7 destinations across 3 groups (1 Factory operations, 2 Delivery & execution,
+  // 3 Infrastructure & system) plus footer (0.0 Guide, 4.4 Settings); secondary views nest under their parent.
   const DESTINATION_GROUPS = Object.freeze([
-    ["0", "Start here"], ["1", "Continuous integration"], ["2", "Work"], ["3", "Inspect"], ["4", "Administration"],
+    ["0", "Start here"], ["1", "Factory operations"], ["2", "Delivery & execution"], ["3", "Infrastructure & system"], ["4", "Administration"],
   ].map(([number, name]) => Object.freeze({ number, name })));
   const DESTINATIONS = Object.freeze([
-    ["guide", "0.0", "Guide", "Find a page, look up a shortcut, or check what a run status means."],
-    ["overview", "1.1", "Factory", "Triage factory work and CI failures. Each source reports its own coverage."],
-    ["runs", "1.2", "Runs", "Find a run and inspect its pipeline, logs, or evidence."],
-    ["projects", "1.3", "CI projects", "Find a project, view its runs, or start a run from an admitted source."],
-    ["project", "1.3", "CI project", "Check this project’s health and history from retained runs.", "projects"],
-    ["workers", "1.4", "Workers", "Choose an execution target to see its project slots and latest execution."],
-    ["runbooks", "1.5", "Runbooks", "Choose a reviewed runbook, fill in its inputs, and select an allowed target."],
-    ["work", "2.1", "Issues", "Find or file an issue, then follow its discussion and linked CI results."],
-    ["inbox", "2.2", "My inbox", "Review assignments, mentions, and reminders. Opening an item leaves it unread."],
-    ["planning", "2.3", "Planning", "Organize issues by project, milestone, cycle, or initiative."],
-    ["code-review", "2.4", "Code review", "Review the exact revision and check what blocks submission. CI alone cannot authorize a merge."],
-    ["triage", "2.5", "Requests & triage", "Decide which requests to take on while preserving their original source."],
-    ["workviews", "2.6", "Saved views", "Reopen a saved filter or board."],
-    ["cairn", "2.7", "Cairn changes", "Find the next step or answer a campaign decision. This page does not claim, dispatch, or complete work."],
-    ["fleet", "2.8", "Fleet", "Check what needs attention, where attempts are running, and who holds claims. The coordinator authorizes all commands."],
-    ["cockpit", "2.9", "Change cockpit", "Follow an exact work version from its recorded sources through attempts and verification."],
-    ["source", "3.1", "Source", "Choose a repository and revision to browse files and changes without editing them."],
-    ["reviews", "3.2", "Patchgate receipts", "See what Patchgate decided and why. A receipt does not accept or merge a change."],
-    ["activity", "3.3", "Activity", "Trace recorded events and audit decisions."],
-    ["feeds", "3.4", "Feeds", "Follow retained-run feeds or subscribe to external feeds. Neither is CI evidence."],
-    ["evidence", "3.5", "Evidence", "Choose a retained run to inspect what it recorded."],
-    ["delivery", "3.6", "Delivery", "Inspect candidate and rollout evidence without confusing integration with activation."],
-    ["automation", "4.1", "Automation", "Check trigger, schedule, and delivery status. Only admitted registrations are editable."],
-    ["operations", "4.2", "Operations", "Check the queue, capacity, and retention limits. Warnings do not prune state."],
-    ["cobs", "4.3", "Raw collaboration history", "Inspect stored collaboration operations, not verified lifecycle state."],
-    ["settings", "4.4", "Settings", "Check your access or adjust appearance. Credentials are not saved here."],
+    ["guide", "0.0", "Guide", "Every destination by section number, how run states read, the words Kiln uses and the keyboard reference."],
+    ["overview", "1.1", "Factory", "Live Factory cockpit: attention escalations, delivery spine, speculative merge train, machine slot census and expiring claims."],
+    ["inbox", "1.2", "Attention", "Unified escalations, blocked agents, untrusted runs, assignments, requests & triage and expiring claims requiring operator action."],
+    ["triage", "1.2", "Requests & triage", "Review incoming requests, keep their original source and decide what to take on next.", "inbox"],
+    ["cairn", "2.1", "Delivery & Cairn", "Cairn changes, delivery units, issues, planning boards, saved views and campaign dependencies."],
+    ["work", "2.1", "Issues", "Capture an issue, decide what happens next, and follow its discussion and linked CI results.", "cairn"],
+    ["planning", "2.1", "Planning", "Organize issues into projects, milestones and cycles. Track larger goals with initiatives.", "cairn"],
+    ["workviews", "2.1", "Saved views", "Return to private or shared filters, boards and favorites saved in this workspace.", "cairn"],
+    ["runs", "2.2", "Runs & Evidence", "Filter retained runs, inspect pipelines, logs, CI projects, runbooks, Patchgate receipts and recorded evidence."],
+    ["projects", "2.2", "CI projects", "Choose a project to start a source-bound run, or browse its retained history.", "runs"],
+    ["project", "2.2", "CI project", "Health, streak, duration trend and recent runs, derived from this project's retained runs.", "runs"],
+    ["runbooks", "2.2", "Runbooks", "Choose a reviewed runbook, enter typed parameters and an allowed target, and dispatch a source-bound run.", "runs"],
+    ["reviews", "2.2", "Patchgate receipts", "What Patchgate decided for each reviewed change, why and when. A receipt is evidence only: it never accepts or merges a change.", "runs"],
+    ["evidence", "2.2", "Evidence", "Choose a retained run to inspect its source, execution and recorded evidence.", "runs"],
+    ["code-review", "2.3", "Code Review & Queue", "Review exact revisions, inline anchored threads, jj stack rail, submit requirements and the Speculative Merge Train."],
+    ["fleet", "3.1", "Fleet & Workers", "Fleet coordinator, machine slot census, live agent attempts, claims, swarms and configured worker execution targets."],
+    ["workers", "3.1", "Workers", "Find a configured execution target, check its project slots and inspect its latest execution.", "fleet"],
+    ["source", "3.2", "System & Source", "Source browser, retained activity timeline, repository feeds, automation policies, capacity operations and raw collaboration history."],
+    ["activity", "3.2", "Activity", "Browse retained canonical events and attributable audit decisions.", "source"],
+    ["feeds", "3.2", "Feeds", "Subscribe to Atom feeds of retained runs and follow external repository feeds. Feeds are read-only projections, not CI evidence.", "source"],
+    ["automation", "3.2", "Automation", "Inspect registered triggers, schedules and delivery outcomes. Only admitted registrations are editable.", "source"],
+    ["operations", "3.2", "Operations", "Inspect capacity, queued work and retention limits. No automatic pruning is performed.", "source"],
+    ["cobs", "3.2", "Raw collaboration history", "Browse local collaboration records. Raw operation history is not verified lifecycle state.", "source"],
+    ["settings", "4.4", "Settings", "Review your access and adjust appearance and density. Credentials are never saved by this page."],
   ].map(([page, number, title, purpose, parent = null]) => Object.freeze({ page, number, group: number.split(".")[0], title, purpose, parent })));
   // The destination of a page, or null for anything that is not a console page.
   function destination(page) {
