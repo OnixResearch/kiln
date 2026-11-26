@@ -213,7 +213,9 @@
           "file": "web.js",
           "global": null,
           "renderer": true,
-          "node_tests": []
+          "node_tests": [
+            "tests/web-module.test.mjs"
+          ]
         },
         {
           "file": "ui.js",
@@ -238,7 +240,9 @@
           "file": "web.js",
           "global": null,
           "renderer": true,
-          "node_tests": []
+          "node_tests": [
+            "tests/web-module.test.mjs"
+          ]
         }
       ],
       "stylesheets": [],
@@ -273,7 +277,9 @@
           "file": "web.js",
           "global": null,
           "renderer": true,
-          "node_tests": []
+          "node_tests": [
+            "tests/web-module.test.mjs"
+          ]
         },
         {
           "file": "receipts.js",
@@ -329,7 +335,9 @@
           "file": "web.js",
           "global": null,
           "renderer": true,
-          "node_tests": []
+          "node_tests": [
+            "tests/web-module.test.mjs"
+          ]
         }
       ],
       "stylesheets": [],
@@ -354,7 +362,9 @@
           "file": "project.js",
           "global": "KilnProject",
           "renderer": true,
-          "node_tests": []
+          "node_tests": [
+            "tests/project-ui.test.mjs"
+          ]
         }
       ],
       "stylesheets": [
@@ -428,7 +438,9 @@
           "file": "work.js",
           "global": "KilnWorkUI",
           "renderer": true,
-          "node_tests": []
+          "node_tests": [
+            "tests/work-module.test.mjs"
+          ]
         },
         {
           "file": "work-board.js",
@@ -441,7 +453,9 @@
         {
           "file": "work-evidence.js",
           "global": "KilnWorkEvidence",
-          "node_tests": []
+          "node_tests": [
+            "tests/work-module.test.mjs"
+          ]
         },
         {
           "file": "work-interaction.js",
@@ -489,7 +503,9 @@
           "file": "work.js",
           "global": "KilnWorkUI",
           "renderer": true,
-          "node_tests": []
+          "node_tests": [
+            "tests/work-module.test.mjs"
+          ]
         },
         {
           "file": "work-board.js",
@@ -502,7 +518,9 @@
         {
           "file": "work-evidence.js",
           "global": "KilnWorkEvidence",
-          "node_tests": []
+          "node_tests": [
+            "tests/work-module.test.mjs"
+          ]
         },
         {
           "file": "work-interaction.js",
@@ -550,7 +568,9 @@
           "file": "work.js",
           "global": "KilnWorkUI",
           "renderer": true,
-          "node_tests": []
+          "node_tests": [
+            "tests/work-module.test.mjs"
+          ]
         },
         {
           "file": "work-board.js",
@@ -563,7 +583,9 @@
         {
           "file": "work-evidence.js",
           "global": "KilnWorkEvidence",
-          "node_tests": []
+          "node_tests": [
+            "tests/work-module.test.mjs"
+          ]
         },
         {
           "file": "work-interaction.js",
@@ -674,7 +696,9 @@
           "file": "work.js",
           "global": "KilnWorkUI",
           "renderer": true,
-          "node_tests": []
+          "node_tests": [
+            "tests/work-module.test.mjs"
+          ]
         },
         {
           "file": "work-board.js",
@@ -687,7 +711,9 @@
         {
           "file": "work-evidence.js",
           "global": "KilnWorkEvidence",
-          "node_tests": []
+          "node_tests": [
+            "tests/work-module.test.mjs"
+          ]
         },
         {
           "file": "work-interaction.js",
@@ -735,7 +761,9 @@
           "file": "work.js",
           "global": "KilnWorkUI",
           "renderer": true,
-          "node_tests": []
+          "node_tests": [
+            "tests/work-module.test.mjs"
+          ]
         },
         {
           "file": "work-board.js",
@@ -748,7 +776,9 @@
         {
           "file": "work-evidence.js",
           "global": "KilnWorkEvidence",
-          "node_tests": []
+          "node_tests": [
+            "tests/work-module.test.mjs"
+          ]
         },
         {
           "file": "work-interaction.js",
@@ -851,7 +881,9 @@
           "file": "fleet.js",
           "global": "KilnFleet",
           "renderer": true,
-          "node_tests": []
+          "node_tests": [
+            "tests/fleet-ui.test.mjs"
+          ]
         },
         {
           "file": "fleet-runtime.js",
@@ -863,7 +895,9 @@
           "file": "fleet-capacity.js",
           "global": "KilnFleetCapacity",
           "renderer": false,
-          "node_tests": []
+          "node_tests": [
+            "tests/fleet-ui.test.mjs"
+          ]
         },
         {
           "file": "cairn.js",
@@ -989,7 +1023,9 @@
           "file": "web.js",
           "global": null,
           "renderer": true,
-          "node_tests": []
+          "node_tests": [
+            "tests/web-module.test.mjs"
+          ]
         }
       ],
       "stylesheets": [],
@@ -1015,7 +1051,9 @@
           "file": "web.js",
           "global": null,
           "renderer": true,
-          "node_tests": []
+          "node_tests": [
+            "tests/web-module.test.mjs"
+          ]
         }
       ],
       "stylesheets": [],
@@ -1044,7 +1082,9 @@
           "file": "web.js",
           "global": null,
           "renderer": true,
-          "node_tests": []
+          "node_tests": [
+            "tests/web-module.test.mjs"
+          ]
         }
       ],
       "stylesheets": [],
@@ -1071,7 +1111,9 @@
           "file": "web.js",
           "global": null,
           "renderer": true,
-          "node_tests": []
+          "node_tests": [
+            "tests/web-module.test.mjs"
+          ]
         }
       ],
       "stylesheets": [],
@@ -1096,7 +1138,9 @@
           "file": "web.js",
           "global": null,
           "renderer": true,
-          "node_tests": []
+          "node_tests": [
+            "tests/web-module.test.mjs"
+          ]
         }
       ],
       "stylesheets": [],
@@ -1120,7 +1164,9 @@
           "file": "web.js",
           "global": null,
           "renderer": true,
-          "node_tests": []
+          "node_tests": [
+            "tests/web-module.test.mjs"
+          ]
         }
       ],
       "stylesheets": [],
@@ -1154,7 +1200,9 @@
           "file": "web.js",
           "global": null,
           "renderer": true,
-          "node_tests": []
+          "node_tests": [
+            "tests/web-module.test.mjs"
+          ]
         }
       ],
       "stylesheets": [],

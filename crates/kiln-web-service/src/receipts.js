@@ -871,10 +871,725 @@
     if (otherReviews) notes.push(`${plural(otherReviews, "review report")} ${otherReviews === 1 ? "is" : "are"} not a Patchgate receipt`);
     if (other) notes.push(`${plural(other, "other report")}`);
     if (notes.length) parent.append(element("p", `${notes.join("; ")}: shown under Tests & coverage.`, "small"));
+
+    const passportInput = {
+      current_candidate_id: filled(own(ctx, "candidateId")) || filled(own(result, "candidate_id")),
+      current_revision: filled(own(ctx, "sourceRevision")) || filled(own(result, "source_revision")),
+      reports: records,
+      checks: Array.isArray(own(ctx, "checks")) ? ctx.checks : Array.isArray(own(result, "checks")) ? result.checks : [],
+      cairn_completion: own(ctx, "cairnCompletion") ?? own(result, "cairn_completion") ?? own(result, "authoritative_completion"),
+      handoff: own(ctx, "handoff") ?? own(result, "handoff"),
+      plan_review: own(ctx, "planReview") ?? own(result, "plan_review"),
+      semantic_merge: own(ctx, "semanticMerge") ?? own(result, "semantic_merge"),
+      provenance: own(ctx, "provenance") ?? own(result, "provenance"),
+    };
+    const passport = normalizeGatePassport(passportInput);
+    if (passport.entries.length) parent.prepend(renderGatePassport(passportInput, { title: "Run Gate & Receipt Passport" }));
+  }
+
+  // ---------- Unified Gate & Receipt Passport ----------
+  // r[impl kiln.cairn.gate_passport_surface]
+  const PROVENANCE = Object.freeze({
+    observed: Object.freeze({
+      key: "observed",
+      label: "Observed Receipt",
+      border: "solid",
+      tone: "success",
+      description: "Independent canonical receipt or retained artifact observed by Kiln.",
+    }),
+    agent_claim: Object.freeze({
+      key: "agent-claim",
+      label: "Agent Claim",
+      border: "dotted",
+      tone: "warning",
+      description: "Self-reported agent handoff, proposal, or advisory claim; never satisfies canonical verification.",
+    }),
+    declared: Object.freeze({
+      key: "declared",
+      label: "Declared",
+      border: "dashed",
+      tone: "unknown",
+      description: "Declared policy gate, pending obligation, or unverified metadata without an observed receipt.",
+    }),
+  });
+
+  const PASSPORT_CATEGORIES = Object.freeze([
+    ["ci_checks", "Typed CI checks"],
+    ["cairn_completion", "cairn-authoritative-completion & handoffs"],
+    ["patchgate", "Patchgate review decisions"],
+    ["provenance_digests", "SLSA / in-toto digests"],
+    ["plan_review", "Plan Review receipts"],
+    ["semantic_merge", "Semantic Merge O/A/B/M quartets"],
+  ]);
+
+  function normalizeProvenance(value, fallback = "declared") {
+    const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
+    if (raw === "observed" || raw === "observed_receipt" || raw === "receipt" || raw === "canonical") return PROVENANCE.observed;
+    if (raw === "agent_claim" || raw === "agent-claim" || raw === "agent" || raw === "handoff" || raw === "self_reported") return PROVENANCE.agent_claim;
+    if (raw === "declared" || raw === "pending" || raw === "unverified") return PROVENANCE.declared;
+    return PROVENANCE[fallback] || PROVENANCE.declared;
+  }
+
+  function passportOutcomeTone(value) {
+    const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
+    if (["pass", "passed", "verified", "accepted", "success", "complete", "completed", "unchanged", "changed"].includes(raw)) return "success";
+    if (["fail", "failed", "failure", "rejected", "counterexample", "error", "toolerror", "tool_error", "veto", "denied", "prevented"].includes(raw)) return "failure";
+    if (["running", "active", "in_progress"].includes(raw)) return "running";
+    if (["pending", "waiting", "queued", "unreviewed", "no_plan", "unverified", "unverified / pending"].includes(raw)) return "queued";
+    if (["cancelled", "skipped", "removed", "reverted"].includes(raw)) return "cancelled";
+    if (["escalated", "blocked", "unresolved", "changes_requested", "unavailable", "exhausted", "stale", "warning"].includes(raw)) return "warning";
+    return "unknown";
+  }
+
+  function isStaleCandidate(item, currentCandidateId, currentRevision) {
+    if (!isRecord(item)) return false;
+    if (own(item, "stale") === true || own(item, "superseded") === true || own(item, "historical") === true || own(item, "is_current") === false) return true;
+    const candidateId = filled(own(item, "candidate_id")) || filled(own(own(item, "candidate"), "id"));
+    if (currentCandidateId && candidateId && candidateId !== currentCandidateId) return true;
+    const rev = filled(own(item, "revision")) || filled(own(item, "source_revision"));
+    if (currentRevision && rev && rev !== currentRevision) return true;
+    return false;
+  }
+
+  function formatDigestMap(digest) {
+    if (!isRecord(digest)) return [];
+    return Object.entries(digest)
+      .filter(([, val]) => typeof val === "string" && val.trim())
+      .map(([alg, val]) => `${alg}:${val}`);
+  }
+
+  function quartetSlot(labelText, role) {
+    if (typeof role === "string" && role.trim()) return { role: labelText, revision: role.trim(), canonical_tree: null, channel: null };
+    if (!isRecord(role)) return { role: labelText, revision: null, canonical_tree: null, channel: null };
+    const source = isRecord(own(role, "source")) ? role.source : role;
+    return {
+      role: labelText,
+      revision: filled(own(source, "exact_revision")) || filled(own(own(source, "exact_revision"), "native_id")) || filled(own(source, "revision")) || filled(own(source, "commit")) || filled(own(role, "id")),
+      canonical_tree: filled(own(source, "canonical_tree")) || filled(own(role, "canonical_tree")),
+      channel: filled(own(source, "symbolic_reference")) || filled(own(own(source, "symbolic_reference"), "native_id")) || filled(own(source, "channel")),
+    };
+  }
+
+  function normalizeGatePassport(raw) {
+    const data = isRecord(raw) ? raw : {};
+    const currentCandidateId = filled(own(data, "current_candidate_id")) || filled(own(data, "candidate_id"));
+    const currentRevision = filled(own(data, "current_revision")) || filled(own(data, "source_revision"));
+    const entries = [];
+    const seenCompletionRecords = [];
+    const agentHandoffs = [];
+
+    const pushEntry = (category, item, sourceObj) => {
+      const candidateId = filled(own(item, "candidate_id")) || filled(own(sourceObj, "candidate_id")) || filled(own(own(sourceObj, "candidate"), "id"));
+      const rev = filled(own(item, "revision")) || filled(own(sourceObj, "revision")) || filled(own(sourceObj, "source_revision"));
+      const stale = item.stale === true || isStaleCandidate(sourceObj, currentCandidateId, currentRevision);
+      const isCurrent = !stale && Boolean(
+        (currentCandidateId && candidateId && candidateId === currentCandidateId)
+        || (currentRevision && rev && rev === currentRevision)
+        || own(sourceObj, "is_current") === true
+      );
+      entries.push(Object.freeze({
+        ...item,
+        category,
+        candidate_id: candidateId,
+        revision: rev,
+        stale,
+        is_current: isCurrent,
+        raw: sourceObj,
+      }));
+    };
+
+    // 1. Typed CI checks (also route any cairn-authoritative-completion check through category 2 honesty rules).
+    const ciChecks = [];
+    if (Array.isArray(own(data, "checks"))) {
+      for (const check of data.checks) if (isRecord(check)) ciChecks.push(check);
+    }
+    if (Array.isArray(own(data, "ci_runs"))) {
+      for (const fact of data.ci_runs) {
+        if (!isRecord(fact)) continue;
+        const factRev = filled(own(fact, "revision"));
+        const factCandidate = filled(own(fact, "candidate_id"));
+        const checks = Array.isArray(own(fact, "checks")) ? fact.checks : [];
+        if (checks.length) {
+          for (const check of checks) {
+            if (!isRecord(check)) continue;
+            ciChecks.push({
+              ...check,
+              run_id: filled(own(check, "run_id")) || filled(own(fact, "run_id")),
+              revision: filled(own(check, "revision")) || factRev,
+              candidate_id: filled(own(check, "candidate_id")) || factCandidate,
+              full_run: own(fact, "full_run"),
+              clean: own(fact, "clean"),
+              untrusted: own(fact, "untrusted"),
+            });
+          }
+        } else {
+          ciChecks.push({
+            name: filled(own(fact, "project")) ? `CI · ${fact.project}` : `CI run ${short(own(fact, "run_id") || "unknown")}`,
+            kind: "canonical_ci_run",
+            outcome: own(fact, "success") === true ? "passed" : "pending",
+            run_id: filled(own(fact, "run_id")),
+            revision: factRev,
+            candidate_id: factCandidate,
+            full_run: own(fact, "full_run"),
+            clean: own(fact, "clean"),
+            untrusted: own(fact, "untrusted"),
+          });
+        }
+      }
+    }
+
+    for (const check of ciChecks) {
+      const name = filled(own(check, "name")) || filled(own(check, "id")) || "Unnamed check";
+      const kind = filled(own(check, "kind")) || "check";
+      if (name === "cairn-authoritative-completion" || kind === "cairn-agent-completion-v2") {
+        seenCompletionRecords.push(check);
+        continue;
+      }
+      const selfReported = own(check, "self_reported") === true || own(check, "provenance") === "agent_claim" || own(check, "provenance") === "agent-claim";
+      const outcomeRaw = filled(own(check, "outcome")) || filled(own(check, "state")) || "unknown";
+      const untrusted = own(check, "untrusted");
+      const untrustedBlocked = isRecord(untrusted) && own(untrusted, "counts_for_required_ci") === false;
+      const hasReceipt = Boolean(filled(own(check, "artifact_digest")) || filled(own(check, "run_id")) || own(check, "receipt_identity"));
+      const prov = selfReported
+        ? PROVENANCE.agent_claim
+        : filled(own(check, "provenance"))
+          ? normalizeProvenance(check.provenance, "observed")
+          : (!hasReceipt && ["unknown", "pending", "missing", "unavailable", "not_recorded"].includes(outcomeRaw.toLowerCase())) || untrustedBlocked
+            ? PROVENANCE.declared
+            : PROVENANCE.observed;
+      const factsRows = [
+        ["Kind", kind],
+        ...(filled(own(check, "run_id")) ? [["Run", check.run_id]] : []),
+        ...(filled(own(check, "artifact_digest")) ? [["Artifact digest", check.artifact_digest]] : []),
+        ...(typeof own(check, "full_run") === "boolean" ? [["Scope", check.full_run ? "Full run" : "Partial run"]] : []),
+        ...(typeof own(check, "clean") === "boolean" ? [["Snapshot", check.clean ? "Clean" : "Dirty"]] : []),
+        ...(untrustedBlocked ? [["Untrusted policy", "Does not count for required CI"]] : []),
+      ];
+      pushEntry("ci_checks", {
+        title: name,
+        statusLabel: outcomeRaw,
+        tone: passportOutcomeTone(outcomeRaw),
+        provenance: prov,
+        summary: selfReported ? "Self-reported check claim; not independently verified." : `${kind} · ${outcomeRaw}`,
+        identities: [filled(own(check, "artifact_digest")), filled(own(check, "run_id"))].filter(Boolean),
+        facts: factsRows,
+      }, check);
+    }
+
+    // 2. cairn-authoritative-completion receipts & agent handoffs (strict honesty invariant).
+    const rawHandoffs = [
+      ...(isRecord(own(data, "handoff")) ? [data.handoff] : []),
+      ...(Array.isArray(own(data, "handoffs")) ? data.handoffs : []),
+      ...(isRecord(own(own(data, "verification"), "handoff")) ? [data.verification.handoff] : []),
+      ...(isRecord(own(data, "agent_handoff")) ? [data.agent_handoff] : []),
+    ];
+    for (const h of rawHandoffs) agentHandoffs.push(h);
+
+    const rawCompletions = [
+      ...(isRecord(own(data, "cairn_completion")) ? [data.cairn_completion] : []),
+      ...(Array.isArray(own(data, "cairn_completion")) ? data.cairn_completion : []),
+      ...(isRecord(own(data, "authoritative_completion")) ? [data.authoritative_completion] : []),
+      ...(filled(own(data, "authoritative_completion")) ? [{ receipt_id: data.authoritative_completion, outcome: "verified", provenance: "observed" }] : []),
+      ...(isRecord(own(data, "verification")) ? [data.verification] : []),
+      ...seenCompletionRecords,
+    ];
+
+    const independentCompletions = [];
+    for (const comp of rawCompletions) {
+      if (!isRecord(comp)) continue;
+      const isClaim = own(comp, "self_reported") === true
+        || own(comp, "provenance") === "agent_claim"
+        || own(comp, "provenance") === "agent-claim"
+        || own(comp, "kind") === "agent_handoff";
+      if (isClaim) {
+        agentHandoffs.push(comp);
+        continue;
+      }
+      // If a verification provenance object carries independent_receipt: null/missing, it is NOT independently verified!
+      const hasExplicitMissingIndependentReceipt = Object.hasOwn(comp, "independent_receipt") && !filled(own(comp, "independent_receipt"));
+      const hasExplicitNoReceiptFlag = own(comp, "has_independent_receipt") === false || own(comp, "verified") === false;
+      const receiptId = filled(own(comp, "independent_receipt"))
+        || filled(own(comp, "receipt_id"))
+        || filled(own(comp, "completion_id"))
+        || filled(own(comp, "artifact_digest"))
+        || filled(own(comp, "binding"));
+      const outcomeRaw = filled(own(comp, "outcome")) || filled(own(comp, "state")) || filled(own(comp, "status")) || "unknown";
+      const claimsPass = ["pass", "passed", "verified", "success", "complete", "completed"].includes(outcomeRaw.toLowerCase());
+      if (hasExplicitMissingIndependentReceipt || hasExplicitNoReceiptFlag || (claimsPass && !receiptId && own(comp, "verified") !== true && own(comp, "provenance") !== "observed")) {
+        // Never mark cairn-authoritative-completion as passed without an independent canonical receipt!
+        independentCompletions.push({ ...comp, __unverifiedPending: true });
+      } else {
+        independentCompletions.push(comp);
+      }
+    }
+
+    for (const h of agentHandoffs) {
+      const claimOutcome = filled(own(h, "outcome")) || filled(own(h, "status")) || filled(own(h, "state")) || "reported";
+      const actor = filled(own(h, "agent")) || filled(own(h, "principal")) || filled(own(h, "actor")) || filled(own(own(h, "submitted_by"), "principal")) || "Agent";
+      const handoffTone = ["fail", "failed", "aborted"].includes(claimOutcome.toLowerCase()) ? "failure" : "warning";
+      pushEntry("cairn_completion", {
+        title: `Agent handoff · ${actor}`,
+        statusLabel: `Claimed: ${claimOutcome}`,
+        tone: handoffTone,
+        provenance: PROVENANCE.agent_claim,
+        summary: "Self-reported agent handoff. Carries dotted Agent Claim provenance and never satisfies cairn-authoritative-completion.",
+        identities: [filled(own(h, "attempt_id")), filled(own(h, "handoff_id")), filled(own(h, "subject_hash")), filled(own(h, "candidate_id"))].filter(Boolean),
+        facts: [
+          ["Principal / agent", actor],
+          ["Self-reported status", claimOutcome],
+          ...(filled(own(h, "attempt_id")) ? [["Attempt", h.attempt_id]] : []),
+          ...(filled(own(h, "subject_hash")) ? [["Subject hash", h.subject_hash]] : []),
+          ["Verification authority", "None — independent canonical verification required"],
+        ],
+      }, h);
+    }
+
+    let canonicalCompletionPassed = false;
+    if (independentCompletions.length) {
+      for (const comp of independentCompletions) {
+        if (comp.__unverifiedPending) {
+          pushEntry("cairn_completion", {
+            title: "cairn-authoritative-completion",
+            statusLabel: "Unverified / Pending",
+            tone: "queued",
+            provenance: PROVENANCE.declared,
+            summary: "No independent canonical cairn-authoritative-completion receipt is present. Gate remains unverified/pending.",
+            identities: [filled(own(comp, "binding")), filled(own(comp, "observation_identity")), filled(own(comp, "candidate_id"))].filter(Boolean),
+            facts: [
+              ["Gate", "cairn-authoritative-completion"],
+              ["Canonical receipt", "Not recorded"],
+              ["Status", "Unverified / Pending"],
+            ],
+          }, comp);
+        } else {
+          const outcomeRaw = filled(own(comp, "outcome")) || filled(own(comp, "state")) || filled(own(comp, "status")) || (own(comp, "verified") === true ? "verified" : "unknown");
+          const isPass = ["pass", "passed", "verified", "success", "complete", "completed"].includes(outcomeRaw.toLowerCase());
+          const stale = isStaleCandidate(comp, currentCandidateId, currentRevision);
+          if (isPass && !stale) canonicalCompletionPassed = true;
+          const receiptId = filled(own(comp, "independent_receipt")) || filled(own(comp, "receipt_id")) || filled(own(comp, "completion_id")) || filled(own(comp, "artifact_digest")) || filled(own(comp, "binding"));
+          const prov = isPass ? PROVENANCE.observed : (receiptId ? PROVENANCE.observed : PROVENANCE.declared);
+          pushEntry("cairn_completion", {
+            title: "cairn-authoritative-completion",
+            statusLabel: isPass ? "Passed" : outcomeRaw,
+            tone: passportOutcomeTone(outcomeRaw),
+            provenance: prov,
+            summary: isPass ? "Independent canonical completion receipt observed." : `Canonical completion outcome: ${outcomeRaw}`,
+            identities: [receiptId, filled(own(comp, "observation_identity")), filled(own(comp, "run_id"))].filter(Boolean),
+            facts: [
+              ["Gate", "cairn-authoritative-completion"],
+              ["Receipt", receiptId || "Not recorded"],
+              ...(filled(own(comp, "verifier")) ? [["Verifier", comp.verifier]] : []),
+              ...(filled(own(comp, "run_id")) ? [["Verification run", comp.run_id]] : []),
+            ],
+          }, comp);
+        }
+      }
+    } else if (agentHandoffs.length > 0 || own(data, "require_cairn_completion") === true) {
+      pushEntry("cairn_completion", {
+        title: "cairn-authoritative-completion",
+        statusLabel: "Unverified / Pending",
+        tone: "queued",
+        provenance: PROVENANCE.declared,
+        summary: "An agent handoff is present without an independent cairn-authoritative-completion receipt. Canonical verification is unverified/pending.",
+        identities: [],
+        facts: [
+          ["Gate", "cairn-authoritative-completion"],
+          ["Canonical receipt", "Absent"],
+          ["Status", "Unverified / Pending"],
+        ],
+      }, { candidate_id: currentCandidateId, revision: currentRevision });
+    }
+
+    // 3. Patchgate review decisions
+    const reports = Array.isArray(own(data, "reports")) ? data.reports : [];
+    const patchgateSources = [
+      ...(isRecord(own(data, "patchgate")) ? [data.patchgate] : []),
+      ...(Array.isArray(own(data, "patchgate")) ? data.patchgate : []),
+      ...(Array.isArray(own(data, "reviews")) ? data.reviews : []),
+    ];
+    for (const reportRecord of reports) {
+      if (!isRecord(reportRecord)) continue;
+      const doc = own(own(own(reportRecord, "report"), "evidence"), "document");
+      if (own(doc, "schema") === SCHEMA) {
+        patchgateSources.push({
+          ...doc,
+          name: filled(own(reportRecord, "name")),
+          node_id: filled(own(reportRecord, "node_id")),
+          revision: filled(own(reportRecord, "source_revision")),
+          artifact_blake3: filled(own(own(reportRecord, "artifact"), "blake3")),
+        });
+      } else if (own(reportRecord, "kind") === "review" && filled(own(reportRecord, "unavailable"))) {
+        patchgateSources.push({
+          unavailable: reportRecord.unavailable,
+          name: filled(own(reportRecord, "name")) || "Patchgate review",
+          node_id: filled(own(reportRecord, "node_id")),
+          revision: filled(own(reportRecord, "source_revision")),
+        });
+      }
+    }
+    for (const pg of patchgateSources) {
+      if (!isRecord(pg)) continue;
+      if (filled(own(pg, "unavailable"))) {
+        pushEntry("patchgate", {
+          title: filled(own(pg, "name")) || "Patchgate review",
+          statusLabel: `Unavailable (${pg.unavailable})`,
+          tone: "warning",
+          provenance: PROVENANCE.declared,
+          summary: `Declared review report bytes were ${pg.unavailable}. No decision is inferred.`,
+          identities: [],
+          facts: [
+            ["Node", filled(own(pg, "node_id"))],
+            ["Unavailable reason", pg.unavailable],
+          ],
+        }, pg);
+        continue;
+      }
+      const obs = isRecord(own(pg, "observation")) ? pg.observation : pg;
+      const reviews = Array.isArray(own(obs, "reviews")) ? obs.reviews : Array.isArray(own(pg, "decisions")) ? pg.decisions : [];
+      const counts = tally(reviews);
+      const isolated = own(obs, "isolated");
+      const prov = own(pg, "provenance")
+        ? normalizeProvenance(pg.provenance, "observed")
+        : isolated === false ? PROVENANCE.agent_claim : PROVENANCE.observed;
+      const topDecision = filled(own(pg, "decision")) || (counts.length ? counts.map((c) => `${c.count} ${c.label}`).join(", ") : "No changes recorded");
+      const anyFailed = counts.some((c) => c.tone === "failure") || ["rejected", "veto"].includes(String(own(pg, "decision") || "").toLowerCase());
+      const anyWarning = counts.some((c) => c.tone === "warning") || isolated !== true;
+      const tone = anyFailed ? "failure" : anyWarning ? "warning" : counts.length || own(pg, "decision") === "accepted" ? "success" : "unknown";
+      pushEntry("patchgate", {
+        title: filled(own(pg, "name")) || "Patchgate receipt",
+        statusLabel: topDecision,
+        tone,
+        provenance: prov,
+        summary: isolated === true
+          ? "Isolated Patchgate review decisions (evidence only; grants no merge authority)."
+          : "Isolation not recorded; read decisions as producer claim.",
+        identities: [filled(own(obs, "report_identity")), filled(own(pg, "request_identity")), filled(own(pg, "artifact_blake3")), filled(own(obs, "candidate_id"))].filter(Boolean),
+        facts: [
+          ["Decisions", topDecision],
+          ["Isolated", isolated === true ? "Yes" : isolated === false ? "No" : "Not recorded"],
+          ...(filled(own(obs, "report_identity")) ? [["Report identity", obs.report_identity]] : []),
+          ...(filled(own(obs, "candidate_id")) ? [["Candidate", obs.candidate_id]] : []),
+        ],
+      }, { ...pg, candidate_id: filled(own(obs, "candidate_id")) || filled(own(pg, "candidate_id")), revision: filled(own(pg, "revision")) || filled(own(obs, "source_revision")) });
+    }
+
+    // 4. SLSA / in-toto subject & dependency digests
+    const provenanceSources = [
+      ...(isRecord(own(data, "provenance")) ? [data.provenance] : []),
+      ...(Array.isArray(own(data, "provenance")) ? data.provenance : []),
+      ...(isRecord(own(data, "in_toto")) ? [data.in_toto] : []),
+      ...(isRecord(own(data, "slsa")) ? [data.slsa] : []),
+    ];
+    for (const reportRecord of reports) {
+      if (!isRecord(reportRecord)) continue;
+      const report = own(reportRecord, "report") || reportRecord;
+      const doc = own(own(report, "evidence"), "document");
+      if (own(report, "kind") === "provenance" && isRecord(doc) && own(doc, "_type") === "https://in-toto.io/Statement/v1") {
+        provenanceSources.push({
+          ...doc,
+          report_id: filled(own(reportRecord, "id")),
+          revision: filled(own(reportRecord, "source_revision")),
+          source_blake3: filled(own(report, "source_blake3")),
+        });
+      }
+    }
+    for (const stmt of provenanceSources) {
+      if (!isRecord(stmt)) continue;
+      const predicate = isRecord(own(stmt, "predicate")) ? stmt.predicate : {};
+      const buildDef = isRecord(own(predicate, "buildDefinition")) ? predicate.buildDefinition : {};
+      const runDetails = isRecord(own(predicate, "runDetails")) ? predicate.runDetails : {};
+      const ext = isRecord(own(buildDef, "externalParameters")) ? buildDef.externalParameters : {};
+      const subjects = Array.isArray(own(stmt, "subject")) ? stmt.subject : [];
+      const deps = Array.isArray(own(buildDef, "resolvedDependencies")) ? buildDef.resolvedDependencies : [];
+      const hasStatement = own(stmt, "_type") === "https://in-toto.io/Statement/v1" || subjects.length > 0 || Boolean(filled(own(stmt, "source_blake3")));
+      const prov = own(stmt, "provenance")
+        ? normalizeProvenance(stmt.provenance, hasStatement ? "observed" : "declared")
+        : (hasStatement ? PROVENANCE.observed : PROVENANCE.declared);
+      const subjectRows = subjects.map((s) => ({
+        name: filled(own(s, "name")) || "subject",
+        digests: formatDigestMap(own(s, "digest")),
+      }));
+      const depRows = deps.map((d) => ({
+        name: filled(own(d, "uri")) || filled(own(d, "name")) || "dependency",
+        digests: formatDigestMap(own(d, "digest")),
+      }));
+      const signed = own(stmt, "signed") === true;
+      pushEntry("provenance_digests", {
+        title: filled(own(stmt, "title")) || "SLSA / in-toto provenance",
+        statusLabel: signed ? "Signed statement" : hasStatement ? "Unsigned statement" : "Declared provenance",
+        tone: hasStatement ? "info" : "queued",
+        provenance: prov,
+        summary: signed
+          ? `${subjectRows.length} subject(s), ${depRows.length} resolved dependencies.`
+          : `Unsigned provenance projection (${subjectRows.length} subject(s), ${depRows.length} dependencies). Does not establish builder trust or SLSA build level.`,
+        identities: [filled(own(stmt, "source_blake3")), filled(own(stmt, "report_id")), filled(own(ext, "sourceOrCandidate"))].filter(Boolean),
+        subjects: subjectRows,
+        dependencies: depRows,
+        facts: [
+          ["Predicate", filled(own(stmt, "predicateType")) || filled(own(stmt, "predicate_type"))],
+          ["Build type", filled(own(buildDef, "buildType")) || filled(own(stmt, "build_type"))],
+          ["Builder", filled(own(own(runDetails, "builder"), "id")) || filled(own(stmt, "builder_id"))],
+          ["Subjects", `${subjectRows.length}`],
+          ["Dependencies", `${depRows.length}`],
+        ],
+      }, { ...stmt, candidate_id: filled(own(stmt, "candidate_id")) || filled(own(ext, "candidateId")), revision: filled(own(stmt, "revision")) || filled(own(ext, "sourceOrCandidate")) });
+    }
+
+    // 5. Plan Review receipts (docs/plan-review.md)
+    const planSources = [
+      ...(isRecord(own(data, "plan_review")) ? [data.plan_review] : []),
+      ...(Array.isArray(own(data, "plan_reviews")) ? data.plan_reviews : []),
+      ...(isRecord(own(data, "plan_review_receipt")) ? [data.plan_review_receipt] : []),
+    ];
+    for (const pr of planSources) {
+      if (!isRecord(pr)) continue;
+      const gate = filled(own(pr, "gate")) || filled(own(pr, "outcome")) || filled(own(pr, "decision")) || "unreviewed";
+      const gateLower = gate.toLowerCase();
+      const hasDecision = ["accepted", "changes_requested", "changed", "prevented", "unchanged"].includes(gateLower);
+      const isAgentOnly = own(pr, "self_reported") === true || own(pr, "provenance") === "agent_claim" || own(pr, "provenance") === "agent-claim";
+      const prov = own(pr, "provenance")
+        ? normalizeProvenance(pr.provenance, hasDecision ? "observed" : "declared")
+        : isAgentOnly ? PROVENANCE.agent_claim : hasDecision ? PROVENANCE.observed : PROVENANCE.declared;
+      const comp = isRecord(own(pr, "comparison")) ? pr.comparison : null;
+      const compSummary = comp
+        ? `kept ${count(own(comp, "kept")) ?? (Array.isArray(comp.kept) ? comp.kept.length : 0)}, changed ${count(own(comp, "changed")) ?? (Array.isArray(comp.changed) ? comp.changed.length : 0)}, added ${count(own(comp, "added")) ?? (Array.isArray(comp.added) ? comp.added.length : 0)}, removed ${count(own(comp, "removed")) ?? (Array.isArray(comp.removed) ? comp.removed.length : 0)}`
+        : null;
+      pushEntry("plan_review", {
+        title: filled(own(pr, "title")) || `Plan Review · ${filled(own(pr, "work_id")) || "work"}`,
+        statusLabel: gate,
+        tone: passportOutcomeTone(gate),
+        provenance: prov,
+        summary: filled(own(pr, "summary")) || (gateLower === "unavailable" ? `Plan review unavailable (${filled(own(pr, "reason")) || "missing_plan"}). Never a pass.` : "Plan review precedes implementation admission; never substitutes for CI or code review."),
+        identities: [filled(own(pr, "plan_id")), filled(own(pr, "receipt_identity")), filled(own(pr, "work_id"))].filter(Boolean),
+        facts: [
+          ["Gate / Outcome", gate],
+          ...(filled(own(pr, "plan_id")) ? [["Plan ID", pr.plan_id]] : []),
+          ...(count(own(pr, "plan_revision")) !== null ? [["Plan revision", String(pr.plan_revision)]] : count(own(pr, "revision_number")) !== null ? [["Plan revision", String(pr.revision_number)]] : []),
+          ...(filled(own(pr, "reviewer")) ? [["Reviewer", pr.reviewer]] : []),
+          ...(compSummary ? [["Comparison vs prior", compSummary]] : []),
+          ...(Array.isArray(own(pr, "unresolved")) ? [["Unresolved blocking", String(pr.unresolved.length)]] : []),
+        ],
+      }, pr);
+    }
+
+    // 6. Semantic Merge O/A/B/M quartet observations (docs/semantic-merge-orchestration.md)
+    const semanticSources = [
+      ...(isRecord(own(data, "semantic_merge")) ? [data.semantic_merge] : []),
+      ...(Array.isArray(own(data, "semantic_merges")) ? data.semantic_merges : []),
+    ];
+    for (const sm of semanticSources) {
+      if (!isRecord(sm)) continue;
+      const outcomeRaw = filled(own(sm, "outcome")) || filled(own(sm, "status")) || "Unknown";
+      const modeRaw = filled(own(sm, "mode")) || "Required";
+      const isStaleOutcome = /^stale/i.test(outcomeRaw) || own(sm, "revalidation_moved") === true;
+      const hasReceipt = Boolean(filled(own(sm, "receipt_identity")) || filled(own(sm, "request_identity")) || filled(own(sm, "checker")));
+      const prov = own(sm, "provenance")
+        ? normalizeProvenance(sm.provenance, hasReceipt ? "observed" : "declared")
+        : (own(sm, "self_reported") === true ? PROVENANCE.agent_claim : hasReceipt && !["unknown", "pending"].includes(outcomeRaw.toLowerCase()) ? PROVENANCE.observed : PROVENANCE.declared);
+      const quartet = [
+        quartetSlot("O (Base)", own(sm, "base") ?? own(sm, "O")),
+        quartetSlot("A (Variant A)", own(sm, "variant_a") ?? own(sm, "A")),
+        quartetSlot("B (Variant B)", own(sm, "variant_b") ?? own(sm, "B")),
+        quartetSlot("M (Candidate)", own(sm, "candidate") ?? own(sm, "M")),
+      ];
+      pushEntry("semantic_merge", {
+        title: filled(own(sm, "title")) || "Semantic Merge Quartet (O/A/B/M)",
+        statusLabel: `${outcomeRaw} (${modeRaw})`,
+        tone: passportOutcomeTone(outcomeRaw),
+        provenance: prov,
+        stale: isStaleOutcome,
+        summary: own(sm, "conflict_demonstrated") === true
+          ? "Counterexample demonstrated on the frozen O/A/B/M quartet. Grants no merge authority."
+          : "Bound to frozen O/A/B/M quartet. Downstream revalidation required; grants no merge authority.",
+        identities: [filled(own(sm, "request_identity")), filled(own(sm, "receipt_identity")), filled(own(sm, "attempt_binding"))].filter(Boolean),
+        quartet,
+        facts: [
+          ["Outcome", outcomeRaw],
+          ["Policy mode", modeRaw],
+          ...(filled(own(sm, "lineage_policy")) ? [["Lineage policy", sm.lineage_policy]] : []),
+          ...(filled(own(sm, "checker")) ? [["Checker", sm.checker]] : []),
+          ...(filled(own(sm, "request_identity")) ? [["Request binding", sm.request_identity]] : []),
+          ["Mutation authority", "None (grants_mutation_authority = false)"],
+        ],
+      }, { ...sm, candidate_id: filled(own(sm, "candidate_id")) || quartet[3].revision });
+    }
+
+    const counts = {
+      observed: entries.filter((e) => e.provenance.key === "observed").length,
+      agent_claim: entries.filter((e) => e.provenance.key === "agent-claim").length,
+      declared: entries.filter((e) => e.provenance.key === "declared").length,
+      stale: entries.filter((e) => e.stale).length,
+      total: entries.length,
+    };
+
+    return Object.freeze({
+      currentCandidateId,
+      currentRevision,
+      entries: Object.freeze(entries),
+      counts: Object.freeze(counts),
+      canonicalCompletionPassed,
+      hasAgentHandoffOnly: agentHandoffs.length > 0 && !canonicalCompletionPassed,
+    });
+  }
+
+  function passportCopyableId(value, labelPrefix = "identity") {
+    const id = String(value ?? "");
+    const wrap = element("span", undefined, "passport-identity");
+    const prefix = element("code", id.length > SHORT_HASH ? id.slice(0, SHORT_HASH) : id, "causal-identity-prefix passport-id-prefix");
+    prefix.title = id;
+    prefix.dataset.fullIdentity = id;
+    wrap.append(prefix);
+    if (id.length > SHORT_HASH) {
+      wrap.append(element("span", "…", "small"));
+    }
+    wrap.append(copyControl(id, `Copy ${labelPrefix} ${short(id)}`, `${labelPrefix} copied.`));
+    return wrap;
+  }
+
+  function renderGatePassport(data, options = {}) {
+    const model = normalizeGatePassport(data);
+    const root = element("section", undefined, "gate-passport");
+    root.setAttribute("aria-label", options.title || "Gate & Receipt Passport");
+
+    const head = element("div", undefined, "passport-head");
+    const titleWrap = element("div", undefined, "passport-title-wrap");
+    titleWrap.append(
+      element("p", "Provenance & verification ledger", "eyebrow"),
+      element("h3", options.title || "Gate & Receipt Passport", "passport-title"),
+    );
+    const summaryStrip = element("div", undefined, "passport-summary-badges");
+    const countItems = [
+      [PROVENANCE.observed, model.counts.observed],
+      [PROVENANCE.agent_claim, model.counts.agent_claim],
+      [PROVENANCE.declared, model.counts.declared],
+    ];
+    for (const [prov, total] of countItems) {
+      const b = element("span", `${prov.label}: ${total}`, "passport-badge");
+      b.dataset.provenance = prov.key;
+      b.title = prov.description;
+      summaryStrip.append(b);
+    }
+    if (model.counts.stale > 0) {
+      const staleSummary = badge(`historical/stale: ${model.counts.stale}`, "warning", "Entries bound to a superseded or non-current candidate.");
+      staleSummary.classList.add("passport-stale-badge");
+      summaryStrip.append(staleSummary);
+    }
+    head.append(titleWrap, summaryStrip);
+    root.append(head);
+
+    const legendStrip = element("div", undefined, "passport-legend");
+    legendStrip.setAttribute("role", "note");
+    legendStrip.setAttribute("aria-label", "Provenance border legend");
+    for (const prov of [PROVENANCE.observed, PROVENANCE.agent_claim, PROVENANCE.declared]) {
+      const item = element("span", prov.label, "passport-legend-item");
+      item.dataset.provenance = prov.key;
+      item.title = prov.description;
+      legendStrip.append(item);
+    }
+    root.append(legendStrip);
+
+    if (model.currentCandidateId || model.currentRevision) {
+      const bindingRows = [];
+      if (model.currentCandidateId) bindingRows.push(["Current candidate", passportCopyableId(model.currentCandidateId, "candidate")]);
+      if (model.currentRevision) bindingRows.push(["Current revision", passportCopyableId(model.currentRevision, "revision")]);
+      const bindingBox = facts(bindingRows);
+      bindingBox.classList.add("passport-binding");
+      root.append(bindingBox);
+    }
+
+    if (!model.entries.length) {
+      root.append(emptyState("No gate or receipt observations", "No typed CI checks, cairn-authoritative-completion receipts, Patchgate decisions, SLSA statements, Plan Review receipts, or Semantic Merge observations are recorded for this candidate."));
+      return root;
+    }
+
+    for (const [catKey, catLabel] of PASSPORT_CATEGORIES) {
+      const catEntries = model.entries.filter((e) => e.category === catKey);
+      if (!catEntries.length) continue;
+      const group = element("section", undefined, "passport-category");
+      group.dataset.category = catKey;
+      group.append(element("h4", `${catLabel} (${catEntries.length})`, "passport-category-title"));
+      const list = element("div", undefined, "passport-entries");
+      for (const entry of catEntries) {
+        const card = element("article", undefined, "passport-entry");
+        card.dataset.provenance = entry.provenance.key;
+        card.dataset.category = entry.category;
+        if (entry.stale) card.dataset.stale = "true";
+        if (entry.is_current) card.dataset.current = "true";
+
+        const cardHead = element("div", undefined, "passport-entry-head");
+        const provBadge = element("span", entry.provenance.label, "passport-badge");
+        provBadge.dataset.provenance = entry.provenance.key;
+        provBadge.title = entry.provenance.description;
+        cardHead.append(provBadge, pill({ key: entry.tone, label: entry.statusLabel, tone: entry.tone, meaning: entry.summary }));
+        if (entry.stale) {
+          const staleBadge = badge("historical/stale", "warning", "Bound to a superseded or non-current candidate.");
+          staleBadge.classList.add("passport-stale-badge");
+          cardHead.append(staleBadge);
+        } else if (entry.is_current) {
+          const curBadge = badge("current", "good", "Bound to the active candidate.");
+          curBadge.classList.add("passport-current-badge");
+          cardHead.append(curBadge);
+        }
+        cardHead.append(element("strong", entry.title, "passport-entry-title"));
+        card.append(cardHead);
+        if (entry.summary) card.append(element("p", entry.summary, "small passport-entry-summary"));
+
+        const factRows = [...(entry.facts || [])];
+        if (entry.identities?.length) {
+          const idWrap = element("div", undefined, "passport-id-list");
+          for (const id of entry.identities.slice(0, 4)) idWrap.append(passportCopyableId(id, "digest"));
+          factRows.push(["Identities", idWrap]);
+        }
+        if (factRows.length) card.append(facts(factRows));
+
+        if (entry.subjects?.length || entry.dependencies?.length) {
+          const digestWrap = element("div", undefined, "passport-digests");
+          for (const [subTitle, rows] of [["Subjects", entry.subjects || []], ["Resolved dependencies", entry.dependencies || []]]) {
+            if (!rows.length) continue;
+            const sub = element("div", undefined, "passport-digest-group");
+            sub.append(element("p", `${subTitle} (${rows.length})`, "eyebrow"));
+            const ul = element("ul", undefined, "passport-digest-list");
+            for (const row of rows) {
+              const li = element("li");
+              li.append(element("code", row.name), document.createTextNode(" · "), element("code", row.digests.join(" ") || "Unavailable"));
+              ul.append(li);
+            }
+            sub.append(ul);
+            digestWrap.append(sub);
+          }
+          card.append(digestWrap);
+        }
+
+        if (entry.quartet?.length) {
+          const qWrap = element("div", undefined, "passport-quartet");
+          for (const slot of entry.quartet) {
+            const cell = element("div", undefined, "passport-quartet-cell");
+            cell.append(element("span", slot.role, "eyebrow"));
+            cell.append(slot.revision ? passportCopyableId(slot.revision, slot.role) : element("span", "Not recorded", "not-recorded"));
+            if (slot.canonical_tree) {
+              const tree = element("span", `tree ${short(slot.canonical_tree)}`, "small mono");
+              tree.title = slot.canonical_tree;
+              cell.append(tree);
+            }
+            if (slot.channel) cell.append(element("span", slot.channel, "small"));
+            qWrap.append(cell);
+          }
+          card.append(qWrap);
+        }
+
+        card.append(disclosure("Raw passport record", element("pre", JSON.stringify(entry.raw, null, 2), "identity"), "passport-raw"));
+        list.append(card);
+      }
+      group.append(list);
+      root.append(group);
+    }
+
+    return root;
   }
 
   window.KilnReceipts = Object.freeze({
     load, clear, renderRun,
+    renderGatePassport, normalizeGatePassport, provenanceTypes: PROVENANCE,
     decisions: DECISIONS, filters: FILTERS, decision, tally, nativeContext, decider, listRows, matches, normalizeRoute,
   });
 })();

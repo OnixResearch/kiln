@@ -7,17 +7,27 @@ use std::time::Duration;
 use kiln_core::fleet::{
     Decision as FleetDecision, FleetClaim, FleetScope, is_stale_observation_decision, overlaps,
 };
+use kiln_core::fair_admission::{
+    AdmissionLedger, AdmissionPolicy, Amounts, BudgetAccount, MAX_RECORDS, QueueGroupLimit,
+    ReservationState, ServingBounds, ServingOrigin, ServingReadiness, SettlementProvenance,
+};
 use kiln_core::implementation::campaign::{
     CampaignOperation, CampaignState, DecisionRequestState, EffectState, MAX_ID_BYTES,
     MemberSelector, selector_key,
 };
 use kiln_core::implementation::continuation::{ContinuationRecord, WakeHint, WakeKind};
 use kiln_core::implementation::{
-    BlockReason, Eligibility, Enrollment, FailureClass, PlanDecision, PlanGate, PlanReviewCommand,
-    PlanReviewResult, PlanVerdict, WorkSourceKind,
+    AbsenceReason, AttemptPhase, AuxiliaryCallObservation, BlockReason, Eligibility, Enrollment,
+    FailureClass, ModelTurnObservation, PlanAnnotation, PlanDecision, PlanGate, PlanNote,
+    PlanRegion, PlanResolution, PlanReviewCommand, PlanReviewResult, PlanVerdict,
+    PublicationPhase, PublicationPlan, TextSpan, TokenObservation, VerificationOutcome,
+    WorkSourceKind, WorkerTerminalState, admit_candidate_handoff, admit_candidate_verification,
+    branch_for,
 };
-use kiln_core::types::{ContentId, ExternalRef};
+use kiln_core::operations::FairnessStrategy;
+use kiln_core::types::{Alias, ContentId, ExternalRef};
 use kiln_implementer::Implementer;
+use kiln_implementer::admission::{AdmissionCommand, AdmissionResult};
 use kiln_implementer::campaign::{CampaignObservation, CampaignStore};
 use kiln_implementer::observation::{CanonicalSnapshot, ImplementationObservation};
 use rusqlite::{Connection, OpenFlags, params};
@@ -41,7 +51,15 @@ const ATTENTION_SCHEMA: &str = "kiln.implementation-attention.v1";
 const WAKE_SCHEMA: &str = "kiln.campaign-wake-result.v1";
 const RECONCILE_TERMINATION_SCHEMA: &str = "kiln.termination-reconciliation-result.v1";
 const PLAN_REVIEW_SCHEMA: &str = "kiln.plan-review-result.v1";
+const PLAN_FEEDBACK_SCHEMA: &str = "kiln.plan-feedback.v1";
+const ADMISSION_SCHEMA: &str = "kiln.implementation-admission.v1";
+const ADMISSION_RESULT_SCHEMA: &str = "kiln.implementation-admission-result.v1";
+const LIFECYCLE_RESULT_SCHEMA: &str = "kiln.implementation-lifecycle-result.v1";
 const MAX_ATTENTION_ITEMS: usize = 200;
+const MAX_ADMISSION_ACCOUNTS: usize = 512;
+const MAX_ADMISSION_METRICS: usize = 200;
+const MAX_PLAN_NAME_BYTES: usize = 128;
+const MAX_PLAN_TEXT_BYTES: usize = 4_096;
 const CLAIM_EXPIRING_WINDOW_MS: u64 = 15 * 60_000;
 const CLAIM_CRITICAL_WINDOW_MS: u64 = 5 * 60_000;
 const MAX_REASON_BYTES: usize = 1024;
@@ -1995,11 +2013,66 @@ pub(super) fn reconcile_termination_response(
 struct PlanReviewHttpBody {
     work_id: ContentId,
     plan_id: ContentId,
+    #[serde(default)]
+    expected_revision: Option<u32>,
     verdict: PlanVerdict,
     request_id: String,
 }
 
+fn json_error_with(status: u16, payload: Value) -> ApiResponse {
+    ApiResponse {
+        status,
+        content_type: "application/json",
+        body: payload.to_string().into_bytes(),
+        download_name: None,
+        headers: Vec::new(),
+    }
+}
+
+fn json_ok(payload: Value) -> ApiResponse {
+    match serde_json::to_vec(&payload) {
+        Ok(body) if body.len() <= MAXIMUM_RESPONSE_BYTES => ApiResponse {
+            status: 200,
+            content_type: "application/json",
+            body,
+            download_name: None,
+            headers: Vec::new(),
+        },
+        _ => error_response(503, "inventory_projection_byte_bound"),
+    }
+}
+
+fn plan_receipt_digest(
+    work_id: &ContentId,
+    plan_id: &ContentId,
+    revision: u32,
+    gate: &PlanGate,
+) -> String {
+    let encoded = serde_json::to_vec(&(work_id, plan_id, revision, gate)).unwrap_or_default();
+    blake3::hash(&encoded).to_hex().to_string()
+}
+
+fn plan_revision_mismatch_response(
+    expected_revision: Option<u32>,
+    expected_plan_id: &ContentId,
+    actual_revision: u32,
+    actual_plan_id: &ContentId,
+) -> ApiResponse {
+    json_error_with(
+        409,
+        json!({
+            "code": "implementation_plan_revision",
+            "message": "Plan revision changed since observation; inspect the new plan revision.",
+            "expected_revision": expected_revision,
+            "expected_plan_id": expected_plan_id,
+            "actual_revision": actual_revision,
+            "actual_plan_id": actual_plan_id,
+        }),
+    )
+}
+
 // r[impl kiln.implementation.campaign.unified_attention_and_recovery]
+// r[impl kiln.implementation.plan_review_console_surface]
 pub(super) fn plan_review_response(
     request: &Request,
     context: &Context<'_>,
@@ -2036,6 +2109,27 @@ pub(super) fn plan_review_response(
         .any(|work| work.identity().is_ok_and(|id| id == body.work_id))
     {
         return error_response(404, "implementation_plan_work");
+    }
+    let Some(thread) = ledger.plan_thread(&body.work_id) else {
+        return error_response(409, "implementation_plan_missing");
+    };
+    let Some(latest) = thread.plans.last() else {
+        return error_response(409, "implementation_plan_missing");
+    };
+    let Ok(latest_id) = latest.identity() else {
+        return error_response(503, "implementation_work_unavailable");
+    };
+    if latest_id != body.plan_id
+        || body
+            .expected_revision
+            .is_some_and(|expected| expected != latest.revision)
+    {
+        return plan_revision_mismatch_response(
+            body.expected_revision,
+            &body.plan_id,
+            latest.revision,
+            &latest_id,
+        );
     }
     let mut implementer = match Implementer::open(
         database,
@@ -2076,25 +2170,1414 @@ pub(super) fn plan_review_response(
             };
         }
     };
+    let feedback = implementer.plan_feedback(&body.work_id).ok();
+    let receipt_digest = plan_receipt_digest(&body.work_id, &body.plan_id, latest.revision, &gate);
     if let Some(hub) = context.events {
         hub.wake_watcher();
     }
-    let payload = json!({
+    json_ok(json!({
         "schema": PLAN_REVIEW_SCHEMA,
         "work_id": body.work_id,
         "plan_id": body.plan_id,
+        "revision": latest.revision,
         "reviewer": principal.id,
         "verdict": body.verdict,
         "gate": gate,
+        "receipt_digest": receipt_digest,
+        "feedback": feedback,
         "request_id": body.request_id,
+    }))
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PlanFeedbackHttpBody {
+    work_id: ContentId,
+    plan_id: ContentId,
+    #[serde(default)]
+    expected_revision: Option<u32>,
+    #[serde(default)]
+    action: Option<String>,
+    #[serde(default)]
+    step_id: Option<String>,
+    #[serde(default)]
+    span: Option<TextSpan>,
+    #[serde(default)]
+    comment: Option<String>,
+    #[serde(default)]
+    note_kind: Option<String>,
+    #[serde(default)]
+    blocking: Option<bool>,
+    #[serde(default)]
+    annotation_id: Option<String>,
+    request_id: String,
+}
+
+fn valid_plan_name(value: &str) -> bool {
+    !value.is_empty() && value.len() <= MAX_PLAN_NAME_BYTES && !value.chars().any(char::is_control)
+}
+
+fn valid_plan_text(value: &str) -> bool {
+    !value.trim().is_empty()
+        && value.len() <= MAX_PLAN_TEXT_BYTES
+        && !value
+            .chars()
+            .any(|character| character.is_control() && character != '\n')
+}
+
+fn plan_feedback_payload(
+    work_id: &ContentId,
+    plan_id: &ContentId,
+    latest: &kiln_core::implementation::ImplementationPlan,
+    thread: &kiln_core::implementation::PlanThread,
+    feedback: &kiln_core::implementation::PlanFeedback,
+    request_id: Option<&str>,
+) -> Value {
+    let receipt_digest = plan_receipt_digest(work_id, plan_id, latest.revision, &feedback.gate);
+    let mut payload = json!({
+        "schema": PLAN_FEEDBACK_SCHEMA,
+        "work_id": work_id,
+        "plan_id": plan_id,
+        "revision": latest.revision,
+        "author": latest.author,
+        "steps": latest.steps,
+        "gate": feedback.gate,
+        "items": feedback.items,
+        "comparison": feedback.comparison,
+        "decisions": thread.decisions,
+        "receipt_digest": receipt_digest,
     });
-    ApiResponse {
-        status: 200,
-        content_type: "application/json",
-        body: payload.to_string().into_bytes(),
-        download_name: None,
-        headers: Vec::new(),
+    if let (Some(req_id), Some(obj)) = (request_id, payload.as_object_mut()) {
+        obj.insert("request_id".into(), json!(req_id));
     }
+    payload
+}
+
+// r[impl kiln.implementation.plan_review_console_surface]
+pub(super) fn plan_feedback_response(
+    request: &Request,
+    context: &Context<'_>,
+    principal: &Principal,
+) -> ApiResponse {
+    if request.method == "GET" {
+        if principal.role == Role::Worker {
+            return error_response(403, "inventory_forbidden");
+        }
+        let work_id = match admit_request("GET", principal.role, &request.target) {
+            Ok(Some(work_id)) => work_id,
+            Ok(None) => return error_response(400, "plan_feedback_query_invalid"),
+            Err((status, code)) => return error_response(status, code),
+        };
+        let Some(database) = context.implementation_work else {
+            return error_response(503, "implementation_work_not_configured");
+        };
+        let snapshot = match ImplementationObservation::open(database).and_then(|obs| obs.snapshot())
+        {
+            Ok(snapshot) => snapshot,
+            Err(_) => return error_response(503, "implementation_work_unavailable"),
+        };
+        let Some(ledger) = snapshot.work.as_ref() else {
+            return error_response(404, "implementation_plan_missing");
+        };
+        let Some(thread) = ledger.plan_thread(&work_id) else {
+            return error_response(404, "implementation_plan_missing");
+        };
+        let Some(latest) = thread.plans.last() else {
+            return error_response(404, "implementation_plan_missing");
+        };
+        let Ok(plan_id) = latest.identity() else {
+            return error_response(503, "implementation_work_unavailable");
+        };
+        let Ok(feedback) = thread.feedback() else {
+            return error_response(503, "implementation_work_unavailable");
+        };
+        return json_ok(plan_feedback_payload(
+            &work_id, &plan_id, latest, thread, &feedback, None,
+        ));
+    }
+    if request.method != "POST" {
+        return error_response(405, "plan_feedback_method_denied");
+    }
+    if principal.role != Role::Operator {
+        return error_response(403, "operator_required");
+    }
+    if request.target != "/api/implementation/plan-feedback" {
+        return error_response(400, "plan_feedback_query_invalid");
+    }
+    let body: PlanFeedbackHttpBody = match serde_json::from_slice(&request.body) {
+        Ok(body) => body,
+        Err(_) => return error_response(400, "plan_feedback_invalid"),
+    };
+    if !crate::profile::identifier(&body.request_id) {
+        return error_response(400, "request_id_invalid");
+    }
+    let Some(database) = context.implementation_work else {
+        return error_response(503, "implementation_work_not_configured");
+    };
+    let snapshot = match ImplementationObservation::open(database).and_then(|obs| obs.snapshot()) {
+        Ok(snapshot) => snapshot,
+        Err(_) => return error_response(503, "implementation_work_unavailable"),
+    };
+    let Some(ledger) = snapshot.work.as_ref() else {
+        return error_response(404, "implementation_plan_work");
+    };
+    if !ledger
+        .current()
+        .any(|work| work.identity().is_ok_and(|id| id == body.work_id))
+    {
+        return error_response(404, "implementation_plan_work");
+    }
+    let Some(thread) = ledger.plan_thread(&body.work_id) else {
+        return error_response(409, "implementation_plan_missing");
+    };
+    let Some(latest) = thread.plans.last() else {
+        return error_response(409, "implementation_plan_missing");
+    };
+    let Ok(latest_id) = latest.identity() else {
+        return error_response(503, "implementation_work_unavailable");
+    };
+    if latest_id != body.plan_id
+        || body
+            .expected_revision
+            .is_some_and(|expected| expected != latest.revision)
+    {
+        return plan_revision_mismatch_response(
+            body.expected_revision,
+            &body.plan_id,
+            latest.revision,
+            &latest_id,
+        );
+    }
+
+    let command = match body.action.as_deref().unwrap_or("annotate") {
+        "resolve" => {
+            let Some(annotation) = body.annotation_id.as_deref().filter(|id| valid_plan_name(id))
+            else {
+                return error_response(400, "plan_feedback_invalid");
+            };
+            PlanReviewCommand::Resolve {
+                work: body.work_id.clone(),
+                resolution: PlanResolution {
+                    annotation: annotation.to_owned(),
+                    plan: body.plan_id.clone(),
+                    reviewer: principal.id.clone(),
+                },
+            }
+        }
+        "annotate" => {
+            let Some(step_id) = body.step_id.as_deref().filter(|id| valid_plan_name(id)) else {
+                return error_response(400, "plan_feedback_invalid");
+            };
+            let note = match body.note_kind.as_deref().unwrap_or("comment") {
+                "delete" => PlanNote::Delete,
+                "replace" => {
+                    let Some(text) = body.comment.as_deref().filter(|t| valid_plan_text(t)) else {
+                        return error_response(400, "plan_feedback_invalid");
+                    };
+                    PlanNote::Replace {
+                        text: text.to_owned(),
+                    }
+                }
+                "comment" => {
+                    let Some(text) = body.comment.as_deref().filter(|t| valid_plan_text(t)) else {
+                        return error_response(400, "plan_feedback_invalid");
+                    };
+                    PlanNote::Comment {
+                        text: text.to_owned(),
+                    }
+                }
+                _ => return error_response(400, "plan_feedback_invalid"),
+            };
+            let ann_id = match body.annotation_id.as_deref() {
+                Some(id) if valid_plan_name(id) => id.to_owned(),
+                Some(_) => return error_response(400, "plan_feedback_invalid"),
+                None => format!(
+                    "ann-{}",
+                    &blake3::hash(body.request_id.as_bytes()).to_hex().as_str()[..16]
+                ),
+            };
+            PlanReviewCommand::Annotate {
+                work: body.work_id.clone(),
+                annotation: PlanAnnotation {
+                    id: ann_id,
+                    plan: body.plan_id.clone(),
+                    reviewer: principal.id.clone(),
+                    region: PlanRegion {
+                        step: step_id.to_owned(),
+                        span: body.span,
+                    },
+                    note,
+                    blocking: body.blocking.unwrap_or(false),
+                },
+            }
+        }
+        _ => return error_response(400, "plan_feedback_invalid"),
+    };
+
+    let mut implementer = match Implementer::open(
+        database,
+        Enrollment {
+            repositories: BTreeSet::new(),
+            actors: BTreeSet::new(),
+        },
+    ) {
+        Ok(implementer) => implementer,
+        Err(_) => return error_response(503, "implementation_work_unavailable"),
+    };
+    if let Err(err) = implementer.plan_review(&command) {
+        return if err.contains("implementation_plan_reviewer") {
+            error_response(403, "implementation_plan_reviewer")
+        } else if err.contains("implementation_plan_annotation")
+            || err.contains("implementation_plan_resolution")
+        {
+            error_response(400, "plan_feedback_invalid")
+        } else if err.contains("implementation_plan_review_disabled") {
+            error_response(409, "implementation_plan_review_disabled")
+        } else if err.contains("implementation_plan_revision") {
+            error_response(409, "implementation_plan_revision")
+        } else if err.contains("implementation_plan_missing") {
+            error_response(409, "implementation_plan_missing")
+        } else {
+            error_response(503, "implementation_work_unavailable")
+        };
+    }
+    let Ok(feedback) = implementer.plan_feedback(&body.work_id) else {
+        return error_response(503, "implementation_work_unavailable");
+    };
+    let Ok(updated_work) = implementer.work() else {
+        return error_response(503, "implementation_work_unavailable");
+    };
+    let Some(updated_thread) = updated_work.plan_thread(&body.work_id) else {
+        return error_response(503, "implementation_work_unavailable");
+    };
+    let Some(updated_latest) = updated_thread.plans.last() else {
+        return error_response(503, "implementation_work_unavailable");
+    };
+    if let Some(hub) = context.events {
+        hub.wake_watcher();
+    }
+    json_ok(plan_feedback_payload(
+        &body.work_id,
+        &body.plan_id,
+        updated_latest,
+        updated_thread,
+        &feedback,
+        Some(&body.request_id),
+    ))
+}
+
+fn read_admission_ledger(database: &Path) -> Result<AdmissionLedger, &'static str> {
+    let connection = Connection::open_with_flags(
+        database,
+        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )
+    .map_err(|_| "implementation_work_unavailable")?;
+    connection
+        .pragma_update(None, "query_only", true)
+        .map_err(|_| "implementation_work_unavailable")?;
+    connection
+        .busy_timeout(Duration::from_millis(CAMPAIGN_BUSY_TIMEOUT_MS))
+        .map_err(|_| "implementation_work_unavailable")?;
+    if !table_exists(&connection, "implementation_state")? {
+        return Ok(AdmissionLedger::default());
+    }
+    let mut statement = connection
+        .prepare(
+            "SELECT length(bytes), CASE WHEN length(bytes) <= ?2 THEN bytes ELSE NULL END \
+             FROM implementation_state WHERE kind = ?1",
+        )
+        .map_err(|_| "implementation_work_unavailable")?;
+    let mut rows = statement
+        .query(params!["fair-admission-v1", MAX_CAMPAIGN_ROW_BYTES])
+        .map_err(|_| "implementation_work_unavailable")?;
+    let Some(row) = rows
+        .next()
+        .map_err(|_| "implementation_work_unavailable")?
+    else {
+        return Ok(AdmissionLedger::default());
+    };
+    let size: i64 = row.get(0).map_err(|_| "implementation_work_unavailable")?;
+    let bytes: Option<Vec<u8>> = row.get(1).map_err(|_| "implementation_work_unavailable")?;
+    if !(0..=MAX_CAMPAIGN_ROW_BYTES).contains(&size) {
+        return Err("admission_ledger_malformed");
+    }
+    let bytes = bytes.ok_or("admission_ledger_malformed")?;
+    serde_json::from_slice(&bytes).map_err(|_| "admission_ledger_malformed")
+}
+
+fn add_amounts(target: &mut Amounts, delta: &Amounts) {
+    for (dim, amount) in delta {
+        let entry = target.entry(dim.clone()).or_insert(0);
+        *entry = entry.saturating_add(*amount);
+    }
+}
+
+fn account_depth_and_root(ledger: &AdmissionLedger, account_id: &ContentId) -> (u32, ContentId) {
+    let mut depth = 0_u32;
+    let mut cursor = account_id.clone();
+    for _ in 0..=ledger.accounts.len() {
+        let Some(acc) = ledger.accounts.get(&cursor) else {
+            break;
+        };
+        let Some(parent) = &acc.parent else {
+            return (depth, cursor);
+        };
+        depth = depth.saturating_add(1);
+        cursor = parent.clone();
+    }
+    (depth, cursor)
+}
+
+#[derive(Serialize)]
+struct AdmissionPolicyView {
+    identity: String,
+    version: u16,
+    accounting_basis: String,
+    strategy: &'static str,
+    strategy_weights: Option<BTreeMap<String, u64>>,
+    bounds: Value,
+    shares: BTreeMap<String, u64>,
+    group_limits: Vec<QueueGroupLimit>,
+    serving: Option<kiln_core::fair_admission::ServingAdmissionPolicy>,
+}
+
+#[derive(Serialize)]
+struct AdmissionAccountView {
+    identity: ContentId,
+    parent: Option<ContentId>,
+    parent_attempt: Option<kiln_core::fair_admission::ClaimRef>,
+    root: ContentId,
+    depth: u32,
+    tenant: String,
+    campaign: String,
+    deadline_ms: u64,
+    revoked: bool,
+    allocated: Amounts,
+    /// Quota transferred out to child accounts; strictly separate from `consumed`.
+    transferred_out: Amounts,
+    available: Amounts,
+    held: Amounts,
+    tentative: Amounts,
+    unknown: Amounts,
+    consumed: Amounts,
+    settled_measured: Amounts,
+    settled_unknown: Amounts,
+    children: u32,
+}
+
+#[derive(Serialize)]
+struct AdmissionServingView {
+    provider: String,
+    scope: ContentId,
+    bounds: ServingBounds,
+    readiness: ServingReadiness,
+    origin: ServingOrigin,
+    remaining_slots: Option<u32>,
+    queued: Option<u32>,
+    observed_at_ms: u64,
+    valid_until_ms: u64,
+    source_generation: u64,
+    sequence: u64,
+    deployment_generation: u64,
+}
+
+#[derive(Serialize)]
+struct AdmissionAttemptMetricsView {
+    attempt_id: ContentId,
+    fence: u64,
+    work_id: ContentId,
+    work_revision: u64,
+    phase: AttemptPhase,
+    open: bool,
+    recorded: bool,
+    telemetry_source: &'static str,
+    claimed_at_ms: u64,
+    observed_at_ms: Option<u64>,
+    ended_at_ms: Option<u64>,
+    wall_time_ms: Option<u64>,
+    tokens: Option<u64>,
+    tokens_status: &'static str,
+    tokens_absence_reason: Option<AbsenceReason>,
+    model_turns: Option<u64>,
+    model_turns_status: &'static str,
+    model_turns_absence_reason: Option<AbsenceReason>,
+    auxiliary_calls: Option<u32>,
+    auxiliary_calls_status: &'static str,
+    auxiliary_calls_absence_reason: Option<AbsenceReason>,
+    harness: Option<String>,
+    model: Option<String>,
+    worker_terminal: Option<WorkerTerminalState>,
+    verification_outcome: Option<VerificationOutcome>,
+}
+
+fn project_attempt_metrics(attempt: &kiln_core::implementation::ImplementationAttempt) -> AdmissionAttemptMetricsView {
+    let usage_ref = attempt
+        .metrics
+        .as_ref()
+        .map(|m| (&m.usage, "metrics_receipt", true, Some(m.observed_at_ms), Some(m.elapsed_ms), m.open))
+        .or_else(|| {
+            attempt.worker_observation.as_ref().map(|w| {
+                (
+                    &w.usage,
+                    "worker_observation",
+                    false,
+                    None,
+                    attempt
+                        .ended_at_ms
+                        .map(|end| end.saturating_sub(attempt.claimed_at_ms)),
+                    attempt.ended_at_ms.is_none() && !attempt.phase.is_terminal(),
+                )
+            })
+        });
+
+    let (
+        tokens,
+        tokens_status,
+        tokens_absence_reason,
+        model_turns,
+        model_turns_status,
+        model_turns_absence_reason,
+        auxiliary_calls,
+        auxiliary_calls_status,
+        auxiliary_calls_absence_reason,
+        telemetry_source,
+        recorded,
+        observed_at_ms,
+        wall_time_ms,
+        open,
+    ) = if let Some((usage, source, is_recorded, obs_ms, wall_ms, is_open)) = usage_ref {
+        let (tok, tok_st, tok_reason) = match usage.tokens {
+            TokenObservation::Observed { tokens } => (Some(tokens), "observed", None),
+            TokenObservation::Absent { reason } => (None, "absent", Some(reason)),
+        };
+        let (turns, turns_st, turns_reason) = match usage.model_turns {
+            ModelTurnObservation::Observed { turns } => (Some(turns), "observed", None),
+            ModelTurnObservation::Incomplete { turns, reason } => {
+                (Some(turns), "incomplete", Some(reason))
+            }
+            ModelTurnObservation::Absent { reason } => (None, "absent", Some(reason)),
+        };
+        let (aux, aux_st, aux_reason) = match usage.auxiliary_calls {
+            AuxiliaryCallObservation::Observed { calls } => (Some(calls), "observed", None),
+            AuxiliaryCallObservation::Absent { reason } => (None, "absent", Some(reason)),
+        };
+        (
+            tok, tok_st, tok_reason, turns, turns_st, turns_reason, aux, aux_st, aux_reason,
+            source, is_recorded, obs_ms, wall_ms, is_open,
+        )
+    } else {
+        (
+            None,
+            "absent",
+            Some(AbsenceReason::NotReported),
+            None,
+            "absent",
+            Some(AbsenceReason::NotReported),
+            None,
+            "absent",
+            Some(AbsenceReason::NotReported),
+            "not_recorded",
+            false,
+            None,
+            None,
+            attempt.ended_at_ms.is_none() && !attempt.phase.is_terminal(),
+        )
+    };
+
+    AdmissionAttemptMetricsView {
+        attempt_id: attempt.identity.clone(),
+        fence: attempt.fence,
+        work_id: attempt.work_identity.clone(),
+        work_revision: attempt.work_revision,
+        phase: attempt.phase,
+        open,
+        recorded,
+        telemetry_source,
+        claimed_at_ms: attempt.claimed_at_ms,
+        observed_at_ms,
+        ended_at_ms: attempt.ended_at_ms,
+        wall_time_ms,
+        tokens,
+        tokens_status,
+        tokens_absence_reason,
+        model_turns,
+        model_turns_status,
+        model_turns_absence_reason,
+        auxiliary_calls,
+        auxiliary_calls_status,
+        auxiliary_calls_absence_reason,
+        harness: attempt
+            .worker_observation
+            .as_ref()
+            .and_then(|w| w.harness.clone()),
+        model: attempt
+            .worker_observation
+            .as_ref()
+            .and_then(|w| w.model.clone()),
+        worker_terminal: attempt
+            .worker_observation
+            .as_ref()
+            .map(|w| w.terminal),
+        verification_outcome: attempt.verification_outcome,
+    }
+}
+
+fn build_admission_projection(
+    ledger: &AdmissionLedger,
+    attempts: Option<&kiln_core::implementation::AttemptLedger>,
+) -> Result<Value, &'static str> {
+    let policy_view = match &ledger.policy {
+        Some(policy) => {
+            let policy_id = policy
+                .identity()
+                .map_err(|_| "admission_ledger_malformed")?;
+            let (strategy, strategy_weights) = match &policy.strategy {
+                FairnessStrategy::DominantShare => ("dominant_share", None),
+                FairnessStrategy::WeightedScalar { weights } => (
+                    "weighted_scalar",
+                    Some(
+                        weights
+                            .iter()
+                            .map(|(k, v)| (k.as_str().to_owned(), *v))
+                            .collect(),
+                    ),
+                ),
+            };
+            Some(AdmissionPolicyView {
+                identity: policy_id.as_str().to_owned(),
+                version: policy.version,
+                accounting_basis: policy.accounting_basis.as_str().to_owned(),
+                strategy,
+                strategy_weights,
+                bounds: json!({
+                    "max_items": policy.max_items,
+                    "max_bytes": policy.max_bytes,
+                    "max_wait_ms": policy.max_wait_ms,
+                    "max_observation_age_ms": policy.max_observation_age_ms,
+                    "max_retry_after_ms": policy.max_retry_after_ms,
+                    "max_children": policy.max_children,
+                    "max_active": policy.max_active,
+                }),
+                shares: policy
+                    .shares
+                    .iter()
+                    .map(|(k, v)| (k.as_str().to_owned(), *v))
+                    .collect(),
+                group_limits: policy.group_limits.clone(),
+                serving: policy.serving.clone(),
+            })
+        }
+        None => None,
+    };
+
+    let mut transferred_by_parent: BTreeMap<ContentId, Amounts> = BTreeMap::new();
+    for (id, acc) in &ledger.accounts {
+        if let Some(parent) = &acc.parent
+            && let Some(quota) = ledger.quotas.get(id)
+        {
+            add_amounts(transferred_by_parent.entry(parent.clone()).or_default(), quota);
+        }
+    }
+
+    let mut held_by_acc: BTreeMap<ContentId, Amounts> = BTreeMap::new();
+    let mut tentative_by_acc: BTreeMap<ContentId, Amounts> = BTreeMap::new();
+    let mut unknown_by_acc: BTreeMap<ContentId, Amounts> = BTreeMap::new();
+    let mut settled_measured_by_acc: BTreeMap<ContentId, Amounts> = BTreeMap::new();
+    let mut settled_unknown_by_acc: BTreeMap<ContentId, Amounts> = BTreeMap::new();
+    let mut held_by_work: BTreeMap<ContentId, Amounts> = BTreeMap::new();
+    let mut settled_measured_by_work: BTreeMap<ContentId, Amounts> = BTreeMap::new();
+    let mut settled_unknown_by_work: BTreeMap<ContentId, Amounts> = BTreeMap::new();
+
+    for res in ledger.reservations.values() {
+        match res.state {
+            ReservationState::Committed => {
+                add_amounts(held_by_acc.entry(res.account.clone()).or_default(), &res.amounts);
+                add_amounts(held_by_work.entry(res.work_version.clone()).or_default(), &res.amounts);
+            }
+            ReservationState::Tentative => {
+                add_amounts(
+                    tentative_by_acc.entry(res.account.clone()).or_default(),
+                    &res.amounts,
+                );
+            }
+            ReservationState::Unknown => {
+                add_amounts(unknown_by_acc.entry(res.account.clone()).or_default(), &res.amounts);
+                add_amounts(held_by_work.entry(res.work_version.clone()).or_default(), &res.amounts);
+            }
+            ReservationState::Settled => {
+                match ledger
+                    .settlement_provenance
+                    .get(&res.operation)
+                    .copied()
+                    .unwrap_or(SettlementProvenance::Unknown)
+                {
+                    SettlementProvenance::HostMeasured => {
+                        add_amounts(
+                            settled_measured_by_acc
+                                .entry(res.account.clone())
+                                .or_default(),
+                            &res.amounts,
+                        );
+                        add_amounts(
+                            settled_measured_by_work
+                                .entry(res.work_version.clone())
+                                .or_default(),
+                            &res.amounts,
+                        );
+                    }
+                    SettlementProvenance::Unknown => {
+                        add_amounts(
+                            settled_unknown_by_acc
+                                .entry(res.account.clone())
+                                .or_default(),
+                            &res.amounts,
+                        );
+                        add_amounts(
+                            settled_unknown_by_work
+                                .entry(res.work_version.clone())
+                                .or_default(),
+                            &res.amounts,
+                        );
+                    }
+                }
+            }
+            ReservationState::Rejected
+            | ReservationState::Expired
+            | ReservationState::Released => {}
+        }
+    }
+
+    let mut accounts = Vec::new();
+    let mut truncated = false;
+    for (id, acc) in &ledger.accounts {
+        if accounts.len() >= MAX_ADMISSION_ACCOUNTS {
+            truncated = true;
+            break;
+        }
+        let (depth, root) = account_depth_and_root(ledger, id);
+        accounts.push(AdmissionAccountView {
+            identity: id.clone(),
+            parent: acc.parent.clone(),
+            parent_attempt: acc.parent_attempt.clone(),
+            root,
+            depth,
+            tenant: acc.tenant.as_str().to_owned(),
+            campaign: acc.campaign.as_str().to_owned(),
+            deadline_ms: acc.deadline_ms,
+            revoked: ledger.revoked.contains(id),
+            allocated: ledger.quotas.get(id).cloned().unwrap_or_default(),
+            transferred_out: transferred_by_parent.get(id).cloned().unwrap_or_default(),
+            available: acc.available.clone(),
+            held: held_by_acc.get(id).cloned().unwrap_or_default(),
+            tentative: tentative_by_acc.get(id).cloned().unwrap_or_default(),
+            unknown: unknown_by_acc.get(id).cloned().unwrap_or_default(),
+            consumed: acc.consumed.clone(),
+            settled_measured: settled_measured_by_acc.get(id).cloned().unwrap_or_default(),
+            settled_unknown: settled_unknown_by_acc.get(id).cloned().unwrap_or_default(),
+            children: acc.children,
+        });
+    }
+
+    let serving: Vec<AdmissionServingView> = ledger
+        .serving
+        .values()
+        .map(|obs| AdmissionServingView {
+            provider: obs.provider.as_str().to_owned(),
+            scope: obs.scope.clone(),
+            bounds: obs.bounds.clone(),
+            readiness: obs.readiness,
+            origin: obs.origin,
+            remaining_slots: obs.remaining_slots,
+            queued: obs.queued,
+            observed_at_ms: obs.observed_at_ms,
+            valid_until_ms: obs.valid_until_ms,
+            source_generation: obs.source_generation,
+            sequence: obs.sequence,
+            deployment_generation: obs.deployment_generation,
+        })
+        .collect();
+
+    let mut queue_items = Vec::new();
+    for item in ledger.items.values() {
+        if queue_items.len() >= MAX_ADMISSION_ACCOUNTS {
+            truncated = true;
+            break;
+        }
+        queue_items.push(json!({
+            "work_version": item.work_version,
+            "account": item.account,
+            "tenant": item.tenant,
+            "campaign": item.campaign,
+            "repository": item.repository,
+            "priority": item.priority,
+            "phase": item.phase,
+            "reason": item.reason,
+            "order": item.order,
+            "claim": item.claim,
+            "budget": item.budget,
+            "held": held_by_work.get(&item.work_version).cloned().unwrap_or_default(),
+            "settled_measured": settled_measured_by_work.get(&item.work_version).cloned().unwrap_or_default(),
+            "settled_unknown": settled_unknown_by_work.get(&item.work_version).cloned().unwrap_or_default(),
+        }));
+    }
+
+    let mut attempt_metrics = Vec::new();
+    if let Some(attempt_ledger) = attempts {
+        let mut sorted: Vec<_> = attempt_ledger.attempts().collect();
+        sorted.sort_by(|a, b| {
+            Reverse(a.claimed_at_ms)
+                .cmp(&Reverse(b.claimed_at_ms))
+                .then_with(|| a.identity.cmp(&b.identity))
+        });
+        for attempt in sorted {
+            if attempt_metrics.len() >= MAX_ADMISSION_METRICS {
+                truncated = true;
+                break;
+            }
+            attempt_metrics.push(project_attempt_metrics(attempt));
+        }
+    }
+
+    Ok(json!({
+        "schema": ADMISSION_SCHEMA,
+        "configured": policy_view.is_some(),
+        "policy": policy_view,
+        "accounts": accounts,
+        "serving": serving,
+        "queue_items": queue_items,
+        "attempt_metrics": attempt_metrics,
+        "bounded": true,
+        "truncated": truncated,
+        "non_claims": [
+            "fair-admission projection is display-only and confers no claim, reservation, or serving grant",
+            "transfers reduce parent available quota and are never counted as consumption",
+            "unrecorded AttemptMetrics telemetry stays null and is never zero-filled",
+            "serving snapshots are wait evidence only and never replace owner request admission",
+        ],
+    }))
+}
+
+// r[impl kiln.admission.live_console_governance]
+pub(super) fn admission_response(
+    request: &Request,
+    context: &Context<'_>,
+    principal: &Principal,
+) -> ApiResponse {
+    if principal.role == Role::Worker {
+        return error_response(403, "admission_forbidden");
+    }
+    if request.method != "GET" {
+        return error_response(405, "admission_read_only");
+    }
+    if request.target != "/api/implementation/admission" || !request.body.is_empty() {
+        return error_response(400, "admission_query_invalid");
+    }
+    let Some(database) = context.implementation_work else {
+        return error_response(503, "implementation_work_not_configured");
+    };
+    let ledger = match read_admission_ledger(database) {
+        Ok(ledger) => ledger,
+        Err(code) => return error_response(503, code),
+    };
+    let attempts = match ImplementationObservation::open(database)
+        .and_then(|obs| obs.dispatch_recovery_ledgers())
+    {
+        Ok((_, attempts)) => attempts,
+        Err(_) => return error_response(503, "implementation_work_unavailable"),
+    };
+    match build_admission_projection(&ledger, attempts.as_ref()) {
+        Ok(payload) => json_ok(payload),
+        Err(code) => error_response(503, code),
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AdmissionPolicyUpdateBody {
+    request_id: String,
+    #[serde(default)]
+    expected_policy_id: Option<ContentId>,
+    #[serde(default)]
+    command: Option<String>,
+    #[serde(default)]
+    shares: Option<BTreeMap<String, u64>>,
+    #[serde(default)]
+    policy: Option<AdmissionPolicy>,
+    #[serde(default)]
+    account: Option<Value>,
+}
+
+// r[impl kiln.admission.live_console_governance]
+pub(super) fn admission_policy_response(
+    request: &Request,
+    context: &Context<'_>,
+    principal: &Principal,
+) -> ApiResponse {
+    if principal.role != Role::Operator {
+        return error_response(403, "operator_required");
+    }
+    if request.method != "POST" {
+        return error_response(405, "admission_method_denied");
+    }
+    if request.target != "/api/implementation/admission/policy"
+        && request.target != "/api/implementation/admission/shares"
+    {
+        return error_response(400, "admission_query_invalid");
+    }
+    let body: AdmissionPolicyUpdateBody = match serde_json::from_slice(&request.body) {
+        Ok(body) => body,
+        Err(_) => return error_response(400, "admission_policy_invalid"),
+    };
+    if !crate::profile::identifier(&body.request_id) {
+        return error_response(400, "request_id_invalid");
+    }
+    let Some(database) = context.implementation_work else {
+        return error_response(503, "implementation_work_not_configured");
+    };
+    let Ok(now_ms) = crate::engine::host_time_ms() else {
+        return error_response(503, "clock_unavailable");
+    };
+    let current = match read_admission_ledger(database) {
+        Ok(ledger) => ledger,
+        Err(code) => return error_response(503, code),
+    };
+    let current_policy_id = current.policy.as_ref().and_then(|p| p.identity().ok());
+    if let Some(expected) = &body.expected_policy_id
+        && current_policy_id.as_ref() != Some(expected)
+    {
+        return json_error_with(
+            409,
+            json!({
+                "code": "admission_policy_stale",
+                "message": "Fair-admission policy changed since observation.",
+                "expected_policy_id": expected,
+                "actual_policy_id": current_policy_id,
+            }),
+        );
+    }
+
+    let command_name = body.command.as_deref().unwrap_or("configure");
+    let command = match command_name {
+        "configure" => {
+            let next_policy = match (body.policy, body.shares) {
+                (Some(policy), None) => policy,
+                (None, Some(raw_shares)) => {
+                    if raw_shares.is_empty() || raw_shares.len() > MAX_RECORDS {
+                        return error_response(400, "admission_shares_invalid");
+                    }
+                    let mut shares = BTreeMap::new();
+                    for (name, share) in raw_shares {
+                        if share == 0 {
+                            return error_response(400, "admission_shares_invalid");
+                        }
+                        let Ok(alias) = Alias::new(name) else {
+                            return error_response(400, "admission_shares_invalid");
+                        };
+                        shares.insert(alias, share);
+                    }
+                    let Some(mut base) = current.policy else {
+                        return error_response(400, "admission_policy_invalid");
+                    };
+                    base.shares = shares;
+                    base
+                }
+                _ => return error_response(400, "admission_policy_invalid"),
+            };
+            if next_policy.validate().is_err() {
+                return error_response(400, "admission_policy_invalid");
+            }
+            AdmissionCommand::Configure {
+                policy: next_policy,
+            }
+        }
+        "root" => {
+            let Some(account_val) = body.account else {
+                return error_response(400, "admission_account_invalid");
+            };
+            let Ok(account) = serde_json::from_value::<BudgetAccount>(account_val) else {
+                return error_response(400, "admission_account_invalid");
+            };
+            AdmissionCommand::Root { account }
+        }
+        "revoke" => {
+            let Some(account_val) = body.account else {
+                return error_response(400, "admission_account_invalid");
+            };
+            let Ok(account) = serde_json::from_value::<ContentId>(account_val) else {
+                return error_response(400, "admission_account_invalid");
+            };
+            AdmissionCommand::Revoke { account }
+        }
+        _ => return error_response(400, "admission_command_invalid"),
+    };
+
+    let mut implementer = match Implementer::open(
+        database,
+        Enrollment {
+            repositories: BTreeSet::new(),
+            actors: BTreeSet::new(),
+        },
+    ) {
+        Ok(implementer) => implementer,
+        Err(_) => return error_response(503, "implementation_work_unavailable"),
+    };
+    let result = match implementer.admission_apply(command, now_ms) {
+        Ok(result) => result,
+        Err(err) => {
+            return if err.contains("admission_policy_frozen") {
+                json_error_with(
+                    409,
+                    json!({
+                        "code": "admission_policy_frozen",
+                        "message": "Queue admission policy is immutable for an active ledger.",
+                        "policy_identity": current_policy_id,
+                    }),
+                )
+            } else if err.contains("admission_disabled")
+                || err.contains("admission_root_conflict")
+                || err.contains("admission_campaign_root")
+            {
+                error_response(409, "admission_state_conflict")
+            } else if err.contains("admission_") {
+                error_response(400, "admission_policy_invalid")
+            } else {
+                error_response(503, "implementation_work_unavailable")
+            };
+        }
+    };
+    if let Some(hub) = context.events {
+        hub.wake_watcher();
+    }
+    match result {
+        AdmissionResult::Policy { identity } => json_ok(json!({
+            "schema": ADMISSION_RESULT_SCHEMA,
+            "result": "configured",
+            "policy_identity": identity,
+            "request_id": body.request_id,
+        })),
+        AdmissionResult::Updated => json_ok(json!({
+            "schema": ADMISSION_RESULT_SCHEMA,
+            "result": "updated",
+            "policy_identity": current_policy_id,
+            "request_id": body.request_id,
+        })),
+        AdmissionResult::Revoked { accounts } => json_ok(json!({
+            "schema": ADMISSION_RESULT_SCHEMA,
+            "result": "revoked",
+            "revoked_accounts": accounts,
+            "policy_identity": current_policy_id,
+            "request_id": body.request_id,
+        })),
+        _ => error_response(503, "implementation_work_unavailable"),
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum CandidateIdentityInput {
+    External(ExternalRef),
+    Text(String),
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct LifecycleActionBody {
+    work_id: ContentId,
+    attempt_id: ContentId,
+    fence: u64,
+    candidate_identity: CandidateIdentityInput,
+    reason: String,
+    request_id: String,
+    #[serde(default)]
+    branch: Option<String>,
+    #[serde(default)]
+    base_branch: Option<String>,
+    #[serde(default)]
+    title: Option<String>,
+    #[serde(default)]
+    body: Option<String>,
+}
+
+fn candidate_matches(input: &CandidateIdentityInput, expected: &ExternalRef) -> bool {
+    match input {
+        CandidateIdentityInput::External(ext) => ext == expected,
+        CandidateIdentityInput::Text(raw) => {
+            raw == expected.native_id.as_str()
+                || raw
+                    == &format!(
+                        "{}:{}:{}",
+                        expected.provider_namespace.as_str(),
+                        expected.native_kind.as_str(),
+                        expected.native_id.as_str()
+                    )
+        }
+    }
+}
+
+fn validate_candidate_input(input: &CandidateIdentityInput) -> bool {
+    match input {
+        CandidateIdentityInput::External(ext) => ext.validate().is_ok(),
+        CandidateIdentityInput::Text(raw) => {
+            !raw.trim().is_empty() && raw.len() <= 256 && !raw.chars().any(char::is_control)
+        }
+    }
+}
+
+fn valid_optional_text(value: &str, max_bytes: usize, allow_newlines: bool) -> bool {
+    !value.trim().is_empty()
+        && value.len() <= max_bytes
+        && !value
+            .chars()
+            .any(|c| c.is_control() && (!allow_newlines || c != '\n'))
+}
+
+// r[impl kiln.cairn.gate_passport_surface]
+pub(super) fn lifecycle_action_response(
+    request: &Request,
+    context: &Context<'_>,
+    principal: &Principal,
+) -> ApiResponse {
+    if principal.role != Role::Operator {
+        return error_response(403, "operator_required");
+    }
+    if request.method != "POST" {
+        return error_response(405, "lifecycle_method_denied");
+    }
+    if request.target.contains('?') {
+        return error_response(400, "lifecycle_query_invalid");
+    }
+    let Some(action) = request.target.strip_prefix("/api/implementation/lifecycle/") else {
+        return error_response(404, "lifecycle_action_unknown");
+    };
+    if !matches!(
+        action,
+        "prepare-publication" | "publish" | "recover-integration" | "close-source"
+    ) {
+        return error_response(404, "lifecycle_action_unknown");
+    }
+    let body: LifecycleActionBody = match serde_json::from_slice(&request.body) {
+        Ok(body) => body,
+        Err(_) => return error_response(400, "lifecycle_invalid"),
+    };
+    if !crate::profile::identifier(&body.request_id) {
+        return error_response(400, "request_id_invalid");
+    }
+    if !valid_reason(&body.reason) {
+        return error_response(400, "lifecycle_reason_invalid");
+    }
+    if body.fence == 0 {
+        return error_response(400, "lifecycle_fence_invalid");
+    }
+    if !validate_candidate_input(&body.candidate_identity) {
+        return error_response(400, "lifecycle_candidate_invalid");
+    }
+    if context.profile.restricted_projection {
+        return error_response(403, "lifecycle_authority_absent");
+    }
+    let Some(database) = context.implementation_work else {
+        return error_response(503, "implementation_work_not_configured");
+    };
+    let (work_ledger, attempt_ledger) = match ImplementationObservation::open(database)
+        .and_then(|obs| obs.dispatch_recovery_ledgers())
+    {
+        Ok((work, attempts)) => (work, attempts),
+        Err(_) => return error_response(503, "implementation_work_unavailable"),
+    };
+    let Some(work_ledger) = work_ledger else {
+        return error_response(404, "lifecycle_work_missing");
+    };
+    let work = if let Some(current) = work_ledger
+        .current()
+        .find(|w| w.identity().is_ok_and(|id| id == body.work_id))
+    {
+        current.clone()
+    } else if work_ledger
+        .superseded()
+        .iter()
+        .any(|w| w.identity().is_ok_and(|id| id == body.work_id))
+    {
+        return error_response(409, "lifecycle_work_stale");
+    } else {
+        return error_response(404, "lifecycle_work_missing");
+    };
+    let Some(attempt_ledger) = attempt_ledger else {
+        return error_response(404, "lifecycle_attempt_missing");
+    };
+    let Some(attempt) = attempt_ledger.get(&body.attempt_id) else {
+        return error_response(404, "lifecycle_attempt_missing");
+    };
+    if attempt.work_identity != body.work_id {
+        return error_response(409, "lifecycle_work_mismatch");
+    }
+    if attempt.fence != body.fence {
+        return error_response(409, "lifecycle_fence_mismatch");
+    }
+    if attempt.superseded_by.is_some() || attempt.phase == AttemptPhase::Superseded {
+        return error_response(409, "lifecycle_attempt_superseded");
+    }
+    let Some(attempt_candidate) = attempt
+        .publication
+        .as_ref()
+        .map(|p| &p.plan.candidate)
+        .or_else(|| attempt.verification.as_ref().map(|v| &v.candidate))
+        .or(attempt.candidate.as_ref())
+    else {
+        return error_response(409, "lifecycle_candidate_missing");
+    };
+    if !candidate_matches(&body.candidate_identity, attempt_candidate)
+        || attempt
+            .verification
+            .as_ref()
+            .is_some_and(|v| &v.candidate != attempt_candidate)
+        || attempt
+            .handoff
+            .as_ref()
+            .is_some_and(|h| &h.candidate != attempt_candidate)
+    {
+        return json_error_with(
+            409,
+            json!({
+                "code": "lifecycle_candidate_mismatch",
+                "message": "Candidate identity does not match the current verified attempt candidate.",
+                "actual_candidate": attempt_candidate,
+            }),
+        );
+    }
+
+    let enrollment = Enrollment {
+        repositories: BTreeSet::from([work.repository.clone()]),
+        actors: BTreeSet::from([work.actor.clone(), principal.id.clone()]),
+    };
+
+    if action == "prepare-publication" {
+        if attempt.phase != AttemptPhase::Verified {
+            return error_response(409, "lifecycle_publication_unverified");
+        }
+        let Some(handoff) = attempt.handoff.as_ref() else {
+            return error_response(409, "lifecycle_publication_unverified");
+        };
+        let Some(verification) = attempt.verification.as_ref() else {
+            return error_response(409, "lifecycle_publication_unverified");
+        };
+        let Some(base) = handoff.base.clone() else {
+            return error_response(409, "lifecycle_handoff_base_missing");
+        };
+        let Ok(handoff_id) = admit_candidate_handoff(&work, attempt, handoff) else {
+            return error_response(409, "lifecycle_publication_unverified");
+        };
+        let Ok(verification_id) =
+            admit_candidate_verification(&work, attempt, handoff, verification)
+        else {
+            return error_response(409, "lifecycle_publication_unverified");
+        };
+        let branch = match body.branch.as_deref() {
+            Some(b) if valid_optional_text(b, kiln_core::implementation::MAX_BRANCH_BYTES, false) => {
+                b.to_owned()
+            }
+            Some(_) => return error_response(400, "lifecycle_branch_invalid"),
+            None => attempt
+                .publication
+                .as_ref()
+                .map(|p| p.plan.branch.clone())
+                .unwrap_or_else(|| branch_for(&body.work_id, &body.attempt_id)),
+        };
+        let base_branch = match body.base_branch.as_deref() {
+            Some(b) if valid_optional_text(b, kiln_core::implementation::MAX_BRANCH_BYTES, false) => {
+                b.to_owned()
+            }
+            Some(_) => return error_response(400, "lifecycle_branch_invalid"),
+            None => attempt
+                .publication
+                .as_ref()
+                .map(|p| p.plan.base_branch.clone())
+                .unwrap_or_else(|| "main".to_owned()),
+        };
+        let title = match body.title.as_deref() {
+            Some(t) if valid_optional_text(t, kiln_core::implementation::MAX_TITLE_BYTES, false) => {
+                t.to_owned()
+            }
+            Some(_) => return error_response(400, "lifecycle_title_invalid"),
+            None => attempt
+                .publication
+                .as_ref()
+                .map(|p| p.plan.title.clone())
+                .unwrap_or_else(|| work.title.clone()),
+        };
+        let pr_body = match body.body.as_deref() {
+            Some(b) if valid_optional_text(b, kiln_core::implementation::MAX_BODY_BYTES, true) => {
+                b.to_owned()
+            }
+            Some(_) => return error_response(400, "lifecycle_body_invalid"),
+            None => attempt
+                .publication
+                .as_ref()
+                .map(|p| p.plan.body.clone())
+                .unwrap_or_else(|| work.requested_outcome.clone()),
+        };
+        let plan = PublicationPlan {
+            schema: kiln_core::implementation::PUBLICATION_SCHEMA.to_owned(),
+            work_identity: body.work_id.clone(),
+            work_revision: work.revision,
+            attempt: body.attempt_id.clone(),
+            fence: body.fence,
+            handoff: handoff_id,
+            verification: verification_id,
+            repository: work.repository.clone(),
+            base,
+            base_branch,
+            candidate: attempt_candidate.clone(),
+            tree: handoff.tree.clone(),
+            branch,
+            title,
+            body: pr_body,
+        };
+        let mut implementer =
+            match Implementer::open_with_local_operator(database, enrollment, &principal.id) {
+                Ok(implementer) => implementer,
+                Err(_) => return error_response(503, "implementation_work_unavailable"),
+            };
+        let Ok(now_ms) = crate::engine::host_time_ms() else {
+            return error_response(503, "clock_unavailable");
+        };
+        let already_recorded = attempt.publication.as_ref().is_some_and(|p| p.plan == plan);
+        let digest = match implementer.prepare_publication(
+            &work,
+            &body.attempt_id,
+            body.fence,
+            now_ms,
+            handoff,
+            verification,
+            &plan,
+        ) {
+            Ok(digest) => digest,
+            Err(err) => {
+                return if err.contains("authority:") {
+                    error_response(403, "lifecycle_authority_absent")
+                } else if err.contains("implementation_publication_conflict") {
+                    error_response(409, "lifecycle_publication_conflict")
+                } else if err.contains("implementation_") {
+                    error_response(409, "lifecycle_publication_unverified")
+                } else {
+                    error_response(503, "implementation_work_unavailable")
+                };
+            }
+        };
+        let publication = implementer.publication_record(&body.attempt_id).ok().flatten();
+        if let Some(hub) = context.events {
+            hub.wake_watcher();
+        }
+        return json_ok(json!({
+            "schema": LIFECYCLE_RESULT_SCHEMA,
+            "action": action,
+            "work_id": body.work_id,
+            "attempt_id": body.attempt_id,
+            "fence": body.fence,
+            "candidate_identity": attempt_candidate,
+            "publication_digest": digest,
+            "publication": publication,
+            "already_recorded": already_recorded,
+            "request_id": body.request_id,
+        }));
+    }
+
+    let Some(publication) = attempt.publication.as_ref() else {
+        return error_response(409, "lifecycle_publication_not_prepared");
+    };
+    let mut implementer = match Implementer::open(database, enrollment) {
+        Ok(implementer) => implementer,
+        Err(_) => return error_response(503, "implementation_work_unavailable"),
+    };
+
+    // Idempotent readback if the exact lifecycle stage is already durably recorded.
+    match action {
+        "publish"
+            if matches!(
+                publication.phase,
+                PublicationPhase::PullRequestPublished
+                    | PublicationPhase::Integrated
+                    | PublicationPhase::SourceReconciled
+            ) =>
+        {
+            return json_ok(json!({
+                "schema": LIFECYCLE_RESULT_SCHEMA,
+                "action": action,
+                "work_id": body.work_id,
+                "attempt_id": body.attempt_id,
+                "fence": body.fence,
+                "candidate_identity": attempt_candidate,
+                "publication": publication,
+                "already_recorded": true,
+                "request_id": body.request_id,
+            }));
+        }
+        "recover-integration"
+            if matches!(
+                publication.phase,
+                PublicationPhase::Integrated | PublicationPhase::SourceReconciled
+            ) =>
+        {
+            let receipt = implementer.integration_receipt(&body.attempt_id).ok().flatten();
+            return json_ok(json!({
+                "schema": LIFECYCLE_RESULT_SCHEMA,
+                "action": action,
+                "work_id": body.work_id,
+                "attempt_id": body.attempt_id,
+                "fence": body.fence,
+                "candidate_identity": attempt_candidate,
+                "publication": publication,
+                "receipt": receipt,
+                "already_recorded": true,
+                "request_id": body.request_id,
+            }));
+        }
+        "close-source" if publication.phase == PublicationPhase::SourceReconciled => {
+            let receipt = implementer.source_status_receipt(&body.attempt_id).ok().flatten();
+            return json_ok(json!({
+                "schema": LIFECYCLE_RESULT_SCHEMA,
+                "action": action,
+                "work_id": body.work_id,
+                "attempt_id": body.attempt_id,
+                "fence": body.fence,
+                "candidate_identity": attempt_candidate,
+                "publication": publication,
+                "receipt": receipt,
+                "already_recorded": true,
+                "request_id": body.request_id,
+            }));
+        }
+        _ => {}
+    }
+
+    // Fail closed before any remote GitHub or Radicle mutation: the web service
+    // does not hold forge tokens or Radicle signing keys (`AGENTS.md`).
+    let cli_parity = match action {
+        "publish" => format!(
+            "kiln-implementer publish --database {} --publication-file <publication.json> --secret-file <token>",
+            database.display()
+        ),
+        "recover-integration" => format!(
+            "kiln-implementer recover-integration --database {} --publication-file <publication.json> --landing-plan <landing.json> --secret-file <token>",
+            database.display()
+        ),
+        "close-source" => format!(
+            "kiln-implementer close-source --database {} --source-plan <source-plan.json> --secret-file <token>",
+            database.display()
+        ),
+        _ => String::new(),
+    };
+    json_error_with(
+        403,
+        json!({
+            "code": "lifecycle_provider_mutation_unsupported",
+            "message": "Remote forge/Radicle mutation authority is not configured in kiln-web-service; execute via the owning operator CLI with explicit credentials.",
+            "action": action,
+            "work_id": body.work_id,
+            "attempt_id": body.attempt_id,
+            "fence": body.fence,
+            "candidate_identity": attempt_candidate,
+            "cli_parity": cli_parity,
+        }),
+    )
 }
 
 #[cfg(test)]

@@ -607,7 +607,7 @@
           reasonInput?.focus?.();
           return;
         }
-        finish({ confirmed: true, reason });
+        finish({ confirmed: true, reason, requestId: typeof crypto?.randomUUID === "function" ? crypto.randomUUID() : `fleet-${Date.now()}` });
       };
       form.addEventListener("submit", onSubmit);
       dismissBtn?.addEventListener("click", onCancel);
@@ -1833,6 +1833,40 @@
     state.dispatchBar.replaceChildren(...items);
   }
 
+  function buildFleetAtlas(state) {
+    const nodes = new Map();
+    const routes = [];
+    for (const m of state.listedMachines || []) {
+      const id = `machine:${m.machine}`;
+      if (!nodes.has(id)) nodes.set(id, { id, label: m.machine, role: m.state || "machine", kind: "machine" });
+    }
+    for (const entry of state.cairnWorkerCells || []) {
+      const row = entry.row;
+      const cid = `change:${row.change}`;
+      if (!nodes.has(cid)) nodes.set(cid, { id: cid, label: row.change, role: row.lane || "change", lane: row.lane, kind: "unit" });
+      for (const a of row.activeAssignments || []) {
+        const aid = `attempt:${text(a.attempt).slice(0, 12)}`;
+        if (!nodes.has(aid)) nodes.set(aid, { id: aid, label: aid, role: "attempt", kind: "attempt" });
+        routes.push({ from: cid, to: aid, label: "declared assignment", provenance: "declared" });
+        const session = (state.listedAttempts || []).find((x) => x.attempt === a.attempt && x.fence === a.fence)?.session;
+        if (text(session?.machine)) {
+          const mid = `machine:${session.machine}`;
+          if (!nodes.has(mid)) nodes.set(mid, { id: mid, label: session.machine, role: "observed host", kind: "machine" });
+          routes.push({ from: aid, to: mid, label: "observed session", provenance: "observed", evidence_ref: a.attempt, digest: a.attempt });
+        }
+      }
+    }
+    return {
+      identity: text(state.version) || "fleet-atlas-projection",
+      title: "Fleet & Cairn execution topology",
+      nodes: [...nodes.values()],
+      routes,
+      packets: [],
+      chapters: [],
+      open_questions: [],
+    };
+  }
+
   let active = null;
   function load(root, context) {
     clear();
@@ -1978,9 +2012,30 @@
     inspectorHead.append(state.inspectorTitle, close);
     state.inspectorBody = element("div", undefined, "fleet-inspector-body");
     state.inspector.append(inspectorHead, state.inspectorBody);
+    const fleetAtlasToggle = element("button", "Open opt-in Atlas topology (off by default)", "quiet fleet-atlas-toggle");
+    fleetAtlasToggle.type = "button";
+    fleetAtlasToggle.setAttribute("aria-expanded", "false");
+    const fleetAtlasHost = element("div", undefined, "fleet-atlas-host");
+    fleetAtlasHost.hidden = true;
+    fleetAtlasToggle.addEventListener("click", () => {
+      const nextOpen = fleetAtlasHost.hidden;
+      fleetAtlasHost.hidden = !nextOpen;
+      fleetAtlasToggle.setAttribute("aria-expanded", String(nextOpen));
+      fleetAtlasToggle.textContent = nextOpen ? "Hide opt-in Atlas topology" : "Open opt-in Atlas topology (off by default)";
+      if (nextOpen) {
+        const doc = buildFleetAtlas(state);
+        if (typeof window.KilnCairn?.renderAtlasTopology === "function") {
+          fleetAtlasHost.replaceChildren(window.KilnCairn.renderAtlasTopology(doc));
+        } else if (doc.nodes.length > 64) {
+          fleetAtlasHost.replaceChildren(element("p", `Atlas topology graph refused: ${doc.nodes.length} nodes exceeds 64-node cap.`, "warning"));
+        } else {
+          fleetAtlasHost.replaceChildren(table(["From", "To", "Route", "Provenance"], doc.routes.map((r) => [r.from, r.to, r.label, r.provenance]), "No Atlas routes", "No active Cairn/Fleet routes observed."));
+        }
+      }
+    });
     cairnPanel.append(element("h2", "Cairn progress"), cairnStatusBar,
       element("p", "Dispatch bindings describe the plan, not the running host or model that served a request. Session freshness follows Fleet status above.", "small"),
-      state.cairnCoverage, state.cairnRows);
+      state.cairnCoverage, state.cairnRows, fleetAtlasToggle, fleetAtlasHost);
     state.runtime = element("div");
     state.campaign = element("div", undefined, "fleet-work");
     state.capacity = element("div");
@@ -2054,7 +2109,11 @@
     }
     void pollCairn(state);
     for (const poll of state.polls) void pollProjection(state, poll);
-    void window.KilnFleetCapacity?.mount(state.capacity, context);
+    void window.KilnFleetCapacity?.mount(state.capacity, {
+      ...context,
+      isFresh: () => isSnapshotFresh(state),
+      confirmControl: (opts) => confirmGuardedFleetMutation(state, opts),
+    });
     if (window.KilnInventory?.loadFleetCampaign) {
       void window.KilnInventory.loadFleetCampaign(state.campaign, context, context.route?.worker_campaign || "", (campaign) => {
         if (context.isCurrent() && campaign !== (context.route?.worker_campaign || "")) context.navigate?.({ worker_campaign: campaign });

@@ -1084,6 +1084,27 @@
     }, "primary"));
     title.focus();
   }
+  function drawGatePassport(root) {
+    if (typeof window === "undefined" || !window.KilnReceipts?.renderGatePassport) return;
+    const c = state.detail.change;
+    const selectedRevision = arr(c.revisions).find(r => r.id === revision()) || current();
+    const matchingCi = arr(state.detail.ci_runs).filter(fact => fact.project === c.project && fact.repository === c.repository && fact.revision === selectedRevision?.commit);
+    const card = panel(root, "Gate & Receipt Passport", "gate-passport", true);
+    const passport = window.KilnReceipts.renderGatePassport({
+      current_candidate_id: c.candidate?.id || c.submission?.candidate?.id || "",
+      current_revision: current()?.commit || selectedRevision?.commit || "",
+      ci_runs: matchingCi,
+      checks: arr(state.detail.checks),
+      cairn_completion: state.detail.cairn_completion || state.detail.authoritative_completion || null,
+      handoff: state.detail.handoff || selectedRevision?.handoff || null,
+      patchgate: state.detail.patchgate_receipts || state.detail.patchgate || state.detail.reviews || null,
+      provenance: state.detail.provenance || state.detail.in_toto || null,
+      plan_review: state.detail.plan_review || state.detail.plan_review_receipt || null,
+      semantic_merge: state.detail.semantic_merge || null,
+      reports: arr(state.detail.reports),
+    }, { title: "Gate & Receipt Passport" });
+    card.append(passport);
+  }
   function drawCi(root) {
     const c = state.detail.change, selectedRevision = arr(c.revisions).find(r => r.id === revision());
     const matching = arr(state.detail.ci_runs).filter(fact => fact.project === c.project && fact.repository === c.repository && fact.revision === selectedRevision?.commit);
@@ -1369,7 +1390,7 @@
 
     // Tab 2: CI & Previews
     const ciPanel = panels.get("ci");
-    drawBindingStrip(ciPanel); drawCi(ciPanel); drawPreviews(ciPanel, comparisonSlot);
+    drawBindingStrip(ciPanel); drawGatePassport(ciPanel); drawCi(ciPanel); drawPreviews(ciPanel, comparisonSlot);
 
     // Tab 3: Queue & Stack
     const queuePanel = panels.get("queue");

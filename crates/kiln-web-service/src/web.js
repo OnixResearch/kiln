@@ -55,6 +55,9 @@
     selectedRuns: new Set(),
     chordPrefix: "", chordTimer: null,
     feedsTimer: null,
+    logDigestCache: new Map(),
+    logDigestProbed: new Set(),
+    digestJump: null,
   };
 
   function text(value) {
@@ -836,6 +839,8 @@
     $("log-search-help").textContent = diagnostic ? "Search is unavailable for native diagnostic streams. Your worker-stream search is kept for stdout/stderr." : "Search retained stdout/stderr from the beginning; changing the search loads matching output.";
     $("follow-logs").disabled = !$("log-node").value;
     $("download-log").disabled = !$("log-node").value;
+    renderFailureDigest(run);
+    void probeFailureDigestLogs(run);
     updateControlButtons();
     // A live transition (for example to failed or to running) re-reads the newly defaulted stream or starts following it.
     if (selectionChanged && hadLog && logsVisible()) { maybeAutoFollow(); void readLog(false); }
@@ -1429,15 +1434,32 @@
       const defaults = state.failureFirst?.run === id && !state.route.stream ? state.failureFirst : null;
       if (defaults?.fellBack && stream === "stdout") $("log-status").textContent += " No stderr bytes were retained for this node, so its stdout is shown; choose stderr to return.";
       // Failure-first: an empty retained stderr falls back to stdout once, only when the URL names no stream.
-      fallback = Boolean(defaults && stream === "stderr" && defaults.stream === "stderr" && !append && !search && cursor === "0" && next === "0" && !result.text);
-      if (fallback) { defaults.stream = "stdout"; defaults.fellBack = true; }
+      const jump = state.digestJump?.run === id && state.digestJump?.node === node ? state.digestJump : null;
+      fallback = Boolean((defaults || jump) && stream === "stderr" && (defaults?.stream === "stderr" || jump?.stream === "stderr") && !append && !search && cursor === "0" && next === "0" && !result.text);
+      if (fallback && defaults) { defaults.stream = "stdout"; defaults.fellBack = true; }
+      if (fallback && jump) { jump.stream = "stdout"; }
       emptyRead = !result.text;
-      const firstError = !append && !followTail && defaults ? view.querySelector("mark.log-error-line") : null;
+      if (result.text && state.logDigestCache) {
+        const lines = output.split("\n");
+        const errIdxs = ui.errorLines(output);
+        const firstIdx = errIdxs.length ? errIdxs[0] : -1;
+        const firstErrLine = firstIdx >= 0 ? lines[firstIdx] : "";
+        let runCache = state.logDigestCache.get(id);
+        if (!runCache) { runCache = new Map(); state.logDigestCache.set(id, runCache); }
+        if (firstErrLine || !runCache.has(node)) {
+          runCache.set(node, { stream, firstErrorLine: firstErrLine, lineIndex: firstIdx, errorCount: errIdxs.length });
+          if (state.run?.id === id) renderFailureDigest(state.run);
+        }
+      }
+      const firstError = !append && !followTail && (defaults || jump) ? view.querySelector("mark.log-error-line") : null;
       view.scrollTop = followTail ? view.scrollHeight : append ? scrollTop : 0;
       if (firstError) {
         scrollLogToLine(firstError);
         // First read of a failed run: bring the highlighted output into view once, without moving focus.
-        if (!defaults.revealed) { defaults.revealed = true; $("log-output").scrollIntoView({ block: "nearest" }); }
+        if (defaults && !defaults.revealed) { defaults.revealed = true; $("log-output").scrollIntoView({ block: "nearest" }); }
+        if (jump) { state.digestJump = null; jumpToFirstError(); }
+      } else if (jump && !fallback) {
+        state.digestJump = null;
       }
     } catch (error) {
       if (!isAborted(error) && generation === state.logGeneration) {
@@ -1583,6 +1605,10 @@
     state.runsGeneration++;
     state.refsGeneration++;
     state.endpointGeneration.clear();
+    state.logDigestCache.clear();
+    state.logDigestProbed.clear();
+    state.digestJump = null;
+    renderFailureDigest(null);
     state.total = 0; state.nextCursor = null;
     state.runsError = "";
     state.cobsNextCursor = null;
@@ -2562,7 +2588,7 @@
     // r[impl kiln.cairn.workspace] The Cairn changes page renders through cairn.js.
     if (subPage === "cairn") {
       if (!window.KilnCairn) { $("cairn-content").replaceChildren(element("p", "Cairn changes are loading.", "small")); return; }
-      await window.KilnCairn.load($("cairn-content"), { api, navigate, route, runLink });
+      await window.KilnCairn.load($("cairn-content"), { api, navigate, route, runLink, confirmControl, canOperate });
     }
     // The Fleet page owns its bounded reads and coordinator commands; leaving the
     // page aborts its refresh cycle.
@@ -2589,7 +2615,12 @@
     if (route.view === "tests") await renderEndpoint(`${pathFor(route.run)}/reports`, "reports-content", renderReports);
     if (route.view === "reviews") await renderEndpoint(`${pathFor(route.run)}/reports`, "reviews-content", (parent, result) => {
       if (!window.KilnReceipts) { parent.append(element("p", "Patchgate receipts are loading.", "small")); return; }
-      window.KilnReceipts.renderRun(parent, result, { download: (artifact, button) => downloadArtifact(result.run_id || route.run, artifact, button) });
+      window.KilnReceipts.renderRun(parent, result, {
+        download: (artifact, button) => downloadArtifact(result.run_id || route.run, artifact, button),
+        candidateId: state.run?.execution?.candidate_id || "",
+        sourceRevision: state.run?.source_revision || "",
+        cairnCompletion: state.run?.implementation_verification || null,
+      });
     });
     if (route.view === "compare") {
       void loadRunChoices();
@@ -4183,10 +4214,448 @@
       }
     }
   }
+  // ---------- Cross-Node Failure Digest (r[impl kiln.web.causal_timeline_and_failure_digest]) ----------
+  const MAX_DIGEST_PROBES = 8;
+  const DIGEST_PROBE_BYTES = 4096;
+  let failureDigestBox = null;
+
+  function normalizeErrorSignature(line) {
+    if (typeof line !== "string") return "";
+    return line
+      .trim()
+      .replace(/\b0x[0-9a-f]+\b/gi, "<addr>")
+      .replace(/:\d+(?::\d+)?\b/g, ":<line>")
+      .replace(/\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?\b/g, "<time>")
+      .slice(0, 180);
+  }
+
+  function buildFailureDigest(run, observations = new Map()) {
+    if (!run || typeof run !== "object") return { failedNodeCount: 0, groups: [] };
+    const nodes = Array.isArray(run.nodes) ? run.nodes : [];
+    const telemetryByNode = new Map();
+    for (const rec of Array.isArray(run.step_telemetry) ? run.step_telemetry : []) {
+      const obs = rec?.observation;
+      const nodeId = obs?.binding?.node_id;
+      if (typeof nodeId === "string" && nodeId && !telemetryByNode.has(nodeId)) telemetryByNode.set(nodeId, obs.step || {});
+    }
+    const failing = nodes.filter((node) => node && typeof node.id === "string" && FAILED_NODE_STATE.test(node.state));
+    if (!failing.length) return { failedNodeCount: 0, groups: [] };
+    const groupsMap = new Map();
+    for (const node of failing) {
+      const obs = observations instanceof Map ? observations.get(node.id) : null;
+      const step = telemetryByNode.get(node.id) || null;
+      const stepExit = Number.isSafeInteger(step?.exit_code) && step.exit_code !== 0 ? `exit code ${step.exit_code}` : "";
+      const rawSig = (obs?.firstErrorLine && obs.firstErrorLine.trim())
+        || (typeof node.error === "string" && node.error.trim())
+        || (typeof node.message === "string" && node.message.trim())
+        || (typeof step?.error === "string" && step.error.trim())
+        || (typeof step?.message === "string" && step.message.trim())
+        || stepExit
+        || (typeof run.error_code === "string" && run.error_code.trim())
+        || `${text(node.kind)} · ${text(node.state)}`;
+      const signature = normalizeErrorSignature(rawSig) || `${text(node.kind)} · ${text(node.state)}`;
+      const stream = obs?.stream || "stderr";
+      let group = groupsMap.get(signature);
+      if (!group) {
+        group = { signature, sampleLine: obs?.firstErrorLine || rawSig, stream, count: 0, nodes: [] };
+        groupsMap.set(signature, group);
+      }
+      group.count += 1;
+      group.nodes.push({
+        nodeId: node.id,
+        kind: node.kind || "task",
+        state: node.state || "Failed",
+        stream,
+        exitCode: Number.isSafeInteger(step?.exit_code) ? step.exit_code : null,
+        firstErrorLine: obs?.firstErrorLine || "",
+        lineIndex: Number.isSafeInteger(obs?.lineIndex) ? obs.lineIndex : null,
+      });
+    }
+    const groups = [...groupsMap.values()].sort((a, b) => b.count - a.count || a.signature.localeCompare(b.signature));
+    return { failedNodeCount: failing.length, groups };
+  }
+
+  function ensureFailureDigestContainer() {
+    if (!failureDigestBox) {
+      failureDigestBox = element("section", undefined, "log-failure-digest");
+      failureDigestBox.id = "log-failure-digest";
+      failureDigestBox.setAttribute("aria-label", "Cross-node failure digest");
+      failureDigestBox.hidden = true;
+    }
+    const form = $("log-form");
+    if (form?.parentNode && failureDigestBox.parentNode !== form.parentNode) {
+      form.parentNode.insertBefore(failureDigestBox, form);
+    }
+    return failureDigestBox;
+  }
+
+  function jumpToDigestNode(nodeId, stream = "stderr") {
+    if (!nodeId || !state.selected) return;
+    const nodeSelect = $("log-node");
+    const streamSelect = $("log-stream");
+    const nextStream = ["stdout", "stderr", "diagnostic"].includes(stream) ? stream : "stderr";
+    state.digestJump = { run: state.selected, node: nodeId, stream: nextStream };
+    if (nodeSelect) nodeSelect.value = nodeId;
+    if (streamSelect) streamSelect.value = nextStream;
+    resetLogs();
+    const needsNav = state.route?.view !== "logs" || state.route?.node !== nodeId || state.route?.stream !== nextStream;
+    if (needsNav) navigate({ node: nodeId, stream: nextStream, view: "logs" });
+    if (!state.logBusy && nodeSelect?.value === nodeId) void readLog(false);
+  }
+
+  function renderFailureDigest(run) {
+    const box = ensureFailureDigestContainer();
+    box.replaceChildren();
+    if (!run || typeof run !== "object") { box.hidden = true; return; }
+    const observations = state.logDigestCache.get(run.id) || new Map();
+    const digest = buildFailureDigest(run, observations);
+    if (!digest.failedNodeCount) { box.hidden = true; return; }
+    box.hidden = false;
+    const head = element("div", undefined, "log-digest-head");
+    head.append(
+      element("h3", "Cross-Node Failure Digest", "log-digest-title"),
+      element("span", `${digest.failedNodeCount} failed node${digest.failedNodeCount === 1 ? "" : "s"} · ${digest.groups.length} unique signature${digest.groups.length === 1 ? "" : "s"}`, "chip"),
+    );
+    box.append(head);
+    const list = element("ul", undefined, "log-digest-list");
+    for (const group of digest.groups) {
+      const item = element("li", undefined, "log-digest-group");
+      const sigRow = element("div", undefined, "log-digest-sig-row");
+      const sig = element("code", group.signature, "log-digest-sig");
+      sigRow.append(sig);
+      if (group.count > 1) sigRow.append(element("span", `${group.count} nodes`, "state-badge"));
+      item.append(sigRow);
+      const actions = element("div", undefined, "log-digest-actions");
+      for (const n of group.nodes) {
+        const btn = element("button", `${n.nodeId} (${n.stream})`, "quiet log-digest-jump");
+        btn.type = "button";
+        btn.dataset.nodeId = n.nodeId;
+        btn.dataset.stream = n.stream;
+        btn.title = n.firstErrorLine ? `${n.nodeId} · ${n.stream}: ${n.firstErrorLine}` : `Jump to ${n.nodeId} ${n.stream}`;
+        btn.addEventListener("click", () => jumpToDigestNode(n.nodeId, n.stream));
+        actions.append(btn);
+      }
+      item.append(actions);
+      list.append(item);
+    }
+    box.append(list);
+  }
+
+  async function probeFailureDigestLogs(run) {
+    if (!run || !state.session || state.logDigestProbed.has(run.id)) return;
+    const maximum = run.log_bounds?.maximum_chunk_bytes;
+    if (!Number.isSafeInteger(maximum) || maximum <= 0) return;
+    const nodes = Array.isArray(run.nodes) ? run.nodes.filter((n) => n && typeof n.id === "string" && FAILED_NODE_STATE.test(n.state)) : [];
+    if (!nodes.length) return;
+    state.logDigestProbed.add(run.id);
+    const runId = run.id;
+    const probeBytes = Math.min(DIGEST_PROBE_BYTES, maximum);
+    let runCache = state.logDigestCache.get(runId);
+    if (!runCache) { runCache = new Map(); state.logDigestCache.set(runId, runCache); }
+    for (const node of nodes.slice(0, MAX_DIGEST_PROBES)) {
+      if (runCache.has(node.id) || state.selected !== runId || !state.session) continue;
+      for (const stream of ["stderr", "stdout"]) {
+        try {
+          const res = await api(`${pathFor(runId)}/logs?${new URLSearchParams({ node_id: node.id, stream, cursor: "0", max_bytes: String(probeBytes) })}`, { quiet: true });
+          if (state.selected !== runId || !state.session) return;
+          if (typeof res?.text === "string" && res.text.trim()) {
+            const lines = res.text.split("\n");
+            const idxs = ui.errorLines(res.text);
+            const firstIdx = idxs.length ? idxs[0] : -1;
+            const firstErrorLine = firstIdx >= 0 ? lines[firstIdx] : (lines.findLast((l) => l.trim()) || "");
+            runCache.set(node.id, { stream, firstErrorLine, lineIndex: firstIdx, errorCount: idxs.length });
+            if (state.run?.id === runId) renderFailureDigest(state.run);
+            break;
+          }
+        } catch {
+          // Quiet probe: unavailable logs leave the node-level digest intact.
+          break;
+        }
+      }
+    }
+  }
+
+  // ---------- Causal Event-Sourced Decision Timeline (r[impl kiln.web.causal_timeline_and_failure_digest]) ----------
+  const CAUSAL_STAGES = Object.freeze([
+    Object.freeze({ key: "admitted", label: "Admitted", tone: "queued", order: 0 }),
+    Object.freeze({ key: "untrusted_gate", label: "Untrusted Gate", tone: "warning", order: 1 }),
+    Object.freeze({ key: "dispatched", label: "Dispatched", tone: "running", order: 2 }),
+    Object.freeze({ key: "observations", label: "Observations", tone: "info", order: 3 }),
+    Object.freeze({ key: "controls_unknown", label: "Controls / Unknown", tone: "warning", order: 4 }),
+    Object.freeze({ key: "terminal", label: "Terminal", tone: "success", order: 5 }),
+  ]);
+  const CAUSAL_STAGE_BY_KEY = new Map(CAUSAL_STAGES.map((s) => [s.key, s]));
+
+  function copyableIdentityChip(value, labelPrefix = "event identity") {
+    const id = typeof value === "string" ? value.trim() : "";
+    if (!id) return null;
+    const wrap = element("span", undefined, "causal-identity");
+    const prefix = element("code", id.length > 12 ? id.slice(0, 12) : id, "causal-identity-prefix");
+    prefix.title = id;
+    prefix.dataset.fullIdentity = id;
+    const status = element("span", undefined, "small causal-copy-status");
+    status.setAttribute("role", "status");
+    const btn = element("button", undefined, "quiet causal-copy-btn");
+    btn.type = "button";
+    btn.append(ui.icon("copy"), element("span", "Copy"));
+    btn.setAttribute("aria-label", `Copy ${labelPrefix} ${id.slice(0, 12)}`);
+    btn.addEventListener("click", () => ui.copyText(id, status, "Copied."));
+    wrap.append(prefix);
+    if (id.length > 12) wrap.append(element("span", "…", "small"));
+    wrap.append(btn, status);
+    return wrap;
+  }
+
+  function classifyCausalEvent(item) {
+    if (!item || typeof item !== "object") {
+      return { stage: CAUSAL_STAGE_BY_KEY.get("observations"), title: "Recorded item", attribution: "Kiln", identity: "", facts: [], outcome: null };
+    }
+    if (item.kind === "audit") {
+      const audit = item.audit || {};
+      const target = String(audit.target || "");
+      const method = String(audit.method || "");
+      let stageKey = "controls_unknown";
+      if (/\/approve\b|untrusted/i.test(target)) stageKey = "untrusted_gate";
+      else if (/\/runs\b|\/rerun\b/i.test(target) && method === "POST") stageKey = "admitted";
+      else if (/\/reconcile\b|\/control\b|\/cancel\b|\/pause\b|\/resume\b/i.test(target)) stageKey = "controls_unknown";
+      const actor = audit.actor_label || audit.principal_id || "Operator";
+      const agent = audit.agent ? ` · Agent ${audit.agent.harness}${audit.agent.model ? ` / ${audit.agent.model}` : ""} (declared)` : "";
+      const facts = [
+        ["Method", method],
+        ["Target", target],
+        ["Decision", audit.decision],
+        ...(item.run_id ? [["Run", runLink(item.run_id)]] : []),
+      ];
+      return {
+        stage: CAUSAL_STAGE_BY_KEY.get(stageKey),
+        title: activityTitle(item),
+        attribution: `${actor}${agent}`,
+        identity: typeof audit.identity === "string" ? audit.identity : typeof audit.request_id === "string" ? audit.request_id : "",
+        facts,
+        outcome: null,
+      };
+    }
+    const event = item.event;
+    const kind = typeof event === "string" ? event : event && typeof event === "object" ? Object.keys(event)[0] || "" : "";
+    const payload = kind && event && typeof event === "object" ? event[kind] || {} : {};
+    let stageKey = "observations";
+    if (kind === "RunStarted") stageKey = "admitted";
+    else if (kind === "RetryStarted") stageKey = "dispatched";
+    else if (kind === "AttemptUnknown" || kind === "CancellationRequested" || kind === "HoldChanged") stageKey = "controls_unknown";
+    else if (kind === "AttemptCompleted" || kind === "AttemptReconciled") stageKey = payload.outcome === "Unknown" ? "controls_unknown" : "terminal";
+    else if (item.stage && CAUSAL_STAGE_BY_KEY.has(item.stage)) stageKey = item.stage;
+
+    const attribution = item.principal
+      || (payload.command_id ? `Command ${shortIdentity(payload.command_id)}` : "Kiln core");
+    const facts = [];
+    if (payload.attempt_id) facts.push(["Attempt", payload.attempt_id]);
+    if (payload.next_attempt_id) facts.push(["Next attempt", payload.next_attempt_id]);
+    if (payload.effect_id) facts.push(["Effect ID", payload.effect_id]);
+    if (payload.provider_profile) facts.push(["Provider", payload.provider_profile]);
+    if (payload.sequence != null) facts.push(["Sequence", String(payload.sequence)]);
+    if (Array.isArray(payload.products)) facts.push(["Products", String(payload.products.length)]);
+    if (Array.isArray(payload.metrics)) facts.push(["Metrics", String(payload.metrics.length)]);
+    if (item.run_id) facts.push(["Run", runLink(item.run_id)]);
+    return {
+      stage: CAUSAL_STAGE_BY_KEY.get(stageKey),
+      title: activityTitle(item),
+      attribution,
+      identity: typeof item.event_identity === "string" ? item.event_identity : "",
+      facts,
+      outcome: payload.outcome || null,
+    };
+  }
+
+  function renderCausalTimeline(parent, items, emptyMessage = "No retained causal events.") {
+    const classified = (Array.isArray(items) ? items : []).map((item, idx) => ({ item, idx, info: classifyCausalEvent(item) }));
+    classified.sort((a, b) => {
+      const ta = Number.isSafeInteger(a.item?.recorded_at_ms) ? a.item.recorded_at_ms : Number.MAX_SAFE_INTEGER;
+      const tb = Number.isSafeInteger(b.item?.recorded_at_ms) ? b.item.recorded_at_ms : Number.MAX_SAFE_INTEGER;
+      if (ta !== tb) return ta - tb;
+      const oa = Number.isSafeInteger(a.item?.ordinal) ? a.item.ordinal : 0;
+      const ob = Number.isSafeInteger(b.item?.ordinal) ? b.item.ordinal : 0;
+      if (oa !== ob) return oa - ob;
+      const ia = Number.isSafeInteger(a.item?.event_index) ? a.item.event_index : 0;
+      const ib = Number.isSafeInteger(b.item?.event_index) ? b.item.event_index : 0;
+      if (ia !== ib) return ia - ib;
+      return (a.info.stage.order - b.info.stage.order) || (a.idx - b.idx);
+    });
+
+    const stageCounts = new Map(CAUSAL_STAGES.map((s) => [s.key, 0]));
+    for (const row of classified) stageCounts.set(row.info.stage.key, (stageCounts.get(row.info.stage.key) || 0) + 1);
+    const rail = element("ol", undefined, "causal-stage-rail");
+    rail.setAttribute("aria-label", "Causal state-machine stages");
+    for (const s of CAUSAL_STAGES) {
+      const count = stageCounts.get(s.key) || 0;
+      const step = element("li", undefined, "causal-stage-step");
+      step.dataset.stage = s.key;
+      step.dataset.reached = String(count > 0);
+      step.append(element("span", s.label, "causal-stage-step-label"));
+      if (count > 0) step.append(element("span", String(count), "chip"));
+      rail.append(step);
+    }
+    parent.append(rail);
+
+    if (!classified.length) {
+      parent.append(emptyState("No retained activity", emptyMessage));
+      return;
+    }
+
+    const list = element("ol", undefined, "causal-timeline");
+    for (const { item, info } of classified) {
+      const card = element("li", undefined, "record-card activity-item causal-event");
+      card.dataset.stage = info.stage.key;
+      const head = element("div", undefined, "causal-event-head");
+      const stageBadge = element("span", info.stage.label, "state-badge causal-stage-badge");
+      stageBadge.dataset.tone = info.stage.tone === "success" ? "good" : info.stage.tone === "running" || info.stage.tone === "info" ? "info" : info.stage.tone === "warning" ? "warning" : "neutral";
+      head.append(stageBadge);
+      if (info.outcome) head.append(ui.statusPill(info.outcome));
+      head.append(element("h3", info.title, "causal-event-title"));
+      head.append(when(item?.recorded_at_ms));
+      card.append(head);
+
+      const meta = element("div", undefined, "causal-event-meta");
+      meta.append(element("span", `Attribution: ${info.attribution}`, "small"));
+      if (item?.project_id) meta.append(element("span", `Project: ${text(projectLabel(item.project_id))}`, "small"));
+      const exact = item ? activityExact(item) : null;
+      if (exact) meta.append(exact);
+      const idChip = copyableIdentityChip(info.identity, "event_identity");
+      if (idChip) meta.append(idChip);
+      card.append(meta);
+
+      if (info.facts.length) {
+        const dl = element("dl", undefined, "facts");
+        addFacts(dl, info.facts);
+        card.append(dl);
+      }
+
+      const rawDisclosure = element("details", undefined, "activity-fields causal-raw");
+      rawDisclosure.append(element("summary", "Raw JSON record"), element("pre", JSON.stringify(item, null, 2), "identity"));
+      card.append(rawDisclosure);
+      list.append(card);
+    }
+    parent.append(list);
+  }
+
+  function renderStructuredFactCard(title, rows, rawObj, parent) {
+    const card = section(title, parent, "record-card");
+    const dl = element("dl", undefined, "facts");
+    addFacts(dl, rows);
+    card.append(dl);
+    if (rawObj !== undefined) {
+      const raw = element("details", undefined, "causal-raw");
+      raw.append(element("summary", "Raw JSON record"), element("pre", JSON.stringify(rawObj, null, 2), "identity"));
+      card.append(raw);
+    }
+    return card;
+  }
+
   // r[impl kiln.dashboard.complete.evidence]
   function renderEvidence(parent, result) {
     parent.append(element("p", "Recorded evidence only. A reported verdict, review, provenance link or retained artifact does not establish accepted gate authority or product correctness.", "warning"));
-    for (const key of ["source", "pipeline", "execution"]) if (Object.hasOwn(result, key)) { const group = section(key[0].toUpperCase() + key.slice(1) + " linkage", parent, "record-card"); renderRecorded(group, result[key]); }
+    const isRunEvidence = Boolean(result && typeof result === "object" && (result.run_id || result.source || result.pipeline || result.execution));
+    if (isRunEvidence) {
+      // Synthesize causal state-machine timeline from retained events or run evidence linkage.
+      const timelineItems = Array.isArray(result.events) && result.events.length ? result.events : [];
+      if (!timelineItems.length) {
+        const run = state.run?.id === result.run_id ? state.run : null;
+        if (result.source || result.pipeline) {
+          timelineItems.push({
+            kind: "canonical",
+            run_id: result.run_id,
+            recorded_at_ms: run?.created_at_ms ?? null,
+            event_identity: result.pipeline?.identity || result.source?.canonical_tree || "",
+            event: { RunStarted: { run_id: result.run_id, attempt_id: result.execution?.attempt_id, provider_profile: result.source?.provider_profile } },
+            stage: "admitted",
+          });
+        }
+        if (run?.untrusted || result.untrusted) {
+          const gate = run?.untrusted || result.untrusted;
+          timelineItems.push({
+            kind: "audit",
+            run_id: result.run_id,
+            recorded_at_ms: gate.approved_at_ms ?? null,
+            principal: gate.approved_by || "Untrusted gate",
+            audit: { method: "GATE", target: "/untrusted", decision: gate.state || "untrusted", actor_label: gate.approved_by || "Policy" },
+          });
+        }
+        if (result.execution?.effect_id || result.execution?.attempt_id) {
+          timelineItems.push({
+            kind: "canonical",
+            run_id: result.run_id,
+            recorded_at_ms: run?.started_at_ms ?? null,
+            event_identity: result.execution?.candidate_id || "",
+            event: { RetryStarted: { run_id: result.run_id, next_attempt_id: result.execution.attempt_id, effect_id: result.execution.effect_id } },
+            stage: "dispatched",
+          });
+        }
+        if (result.execution?.observation) {
+          timelineItems.push({
+            kind: "canonical",
+            run_id: result.run_id,
+            recorded_at_ms: run?.started_at_ms ?? null,
+            event_identity: result.execution.observation.identity || "",
+            event: { Observation: { sequence: result.execution.observation.sequence, state: result.execution.observation.state } },
+            stage: "observations",
+          });
+        }
+        if (run?.outcome && run.outcome !== "Pending") {
+          timelineItems.push({
+            kind: "canonical",
+            run_id: result.run_id,
+            recorded_at_ms: run.completed_at_ms ?? null,
+            event_identity: result.execution?.candidate_id || "",
+            event: { AttemptCompleted: { attempt_id: result.execution?.attempt_id || run.attempt_id, outcome: run.outcome } },
+          });
+        }
+      }
+      if (timelineItems.length) {
+        const timelineGroup = section("Causal Event-Sourced Decision Timeline", parent, "view-stack");
+        renderCausalTimeline(timelineGroup, timelineItems);
+      }
+
+      if (window.KilnReceipts?.renderGatePassport) {
+        const run = state.run?.id === result.run_id ? state.run : null;
+        parent.append(window.KilnReceipts.renderGatePassport({
+          current_candidate_id: result.execution?.candidate_id || "",
+          current_revision: result.source?.exact_revision?.native_id || run?.source_revision || "",
+          reports: Array.isArray(result.reports) ? result.reports : [],
+          checks: Array.isArray(result.checks) ? result.checks : [],
+          cairn_completion: result.cairn_completion || result.authoritative_completion || run?.implementation_verification || null,
+          handoff: result.handoff || null,
+          plan_review: result.plan_review || result.plan_review_receipt || null,
+          semantic_merge: result.semantic_merge || null,
+          provenance: result.provenance || result.in_toto || null,
+          gate_passport: result.gate_passport || null,
+        }, { title: "Run Gate & Receipt Passport" }));
+      }
+
+      if (result.source) {
+        renderStructuredFactCard("Source linkage", [
+          ["Provider profile", result.source.provider_profile],
+          ["Repository", result.source.repository?.native_id || result.source.repository],
+          ["Reference", result.source.symbolic_reference?.native_id || result.source.symbolic_reference],
+          ["Exact revision", copyableIdentityChip(result.source.exact_revision?.native_id || result.source.exact_revision, "source revision") || result.source.exact_revision],
+          ["Canonical tree", copyableIdentityChip(result.source.canonical_tree, "canonical tree") || result.source.canonical_tree],
+        ], result.source, parent);
+      }
+      if (result.pipeline) {
+        renderStructuredFactCard("Pipeline linkage", [
+          ["Pipeline identity", copyableIdentityChip(result.pipeline.identity, "pipeline identity") || result.pipeline.identity],
+          ["Revision ID", result.pipeline.revision_id],
+          ["Nodes", String(Array.isArray(result.pipeline.nodes) ? result.pipeline.nodes.length : 0)],
+          ["Edges", String(Array.isArray(result.pipeline.edges) ? result.pipeline.edges.length : 0)],
+        ], result.pipeline, parent);
+      }
+      if (result.execution) {
+        renderStructuredFactCard("Execution linkage", [
+          ["Attempt ID", result.execution.attempt_id],
+          ["Candidate ID", copyableIdentityChip(result.execution.candidate_id, "candidate") || result.execution.candidate_id],
+          ["Effect ID", copyableIdentityChip(result.execution.effect_id, "effect") || result.execution.effect_id],
+          ["Observation sequence", result.execution.observation?.sequence != null ? String(result.execution.observation.sequence) : "Not recorded"],
+        ], result.execution, parent);
+      }
+    }
     const runLinks = element("div", undefined, "action-row");
     if (result.run_id) runLinks.append(runLink(result.run_id, "Inspect this exact run", "pipeline"));
     if (result.parent_run_id) runLinks.append(runLink(result.parent_run_id, "Inspect parent run"));
@@ -4194,10 +4663,27 @@
     if (Array.isArray(result.artifacts)) {
       const group = section("Retained artifact provenance", parent, "view-stack");
       if (!result.artifacts.length) group.append(element("p", "No retained artifacts for this run.", "small"));
-      for (const artifact of result.artifacts) { const card = section(text(artifact.name), group, "record-card"); renderRecorded(card, artifact); const button = element("button", "Download exact retained artifact"); button.type = "button"; button.addEventListener("click", () => downloadArtifact(result.run_id, artifact, button)); card.append(button); }
+      for (const artifact of result.artifacts) {
+        const card = renderStructuredFactCard(text(artifact.name), [
+          ["Artifact ID", artifact.id],
+          ["Node", artifact.node_id],
+          ["Attempt", artifact.attempt_id],
+          ["Bytes", Number.isSafeInteger(artifact.bytes) ? `${ui.humanBytes(artifact.bytes)} (${artifact.bytes})` : text(artifact.bytes)],
+          ["BLAKE3", copyableIdentityChip(artifact.blake3, "artifact BLAKE3") || artifact.blake3],
+        ], artifact, group);
+        const button = element("button", "Download exact retained artifact");
+        button.type = "button";
+        button.addEventListener("click", () => downloadArtifact(result.run_id, artifact, button));
+        card.append(button);
+      }
     }
     if (Array.isArray(result.reports)) { const group = section("Recorded gate, review and report evidence", parent, "view-stack"); renderReports(group, { run_id: result.run_id, reports: result.reports }); }
-    if (!result.source && !result.pipeline && !result.execution) renderRecorded(parent, result);
+    if (!isRunEvidence) {
+      renderStructuredFactCard("Recorded evidence details", [
+        ...(Object.hasOwn(result || {}, "accepted_gate") ? [["Accepted gate", String(result.accepted_gate)]] : []),
+        ...(result?.claim_boundary ? [["Claim boundary", result.claim_boundary]] : []),
+      ], result, parent);
+    }
     if (Array.isArray(result.links) && result.links.length) {
       const group = section("Recorded provenance links", parent, "view-stack");
       for (const recorded of result.links) {
@@ -4216,21 +4702,8 @@
   }
   function renderActivity(parent, result) {
     if (!Array.isArray(result.items)) throw new Error("Activity response is invalid.");
-    parent.append(element("p", `${result.items.length} shown of ${text(result.total)} · bounded retained timeline · audit window: ${text(result.audit_window)}`, "small"));
-    // r[impl kiln.web.page_consistency.scenario.data] Each entry leads with a readable title and attribution; exact recorded fields stay one disclosure away.
-    for (const item of result.items) {
-      const card = element("section", undefined, "record-card activity-item");
-      card.append(element("h3", activityTitle(item)));
-      const exact = activityExact(item);
-      if (exact) card.append(exact);
-      card.append(activityMeta(item));
-      parent.append(card);
-      const fields = element("details", undefined, "activity-fields");
-      fields.append(element("summary", "Recorded fields"));
-      if (item.kind === "audit") renderRecorded(fields, item.audit); else renderRecorded(fields, { event_identity: item.event_identity, ordinal: item.ordinal, event_index: item.event_index, event: item.event });
-      card.append(fields);
-    }
-    if (!result.items.length) parent.append(emptyState("No retained activity", "No retained activity in this bounded page. Audit decisions and canonical events appear here as they are recorded."));
+    parent.append(element("p", `${result.items.length} shown of ${text(result.total)} · chronological causal progression · audit window: ${text(result.audit_window)}`, "small"));
+    renderCausalTimeline(parent, result.items, "No retained activity in this bounded page. Audit decisions and canonical events appear here as they are recorded.");
     const controls = element("div", undefined, "control-bar");
     const first = element("button", "First page"); first.type = "button"; first.disabled = !state.route.activity_cursor; first.addEventListener("click", () => navigate({ activity_cursor: "" }));
     const next = element("button", "Next page"); next.type = "button"; next.disabled = !result.next_cursor; next.addEventListener("click", () => navigate({ activity_cursor: result.next_cursor }));
@@ -4770,20 +5243,39 @@
         ]);
         const nodes = [facts];
         if (item.kind === "PlanReviewGate" && Array.isArray(item.context_preview?.steps)) {
-          nodes.push(element("h3", "Proposed plan steps"));
-          const ol = element("ol", undefined, "slide-over-plan-steps");
-          for (const step of item.context_preview.steps) ol.append(element("li", step.text || step.id || String(step)));
-          nodes.push(ol);
-          if (canOperate() && item.target?.work_id && item.target?.plan_id) {
-            const row = element("div", undefined, "cluster");
-            const accept = element("button", "Accept plan", "primary");
-            accept.type = "button";
-            accept.addEventListener("click", async () => { await executeAttentionAction(item, "accept_plan", accept); closeInspector(); });
-            const changes = element("button", "Request changes", "quiet");
-            changes.type = "button";
-            changes.addEventListener("click", async () => { await executeAttentionAction(item, "request_changes", changes); closeInspector(); });
-            row.append(accept, changes);
-            nodes.push(row);
+          if (typeof window.KilnCairn?.renderPlanReview === "function" && item.target?.work_id && item.target?.plan_id) {
+            const prBox = element("div", undefined, "view-stack");
+            window.KilnCairn.renderPlanReview(prBox, {
+              workId: item.target.work_id,
+              planId: item.target.plan_id,
+              revision: item.context_preview.revision ?? null,
+              gate: item.context_preview.gate || "unreviewed",
+              author: item.context_preview.author || "",
+              steps: item.context_preview.steps,
+              annotations: item.context_preview.annotations || [],
+              comparison: item.context_preview.comparison || null,
+              receiptDigest: item.context_preview.receipt_digest || null,
+              canOperate: canOperate(),
+              api,
+              onReviewed: () => { closeInspector(); void refreshAll(); },
+            });
+            nodes.push(prBox);
+          } else {
+            nodes.push(element("h3", "Proposed plan steps"));
+            const ol = element("ol", undefined, "slide-over-plan-steps");
+            for (const step of item.context_preview.steps) ol.append(element("li", step.text || step.id || String(step)));
+            nodes.push(ol);
+            if (canOperate() && item.target?.work_id && item.target?.plan_id) {
+              const row = element("div", undefined, "cluster");
+              const accept = element("button", "Accept plan", "primary");
+              accept.type = "button";
+              accept.addEventListener("click", async () => { await executeAttentionAction(item, "accept_plan", accept); closeInspector(); });
+              const changes = element("button", "Request changes", "quiet");
+              changes.type = "button";
+              changes.addEventListener("click", async () => { await executeAttentionAction(item, "request_changes", changes); closeInspector(); });
+              row.append(accept, changes);
+              nodes.push(row);
+            }
           }
         } else if (item.kind === "UnknownTerminationOrDispatch" && canOperate()) {
           const recBtn = element("button", "Reconcile ambiguous termination", "primary");
@@ -4990,6 +5482,8 @@
     navigate,
     route: () => state.route,
     refreshOverview: () => (state.route?.page === "overview" ? loadOverview() : Promise.resolve()),
+    timeline: Object.freeze({ classifyCausalEvent, renderCausalTimeline, renderActivity, renderEvidence }),
+    failureDigest: Object.freeze({ build: buildFailureDigest, normalizeSignature: normalizeErrorSignature, render: renderFailureDigest, jump: jumpToDigestNode }),
   });
   // r[impl kiln.work.authority] r[impl kiln.work.change]
   window.KilnWork = Object.freeze({

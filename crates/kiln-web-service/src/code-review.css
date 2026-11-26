@@ -432,3 +432,6 @@
 .cr-preview-structural ul { display: grid; gap: var(--space-3); min-width: 0; margin: 0; padding-left: var(--space-4); }
 .cr-preview-structural li { display: grid; gap: var(--space-1); min-width: 0; }
 .cr-preview-structural pre { max-height: 20rem; margin: 0; overflow: auto; white-space: pre; }
+.cr-aside .gate-passport { padding: var(--space-3); }
+.cr-aside .gate-passport .facts { grid-template-columns: minmax(0, 1fr); gap: .1rem; }
+.cr-aside .gate-passport .facts dd { margin-bottom: var(--space-1); }

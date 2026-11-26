@@ -64,19 +64,22 @@ Overview and the Guide join the first cohort because they are the shell's landin
 and orientation surfaces. The order follows #68's rollout list; it does not
 qualify any route.
 
-## Recorded coverage gaps
+## Recorded coverage
 
-The renderers of Workers, Code review, Cairn changes, Source and Patchgate
-receipts are loaded by Node tests. Fleet, its coordinator proxy and the page's
-operator commands are covered by Rust route tests and live console rails; no Node
-test loads `fleet.js` yet. The other pages have no Node test that loads
-their renderer: `web.js` renders Guide, Overview, Runs, CI projects, Activity,
-Feeds, Evidence, Automation, Operations, Raw collaboration history and Settings;
-`project.js` renders CI project; and `work.js` renders the work pages, where only
-the board module is loaded by Node tests. Any coverage these pages have comes from
-browser-level rails (the service smoke, the Bombadil exploration and the
-explorer's named examples) rather than Node tests, so the port must capture each
-of them through #66 before it replaces them.
+Every route's renderer is covered by Node module tests in addition to Rust route
+tests and live console rails:
+- `tests/live-console-ui.test.mjs` loads `ui.js`, `source.js`, `receipts.js`, `workers.js`, `runbooks.js`, `cairn.js`, and `code-review.js`.
+- `tests/inventory-ui.test.mjs` loads `inventory.js`.
+- `tests/preview-compare.test.mjs` loads `preview-review.js`.
+- `tests/work-views.test.mjs` loads `work-board.js`.
+- `tests/web-module.test.mjs` loads `web.js` (Guide, Overview, Runs, CI projects, Activity, Feeds, Evidence, Automation, Operations, Raw collaboration history, Settings).
+- `tests/fleet-ui.test.mjs` loads `fleet.js` (Fleet & Workers coordinator, machine census, claims/attempt controls, Fair-Admission & SSE handling).
+- `tests/work-module.test.mjs` loads `work.js` and `work-evidence.js` (Issues, Inbox, Planning, Triage, Saved views).
+- `tests/project-ui.test.mjs` loads `project.js` (CI project).
+
+Browser-level rails (the service smoke, the Bombadil exploration and the
+explorer's named examples) complement these Node module tests for full end-to-end
+visual parity through #66 before porting a cohort.
 
 ## Preservation rules
 

@@ -5,6 +5,7 @@
   "use strict";
   const HEX = /^[a-f0-9]{64}$/;
   const INVENTORY_SCHEMA = "kiln.observe.inventory.v2";
+  const ADMISSION_SCHEMA = "kiln.implementation-admission.v1";
   const WORK_LIMIT = 100; // The Fleet owner lists at most this many in each category.
   const record = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
   const text = (value) => typeof value === "string" ? value : "";
@@ -20,6 +21,366 @@
   const ref = (value) => text(value?.source) && text(value?.id) ? `${value.source} / ${value.id}` : "Binding not recorded";
   const current = (state) => active === state && state.context.isCurrent() && state.root.isConnected;
   let active = null;
+
+  function newRequestId() {
+    if (typeof crypto?.randomUUID === "function") return crypto.randomUUID();
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    return `adm-${[...bytes].map((b) => b.toString(16).padStart(2, "0")).join("")}`;
+  }
+
+  function formatEffortMetric(value, status, absenceReason) {
+    if (value === null || value === undefined || !Number.isSafeInteger(value) || value < 0 || status === "absent" || status === "not_recorded") {
+      return absenceReason ? `not recorded (${absenceReason})` : "not recorded";
+    }
+    if (status === "incomplete") {
+      return `${value.toLocaleString("en-US")} (incomplete${absenceReason ? `: ${absenceReason}` : ""})`;
+    }
+    return value.toLocaleString("en-US");
+  }
+
+  function formatAmounts(value) {
+    if (!record(value)) return "not recorded";
+    const entries = Object.entries(value);
+    if (!entries.length) return "none";
+    return entries.map(([dim, amt]) => `${dim}: ${Number.isSafeInteger(amt) && amt >= 0 ? amt.toLocaleString("en-US") : "not recorded"}`).join(", ");
+  }
+
+  function validateAdmission(value) {
+    if (!record(value) || value.schema !== ADMISSION_SCHEMA || typeof value.configured !== "boolean"
+      || typeof value.bounded !== "boolean" || !Array.isArray(value.accounts)
+      || !Array.isArray(value.serving) || !Array.isArray(value.attempt_metrics)) {
+      throw new Error("Fair-admission governance response is invalid.");
+    }
+    return value;
+  }
+
+  function dataTable(headers, rows, emptyText) {
+    if (!rows.length) return node("p", emptyText, "small");
+    const wrap = node("div", undefined, "data-table-wrap");
+    const tbl = node("table", undefined, "data-table data-table-stack fleet-capacity-table");
+    const thead = node("thead");
+    const hr = node("tr");
+    for (const h of headers) {
+      const th = node("th", h);
+      th.scope = "col";
+      hr.append(th);
+    }
+    thead.append(hr);
+    const tbody = node("tbody");
+    for (const cells of rows) {
+      const tr = node("tr");
+      cells.forEach((cellVal, idx) => {
+        const td = node("td");
+        td.dataset.label = headers[idx] || "";
+        if (cellVal && typeof cellVal === "object" && "nodeType" in cellVal) td.append(cellVal);
+        else td.textContent = cellVal === null || cellVal === undefined || cellVal === "" ? "not recorded" : String(cellVal);
+        tr.append(td);
+      });
+      tbody.append(tr);
+    }
+    tbl.append(thead, tbody);
+    wrap.append(tbl);
+    return wrap;
+  }
+
+  async function confirmAdmissionControl(state, options) {
+    if (typeof state.context?.confirmControl === "function") {
+      return state.context.confirmControl(options);
+    }
+    const byId = (id) => (typeof document?.getElementById === "function" ? document.getElementById(id) : null);
+    const dialog = byId("control-dialog");
+    const form = byId("control-form");
+    if (!dialog || !form) return { confirmed: false, reason: "", unavailable: true };
+    const title = byId("confirm-title");
+    const warning = byId("confirm-warning");
+    const factsEl = byId("confirm-facts");
+    const confirmBtn = byId("confirm-control");
+    const dismissBtn = byId("dismiss-control");
+    const reasonField = byId("confirm-reason-field");
+    const reasonInput = byId("confirm-reason");
+    const cliWrap = byId("confirm-cli-parity");
+    const cliCmd = byId("confirm-cli-cmd");
+    if (title) title.textContent = options.title || "Confirm admission policy update";
+    if (warning) warning.textContent = options.warning || "";
+    if (confirmBtn) { confirmBtn.textContent = options.verb || "Confirm"; confirmBtn.className = "primary"; }
+    if (dismissBtn) dismissBtn.textContent = options.dismiss || "Cancel";
+    if (factsEl) {
+      factsEl.replaceChildren();
+      for (const [k, v] of options.facts || []) factsEl.append(node("dt", k), node("dd", String(v)));
+    }
+    if (reasonField) reasonField.hidden = true;
+    if (reasonInput) { reasonInput.required = false; reasonInput.value = ""; }
+    if (cliWrap && cliCmd) {
+      if (options.cliCommand) { cliWrap.hidden = false; cliCmd.textContent = options.cliCommand; }
+      else { cliWrap.hidden = true; cliCmd.textContent = ""; }
+    }
+    return new Promise((resolve) => {
+      let settled = false;
+      const cleanup = () => {
+        form.removeEventListener("submit", onSubmit);
+        dismissBtn?.removeEventListener("click", onCancel);
+        dialog.removeEventListener("cancel", onCancel);
+        if (dialog.open) dialog.close();
+      };
+      const finish = (res) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        options.opener?.focus?.();
+        resolve(res);
+      };
+      const onCancel = () => finish({ confirmed: false, reason: "" });
+      const onSubmit = (event) => {
+        event.preventDefault();
+        finish({ confirmed: true, reason: "", requestId: newRequestId() });
+      };
+      form.addEventListener("submit", onSubmit);
+      dismissBtn?.addEventListener("click", onCancel);
+      dialog.addEventListener("cancel", onCancel);
+      dialog.showModal();
+    });
+  }
+
+  function orderAccountTree(accounts) {
+    const byId = new Map(accounts.map((a) => [text(a.identity), a]));
+    const children = new Map();
+    const roots = [];
+    for (const acc of accounts) {
+      const parent = text(acc.parent);
+      if (parent && byId.has(parent) && parent !== text(acc.identity)) {
+        if (!children.has(parent)) children.set(parent, []);
+        children.get(parent).push(acc);
+      } else {
+        roots.push(acc);
+      }
+    }
+    const ordered = [];
+    const visited = new Set();
+    const walk = (acc, fallbackDepth) => {
+      const id = text(acc.identity);
+      if (visited.has(id)) return;
+      visited.add(id);
+      const depth = Number.isSafeInteger(acc.depth) ? acc.depth : fallbackDepth;
+      ordered.push({ ...acc, _treeDepth: depth });
+      for (const child of children.get(id) || []) walk(child, depth + 1);
+    };
+    for (const r of roots) walk(r, 0);
+    for (const acc of accounts) if (!visited.has(text(acc.identity))) walk(acc, 0);
+    return ordered;
+  }
+
+  // r[impl kiln.admission.live_console_governance]
+  function admissionPanel(state, admission) {
+    const panel = node("section", undefined, "panel fleet-capacity-panel fleet-admission-panel");
+    panel.append(
+      node("h2", "Fair-admission governance & AttemptMetrics"),
+      node("p", "Live fair-admission quota tree, tenant shares, ServingBounds, and AttemptMetrics burn. Transfers are subtractive suballocations shown strictly separately from consumption; missing telemetry renders as not recorded, never 0.", "small"),
+    );
+
+    if (!admission.configured || !admission.policy) {
+      panel.append(empty("No fair-admission policy configured", "The implementation store has no active opt-in fair-admission policy. Existing compatibility path applies; no quota or burn is fabricated."));
+    } else {
+      const policy = admission.policy;
+      const bounds = record(policy.bounds) ? policy.bounds : {};
+      panel.append(facts([
+        ["Policy identity", text(policy.identity) || "not recorded"],
+        ["Version", count(policy.version) !== null ? String(policy.version) : (text(policy.version) || "not recorded")],
+        ["Accounting basis", text(policy.accounting_basis) || "not recorded"],
+        ["Strategy", text(policy.strategy) || "not recorded"],
+        ["Bounds (items / bytes / active / children)", `${number(bounds.max_items)} / ${number(bounds.max_bytes)} / ${number(bounds.max_active)} / ${number(bounds.max_children)}`],
+      ]));
+
+      const shares = record(policy.shares) ? policy.shares : {};
+      const shareRows = Object.entries(shares).map(([alias, share]) => [
+        alias,
+        Number.isSafeInteger(share) && share >= 0 ? share.toLocaleString("en-US") : "not recorded",
+      ]);
+      panel.append(node("h3", "Tenant & campaign shares"), dataTable(["Tenant / Alias", "Share"], shareRows, "No shares declared in policy."));
+
+      // Tenant quota tree (transfers strictly separate from consumption)
+      const treeAccounts = orderAccountTree(admission.accounts);
+      const accountRows = treeAccounts.map((acc) => {
+        const prefix = acc._treeDepth > 0 ? `${"  ".repeat(acc._treeDepth)}↳ ` : "";
+        const name = `${prefix}${text(acc.tenant) || text(acc.campaign) || text(acc.identity).slice(0, 12)}${acc.revoked ? " [REVOKED]" : ""}`;
+        const labelEl = node("div", undefined, "fleet-admission-account");
+        labelEl.dataset.depth = String(acc._treeDepth);
+        labelEl.append(node("strong", name), node("code", text(acc.identity).slice(0, 12), "small"));
+        return [
+          labelEl,
+          formatAmounts(acc.allocated),
+          formatAmounts(acc.transferred_out),
+          formatAmounts(acc.consumed),
+          formatAmounts(acc.held),
+          formatAmounts(acc.tentative),
+          formatAmounts(acc.unknown),
+          formatAmounts(acc.available),
+          `measured: ${formatAmounts(acc.settled_measured)} · unknown: ${formatAmounts(acc.settled_unknown)}`,
+        ];
+      });
+      panel.append(
+        node("h3", "Tenant quota tree (transfers separate from consumption)"),
+        dataTable(
+          ["Account / Tenant", "Allocated", "Transfers (transferred_out)", "Consumed", "Held debits", "Tentative", "Unknown", "Available", "Settled"],
+          accountRows,
+          "No quota accounts retained in admission ledger.",
+        ),
+      );
+
+      // Guarded policy/share update form (Tier-2 confirmation)
+      const policyWrap = node("div", undefined, "fleet-admission-controls");
+      policyWrap.append(node("h3", "Update fair-admission shares (Tier-2 guarded)"));
+      const canOp = state.context?.canOperate?.() !== false;
+      const statusEl = node("p", undefined, "small");
+      statusEl.setAttribute("role", "status");
+      statusEl.hidden = true;
+      const errorEl = node("p", undefined, "fleet-capacity-error");
+      errorEl.setAttribute("role", "alert");
+      errorEl.hidden = true;
+
+      if (!canOp) {
+        policyWrap.append(node("p", "Operator authority required to modify fair-admission shares or policy.", "small"));
+      } else {
+        const form = node("form", undefined, "fleet-capacity-form fleet-admission-share-form");
+        const aliasInput = node("input");
+        aliasInput.type = "text";
+        aliasInput.placeholder = "Tenant / alias (e.g. tenant-a)";
+        aliasInput.value = Object.keys(shares)[0] || "";
+        const aliasLabel = node("label", "Tenant / alias");
+        aliasLabel.append(aliasInput);
+
+        const shareInput = node("input");
+        shareInput.type = "number";
+        shareInput.min = "1";
+        shareInput.step = "1";
+        shareInput.placeholder = "Positive integer share";
+        const firstShare = Object.values(shares)[0];
+        if (Number.isSafeInteger(firstShare)) shareInput.value = String(firstShare);
+        const shareLabel = node("label", "Share weight");
+        shareLabel.append(shareInput);
+
+        const submitBtn = node("button", "Update share…");
+        submitBtn.type = "submit";
+        form.append(aliasLabel, shareLabel, submitBtn);
+
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          errorEl.hidden = true;
+          statusEl.hidden = true;
+          const alias = aliasInput.value.trim();
+          const parsed = Number(shareInput.value);
+          if (!alias || !Number.isSafeInteger(parsed) || parsed <= 0) {
+            errorEl.textContent = "Share update refused: enter a non-empty tenant alias and a positive integer share.";
+            errorEl.hidden = false;
+            return;
+          }
+          if (typeof state.context?.isFresh === "function" && !state.context.isFresh()) {
+            errorEl.textContent = "Fleet observation snapshot is stale or disconnected. Wait for a fresh live snapshot before updating shares.";
+            errorEl.hidden = false;
+            return;
+          }
+          const nextShares = { ...shares, [alias]: parsed };
+          const expectedPolicyId = text(policy.identity);
+          const choice = await confirmAdmissionControl(state, {
+            title: `Update fair-admission share for ${alias}?`,
+            verb: "Apply share update",
+            dismiss: "Keep current shares",
+            danger: false,
+            warning: "Submits an explicit owner policy update. Preserves historical consumption and transfers.",
+            facts: [
+              ["Expected policy", expectedPolicyId || "none"],
+              ["Tenant / alias", alias],
+              ["New share", String(parsed)],
+            ],
+            cliCommand: `kiln-implementer admission --command-file policy.json`,
+            opener: submitBtn,
+          });
+          if (!choice?.confirmed) {
+            if (choice?.unavailable) {
+              errorEl.textContent = "Confirmation dialog unavailable; share update aborted.";
+              errorEl.hidden = false;
+            }
+            return;
+          }
+          submitBtn.disabled = true;
+          try {
+            const body = {
+              request_id: choice.requestId || newRequestId(),
+              ...(HEX.test(expectedPolicyId) ? { expected_policy_id: expectedPolicyId } : {}),
+              command: "configure",
+              shares: nextShares,
+            };
+            const res = await state.context.api("/api/implementation/admission/policy", { method: "POST", body });
+            statusEl.textContent = `Fair-admission policy ${text(res?.result) || "updated"}${res?.policy_identity ? ` · ${res.policy_identity.slice(0, 12)}` : ""}.`;
+            statusEl.hidden = false;
+            try {
+              const refreshed = validateAdmission(await state.context.api("/api/implementation/admission"));
+              if (current(state) && state.admissionRoot) state.admissionRoot.replaceChildren(admissionPanel(state, refreshed));
+            } catch (_) {}
+          } catch (err) {
+            errorEl.textContent = `Fair-admission update refused (${err?.status || "error"}): ${text(err?.message) || "owner rejected policy update"}`;
+            errorEl.hidden = false;
+          } finally {
+            submitBtn.disabled = false;
+          }
+        });
+        policyWrap.append(form, statusEl, errorEl);
+      }
+      panel.append(policyWrap);
+    }
+
+    // ServingBounds table
+    const servingRows = admission.serving.map((s) => {
+      const b = record(s.bounds) ? s.bounds : {};
+      return [
+        text(s.provider) || "not recorded",
+        text(s.scope) || text(b.scope) || "not recorded",
+        `${count(b.max_ongoing) ?? "not recorded"} / ${count(b.max_queued) ?? "not recorded"}`,
+        text(s.readiness) || "not recorded",
+        text(s.origin) || "not recorded",
+        count(s.remaining_slots) === null ? "not recorded" : String(s.remaining_slots),
+        count(s.queued) === null ? "not recorded" : String(s.queued),
+        `${count(s.source_generation) ?? "not recorded"} / ${count(s.deployment_generation) ?? "not recorded"}`,
+      ];
+    });
+    panel.append(
+      node("h3", "ServingBounds & availability snapshots"),
+      dataTable(
+        ["Provider", "Aggregate scope", "Bounds (ongoing / queued)", "Readiness", "Origin", "Remaining slots", "Queued", "Gen (source / deploy)"],
+        servingRows,
+        "No serving-owner snapshots retained.",
+      ),
+    );
+
+    // Live AttemptMetrics effort summaries
+    const metricsRows = admission.attempt_metrics.map((m) => [
+      `${text(m.attempt_id).slice(0, 12) || "not recorded"} (fence ${count(m.fence) ?? "?"})`,
+      `${text(m.phase) || "not recorded"}${m.open ? " · open" : ""}`,
+      text(m.telemetry_source) || "not_recorded",
+      formatEffortMetric(m.tokens, m.tokens_status, m.tokens_absence_reason),
+      formatEffortMetric(m.model_turns, m.model_turns_status, m.model_turns_absence_reason),
+      formatEffortMetric(m.auxiliary_calls, m.auxiliary_calls_status, m.auxiliary_calls_absence_reason),
+      m.wall_time_ms === null || m.wall_time_ms === undefined || !Number.isSafeInteger(m.wall_time_ms) ? "not recorded" : `${m.wall_time_ms.toLocaleString("en-US")} ms`,
+      `${text(m.harness) || "not recorded"} / ${text(m.model) || "not recorded"}`,
+      text(m.verification_outcome) || "not recorded",
+    ]);
+    panel.append(
+      node("h3", "Live AttemptMetrics effort burn"),
+      dataTable(
+        ["Attempt", "Phase", "Telemetry source", "Tokens", "Model turns", "Auxiliary calls", "Wall time", "Harness / Model", "Verification"],
+        metricsRows,
+        "No attempt effort metrics recorded.",
+      ),
+    );
+
+    if (Array.isArray(admission.non_claims) && admission.non_claims.length) {
+      const nc = node("details");
+      nc.append(node("summary", "Admission non-claims"));
+      for (const item of admission.non_claims) nc.append(node("p", text(item), "small"));
+      panel.append(nc);
+    }
+    return panel;
+  }
 
   function facts(entries) {
     const list = node("dl", undefined, "facts fleet-capacity-facts");
@@ -222,6 +583,7 @@
     page.append(node("h2", "Fleet queue and capacity"), node("p", "Read-only owner snapshots. The Fleet work ledger, configured CI project slots and separately supplied resource observations do not imply one another.", "small"));
     const workRoot = node("div", undefined, "fleet-capacity-region");
     const workerRoot = node("div", undefined, "fleet-capacity-region");
+    const admissionRoot = node("div", undefined, "fleet-capacity-region");
     const exactPanel = node("section", undefined, "panel fleet-capacity-panel");
     exactPanel.append(node("h2", "Explain one exact work version"), node("p", "Use a listed work identity or enter the full 64-character admitted implementation identity. The inventory owner must have an exact current requirements attachment to explain readiness.", "small"));
     const form = node("form", undefined, "fleet-capacity-form");
@@ -240,12 +602,14 @@
     });
     const exact = node("div", undefined, "fleet-capacity-region");
     exactPanel.append(form, exact);
-    page.append(workRoot, workerRoot, exactPanel);
+    page.append(admissionRoot, workRoot, workerRoot, exactPanel);
     root.replaceChildren(page);
-    Object.assign(state, { workRoot, workerRoot, exact, input, status });
+    Object.assign(state, { admissionRoot, workRoot, workerRoot, exact, input, status });
+    admissionRoot.replaceChildren(node("p", "Reading fair-admission governance…", "small"));
     workRoot.replaceChildren(node("p", "Reading Fleet work…", "small"));
     workerRoot.replaceChildren(node("p", "Reading configured targets…", "small"));
     const requests = [
+      ["Fair-admission governance unavailable", admissionRoot, "/api/implementation/admission", validateAdmission, admissionPanel],
       ["Fleet work unavailable", workRoot, "/api/fleet/work", validateWork, workPanel],
       ["Configured targets unavailable", workerRoot, "/api/workers", validateWorkers, workerPanel],
     ];
@@ -267,5 +631,5 @@
     }
   }
 
-  window.KilnFleetCapacity = Object.freeze({ mount, clear });
+  window.KilnFleetCapacity = Object.freeze({ mount, clear, validateAdmission, admissionPanel, formatEffortMetric, formatAmounts });
 })();

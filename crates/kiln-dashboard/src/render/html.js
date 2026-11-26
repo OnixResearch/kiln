@@ -241,6 +241,19 @@
   window.addEventListener("resize", reportSize);
   restore();
   document.documentElement.classList.add("js-enabled");
+  for (const button of document.querySelectorAll(".copy-identity")) {
+    button.addEventListener("click", async () => {
+      const value = button.dataset.copyValue || "";
+      const status = button.nextElementSibling;
+      if (!value) return;
+      try {
+        await navigator.clipboard?.writeText(value);
+        if (status) status.textContent = "Copied.";
+      } catch (_) {
+        if (status) status.textContent = "Copy unavailable.";
+      }
+    });
+  }
   if (window.parent !== window) {
     const params = new URLSearchParams();
     for (const key of ["q", "outcome", "sort", "direction", "run", "attempt", "theme"]) params.set(key, state[key]);

@@ -38,7 +38,10 @@ const hasAnchor = (html, anchor) =>
 
 function problems(inventory, kiln) {
   const found = [];
-  const served = (file) => kiln.server.includes(`"/${file}" =>`);
+  const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const served = (file) =>
+    kiln.server.includes(`"/${file}" =>`) ||
+    new RegExp(`\\(\\s*"/${escapeRegExp(file)}"\\s*,`).test(kiln.server);
   const stylesheet = (owner, css) => {
     if (!served(css)) found.push(`${owner}: stylesheet ${css} is not served`);
     if (!kiln.html.includes(`href="/${css}"`)) found.push(`${owner}: stylesheet ${css} is not linked by web.html`);

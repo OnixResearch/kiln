@@ -1063,6 +1063,20 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
         if path == "/api/implementation/plan-review" {
             return inventory_api::plan_review_response(&request, context, &principal);
         }
+        if path == "/api/implementation/plan-feedback" {
+            return inventory_api::plan_feedback_response(&request, context, &principal);
+        }
+        if path == "/api/implementation/admission" {
+            return inventory_api::admission_response(&request, context, &principal);
+        }
+        if path == "/api/implementation/admission/policy"
+            || path == "/api/implementation/admission/shares"
+        {
+            return inventory_api::admission_policy_response(&request, context, &principal);
+        }
+        if path.starts_with("/api/implementation/lifecycle/") {
+            return inventory_api::lifecycle_action_response(&request, context, &principal);
+        }
         if path.starts_with("/api/implementation/campaigns/") && path.ends_with("/wake") {
             return inventory_api::campaign_wake_response(&request, context, &principal);
         }
@@ -1264,120 +1278,610 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
             .target
             .split_once('?')
             .map_or(request.target.as_str(), |(path, _)| path);
-        // Compiled UI entrypoint; interaction logic is embedded from web.js.
+        // r[impl kiln.web.deploy.runtime] Minimal health exposes no private state.
+        if path == "/healthz" {
+            return ApiResponse {
+                status: 200,
+                content_type: "application/json",
+                body: b"{\"status\":\"ok\"}".to_vec(),
+                download_name: None,
+                headers: Vec::new(),
+            };
+        }
+        // Compiled UI entrypoint & static console assets with content-derived ETag,
+        // conditional 304 Not Modified, bounded Cache-Control, and negotiated gzip.
+        // r[impl kiln.web.static_asset_caching_and_compression]
         // r[impl kiln.dashboard.cobs.view]
         // r[impl kiln.dashboard.cobs.view.scenario.restore]
         // r[impl kiln.dashboard.cobs.view.scenario.cleared]
-        let (content_type, bytes): (&'static str, &[u8]) = match path {
-            "/" => ("text/html; charset=utf-8", include_bytes!("web.html")),
+        static_assets::serve(
+            path,
+            header(&request, "accept-encoding"),
+            header(&request, "if-none-match"),
+        )
+        .unwrap_or_else(|| error_response(404, "not_found"))
+    } else {
+        error_response(405, "method_denied")
+    }
+}
+
+mod static_assets {
+    use std::collections::BTreeMap;
+    use std::sync::OnceLock;
+
+    use crate::engine::ApiResponse;
+
+    const STATIC_CACHE_CONTROL: &str = "private, no-cache";
+    const MAX_ACCEPT_ENCODING_BYTES: usize = 512;
+    const MAX_ACCEPT_ENCODING_ITEMS: usize = 16;
+    const MAX_IF_NONE_MATCH_BYTES: usize = 1024;
+    const MAX_IF_NONE_MATCH_ITEMS: usize = 16;
+    const ETAG_HEX_PREFIX: usize = 24;
+    const DEFLATE_WINDOW_SIZE: usize = 32_768;
+    const DEFLATE_MIN_MATCH: usize = 3;
+    const DEFLATE_MAX_MATCH: usize = 258;
+    const DEFLATE_HASH_BITS: usize = 14;
+    const DEFLATE_HASH_SIZE: usize = 1 << DEFLATE_HASH_BITS;
+    const DEFLATE_MAX_CHAIN: usize = 16;
+
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub(super) enum StaticEncoding {
+        Identity,
+        Gzip,
+    }
+
+    struct StaticAssetEntry {
+        content_type: &'static str,
+        raw: &'static [u8],
+        etag_identity: String,
+        gzip: Vec<u8>,
+        etag_gzip: String,
+    }
+
+    static ASSETS: OnceLock<BTreeMap<&'static str, StaticAssetEntry>> = OnceLock::new();
+
+    fn static_asset_specs() -> [(&'static str, &'static str, &'static [u8]); 36] {
+        [
+            ("/", "text/html; charset=utf-8", include_bytes!("web.html")),
             // r[impl kiln.web.design_system] Pinned Lucide icon data, served from Kiln's own origin.
-            "/icons.js" => ("text/javascript; charset=utf-8", include_bytes!("icons.js")),
-            "/ui.js" => ("text/javascript; charset=utf-8", include_bytes!("ui.js")),
-            "/web.js" => ("text/javascript; charset=utf-8", include_bytes!("web.js")),
-            "/web.css" => ("text/css; charset=utf-8", include_bytes!("web.css")),
-            "/work.js" => ("text/javascript; charset=utf-8", include_bytes!("work.js")),
-            "/work.css" => ("text/css; charset=utf-8", include_bytes!("work.css")),
-            "/code-review.js" => (
+            ("/icons.js", "text/javascript; charset=utf-8", include_bytes!("icons.js")),
+            ("/ui.js", "text/javascript; charset=utf-8", include_bytes!("ui.js")),
+            ("/web.js", "text/javascript; charset=utf-8", include_bytes!("web.js")),
+            ("/web.css", "text/css; charset=utf-8", include_bytes!("web.css")),
+            ("/work.js", "text/javascript; charset=utf-8", include_bytes!("work.js")),
+            ("/work.css", "text/css; charset=utf-8", include_bytes!("work.css")),
+            (
+                "/code-review.js",
                 "text/javascript; charset=utf-8",
                 include_bytes!("code-review.js"),
             ),
-            "/code-review.css" => ("text/css; charset=utf-8", include_bytes!("code-review.css")),
-            "/preview-review.js" => (
+            (
+                "/code-review.css",
+                "text/css; charset=utf-8",
+                include_bytes!("code-review.css"),
+            ),
+            (
+                "/preview-review.js",
                 "text/javascript; charset=utf-8",
                 include_bytes!("preview-review.js"),
             ),
-            "/work-interaction.js" => (
+            (
+                "/work-interaction.js",
                 "text/javascript; charset=utf-8",
                 include_bytes!("work-interaction.js"),
             ),
-            "/work-interaction.css" => (
+            (
+                "/work-interaction.css",
                 "text/css; charset=utf-8",
                 include_bytes!("work-interaction.css"),
             ),
-            "/work-evidence.js" => (
+            (
+                "/work-evidence.js",
                 "text/javascript; charset=utf-8",
                 include_bytes!("work-evidence.js"),
             ),
-            "/work-board.js" => (
+            (
+                "/work-board.js",
                 "text/javascript; charset=utf-8",
                 include_bytes!("work-board.js"),
             ),
-            "/project.js" => (
-                "text/javascript; charset=utf-8",
-                include_bytes!("project.js"),
-            ),
-            "/runbooks.js" => (
-                "text/javascript; charset=utf-8",
-                include_bytes!("runbooks.js"),
-            ),
-            "/project.css" => ("text/css; charset=utf-8", include_bytes!("project.css")),
+            ("/project.js", "text/javascript; charset=utf-8", include_bytes!("project.js")),
+            ("/runbooks.js", "text/javascript; charset=utf-8", include_bytes!("runbooks.js")),
+            ("/project.css", "text/css; charset=utf-8", include_bytes!("project.css")),
             // r[impl kiln.dashboard.source.navigation] Source page module, served like the project page.
-            "/source.js" => (
-                "text/javascript; charset=utf-8",
-                include_bytes!("source.js"),
-            ),
-            "/source.css" => ("text/css; charset=utf-8", include_bytes!("source.css")),
+            ("/source.js", "text/javascript; charset=utf-8", include_bytes!("source.js")),
+            ("/source.css", "text/css; charset=utf-8", include_bytes!("source.css")),
             // r[impl kiln.dashboard.reviews.view] Patchgate receipts page module, served like the source page.
-            "/receipts.js" => (
-                "text/javascript; charset=utf-8",
-                include_bytes!("receipts.js"),
-            ),
-            "/receipts.css" => ("text/css; charset=utf-8", include_bytes!("receipts.css")),
+            ("/receipts.js", "text/javascript; charset=utf-8", include_bytes!("receipts.js")),
+            ("/receipts.css", "text/css; charset=utf-8", include_bytes!("receipts.css")),
             // r[impl kiln.dashboard.workers.view] One Workers presentation and shared state vocabulary.
-            "/workers.js" => (
-                "text/javascript; charset=utf-8",
-                include_bytes!("workers.js"),
-            ),
-            "/workers.css" => ("text/css; charset=utf-8", include_bytes!("workers.css")),
+            ("/workers.js", "text/javascript; charset=utf-8", include_bytes!("workers.js")),
+            ("/workers.css", "text/css; charset=utf-8", include_bytes!("workers.css")),
             // r[impl kiln.cairn.workspace] Cairn changes page module, served like the receipts page.
-            "/cairn.js" => ("text/javascript; charset=utf-8", include_bytes!("cairn.js")),
-            "/cairn.css" => ("text/css; charset=utf-8", include_bytes!("cairn.css")),
-            "/fleet.js" => ("text/javascript; charset=utf-8", include_bytes!("fleet.js")),
-            "/fleet.css" => ("text/css; charset=utf-8", include_bytes!("fleet.css")),
-            "/swarm-view.css" => (
+            ("/cairn.js", "text/javascript; charset=utf-8", include_bytes!("cairn.js")),
+            ("/cairn.css", "text/css; charset=utf-8", include_bytes!("cairn.css")),
+            ("/fleet.js", "text/javascript; charset=utf-8", include_bytes!("fleet.js")),
+            ("/fleet.css", "text/css; charset=utf-8", include_bytes!("fleet.css")),
+            (
+                "/swarm-view.css",
                 "text/css; charset=utf-8",
                 crate::swarm_view::SWARM_VIEW_CSS.as_bytes(),
             ),
-            "/fleet-runtime.js" => (
+            (
+                "/fleet-runtime.js",
                 "text/javascript; charset=utf-8",
                 include_bytes!("fleet-runtime.js"),
             ),
-            "/fleet-capacity.js" => (
+            (
+                "/fleet-capacity.js",
                 "text/javascript; charset=utf-8",
                 include_bytes!("fleet-capacity.js"),
             ),
-            "/fleet-capacity.css" => (
+            (
+                "/fleet-capacity.css",
                 "text/css; charset=utf-8",
                 include_bytes!("fleet-capacity.css"),
             ),
-            "/inventory.js" => (
+            (
+                "/inventory.js",
                 "text/javascript; charset=utf-8",
                 include_bytes!("inventory.js"),
             ),
-            "/inventory.css" => ("text/css; charset=utf-8", include_bytes!("inventory.css")),
-            // r[impl kiln.web.deploy.runtime] Minimal health exposes no private state.
-            "/healthz" => ("application/json", b"{\"status\":\"ok\"}"),
+            (
+                "/inventory.css",
+                "text/css; charset=utf-8",
+                include_bytes!("inventory.css"),
+            ),
             // r[impl kiln.identity.shared] The shared identity, then the catalog shell it styles.
-            "/identity.css" => (
+            (
+                "/identity.css",
                 "text/css; charset=utf-8",
                 include_bytes!("../../kiln-dashboard/src/render/identity.css"),
             ),
-            "/catalog.css" => (
+            (
+                "/catalog.css",
                 "text/css; charset=utf-8",
                 include_bytes!("../../kiln-dashboard/src/render/catalog.css"),
             ),
-            "/favicon.svg" => ("image/svg+xml", include_bytes!("favicon.svg")),
-            _ => return error_response(404, "not_found"),
-        };
-        ApiResponse {
-            status: 200,
-            content_type,
-            body: bytes.to_vec(),
-            download_name: None,
-            headers: Vec::new(),
+            ("/favicon.svg", "image/svg+xml", include_bytes!("favicon.svg")),
+        ]
+    }
+
+    fn build_assets() -> BTreeMap<&'static str, StaticAssetEntry> {
+        let mut map = BTreeMap::new();
+        for (path, content_type, raw) in static_asset_specs() {
+            let digest = blake3::hash(raw).to_hex();
+            let prefix = &digest.as_str()[..ETAG_HEX_PREFIX];
+            let etag_identity = format!("\"{prefix}\"");
+            let etag_gzip = format!("\"{prefix}-gzip\"");
+            let gzip = gzip_encode(raw);
+            map.insert(
+                path,
+                StaticAssetEntry {
+                    content_type,
+                    raw,
+                    etag_identity,
+                    gzip,
+                    etag_gzip,
+                },
+            );
         }
-    } else {
-        error_response(405, "method_denied")
+        map
+    }
+
+    fn assets() -> &'static BTreeMap<&'static str, StaticAssetEntry> {
+        ASSETS.get_or_init(build_assets)
+    }
+
+    fn valid_coding_token(token: &str) -> bool {
+        !token.is_empty()
+            && token
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.' | b'*'))
+    }
+
+    fn parse_qvalue(raw: &str) -> Option<u16> {
+        let value = raw.trim();
+        if value == "1" {
+            return Some(1000);
+        }
+        if let Some(frac) = value.strip_prefix("1.") {
+            if frac.is_empty() || frac.len() > 3 || !frac.bytes().all(|b| b == b'0') {
+                return None;
+            }
+            return Some(1000);
+        }
+        if value == "0" {
+            return Some(0);
+        }
+        if let Some(frac) = value.strip_prefix("0.") {
+            if frac.is_empty() || frac.len() > 3 || !frac.bytes().all(|b| b.is_ascii_digit()) {
+                return None;
+            }
+            let mut scaled = frac.parse::<u16>().ok()?;
+            for _ in 0..(3 - frac.len()) {
+                scaled *= 10;
+            }
+            return Some(scaled);
+        }
+        None
+    }
+
+    /// Pure Accept-Encoding negotiation; malformed headers gracefully fall back to Identity.
+    pub(super) fn negotiate_encoding(header: Option<&str>) -> StaticEncoding {
+        let Some(raw) = header else {
+            return StaticEncoding::Identity;
+        };
+        if raw.len() > MAX_ACCEPT_ENCODING_BYTES || raw.chars().any(char::is_control) {
+            return StaticEncoding::Identity;
+        }
+        let mut gzip_q: Option<u16> = None;
+        let mut star_q: Option<u16> = None;
+        let mut identity_q: Option<u16> = None;
+        let mut items = 0usize;
+        for part in raw.split(',') {
+            items += 1;
+            if items > MAX_ACCEPT_ENCODING_ITEMS {
+                return StaticEncoding::Identity;
+            }
+            let trimmed = part.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+            let mut segments = trimmed.split(';');
+            let coding = segments.next().unwrap_or("").trim().to_ascii_lowercase();
+            if !valid_coding_token(&coding) {
+                continue;
+            }
+            let mut q = 1000_u16;
+            let mut seen_q = false;
+            let mut param_ok = true;
+            for param in segments {
+                let param = param.trim();
+                let Some((k, v)) = param.split_once('=') else {
+                    param_ok = false;
+                    break;
+                };
+                if !k.trim().eq_ignore_ascii_case("q") || seen_q {
+                    param_ok = false;
+                    break;
+                }
+                let Some(parsed_q) = parse_qvalue(v) else {
+                    param_ok = false;
+                    break;
+                };
+                q = parsed_q;
+                seen_q = true;
+            }
+            if !param_ok {
+                continue;
+            }
+            match coding.as_str() {
+                "gzip" | "x-gzip" => gzip_q = Some(gzip_q.map_or(q, |prev| prev.max(q))),
+                "identity" => identity_q = Some(identity_q.map_or(q, |prev| prev.max(q))),
+                "*" => star_q = Some(star_q.map_or(q, |prev| prev.max(q))),
+                _ => {}
+            }
+        }
+        let gzip_eff = gzip_q.or(star_q).unwrap_or(0);
+        let identity_eff = identity_q.or(star_q).unwrap_or(1);
+        if gzip_eff > 0 && gzip_eff >= identity_eff {
+            StaticEncoding::Gzip
+        } else {
+            StaticEncoding::Identity
+        }
+    }
+
+    /// Pure If-None-Match comparison against the selected representation's ETag.
+    pub(super) fn matches_if_none_match(header: Option<&str>, etag: &str) -> bool {
+        let Some(raw) = header else {
+            return false;
+        };
+        if raw.len() > MAX_IF_NONE_MATCH_BYTES || raw.chars().any(char::is_control) {
+            return false;
+        }
+        let trimmed = raw.trim();
+        if trimmed == "*" {
+            return true;
+        }
+        let target = etag.strip_prefix("W/").unwrap_or(etag);
+        trimmed
+            .split(',')
+            .take(MAX_IF_NONE_MATCH_ITEMS)
+            .map(str::trim)
+            .any(|candidate| candidate.strip_prefix("W/").unwrap_or(candidate) == target)
+    }
+
+    pub(super) fn serve(
+        path: &str,
+        accept_encoding: Option<&str>,
+        if_none_match: Option<&str>,
+    ) -> Option<ApiResponse> {
+        let entry = assets().get(path)?;
+        let encoding = negotiate_encoding(accept_encoding);
+        let etag = match encoding {
+            StaticEncoding::Gzip => &entry.etag_gzip,
+            StaticEncoding::Identity => &entry.etag_identity,
+        };
+        let mut headers = vec![
+            ("ETag", etag.clone()),
+            ("Cache-Control", STATIC_CACHE_CONTROL.to_owned()),
+            ("Vary", "Accept-Encoding".to_owned()),
+        ];
+        if matches_if_none_match(if_none_match, etag) {
+            return Some(ApiResponse {
+                status: 304,
+                content_type: entry.content_type,
+                body: Vec::new(),
+                download_name: None,
+                headers,
+            });
+        }
+        let body = match encoding {
+            StaticEncoding::Gzip => {
+                headers.push(("Content-Encoding", "gzip".to_owned()));
+                entry.gzip.clone()
+            }
+            StaticEncoding::Identity => entry.raw.to_vec(),
+        };
+        Some(ApiResponse {
+            status: 200,
+            content_type: entry.content_type,
+            body,
+            download_name: None,
+            headers,
+        })
+    }
+
+    const fn build_crc32_table() -> [u32; 256] {
+        let mut table = [0_u32; 256];
+        let mut i = 0;
+        while i < 256 {
+            let mut c = i as u32;
+            let mut k = 0;
+            while k < 8 {
+                c = if (c & 1) != 0 {
+                    0xedb8_8320 ^ (c >> 1)
+                } else {
+                    c >> 1
+                };
+                k += 1;
+            }
+            table[i] = c;
+            i += 1;
+        }
+        table
+    }
+
+    const CRC32_TABLE: [u32; 256] = build_crc32_table();
+
+    fn crc32(bytes: &[u8]) -> u32 {
+        let mut crc = 0xffff_ffff_u32;
+        for &byte in bytes {
+            crc = CRC32_TABLE[((crc ^ u32::from(byte)) & 0xff) as usize] ^ (crc >> 8);
+        }
+        !crc
+    }
+
+    struct BitWriter {
+        buf: Vec<u8>,
+        bit_buf: u64,
+        bit_count: u8,
+    }
+
+    impl BitWriter {
+        fn new(capacity: usize) -> Self {
+            Self {
+                buf: Vec::with_capacity(capacity),
+                bit_buf: 0,
+                bit_count: 0,
+            }
+        }
+
+        fn write_bits_lsb(&mut self, value: u32, count: u8) {
+            self.bit_buf |= u64::from(value) << self.bit_count;
+            self.bit_count += count;
+            while self.bit_count >= 8 {
+                self.buf.push((self.bit_buf & 0xff) as u8);
+                self.bit_buf >>= 8;
+                self.bit_count -= 8;
+            }
+        }
+
+        fn write_bits_msb(&mut self, code: u16, len: u8) {
+            let rev = code.reverse_bits() >> (16 - len);
+            self.write_bits_lsb(u32::from(rev), len);
+        }
+
+        fn flush_byte(&mut self) {
+            if self.bit_count > 0 {
+                self.buf.push((self.bit_buf & 0xff) as u8);
+                self.bit_buf = 0;
+                self.bit_count = 0;
+            }
+        }
+    }
+
+    fn write_fixed_lit_len(writer: &mut BitWriter, sym: u16) {
+        match sym {
+            0..=143 => writer.write_bits_msb(0x30 + sym, 8),
+            144..=255 => writer.write_bits_msb(0x190 + (sym - 144), 9),
+            256..=279 => writer.write_bits_msb(sym - 256, 7),
+            280..=287 => writer.write_bits_msb(0xc0 + (sym - 280), 8),
+            _ => unreachable!("invalid DEFLATE symbol"),
+        }
+    }
+
+    const LEN_BASES: [(u16, u8); 28] = [
+        (3, 0),
+        (4, 0),
+        (5, 0),
+        (6, 0),
+        (7, 0),
+        (8, 0),
+        (9, 0),
+        (10, 0),
+        (11, 1),
+        (13, 1),
+        (15, 1),
+        (17, 1),
+        (19, 2),
+        (23, 2),
+        (27, 2),
+        (31, 2),
+        (35, 3),
+        (43, 3),
+        (51, 3),
+        (59, 3),
+        (67, 4),
+        (83, 4),
+        (99, 4),
+        (115, 4),
+        (131, 5),
+        (163, 5),
+        (195, 5),
+        (227, 5),
+    ];
+
+    const DIST_BASES: [(u16, u8); 30] = [
+        (1, 0),
+        (2, 0),
+        (3, 0),
+        (4, 0),
+        (5, 1),
+        (7, 1),
+        (9, 2),
+        (13, 2),
+        (17, 3),
+        (25, 3),
+        (33, 4),
+        (49, 4),
+        (65, 5),
+        (97, 5),
+        (129, 6),
+        (193, 6),
+        (257, 7),
+        (385, 7),
+        (513, 8),
+        (769, 8),
+        (1025, 9),
+        (1537, 9),
+        (2049, 10),
+        (3073, 10),
+        (4097, 11),
+        (6145, 11),
+        (8193, 12),
+        (12289, 12),
+        (16385, 13),
+        (24577, 13),
+    ];
+
+    fn write_match(writer: &mut BitWriter, length: usize, distance: usize) {
+        if length == DEFLATE_MAX_MATCH {
+            write_fixed_lit_len(writer, 285);
+        } else {
+            let len = length as u16;
+            let idx = LEN_BASES.partition_point(|&(base, _)| base <= len) - 1;
+            let (base, extra_bits) = LEN_BASES[idx];
+            write_fixed_lit_len(writer, 257 + idx as u16);
+            if extra_bits > 0 {
+                writer.write_bits_lsb(u32::from(len - base), extra_bits);
+            }
+        }
+        let dist = distance as u16;
+        let d_idx = DIST_BASES.partition_point(|&(base, _)| base <= dist) - 1;
+        let (d_base, d_extra) = DIST_BASES[d_idx];
+        writer.write_bits_msb(d_idx as u16, 5);
+        if d_extra > 0 {
+            writer.write_bits_lsb(u32::from(dist - d_base), d_extra);
+        }
+    }
+
+    fn hash3(bytes: &[u8], pos: usize) -> usize {
+        let a = usize::from(bytes[pos]);
+        let b = usize::from(bytes[pos + 1]);
+        let c = usize::from(bytes[pos + 2]);
+        ((a << 10) ^ (b << 5) ^ c) & (DEFLATE_HASH_SIZE - 1)
+    }
+
+    /// Pure-Rust deterministic RFC 1952 gzip encoder using RFC 1951 fixed Huffman + LZ77.
+    pub(super) fn gzip_encode(input: &[u8]) -> Vec<u8> {
+        let mut writer = BitWriter::new(input.len() / 2 + 32);
+        // RFC 1952 header: ID1=0x1f, ID2=0x8b, CM=8 (DEFLATE), FLG=0, MTIME=0, XFL=0, OS=3 (Unix).
+        writer
+            .buf
+            .extend_from_slice(&[0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03]);
+        // Single final DEFLATE block with fixed Huffman codes: BFINAL=1, BTYPE=01.
+        writer.write_bits_lsb(1, 1);
+        writer.write_bits_lsb(1, 2);
+
+        let len = input.len();
+        if len > 0 {
+            let mut head = vec![u32::MAX; DEFLATE_HASH_SIZE];
+            let mut prev = vec![u32::MAX; len];
+            let mut pos = 0usize;
+            while pos < len {
+                let mut best_len = 0usize;
+                let mut best_dist = 0usize;
+                if pos + DEFLATE_MIN_MATCH <= len {
+                    let h = hash3(input, pos);
+                    let mut candidate = head[h];
+                    prev[pos] = candidate;
+                    head[h] = pos as u32;
+                    let mut chain = 0usize;
+                    while candidate != u32::MAX && chain < DEFLATE_MAX_CHAIN {
+                        let cand_pos = candidate as usize;
+                        let dist = pos - cand_pos;
+                        if dist == 0 || dist > DEFLATE_WINDOW_SIZE {
+                            break;
+                        }
+                        let max_l = (len - pos).min(DEFLATE_MAX_MATCH);
+                        if input[cand_pos + best_len.min(max_l - 1)]
+                            == input[pos + best_len.min(max_l - 1)]
+                        {
+                            let mut match_len = 0usize;
+                            while match_len < max_l
+                                && input[cand_pos + match_len] == input[pos + match_len]
+                            {
+                                match_len += 1;
+                            }
+                            if match_len >= DEFLATE_MIN_MATCH && match_len > best_len {
+                                best_len = match_len;
+                                best_dist = dist;
+                                if best_len == DEFLATE_MAX_MATCH {
+                                    break;
+                                }
+                            }
+                        }
+                        candidate = prev[cand_pos];
+                        chain += 1;
+                    }
+                }
+                if best_len >= DEFLATE_MIN_MATCH {
+                    write_match(&mut writer, best_len, best_dist);
+                    // Insert skipped positions into hash table for better compression.
+                    let advance_end = (pos + best_len).min(len);
+                    for skip in (pos + 1)..advance_end {
+                        if skip + DEFLATE_MIN_MATCH <= len {
+                            let h = hash3(input, skip);
+                            prev[skip] = head[h];
+                            head[h] = skip as u32;
+                        }
+                    }
+                    pos += best_len;
+                } else {
+                    write_fixed_lit_len(&mut writer, u16::from(input[pos]));
+                    pos += 1;
+                }
+            }
+        }
+        write_fixed_lit_len(&mut writer, 256);
+        writer.flush_byte();
+        writer.buf.extend_from_slice(&crc32(input).to_le_bytes());
+        writer
+            .buf
+            .extend_from_slice(&(input.len() as u32).to_le_bytes());
+        writer.buf
     }
 }
 

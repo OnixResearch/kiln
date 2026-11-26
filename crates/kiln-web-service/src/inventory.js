@@ -52,6 +52,38 @@
     node.append(element("summary", title), element("pre", JSON.stringify(value, null, 2), "inventory-evidence"));
     return node;
   }
+  function structuredTable(headers, rows, emptyMessage) {
+    if (!rows.length) return element("p", emptyMessage, "small");
+    const wrap = element("div", undefined, "data-table-wrap");
+    const tbl = element("table", undefined, "data-table data-table-stack inventory-table");
+    const thead = element("thead");
+    const headRow = element("tr");
+    for (const label of headers) {
+      const th = element("th", label);
+      th.scope = "col";
+      headRow.append(th);
+    }
+    thead.append(headRow);
+    const tbody = element("tbody");
+    for (const cells of rows) {
+      const tr = element("tr");
+      cells.forEach((value, idx) => {
+        const td = element("td", text(value));
+        td.dataset.label = headers[idx] || "";
+        tr.append(td);
+      });
+      tbody.append(tr);
+    }
+    tbl.append(thead, tbody);
+    wrap.append(tbl);
+    return wrap;
+  }
+  function formatMetricValue(value) {
+    if (value === null || value === undefined || value === "") return "not recorded";
+    if (Number.isSafeInteger(value)) return String(value);
+    if (typeof value === "object") return JSON.stringify(value);
+    return String(value);
+  }
   function row(projection, item, title, values, extra) {
     const node = element("article", undefined, "inventory-row");
     node.append(element("h4", title), element("p", refText(item.meta.reference), "inventory-reference"),
@@ -144,21 +176,73 @@
     page.append(header);
     const nodes = projection.members.map((member) => {
       const article = element("article", undefined, "inventory-row campaign-member");
+      const freshnessRows = Array.isArray(member.input_freshness)
+        ? member.input_freshness.map((entry) => Array.isArray(entry)
+          ? [text(entry[0]), text(entry[1])]
+          : [text(entry?.subject || entry?.kind), text(entry?.state || entry?.freshness)])
+        : [];
+      const waitCategoryRows = Array.isArray(member.wait_categories)
+        ? member.wait_categories.map((entry) => [text(entry?.category), text(entry?.state)])
+        : [];
       article.append(element("h4", `${member.change}${member.tasks.length ? ` · ${member.tasks.join(", ")}` : ""}`),
-        facts([["Selected member", member.member], ["Goal", member.goal], ["Current observed stage", member.stage], ["Enumeration", member.enumeration], ["Owner snapshot", member.owner_snapshot], ["Work identity / canonical status / revision", `${text(member.work_identity)} / ${text(member.canonical_work_state)} / ${number(member.canonical_work_revision)}`], ["Attempt / fence", `${text(member.attempt_identity)} / ${number(member.attempt_fence)}`], ["Candidate", member.candidate_identity], ["Integration target", member.integration_target_identity], ["Checks satisfied", member.checks_satisfied], ["Reviews satisfied", member.reviews_satisfied]]),
-        details("Freshness, dependencies, evidence, pending effects and exact resource binding", { freshness: member.input_freshness, dependencies: member.dependencies, evidence: member.evidence, pending_effect_ids: member.pending_effect_ids, resource_inventory_identity: member.resource_inventory_identity, resource_binding_state: member.resource_binding_state, resource_binding: member.resource_binding, required_checks: member.required_checks, required_reviews: member.required_reviews, wait_categories: member.wait_categories }),
+        facts([["Selected member", member.member], ["Goal", member.goal], ["Current observed stage", member.stage], ["Enumeration", member.enumeration], ["Owner snapshot", member.owner_snapshot], ["Work identity / canonical status / revision", `${text(member.work_identity)} / ${text(member.canonical_work_state)} / ${number(member.canonical_work_revision)}`], ["Attempt / fence", `${text(member.attempt_identity)} / ${number(member.attempt_fence)}`], ["Candidate", member.candidate_identity], ["Integration target", member.integration_target_identity], ["Checks satisfied", member.checks_satisfied], ["Reviews satisfied", member.reviews_satisfied], ["Resource binding state", member.resource_binding_state], ["Required checks", list(member.required_checks)], ["Required reviews", list(member.required_reviews)]]),
         element("p", `Wait categories: ${member.waits.length ? member.waits.join(", ") : "none explicitly represented; not readiness evidence"}`),
         element("p", `Remaining obligations: ${member.remaining_obligations.length ? member.remaining_obligations.join(", ") : "none supplied"}`),
-        selectionHold(member.selection_hold));
+        selectionHold(member.selection_hold),
+        structuredTable(["Input freshness subject", "State"], freshnessRows, "No input freshness entries recorded."),
+        structuredTable(["Wait category", "Observed state"], waitCategoryRows, "No structured wait categories recorded."),
+        details("Raw member freshness, evidence and exact resource binding JSON", { freshness: member.input_freshness, dependencies: member.dependencies, evidence: member.evidence, pending_effect_ids: member.pending_effect_ids, resource_inventory_identity: member.resource_inventory_identity, resource_binding_state: member.resource_binding_state, resource_binding: member.resource_binding, required_checks: member.required_checks, required_reviews: member.required_reviews, wait_categories: member.wait_categories }));
       const listNode = element("ul", undefined, "inventory-blockers");
       if (!member.blockers.length) listNode.append(element("li", "No blocker strings supplied; do not infer eligibility."));
       else for (const blocker of member.blockers) listNode.append(element("li", blocker));
       article.append(listNode); return article;
     });
     page.append(section("Every selected member, including blocked and incomplete members", "campaign-members", nodes));
-    page.append(section("Pending effects, human decisions, aggregate budget, next-action proposal", "campaign-obligations", [
-      details("Snapshot-level obligations and non-claims", { campaign_identity: projection.campaign_identity, resource_inventory_identity: projection.resource_inventory_identity, pending_effects: projection.pending_effects, decisions: projection.decisions, budget: projection.budget, next_action: projection.next_action, selection_basis: projection.selection_basis, source: projection.source, non_claims: projection.non_claims }),
-    ]));
+    const budget = record(projection.budget) ? projection.budget : {};
+    const budgetEntries = Object.entries(budget).map(([k, v]) => [k.replaceAll("_", " "), formatMetricValue(v)]);
+    const nextAction = record(projection.next_action) ? projection.next_action : {};
+    const pendingEffectRows = projection.pending_effects.map((eff) => [
+      text(eff?.effect_id || eff?.id),
+      text(eff?.operation),
+      text(eff?.owner),
+      text(eff?.state),
+      eff?.progress_applied === undefined ? "not recorded" : String(eff.progress_applied),
+    ]);
+    const decisionRows = projection.decisions.map((dec) => [
+      text(dec?.identity),
+      text(dec?.category),
+      text(dec?.state),
+      text(dec?.member),
+      text(dec?.question),
+      dec?.resolved_answer ?? "not recorded",
+    ]);
+    const nonClaimsList = element("ul", undefined, "inventory-blockers");
+    if (!projection.non_claims.length) nonClaimsList.append(element("li", "No non-claims supplied."));
+    else for (const item of projection.non_claims) nonClaimsList.append(element("li", text(item)));
+    const obligationBody = element("div", undefined, "inventory-obligations-structured");
+    obligationBody.append(
+      element("h4", "Selection basis and next-action proposal"),
+      facts([
+        ["Campaign identity", projection.campaign_identity],
+        ["Resource inventory identity", projection.resource_inventory_identity ?? "not recorded"],
+        ["Selection basis", projection.selection_basis],
+        ["Snapshot source", projection.source],
+        ["Proposed operation", nextAction.operation ?? "not recorded"],
+        ["Target member", nextAction.member ?? "none"],
+        ["Owner", nextAction.owner ?? "not recorded"],
+        ["Reason", nextAction.reason ?? "not recorded"],
+      ]),
+      element("h4", "Aggregate budget"),
+      budgetEntries.length ? facts(budgetEntries) : element("p", "No aggregate budget fields recorded.", "small"),
+      element("h4", "Pending effects"),
+      structuredTable(["Effect ID", "Operation", "Owner", "State", "Progress applied"], pendingEffectRows, "No pending effects recorded."),
+      element("h4", "Human decisions"),
+      structuredTable(["Identity", "Category", "State", "Member", "Question", "Resolved"], decisionRows, "No human decisions recorded."),
+      element("h4", "Non-claims"),
+      nonClaimsList,
+      details("Raw snapshot-level obligations and non-claims JSON", { campaign_identity: projection.campaign_identity, resource_inventory_identity: projection.resource_inventory_identity, pending_effects: projection.pending_effects, decisions: projection.decisions, budget: projection.budget, next_action: projection.next_action, selection_basis: projection.selection_basis, source: projection.source, non_claims: projection.non_claims }),
+    );
+    page.append(section("Pending effects, human decisions, aggregate budget, next-action proposal", "campaign-obligations", [obligationBody]));
     return page;
   }
   // r[impl kiln.implementation.campaign.controls.scenario.console]
