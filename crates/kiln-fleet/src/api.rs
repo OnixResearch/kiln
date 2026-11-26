@@ -27,7 +27,8 @@ use serde_json::{Value, json};
 use crate::config::{FleetConfig, fleet_console_target, machine_label, validate_console_url};
 use crate::controls::{
     ControlStore, FleetControls, MAX_EXPIRED_CLAIMS, MAX_PANE_TEXT_BYTES, RequestIdConflict,
-    TickSummary, parse_claims_query, parse_pane_lines_query, payload_hash, project_foreign_claim,
+    TickSummary, WindowCaptureFormat, bound_ansi_output, parse_claims_query,
+    parse_pane_lines_query, parse_window_capture_query, payload_hash, project_foreign_claim,
     project_inventory_machine, project_machine_slots, sanitize_pane_output, select_expired_claims,
     validate_reason, validate_request_id,
 };
@@ -50,6 +51,8 @@ const MACHINE_STALE_TICKS: u64 = 3;
 const CORE_STALE_MS: u64 = 30_000;
 /// Keep the escaped JSON transcript below the smallest Web bridge response cap.
 const MAX_WINDOW_TEXT_BYTES: usize = 24 * 1_024;
+/// Raw bound for a visible-screen ANSI snapshot sent to the browser viewer.
+const MAX_WINDOW_ANSI_BYTES: usize = 64 * 1_024;
 
 #[derive(Debug, Default)]
 struct CoreObservations {
@@ -1611,10 +1614,36 @@ impl Service {
                 "invalid native pane ID",
             ));
         }
-        let requested_lines = parse_pane_lines_query(request.query.as_deref())
+        let query = parse_window_capture_query(request.query.as_deref())
             .map_err(|message| Response::error(400, "fleet_query", message))?;
-        let (window, raw) = self
-            .window_host(host)?
+        let requested_lines = query.lines;
+        let herdr = self.window_host(host)?;
+        if query.format == WindowCaptureFormat::Ansi {
+            let (window, size, raw) = herdr
+                .read_observed_pane_ansi(host, pane_id, requested_lines)
+                .map_err(window_read_error)?;
+            let pane = bound_ansi_output(&raw, requested_lines, MAX_WINDOW_ANSI_BYTES);
+            log::info(
+                "api.herdr_window_captured",
+                json!({ "actor": actor, "machine": host, "pane_id": pane_id, "requested_lines": requested_lines, "format": "ansi" }),
+            );
+            return Ok(Response::new(
+                200,
+                json!({
+                    "machine": host,
+                    "window": window,
+                    "requested_lines": requested_lines,
+                    "format": "ansi",
+                    "source": "visible",
+                    "columns": size.map(|size| size.columns),
+                    "rows": size.map(|size| size.rows),
+                    "line_count": pane.line_count,
+                    "truncated": pane.truncated,
+                    "ansi": pane.text,
+                }),
+            ));
+        }
+        let (window, raw) = herdr
             .read_observed_pane(host, pane_id, requested_lines)
             .map_err(window_read_error)?;
         let pane = sanitize_pane_output(&raw, requested_lines, MAX_WINDOW_TEXT_BYTES);

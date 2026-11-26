@@ -1,0 +1,9 @@
+{
+  "scope": "Disposable Herdr 0.9.3 session, disposable Fleet coordinator and authenticated Kiln console in headless Chromium; no production state.",
+  "observed": {
+    "colors": "Bold red, green and blue-background cells rendered on the canvas with Kiln's palette.",
+    "inert_markup": "The literal <img onerror> and <script> text rendered as cells; no alert fired, no <img> or <script> element was created.",
+    "unsupported_escapes": "OSC 8 link, OSC 52 clipboard and OSC 0 title had no effect; document title unchanged.",
+    "refresh": "Refreshed every 2 s while open; after Close viewer no further format=ansi requests in 6 s and the canvas was removed."
+  }
+}

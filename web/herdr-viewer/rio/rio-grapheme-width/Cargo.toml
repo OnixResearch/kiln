@@ -1,0 +1,18 @@
+[package]
+name = "rio-grapheme-width"
+version = "0.6.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+# Kiln-owned wrapper only; see ../librio/Cargo.toml.
+[lib]
+path = "../../../../vendor/rio/rio-grapheme-width/src/lib.rs"
+
+[dependencies]
+phf = { version = "0.13.1", default-features = false }
+ucd-trie = { version = "0.1.7", default-features = false }
+
+[features]
+default = ["std"]
+std = ["ucd-trie/std", "phf/std"]

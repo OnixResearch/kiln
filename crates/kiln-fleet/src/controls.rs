@@ -337,6 +337,10 @@ pub fn parse_pane_lines_query(query: Option<&str>) -> Result<u32, &'static str> 
     if key != "lines" || value.contains('&') {
         return Err("only optional lines=<1..=1000> is accepted on pane route");
     }
+    parse_lines_value(value)
+}
+
+fn parse_lines_value(value: &str) -> Result<u32, &'static str> {
     if value.is_empty() || !value.bytes().all(|byte| byte.is_ascii_digit()) {
         return Err("lines must be a positive integer");
     }
@@ -349,12 +353,104 @@ pub fn parse_pane_lines_query(query: Option<&str>) -> Result<u32, &'static str> 
     Ok(lines)
 }
 
+/// What a Herdr window capture returns.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WindowCaptureFormat {
+    /// The ANSI-stripped recent transcript.
+    Text,
+    /// The visible screen with its escapes, for the read-only viewer.
+    Ansi,
+}
+
+/// A validated Herdr window capture query.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct WindowCaptureQuery {
+    pub lines: u32,
+    pub format: WindowCaptureFormat,
+}
+
+/// Parse the window capture query: optional `lines=N`, and optionally
+/// `format=text`, or `format=ansi` together with `source=visible`, in any
+/// order and each at most once.
+///
+/// # Errors
+/// Rejects malformed, repeated or unknown parameters, counts outside
+/// `1..=MAX_PANE_LINES`, and any source without `format=ansi` or the reverse.
+pub fn parse_window_capture_query(query: Option<&str>) -> Result<WindowCaptureQuery, &'static str> {
+    let Some(raw) = query else {
+        return Ok(WindowCaptureQuery {
+            lines: DEFAULT_PANE_LINES,
+            format: WindowCaptureFormat::Text,
+        });
+    };
+    if raw.is_empty() {
+        return Err("query must not be empty");
+    }
+    let (mut lines, mut format, mut visible) = (None, None, false);
+    for pair in raw.split('&') {
+        let Some((key, value)) = pair.split_once('=') else {
+            return Err("malformed query parameter");
+        };
+        match key {
+            "lines" if lines.is_none() => lines = Some(parse_lines_value(value)?),
+            "format" if format.is_none() => {
+                format = Some(match value {
+                    "text" => WindowCaptureFormat::Text,
+                    "ansi" => WindowCaptureFormat::Ansi,
+                    _ => return Err("format must be text or ansi"),
+                });
+            }
+            "source" if !visible => {
+                if value != "visible" {
+                    return Err("source must be visible");
+                }
+                visible = true;
+            }
+            _ => return Err("capture accepts only lines, format and source, each once"),
+        }
+    }
+    let format = format.unwrap_or(WindowCaptureFormat::Text);
+    if (format == WindowCaptureFormat::Ansi) != visible {
+        return Err("format=ansi requires source=visible, and source requires format=ansi");
+    }
+    Ok(WindowCaptureQuery {
+        lines: lines.unwrap_or(DEFAULT_PANE_LINES),
+        format,
+    })
+}
+
 /// Strip ANSI escape sequences and control characters, keeping at most the
 /// trailing `max_lines` lines and at most `max_bytes` bytes.
 #[must_use]
 pub fn sanitize_pane_output(raw: &str, max_lines: u32, max_bytes: usize) -> SanitizedPane {
     let cleaned = strip_ansi_and_controls(raw);
-    let all_lines: Vec<String> = cleaned.lines().map(str::to_owned).collect();
+    bound_trailing_lines(
+        cleaned.lines().map(str::to_owned).collect(),
+        max_lines,
+        max_bytes,
+        "\n",
+    )
+}
+
+/// Bound a visible-screen ANSI snapshot without interpreting it: at most the
+/// trailing `max_lines` rows and `max_bytes` bytes, rows joined by CR LF.
+/// Escapes stay for the viewer, which treats them only as terminal state.
+#[must_use]
+pub fn bound_ansi_output(raw: &str, max_lines: u32, max_bytes: usize) -> SanitizedPane {
+    bound_trailing_lines(
+        raw.lines().map(str::to_owned).collect(),
+        max_lines,
+        max_bytes,
+        "\r\n",
+    )
+}
+
+fn bound_trailing_lines(
+    all_lines: Vec<String>,
+    max_lines: u32,
+    max_bytes: usize,
+    separator: &str,
+) -> SanitizedPane {
     let max_lines = usize::try_from(max_lines).unwrap_or(usize::MAX).max(1);
     let mut truncated = all_lines.len() > max_lines;
     let start = all_lines.len().saturating_sub(max_lines);
@@ -364,7 +460,8 @@ pub fn sanitize_pane_output(raw: &str, max_lines: u32, max_bytes: usize) -> Sani
         if slice.is_empty() {
             0
         } else {
-            slice.iter().map(String::len).sum::<usize>() + slice.len().saturating_sub(1)
+            slice.iter().map(String::len).sum::<usize>()
+                + slice.len().saturating_sub(1) * separator.len()
         }
     };
     while joined_len(&lines) > max_bytes && lines.len() > 1 {
@@ -379,7 +476,7 @@ pub fn sanitize_pane_output(raw: &str, max_lines: u32, max_bytes: usize) -> Sani
         lines[0].truncate(end);
         truncated = true;
     }
-    let text = lines.join("\n");
+    let text = lines.join(separator);
     let line_count = lines.len();
     SanitizedPane {
         lines,
@@ -852,6 +949,72 @@ mod tests {
         assert!(tight.truncated);
         assert!(tight.text.len() <= 10);
         assert_eq!(tight.lines, vec!["beta", "gamma"]);
+    }
+
+    #[test]
+    fn window_capture_query_admits_only_explicit_visible_ansi() {
+        let text = |lines| WindowCaptureQuery {
+            lines,
+            format: WindowCaptureFormat::Text,
+        };
+        let ansi = |lines| WindowCaptureQuery {
+            lines,
+            format: WindowCaptureFormat::Ansi,
+        };
+        assert_eq!(
+            parse_window_capture_query(None),
+            Ok(text(DEFAULT_PANE_LINES))
+        );
+        assert_eq!(parse_window_capture_query(Some("lines=2")), Ok(text(2)));
+        assert_eq!(
+            parse_window_capture_query(Some("format=text&lines=3")),
+            Ok(text(3))
+        );
+        assert_eq!(
+            parse_window_capture_query(Some("source=visible&format=ansi")),
+            Ok(ansi(DEFAULT_PANE_LINES))
+        );
+        assert_eq!(
+            parse_window_capture_query(Some("lines=40&format=ansi&source=visible")),
+            Ok(ansi(40))
+        );
+        for bad in [
+            "",
+            "format=ansi",
+            "source=visible",
+            "format=text&source=visible",
+            "format=ansi&source=recent",
+            "format=html&source=visible",
+            "format=ansi&format=ansi&source=visible",
+            "format=ansi&source=visible&source=visible",
+            "lines=1&lines=2",
+            "lines=1001&format=ansi&source=visible",
+            "format=ansi&source=visible&raw=1",
+            "format=ansi&source=visible&",
+            "format",
+        ] {
+            assert!(parse_window_capture_query(Some(bad)).is_err(), "{bad}");
+        }
+    }
+
+    #[test]
+    fn ansi_bounds_keep_escapes_and_trailing_rows_within_bytes() {
+        let raw = "\x1b[31mone\x1b[0m\r\n\x1b]52;c;aGk=\x07two\r\n<script>three</script>";
+        let all = bound_ansi_output(raw, 10, MAX_PANE_TEXT_BYTES);
+        assert_eq!(all.text, raw, "escapes and markup pass through unchanged");
+        assert_eq!(all.line_count, 3);
+        assert!(!all.truncated);
+
+        let tail = bound_ansi_output(raw, 2, MAX_PANE_TEXT_BYTES);
+        assert_eq!(tail.text, "\x1b]52;c;aGk=\x07two\r\n<script>three</script>");
+        assert!(tail.truncated);
+
+        let tight = bound_ansi_output("alpha\r\nbeta\r\ngamma", 10, 11);
+        assert_eq!(tight.text, "beta\r\ngamma");
+        assert!(tight.truncated);
+        let wide = bound_ansi_output(&"é".repeat(10), 10, 5);
+        assert_eq!(wide.text, "éé");
+        assert!(wide.truncated);
     }
 
     #[test]

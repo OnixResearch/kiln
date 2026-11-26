@@ -1,0 +1,37 @@
+{
+  "source_repository": "https://github.com/raphamorim/rio",
+  "source_commit": "b13db0193c61c105b86e12b4ac6c6fc255cf0a36",
+  "archive_format": "git archive --format=tar <source_commit> -- <archive_paths...>",
+  "archive_paths": [
+    "LICENSE",
+    "Cargo.toml",
+    "librio/Cargo.toml",
+    "librio/src",
+    "rio-vt/Cargo.toml",
+    "rio-vt/src",
+    "rio-graphics/Cargo.toml",
+    "rio-graphics/src",
+    "rio-fonts/Cargo.toml",
+    "rio-fonts/src",
+    "rio-fonts/resources",
+    "rio-unicode/Cargo.toml",
+    "rio-unicode/src",
+    "rio-grapheme-width/Cargo.toml",
+    "rio-grapheme-width/LICENSE",
+    "rio-grapheme-width/src"
+  ],
+  "archive_blake3": "59422cc7102df4ae873881daf8a7dff595a17e952d49fcd2e337bf2ffd881f32",
+  "importer": "scripts/import-pinned-source.sh",
+  "package_licenses": {
+    "librio": "MIT",
+    "rio-vt": "MIT",
+    "rio-graphics": "MIT",
+    "rio-fonts": "MIT",
+    "rio-unicode": "MIT OR Apache-2.0",
+    "rio-grapheme-width": "MIT"
+  },
+  "scope": "Selected librio terminal-state source and its in-repository dependency crates (rio-vt, rio-graphics, rio-fonts, rio-unicode, rio-grapheme-width), their manifests, the retained root workspace manifest and license notices. Kiln's independent web/herdr-viewer browser workspace builds these sources through Kiln-owned wrapper manifests under web/herdr-viewer/rio that point directly to the imported src/lib.rs files and omit upstream's PTY, image, glyph, renderer, window and clipboard features. librio's C ABI, librio-wasm's input-capable JavaScript ABI, the renderers, windowing and the Rio application are not imported or built.",
+  "nonclaims": "This immutable local import is not remote publication, source authority, source trust, or release eligibility. Upstream declares rust-version 1.100.0 only at workspace level; no imported package inherits it, and Kiln builds the selected sources with its pinned browser toolchain without changing any upstream byte. A source checkout is needed only to reproduce the import, never to build Kiln.",
+  "manifest_normalization": "Absent workspace members are pruned from the retained root manifest so Cargo can read the partial import without resolving unselected upstream producers.",
+  "formatter_scope": "Tree-local rustfmt configuration sets disable_all_formatting so the host workspace formatter covers Kiln-owned sources without rewriting pinned upstream bytes."
+}

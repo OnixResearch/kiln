@@ -1,0 +1,14 @@
+[package]
+name = "rio-fonts"
+version = "0.6.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+# Kiln-owned wrapper only; see ../librio/Cargo.toml.
+[lib]
+path = "../../../../vendor/rio/rio-fonts/src/lib.rs"
+
+[features]
+default = []
+symbols-nerd-font = []

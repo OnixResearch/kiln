@@ -330,6 +330,7 @@ function setup({ apiHandler, canOperate = true, withSubscribeEvents = true, init
     AbortSignal,
     URLSearchParams,
     TextDecoder,
+    TextEncoder,
     Intl,
     crypto: webcrypto,
     sessionStorage: {
@@ -404,10 +405,12 @@ function setup({ apiHandler, canOperate = true, withSubscribeEvents = true, init
     fleet,
     root,
     doc,
+    context,
     elementsById,
     loadCtx,
     apiCalls,
     emitEvent: (name, payload) => eventSubscriber?.(name, payload),
+    dispatchDocument: (type) => { for (const fn of [...(docListeners.get(type) || [])]) fn({ type }); },
     advanceNow: (ms) => { currentNow += ms; },
     cleanup: () => {
       current = false;
@@ -645,6 +648,178 @@ test("Herdr browser uses configured hosts and keeps terminal capture operator-on
       assert.match(allText(env.root), /Herdr windows · offline/);
       assert.match(allText(env.root), /Herdr windows unavailable on this host/);
       assert.doesNotMatch(allText(env.root), /plain text/);
+    } finally {
+      env.cleanup();
+    }
+  }
+});
+
+function herdrViewerFixture() {
+  const pane = { pane_id: "w1:pA", workspace_id: "w1", tab_id: "w1:t1" };
+  const machines = [{
+    machine: "aspen3", herdr_windows_configured: true, placement_configured: false,
+    state: "not_reporting", observed_at_ms: null, last_seen_at_ms: null, sessions: null,
+  }];
+  const list = "/api/fleet/machines/aspen3/windows";
+  return {
+    pane,
+    machines,
+    list,
+    text: `${list}/w1:pA/capture?lines=200`,
+    ansi: `${list}/w1:pA/capture?lines=1000&format=ansi&source=visible`,
+    snapshot: {
+      machine: "aspen3", window: pane, requested_lines: 1000, format: "ansi", source: "visible",
+      columns: 120, rows: 40, line_count: 2, truncated: false,
+      ansi: "\u001b[31mred\u001b[0m\r\n\u001b]52;c;aGk=\u0007<script>alert(1)</script>",
+    },
+  };
+}
+
+// r[verify kiln.sdlc.herdr_viewer.scenario.view]
+test("Herdr viewer loads lazily, refreshes only while open and visible, and stops on a stale window", async () => {
+  const fixture = herdrViewerFixture();
+  const settle = () => new Promise((resolve) => setImmediate(resolve));
+  let stale = false;
+  const env = setup({
+    apiHandler: async (path, opts) => {
+      if (path === "/api/fleet/machines") return { machines: fixture.machines };
+      if (path === fixture.list) return { machine: "aspen3", windows: [fixture.pane] };
+      if (path === fixture.ansi) {
+        assert.equal(opts.method, "POST");
+        if (stale) throw Object.assign(new Error("gone"), { code: "fleet_herdr_window_unknown", status: 404 });
+        return fixture.snapshot;
+      }
+      return {};
+    },
+  });
+  const renders = [];
+  let loads = 0;
+  let disposed = 0;
+  env.context.KilnHerdrViewer = {
+    load: async () => {
+      loads += 1;
+      return {
+        mount: (surface) => {
+          assert.equal(surface.className, "fleet-herdr-viewer");
+          return {
+            render: (bytes, columns, rows) => renders.push([new TextDecoder().decode(bytes), columns, rows]),
+            dispose: () => { disposed += 1; },
+          };
+        },
+      };
+    },
+  };
+  const realSetTimeout = env.context.setTimeout;
+  const refreshes = [];
+  env.context.setTimeout = (fn, ms) => {
+    if (ms === 2_000) {
+      refreshes.push(fn);
+      return -refreshes.length;
+    }
+    return realSetTimeout(fn, ms);
+  };
+  const ansiCalls = () => env.apiCalls.filter((call) => call.path === fixture.ansi).length;
+  const control = (label) => descendants(env.root).find((node) => node.getAttribute?.("aria-label") === label);
+  const runRefresh = async () => {
+    refreshes.shift()();
+    await settle();
+  };
+  try {
+    env.fleet.load(env.root, env.loadCtx);
+    await settle();
+    control("Browse Herdr windows on aspen3").click();
+    await settle();
+    assert.equal(loads, 0, "the viewer module loads only when a window is opened");
+    control("Open viewer for aspen3 / w1:pA").click();
+    await settle();
+    assert.equal(loads, 1);
+    assert.deepEqual(plain(env.apiCalls.find((call) => call.path === fixture.ansi)),
+      { path: fixture.ansi, method: "POST", body: {} });
+    assert.deepEqual(renders, [[fixture.snapshot.ansi, 120, 40]]);
+    assert.match(allText(env.root), /aspen3 \/ w1:pA · Visible screen · Read .* · Refreshing every 2s while open and visible/);
+    assert.doesNotMatch(allText(env.root), /script|alert|aGk=/, "pane bytes reach only the viewer, never DOM text");
+    assert.equal(refreshes.length, 1, "one bounded refresh is scheduled");
+
+    await runRefresh();
+    assert.equal(ansiCalls(), 2);
+    assert.equal(renders.length, 2);
+    assert.equal(refreshes.length, 1);
+
+    env.doc.visibilityState = "hidden";
+    await runRefresh();
+    assert.equal(ansiCalls(), 2, "a hidden page does not refresh");
+    assert.equal(refreshes.length, 0);
+    assert.match(allText(env.root), /Paused while the page is hidden/);
+    env.doc.visibilityState = "visible";
+    env.dispatchDocument("visibilitychange");
+    await settle();
+    assert.equal(ansiCalls(), 3, "returning to the page resumes the open viewer");
+    assert.equal(refreshes.length, 1);
+
+    stale = true;
+    await runRefresh();
+    assert.equal(ansiCalls(), 4);
+    assert.equal(refreshes.length, 0, "a stale window stops refreshing");
+    assert.match(allText(env.root), /Refresh stopped · This window is no longer in the host inventory/);
+    env.dispatchDocument("visibilitychange");
+    await settle();
+    assert.equal(ansiCalls(), 4, "a stopped viewer stays stopped");
+
+    control("Close viewer for aspen3 / w1:pA").click();
+    assert.equal(disposed, 1);
+    assert.match(allText(env.root), /Viewer closed/);
+    assert.equal(renders.length, 3);
+
+    stale = false;
+    control("Open viewer for aspen3 / w1:pA").click();
+    await settle();
+    assert.equal(refreshes.length, 1);
+    const closeWindows = descendants(env.root).find((node) => node.textContent === "Close windows");
+    closeWindows.click();
+    assert.equal(disposed, 2, "closing the window browser disposes the viewer");
+    const pending = refreshes.shift();
+    pending();
+    await settle();
+    assert.equal(ansiCalls(), 5, "a closed viewer never refreshes");
+  } finally {
+    env.cleanup();
+  }
+});
+
+test("Herdr viewer falls back to plain-text capture when the module or canvas is unavailable", async () => {
+  const fixture = herdrViewerFixture();
+  const settle = () => new Promise((resolve) => setImmediate(resolve));
+  const plainText = {
+    machine: "aspen3", window: fixture.pane, requested_lines: 200, line_count: 1, truncated: false, text: "<b>plain</b>",
+  };
+  const unavailable = [
+    ["missing module", undefined],
+    ["no canvas", { load: async () => ({ mount: () => { throw new Error("2D canvas context unavailable"); } }) }],
+    ["draw failure", { load: async () => ({ mount: () => ({ render: () => { throw new Error("bad"); }, dispose() {} }) }) }],
+  ];
+  for (const [name, module] of unavailable) {
+    const env = setup({
+      apiHandler: async (path) => {
+        if (path === "/api/fleet/machines") return { machines: fixture.machines };
+        if (path === fixture.list) return { machine: "aspen3", windows: [fixture.pane] };
+        if (path === fixture.ansi) return fixture.snapshot;
+        if (path === fixture.text) return plainText;
+        return {};
+      },
+    });
+    if (module) env.context.KilnHerdrViewer = module;
+    const control = (label) => descendants(env.root).find((node) => node.getAttribute?.("aria-label") === label);
+    try {
+      env.fleet.load(env.root, env.loadCtx);
+      await settle();
+      control("Browse Herdr windows on aspen3").click();
+      await settle();
+      control("Open viewer for aspen3 / w1:pA").click();
+      for (let turn = 0; turn < 4; turn += 1) await settle();
+      assert.ok(env.apiCalls.some((call) => call.path === fixture.text), name);
+      const pre = descendants(env.root).find((node) => node.localName === "pre" && node.textContent === plainText.text);
+      assert.ok(pre, `${name}: the plain-text capture is displayed as text`);
+      assert.match(allText(env.root), /showing plain text/, name);
     } finally {
       env.cleanup();
     }

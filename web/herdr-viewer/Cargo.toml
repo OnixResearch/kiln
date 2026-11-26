@@ -1,0 +1,32 @@
+[workspace]
+resolver = "2"
+# Wrapper manifests for the imported Rio source are path dependencies, not
+# members: their upstream code is built, not linted, like any dependency.
+exclude = ["rio"]
+
+[package]
+name = "kiln-herdr-viewer"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Rio's terminal state engine without its PTY, image decode or C ABI. The
+# browser shell exposes no input, paste, selection or link entry point.
+librio = { path = "rio/librio" }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "=0.2.121"
+js-sys = "=0.3.98"
+web-sys = { version = "=0.3.98", features = ["CanvasRenderingContext2d", "CssStyleDeclaration", "Document", "Element", "HtmlCanvasElement", "HtmlElement", "Node", "TextMetrics", "Window"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = "debuginfo"

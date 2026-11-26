@@ -332,7 +332,7 @@ pub fn upstream_path(method: &str, target: &str) -> Option<String> {
         {
             let suffix = match query {
                 None => String::new(),
-                Some(raw) => format!("?{}", validated_pane_query(raw)?),
+                Some(raw) => format!("?{}", validated_window_capture_query(raw)?),
             };
             Some(format!(
                 "/v1/machines/{host}/windows/{pane}/capture{suffix}"
@@ -489,6 +489,35 @@ fn validated_pane_query(raw: &str) -> Option<String> {
     Some(format!("lines={parsed}"))
 }
 
+/// The capture route's exact query: optional `lines`, and optionally
+/// `format=text`, or `format=ansi` with `source=visible`, each once.
+fn validated_window_capture_query(raw: &str) -> Option<String> {
+    if raw.is_empty() {
+        return None;
+    }
+    let (mut lines, mut format, mut visible) = (None, None, false);
+    for pair in raw.split('&') {
+        let (key, value) = pair.split_once('=')?;
+        match (key, value) {
+            ("lines", _) if lines.is_none() => lines = Some(validated_pane_query(pair)?),
+            ("format", "text" | "ansi") if format.is_none() => format = Some(value),
+            ("source", "visible") if !visible => visible = true,
+            _ => return None,
+        }
+    }
+    if (format == Some("ansi")) != visible {
+        return None;
+    }
+    let mut parts: Vec<String> = lines.into_iter().collect();
+    if let Some(format) = format {
+        parts.push(format!("format={format}"));
+    }
+    if visible {
+        parts.push("source=visible".to_owned());
+    }
+    Some(parts.join("&"))
+}
+
 fn validated_graph_query(raw: &str) -> Option<String> {
     let (key, value) = raw.split_once('=')?;
     if key != "up_to_seq" || value.is_empty() || !value.bytes().all(|b| b.is_ascii_digit()) {
@@ -563,6 +592,22 @@ mod tests {
             upstream_path("POST", &format!("{capture}?lines=0010")).as_deref(),
             Some("/v1/machines/aspen3/windows/w1:p1/capture?lines=10")
         );
+        assert_eq!(
+            upstream_path(
+                "POST",
+                &format!("{capture}?source=visible&lines=040&format=ansi")
+            )
+            .as_deref(),
+            Some("/v1/machines/aspen3/windows/w1:p1/capture?lines=40&format=ansi&source=visible")
+        );
+        assert_eq!(
+            upstream_path("POST", &format!("{capture}?format=ansi&source=visible")).as_deref(),
+            Some("/v1/machines/aspen3/windows/w1:p1/capture?format=ansi&source=visible")
+        );
+        assert_eq!(
+            upstream_path("POST", &format!("{capture}?format=text")).as_deref(),
+            Some("/v1/machines/aspen3/windows/w1:p1/capture?format=text")
+        );
         for (method, target) in [
             ("GET", capture),
             ("POST", list),
@@ -578,6 +623,42 @@ mod tests {
                 "/api/fleet/machines/aspen3/windows/w1:p1/capture?lines=1001",
             ),
             ("GET", "/api/fleet/machines/../windows"),
+            (
+                "GET",
+                "/api/fleet/machines/aspen3/windows/w1:p1/capture?format=ansi&source=visible",
+            ),
+            (
+                "POST",
+                "/api/fleet/machines/aspen3/windows/w1:p1/capture?format=ansi",
+            ),
+            (
+                "POST",
+                "/api/fleet/machines/aspen3/windows/w1:p1/capture?source=visible",
+            ),
+            (
+                "POST",
+                "/api/fleet/machines/aspen3/windows/w1:p1/capture?format=text&source=visible",
+            ),
+            (
+                "POST",
+                "/api/fleet/machines/aspen3/windows/w1:p1/capture?format=ansi&source=recent",
+            ),
+            (
+                "POST",
+                "/api/fleet/machines/aspen3/windows/w1:p1/capture?format=html&source=visible",
+            ),
+            (
+                "POST",
+                "/api/fleet/machines/aspen3/windows/w1:p1/capture?format=ansi&source=visible&raw=1",
+            ),
+            (
+                "POST",
+                "/api/fleet/machines/aspen3/windows/w1:p1/capture?format=ansi&format=ansi&source=visible",
+            ),
+            (
+                "POST",
+                "/api/fleet/machines/aspen3/windows/w1:p1/capture?format=ansi&source=visible&",
+            ),
         ] {
             assert_eq!(upstream_path(method, target), None, "{method} {target}");
         }

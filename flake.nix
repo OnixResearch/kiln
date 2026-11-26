@@ -998,6 +998,7 @@
               ./vendor/subwayrat
               ./vendor/subwayrat.source.json
               ./scripts/build-dashboard-index.py
+              ./scripts/browser_wasm_assets.py
               ./crates/kiln-dashboard/src/render/generated
               ./LICENSE-MIT
               ./LICENSE-APACHE
@@ -1031,6 +1032,72 @@
           '';
           meta.description = "Reproduced locked offline Rats/Ratzilla dashboard index assets";
         };
+
+      # r[impl kiln.sdlc.herdr_viewer]
+      herdrViewerPackageFor =
+        system:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ (import rust-overlay) ];
+          };
+          toolchain = pkgs.rust-bin.fromRustupToolchainFile ./web/herdr-viewer/rust-toolchain.toml;
+          rustPlatform = pkgs.makeRustPlatform {
+            cargo = toolchain;
+            rustc = toolchain;
+          };
+        in
+        rustPlatform.buildRustPackage {
+          pname = "kiln-herdr-viewer-assets";
+          version = "0.1.0";
+          # Embed the same WASM bytes as the explicit browser dev shell build.
+          auditable = false;
+          src = pkgs.lib.fileset.toSource {
+            root = ./.;
+            fileset = pkgs.lib.fileset.unions [
+              ./web/herdr-viewer/Cargo.toml
+              ./web/herdr-viewer/Cargo.lock
+              ./web/herdr-viewer/rust-toolchain.toml
+              ./web/herdr-viewer/src
+              ./web/herdr-viewer/rio
+              ./web/herdr-viewer/loader.js
+              ./vendor/rio
+              ./vendor/rio.source.json
+              ./scripts/build-herdr-viewer.py
+              ./scripts/browser_wasm_assets.py
+              ./crates/kiln-web-service/src/generated
+              ./LICENSE-MIT
+              ./LICENSE-APACHE
+            ];
+          };
+          cargoRoot = "web/herdr-viewer";
+          cargoLock.lockFile = ./web/herdr-viewer/Cargo.lock;
+          nativeBuildInputs = [
+            pkgs.python3
+            pkgs.wasm-bindgen-cli
+            pkgs.esbuild
+          ];
+          buildPhase = ''
+            runHook preBuild
+            python3 scripts/build-herdr-viewer.py --check
+            runHook postBuild
+          '';
+          checkPhase = ''
+            runHook preCheck
+            cargo test --locked --offline --manifest-path web/herdr-viewer/Cargo.toml --lib
+            cargo clippy --locked --offline --manifest-path web/herdr-viewer/Cargo.toml \
+              --target wasm32-unknown-unknown -- -D warnings
+            cargo fmt --manifest-path web/herdr-viewer/Cargo.toml --package kiln-herdr-viewer -- --check
+            runHook postCheck
+          '';
+          installPhase = ''
+            runHook preInstall
+            mkdir -p "$out/share/kiln-herdr-viewer"
+            cp crates/kiln-web-service/src/generated/* "$out/share/kiln-herdr-viewer/"
+            runHook postInstall
+          '';
+          meta.description = "Reproduced locked read-only Rio Herdr pane viewer assets";
+        };
     in
     {
       lib.unikernelImage = args: (unikernelFor "x86_64-linux").mkImage args;
@@ -1055,6 +1122,7 @@
           kiln-radicle-nix-provider = kilnRadicleNixProviderPackageFor system;
           dashboard-tools = dashboardToolsPackageFor system;
           dashboard-index-assets = dashboardIndexPackageFor system;
+          herdr-viewer-assets = herdrViewerPackageFor system;
           celld-cohort = celldCohortPackageFor system;
           pijul-cohort-fixture-producer = pijulCohortPackageFor system;
           secretspec-cohort = secretspecPackageFor system;
@@ -1321,6 +1389,7 @@
           boundaries = package;
           runtime-independence = package;
           dashboard-index-assets = dashboardIndexPackageFor system;
+          herdr-viewer-assets = herdrViewerPackageFor system;
           # r[verify kiln.web.deploy.install.scenario.install] r[verify kiln.web.deploy.install.scenario.denied]
           # r[verify kiln.web.deploy.runtime.scenario.ready] r[verify kiln.web.deploy.runtime.scenario.denied]
           # r[impl kiln.web.deploy.evidence]

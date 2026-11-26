@@ -237,7 +237,9 @@ pub fn check_with_options(path: &Path, options: &Options) -> Result<(), String> 
 const ACCEPT_INTERVAL: Duration = Duration::from_millis(25);
 const FEED_REFRESH_TICK: Duration = Duration::from_secs(10);
 const MAX_HEADER_FIELDS: usize = 64;
-const SECURITY_HEADERS: &str = "X-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nX-Frame-Options: DENY\r\nContent-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'\r\nStrict-Transport-Security: max-age=31536000\r\n";
+// 'wasm-unsafe-eval' admits only WebAssembly compilation of same-origin bytes
+// (the Herdr viewer); JavaScript eval stays refused.
+const SECURITY_HEADERS: &str = "X-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nX-Frame-Options: DENY\r\nContent-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'\r\nStrict-Transport-Security: max-age=31536000\r\n";
 
 pub fn run(path: &Path) -> Result<(), String> {
     run_with_options(path, &Options::default())
@@ -1513,7 +1515,7 @@ mod static_assets {
 
     static ASSETS: OnceLock<BTreeMap<&'static str, StaticAssetEntry>> = OnceLock::new();
 
-    fn static_asset_specs() -> [(&'static str, &'static str, &'static [u8]); 36] {
+    fn static_asset_specs() -> [(&'static str, &'static str, &'static [u8]); 39] {
         [
             ("/", "text/html; charset=utf-8", include_bytes!("web.html")),
             // r[impl kiln.web.design_system] Pinned Lucide icon data, served from Kiln's own origin.
@@ -1650,6 +1652,22 @@ mod static_assets {
                 "/fleet.css",
                 "text/css; charset=utf-8",
                 include_bytes!("fleet.css"),
+            ),
+            // r[impl kiln.sdlc.herdr_viewer] Generated Rio viewer, loaded lazily by fleet.js.
+            (
+                "/herdr-viewer.js",
+                "text/javascript; charset=utf-8",
+                include_bytes!("generated/herdr-viewer.js"),
+            ),
+            (
+                "/herdr-viewer.wasm.b64",
+                "text/plain; charset=utf-8",
+                include_bytes!("generated/herdr-viewer.wasm.b64"),
+            ),
+            (
+                "/herdr-viewer-notices.txt",
+                "text/plain; charset=utf-8",
+                include_bytes!("generated/herdr-viewer-notices.txt"),
             ),
             (
                 "/swarm-view.css",

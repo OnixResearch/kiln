@@ -47,6 +47,10 @@ pub const STDIN_MAX_BYTES: usize = 1;
 pub const CLI_USAGE_EXIT: i32 = 2;
 /// Read source for transcripts: recent output with soft wraps joined.
 pub const READ_SOURCE: &str = "recent-unwrapped";
+/// Read source for the browser viewer: the visible screen, rendered with SGR.
+pub const ANSI_READ_SOURCE: &str = "visible";
+/// Largest pane side, in cells, Kiln reports to the viewer.
+pub const MAX_PANE_CELLS: u16 = 1_000;
 /// Logical key that interrupts an interactive agent turn.
 pub const INTERRUPT_KEY: &str = "ctrl+c";
 /// Git object names Kiln accepts as an exact base: SHA-1 or SHA-256 hex.
@@ -289,6 +293,35 @@ struct PaneList {
     panes: Vec<HerdrPane>,
 }
 
+/// A pane's size in terminal cells, as Herdr's layout reports it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+pub struct PaneSize {
+    pub columns: u16,
+    pub rows: u16,
+}
+
+#[derive(Deserialize)]
+struct PaneLayoutResult {
+    layout: WireLayout,
+}
+
+#[derive(Deserialize)]
+struct WireLayout {
+    panes: Vec<WireLayoutPane>,
+}
+
+#[derive(Deserialize)]
+struct WireLayoutPane {
+    pane_id: String,
+    rect: WireRect,
+}
+
+#[derive(Deserialize)]
+struct WireRect {
+    width: u32,
+    height: u32,
+}
+
 #[derive(Deserialize)]
 struct WireWorktree {
     path: String,
@@ -408,19 +441,7 @@ impl HerdrClient {
         pane_id: &str,
         lines: u32,
     ) -> Result<(HerdrPane, String), HerdrFailure> {
-        let machine = self.machine(machine)?;
-        if !pane_handle(pane_id) || !(1..=MAX_READ_LINES).contains(&lines) {
-            return Err(HerdrFailure::rejected("pane id or line bound is invalid"));
-        }
-        let pane = self
-            .panes(machine)?
-            .into_iter()
-            .find(|pane| pane.pane_id == pane_id)
-            .ok_or_else(|| HerdrFailure {
-                class: FailureClass::Rejected,
-                code: Some(codes::PANE_NOT_FOUND.to_owned()),
-                detail: "pane is not in this host's current inventory".to_owned(),
-            })?;
+        let (machine, pane) = self.observed_pane(machine, pane_id, lines)?;
         let lines = lines.to_string();
         let args = [
             "pane",
@@ -437,6 +458,68 @@ impl HerdrClient {
         let capture = String::from_utf8(stdout)
             .map_err(|_| HerdrFailure::rejected("herdr pane output is not UTF-8"))?;
         Ok((pane, capture))
+    }
+
+    /// Re-observe the selected host like [`Self::read_observed_pane`], then
+    /// read the pane's layout size and its visible screen with ANSI escapes.
+    /// The escapes are untrusted terminal state for a renderer, never markup.
+    ///
+    /// # Errors
+    /// Refuses an invalid ID or bound, any pane not in the fresh inventory,
+    /// a malformed layout and non-UTF-8 output. Provider failures propagate.
+    pub fn read_observed_pane_ansi(
+        &self,
+        machine: &str,
+        pane_id: &str,
+        lines: u32,
+    ) -> Result<(HerdrPane, Option<PaneSize>, String), HerdrFailure> {
+        let (machine, pane) = self.observed_pane(machine, pane_id, lines)?;
+        let layout = self.execute(
+            machine,
+            &["pane", "layout", "--pane", &pane.pane_id],
+            Effect::Read,
+            self.timeout(),
+        )?;
+        let layout: PaneLayoutResult = decode(&layout, "pane_layout", Effect::Read)?;
+        let size = pane_size(&layout.layout, &pane.pane_id)?;
+        let lines = lines.to_string();
+        let args = [
+            "pane",
+            "read",
+            &pane.pane_id,
+            "--source",
+            ANSI_READ_SOURCE,
+            "--lines",
+            &lines,
+            "--format",
+            "ansi",
+        ];
+        let stdout = self.execute(machine, &args, Effect::Read, self.timeout())?;
+        let capture = String::from_utf8(stdout)
+            .map_err(|_| HerdrFailure::rejected("herdr pane output is not UTF-8"))?;
+        Ok((pane, size, capture))
+    }
+
+    fn observed_pane(
+        &self,
+        machine: &str,
+        pane_id: &str,
+        lines: u32,
+    ) -> Result<(&HerdrMachine, HerdrPane), HerdrFailure> {
+        let machine = self.machine(machine)?;
+        if !pane_handle(pane_id) || !(1..=MAX_READ_LINES).contains(&lines) {
+            return Err(HerdrFailure::rejected("pane id or line bound is invalid"));
+        }
+        let pane = self
+            .panes(machine)?
+            .into_iter()
+            .find(|pane| pane.pane_id == pane_id)
+            .ok_or_else(|| HerdrFailure {
+                class: FailureClass::Rejected,
+                code: Some(codes::PANE_NOT_FOUND.to_owned()),
+                detail: "pane is not in this host's current inventory".to_owned(),
+            })?;
+        Ok((machine, pane))
     }
 
     /// Kiln agents per admitted kind on every inventory machine. A machine
@@ -1007,6 +1090,30 @@ fn agent_target(agent: &str) -> Result<(), HerdrFailure> {
     }
 }
 
+/// The listed pane's cell size; a size outside `1..=MAX_PANE_CELLS` is absent.
+fn pane_size(layout: &WireLayout, pane_id: &str) -> Result<Option<PaneSize>, HerdrFailure> {
+    if layout.panes.len() > MAX_LISTED_PANES {
+        return Err(HerdrFailure::rejected(
+            "herdr pane layout exceeds its bound",
+        ));
+    }
+    let side = |cells: u32| {
+        u16::try_from(cells)
+            .ok()
+            .filter(|cells| (1..=MAX_PANE_CELLS).contains(cells))
+    };
+    Ok(layout
+        .panes
+        .iter()
+        .find(|pane| pane.pane_id == pane_id)
+        .and_then(|pane| {
+            Some(PaneSize {
+                columns: side(pane.rect.width)?,
+                rows: side(pane.rect.height)?,
+            })
+        }))
+}
+
 /// herdr workspace, tab and pane handles: `w1`, `w1:t1`, `w1:p1`.
 fn handle(value: &str) -> bool {
     !value.is_empty()
@@ -1144,5 +1251,29 @@ mod tests {
         assert_eq!(garbage, Some(FailureClass::Unknown));
         let status = br#"{"id":"x","result":{"type":"agent_list","agents":[{"agent_status":"sleeping","pane_id":"w1:p1","workspace_id":"w1"}]}}"#;
         assert!(decode::<AgentList>(status, "agent_list", Effect::Read).is_err());
+    }
+
+    #[test]
+    fn pane_layout_reports_only_bounded_listed_sizes() {
+        let layout = br#"{"result":{"type":"pane_layout","layout":{"panes":[
+            {"pane_id":"w1:p1","rect":{"width":120,"height":40,"x":0,"y":0}},
+            {"pane_id":"w1:p2","rect":{"width":0,"height":40,"x":0,"y":0}},
+            {"pane_id":"w1:p3","rect":{"width":70000,"height":40,"x":0,"y":0}}]}}}"#;
+        let decoded: Result<PaneLayoutResult, _> = decode(layout, "pane_layout", Effect::Read);
+        let Ok(decoded) = decoded else {
+            panic!("layout must decode");
+        };
+        assert_eq!(
+            pane_size(&decoded.layout, "w1:p1").ok().flatten(),
+            Some(PaneSize {
+                columns: 120,
+                rows: 40
+            })
+        );
+        assert_eq!(pane_size(&decoded.layout, "w1:p2").ok().flatten(), None);
+        assert_eq!(pane_size(&decoded.layout, "w1:p3").ok().flatten(), None);
+        assert_eq!(pane_size(&decoded.layout, "w1:p9").ok().flatten(), None);
+        let wrong = br#"{"result":{"type":"pane_list","panes":[]}}"#;
+        assert!(decode::<PaneLayoutResult>(wrong, "pane_layout", Effect::Read).is_err());
     }
 }

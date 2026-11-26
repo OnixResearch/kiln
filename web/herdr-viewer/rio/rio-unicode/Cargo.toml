@@ -1,0 +1,10 @@
+[package]
+name = "rio-unicode"
+version = "0.6.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+
+# Kiln-owned wrapper only; see ../librio/Cargo.toml.
+[lib]
+path = "../../../../vendor/rio/rio-unicode/src/lib.rs"

@@ -119,6 +119,12 @@ case "$*" in
     printf '%s\n' '{"result":{"type":"pane_list","panes":[{"pane_id":"w1:pA","workspace_id":"w1","tab_id":"w1:t1","terminal_title":"private title","agent":null}]}}' ;;
   '--machine saved-peer pane read w1:pA --source recent-unwrapped --lines 2 --format text')
     printf 'first\n\033[32msecond\033[0m\n<last>\n' ;;
+  '--machine saved-peer pane layout --pane w1:pA')
+    printf '%s\n' '{"result":{"type":"pane_layout","layout":{"panes":[{"pane_id":"w1:pA","rect":{"width":120,"height":40,"x":0,"y":0}}]}}}' ;;
+  '--machine saved-peer pane read w1:pA --source visible --lines 2 --format ansi')
+    printf '\033[31mred\033[0m\r\n\033]52;c;aGk=\007<script>x</script>\r\n\033[1mlast\033[0m\r\n' ;;
+  '--machine saved-peer pane read w1:pA --source visible --lines 1000 --format ansi')
+    printf '%070000d\r\n' 0 ;;
   *) exit 2 ;;
 esac
 "##,
@@ -156,6 +162,25 @@ esac
         Some(json!({})),
     );
     assert_eq!(oversized.status, 400);
+    let ansi = format!("{remote_windows}/w1:pA/capture?lines=2&format=ansi&source=visible");
+    let viewer_denied = fixture.call(PEER, "POST", &ansi, Some(json!({})));
+    assert_eq!(viewer_denied.status, 403, "viewing stays operator-only");
+    for query in [
+        "format=ansi",
+        "source=visible",
+        "format=ansi&source=recent-unwrapped",
+        "format=html&source=visible",
+        "format=ansi&source=visible&format=ansi",
+        "lines=1001&format=ansi&source=visible",
+    ] {
+        let refused = fixture.call(
+            COORDINATOR,
+            "POST",
+            &format!("{remote_windows}/w1:pA/capture?{query}"),
+            Some(json!({})),
+        );
+        assert_eq!(refused.status, 400, "{query}");
+    }
     assert!(!argv.exists(), "refusals must not launch Herdr");
 
     let windows = fixture.call(PEER, "GET", &remote_windows, None);
@@ -181,16 +206,56 @@ esac
     assert_eq!(captured.body["line_count"], 2);
     assert_eq!(captured.body["truncated"], true);
 
+    let viewed = fixture.call(COORDINATOR, "POST", &ansi, Some(json!({})));
+    assert_eq!(viewed.status, 200);
+    assert_eq!(text(&viewed.body, "/window/pane_id"), "w1:pA");
+    assert_eq!(text(&viewed.body, "/format"), "ansi");
+    assert_eq!(text(&viewed.body, "/source"), "visible");
+    assert_eq!(viewed.body["columns"], 120);
+    assert_eq!(viewed.body["rows"], 40);
+    assert_eq!(
+        text(&viewed.body, "/ansi"),
+        "\u{1b}]52;c;aGk=\u{7}<script>x</script>\r\n\u{1b}[1mlast\u{1b}[0m",
+        "escapes and markup pass through as bounded terminal bytes"
+    );
+    assert_eq!(viewed.body["line_count"], 2);
+    assert_eq!(viewed.body["truncated"], true);
+    assert!(viewed.body.get("text").is_none());
+    let bounded = fixture.call(
+        COORDINATOR,
+        "POST",
+        &format!("{remote_windows}/w1:pA/capture?lines=1000&format=ansi&source=visible"),
+        Some(json!({})),
+    );
+    assert_eq!(bounded.status, 200);
+    assert_eq!(text(&bounded.body, "/ansi").len(), 64 * 1_024);
+    assert_eq!(bounded.body["truncated"], true);
+
     std::fs::write(root.join("closed"), "")?;
     let stale = fixture.call(COORDINATOR, "POST", &capture, Some(json!({})));
     assert_eq!(stale.status, 404);
     assert_eq!(text(&stale.body, "/code"), "fleet_herdr_window_unknown");
+    let stale_view = fixture.call(COORDINATOR, "POST", &ansi, Some(json!({})));
+    assert_eq!(stale_view.status, 404);
     assert_eq!(
-        std::fs::read_to_string(&argv)?
+        text(&stale_view.body, "/code"),
+        "fleet_herdr_window_unknown"
+    );
+    let calls = std::fs::read_to_string(&argv)?;
+    assert_eq!(
+        calls
             .lines()
             .filter(|line| line.contains("pane read"))
             .count(),
-        1
+        3,
+        "a stale pane is never read"
+    );
+    assert_eq!(
+        calls
+            .lines()
+            .filter(|line| line.contains("pane layout"))
+            .count(),
+        2
     );
     std::fs::write(root.join("unavailable"), "")?;
     let unavailable = fixture.call(COORDINATOR, "GET", &remote_windows, None);

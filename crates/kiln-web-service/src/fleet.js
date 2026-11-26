@@ -12,6 +12,12 @@
   const HERDR_PANE = /^(?!-)[a-zA-Z0-9_-]+:p[a-zA-Z0-9]+$/;
   const HERDR_CAPTURE_LINES = 200;
   const MAX_HERDR_WINDOWS = 256;
+  // The read-only viewer asks for the whole visible screen, which Kiln bounds.
+  const HERDR_VIEWER_LINES = 1_000;
+  const HERDR_VIEWER_REFRESH_MS = 2_000;
+  const HERDR_VIEWER_MAX_ANSI = 64 * 1_024;
+  const HERDR_VIEWER_MAX_CELLS = 1_000;
+  const HERDR_VIEWER_MODULE = "/herdr-viewer.js";
   const CLAIMS_INCLUDE = "/api/fleet/claims?include=foreign,expired";
   const DISPATCH_STATUS = "/api/fleet/dispatch/status";
   const NATIVE_WORK = "/api/work";
@@ -290,6 +296,7 @@
   }
 
   function closeHerdrWindows(state) {
+    stopHerdrViewer(state);
     state.herdrWindowRequest?.abort();
     state.herdrWindowRequest = null;
     state.herdrWindowsHost = "";
@@ -303,37 +310,153 @@
   }
 
   function windowRequest(state) {
+    stopHerdrViewer(state);
     state.herdrWindowRequest?.abort();
     state.herdrWindowRequest = new AbortController();
     return state.herdrWindowRequest;
   }
 
-  async function captureHerdrWindow(state, host, path, windowId, result) {
+  const sameWindow = (observed, windowId) => observed?.pane_id === windowId.pane_id
+    && observed?.workspace_id === windowId.workspace_id && observed?.tab_id === windowId.tab_id;
+
+  async function captureHerdrWindow(state, host, path, windowId, result, note = "") {
     if (active !== state || state.herdrWindowsHost !== host || state.context.canOperate?.() !== true) return;
     const controller = windowRequest(state);
     const current = () => herdrRequestCurrent(state, controller) && state.context.canOperate?.() === true;
     result.replaceChildren(observationStatus(`Capturing ${host} / ${windowId.pane_id}…`));
+    const noted = (...nodes) => result.replaceChildren(...(note ? [observationStatus(note)] : []), ...nodes);
     try {
       const value = await state.context.api(`${path}/${windowId.pane_id}/capture?lines=${HERDR_CAPTURE_LINES}`, {
         method: "POST", body: {}, quiet: true, controller,
       });
       if (!current()) return;
-      if (value?.machine !== host || value.window?.pane_id !== windowId.pane_id
-        || value.window?.workspace_id !== windowId.workspace_id || value.window?.tab_id !== windowId.tab_id
+      if (value?.machine !== host || !sameWindow(value.window, windowId)
         || value.requested_lines !== HERDR_CAPTURE_LINES || count(value.line_count) === null
         || value.line_count > HERDR_CAPTURE_LINES || typeof value.truncated !== "boolean"
         || typeof value.text !== "string") throw new Error("Capture identity or bounds mismatch");
-      result.replaceChildren(
+      noted(
         observationStatus(`${host} / ${windowId.pane_id} · ${value.line_count} lines${value.truncated ? " · Limited by Kiln" : ""}`),
         value.text ? element("pre", value.text, "mono") : element("p", "No terminal output returned.", "small"),
       );
     } catch (error) {
       if (!current()) return;
-      const explanation = error?.code === "fleet_herdr_window_unknown"
-        ? "This window is no longer in the host inventory. Refresh windows to select again."
-        : error?.status === 403 ? "Only an operator can capture terminal output." : "Terminal capture unavailable.";
-      result.replaceChildren(observationStatus(`${host} / ${windowId.pane_id} · ${explanation}`));
+      noted(observationStatus(`${host} / ${windowId.pane_id} · ${captureFailure(error)}`));
     }
+  }
+
+  function captureFailure(error) {
+    return error?.code === "fleet_herdr_window_unknown"
+      ? "This window is no longer in the host inventory. Refresh windows to select again."
+      : error?.status === 403 ? "Only an operator can capture terminal output." : "Terminal capture unavailable.";
+  }
+
+  // r[impl kiln.sdlc.herdr_viewer.scenario.view]
+  // The viewer is read-only: it renders bounded visible-screen snapshots and
+  // never sends input. The generated module loads only when first opened.
+  async function herdrViewerModule() {
+    if (!window.KilnHerdrViewer) await import(HERDR_VIEWER_MODULE);
+    if (typeof window.KilnHerdrViewer?.load !== "function") throw new Error("Herdr viewer module unavailable");
+    return window.KilnHerdrViewer.load();
+  }
+
+  function stopHerdrViewer(state) {
+    const viewer = state.herdrViewer;
+    if (!viewer) return;
+    state.herdrViewer = null;
+    stopViewerRefresh(viewer);
+    try {
+      viewer.terminal?.dispose();
+    } catch {
+      // The canvas is already detached.
+    }
+  }
+
+  function stopViewerRefresh(viewer) {
+    viewer.stopped = true;
+    clearTimeout(viewer.timer);
+    viewer.timer = null;
+    viewer.controller?.abort();
+    viewer.controller = null;
+  }
+
+  function admitAnsiCapture(value, host, windowId) {
+    const side = (cells) => cells === null || (Number.isSafeInteger(cells) && cells >= 1 && cells <= HERDR_VIEWER_MAX_CELLS);
+    return value?.machine === host && sameWindow(value.window, windowId) && value.format === "ansi"
+      && value.source === "visible" && value.requested_lines === HERDR_VIEWER_LINES
+      && count(value.line_count) !== null && value.line_count <= HERDR_VIEWER_LINES
+      && typeof value.truncated === "boolean" && typeof value.ansi === "string"
+      && value.ansi.length <= HERDR_VIEWER_MAX_ANSI && side(value.columns) && side(value.rows);
+  }
+
+  async function openHerdrViewer(state, host, path, windowId, result) {
+    if (active !== state || state.herdrWindowsHost !== host || state.context.canOperate?.() !== true) return;
+    windowRequest(state);
+    state.herdrWindowRequest = null;
+    const label = `${host} / ${windowId.pane_id}`;
+    const status = observationStatus(`Opening viewer for ${label}…`);
+    const close = element("button", "Close viewer", "quiet");
+    close.type = "button";
+    close.setAttribute("aria-label", `Close viewer for ${label}`);
+    const surface = element("div", undefined, "fleet-herdr-viewer");
+    result.replaceChildren(status, close, surface);
+    const viewer = { label, timer: null, controller: null, terminal: null, stopped: false, paused: false };
+    state.herdrViewer = viewer;
+    const current = () => active === state && state.herdrViewer === viewer && state.context.isCurrent()
+      && currentPrincipal() === state.principal && state.context.canOperate?.() === true;
+    close.addEventListener("click", () => {
+      if (state.herdrViewer !== viewer) return;
+      stopHerdrViewer(state);
+      result.replaceChildren(observationStatus(`${label} · Viewer closed.`));
+    });
+    const fallBack = (note) => {
+      stopHerdrViewer(state);
+      return captureHerdrWindow(state, host, path, windowId, result, note);
+    };
+    try {
+      const module = await herdrViewerModule();
+      if (!current()) return;
+      viewer.terminal = module.mount(surface);
+    } catch {
+      if (current()) await fallBack("The terminal viewer is unavailable in this browser; showing plain text.");
+      return;
+    }
+    viewer.refresh = async () => {
+      viewer.timer = null;
+      if (!current() || viewer.stopped) return;
+      if (document.visibilityState === "hidden") {
+        viewer.paused = true;
+        status.textContent = `${label} · Paused while the page is hidden`;
+        return;
+      }
+      viewer.paused = false;
+      const controller = new AbortController();
+      viewer.controller = controller;
+      let value;
+      try {
+        value = await state.context.api(
+          `${path}/${windowId.pane_id}/capture?lines=${HERDR_VIEWER_LINES}&format=ansi&source=visible`,
+          { method: "POST", body: {}, quiet: true, controller },
+        );
+        if (!current() || viewer.controller !== controller) return;
+        if (!admitAnsiCapture(value, host, windowId)) throw new Error("Viewer capture identity or bounds mismatch");
+      } catch (error) {
+        if (!current() || viewer.controller !== controller) return;
+        stopViewerRefresh(viewer);
+        status.textContent = `${label} · Refresh stopped · ${captureFailure(error)}`;
+        return;
+      }
+      viewer.controller = null;
+      try {
+        viewer.terminal.render(new TextEncoder().encode(value.ansi), value.columns ?? 0, value.rows ?? 0);
+      } catch {
+        await fallBack("The terminal viewer could not draw this window; showing plain text.");
+        return;
+      }
+      const observed = new Date();
+      status.textContent = `${label} · Visible screen${value.truncated ? " · Limited by Kiln" : ""} · Read ${observed.toLocaleTimeString()} · Refreshing every ${HERDR_VIEWER_REFRESH_MS / 1000}s while open and visible`;
+      viewer.timer = setTimeout(() => void viewer.refresh(), HERDR_VIEWER_REFRESH_MS);
+    };
+    await viewer.refresh();
   }
 
   async function openHerdrWindows(state, host) {
@@ -380,13 +503,19 @@
           capture.type = "button";
           capture.setAttribute("aria-label", `Capture output for ${host} / ${row.pane_id}`);
           capture.addEventListener("click", () => void captureHerdrWindow(state, host, path, row, result));
-          cells.push(capture);
+          const view = element("button", "Open viewer", "quiet");
+          view.type = "button";
+          view.setAttribute("aria-label", `Open viewer for ${host} / ${row.pane_id}`);
+          view.addEventListener("click", () => void openHerdrViewer(state, host, path, row, result));
+          const actions = element("div", undefined, "fleet-herdr-actions");
+          actions.append(capture, view);
+          cells.push(actions);
         }
         return cells;
       });
-      const headers = ["Workspace", "Tab", "Window", ...(operator ? ["Capture"] : [])];
+      const headers = ["Workspace", "Tab", "Window", ...(operator ? ["Terminal"] : [])];
       inventory.replaceChildren(table(headers, rows));
-      if (!operator) result.append(observationStatus("Only operators can capture terminal output."));
+      if (!operator) result.append(observationStatus("Only operators can capture or view terminal output."));
     } catch {
       if (current()) inventory.replaceChildren(observationStatus("Herdr windows unavailable on this host."));
     }
@@ -2090,6 +2219,7 @@
       restart(active);
       void pollCairn(active);
       for (const poll of active.polls) void pollProjection(active, poll);
+      if (active.herdrViewer?.paused) void active.herdrViewer.refresh();
     }
   }
 

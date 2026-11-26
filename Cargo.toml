@@ -71,6 +71,8 @@ exclude = [
   "vendor/heartwood-canonical",
   "vendor/basalt",
   "vendor/detect-coding-agent",
+  "web/herdr-viewer",
+  "vendor/rio",
 ]
 resolver = "3"
 

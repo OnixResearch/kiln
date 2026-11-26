@@ -53,7 +53,7 @@ if (( $# == 1 )) && [[ "$1" == "--check-pins" ]]; then
 fi
 
 if (( $# != 2 )); then
-  printf 'usage: %s <lattice|cairn|cairn-verifier|cairn-kiln-core|valence|artifact|bounded-exec|mantle|ucan|basalt|subwayrat> <source-checkout>\n' "$0" >&2
+  printf 'usage: %s <lattice|cairn|cairn-verifier|cairn-kiln-core|valence|artifact|bounded-exec|mantle|ucan|basalt|subwayrat|rio> <source-checkout>\n' "$0" >&2
   printf '   or: %s --check-pins\n' "$0" >&2
   exit 2
 fi
@@ -93,6 +93,9 @@ case "$name" in
   subwayrat)
     source_commit=2e52b3150819a2365aaefd3dcf8bbd2a2fa2e901
     archive_blake3=2e6588dd7b182c5a689c5e7be42f67fb09a5aa806449709f05066f6004e5f8d7 ;;
+  rio)
+    source_commit=b13db0193c61c105b86e12b4ac6c6fc255cf0a36
+    archive_blake3=59422cc7102df4ae873881daf8a7dff595a17e952d49fcd2e337bf2ffd881f32 ;;
   *) printf 'unknown source import: %s\n' "$name" >&2; exit 2 ;;
 esac
 check_pins "${BASH_SOURCE[0]}"

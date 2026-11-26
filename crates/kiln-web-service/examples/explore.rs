@@ -671,6 +671,11 @@ fn asset(path: &str) -> ApiResponse {
             include_bytes!("../../kiln-dashboard/src/render/catalog.css"),
         ),
         "/favicon.svg" => bytes("image/svg+xml", include_bytes!("../src/favicon.svg")),
+        "/herdr-viewer.js" => bytes(JS, include_bytes!("../src/generated/herdr-viewer.js")),
+        "/herdr-viewer.wasm.b64" => bytes(
+            "text/plain; charset=utf-8",
+            include_bytes!("../src/generated/herdr-viewer.wasm.b64"),
+        ),
         "/healthz" => json(200, json!({"status":"ok","synthetic":true})),
         name => {
             macro_rules! assets {
@@ -694,7 +699,7 @@ fn respond(stream: &mut TcpStream, response: ApiResponse) -> std::io::Result<()>
     stream.set_write_timeout(Some(REQUEST_DEADLINE))?;
     write!(
         stream,
-        "HTTP/1.1 {} Example\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nContent-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'\r\n",
+        "HTTP/1.1 {} Example\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nContent-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'\r\n",
         response.status,
         response.content_type,
         response.body.len()

@@ -1,0 +1,35 @@
+{
+  "change": "view-herdr-panes-in-wasm",
+  "executable": "/nix/store/i55558yszf84n913szsqwgh3f96dy0gl-cairn/bin/cairn",
+  "policy_file": "cairn-policy/generated/cairn-policy.json",
+  "ordering": "All three gates passed before implementation.",
+  "gates": [
+    {
+      "stage": "proposal",
+      "valid": true,
+      "verdict": "PASS",
+      "input_hash": "bd75ffd8c61f74f751134983fcc521945d0c7796edaee2a91d909fcde36d4d7f",
+      "receipt_hash": "c19874ca2a1aa70e5c08523d0aae20ce39e8e9b0d869452a5ba7c243afbbc1b8",
+      "policy": "kiln-default",
+      "policy_hash": "62b75eb1580f61c61017761c3391b5afcab0ff7d88713ba05a9d4af51f522195"
+    },
+    {
+      "stage": "design",
+      "valid": true,
+      "verdict": "PASS",
+      "input_hash": "b85f09356690d44e0844bd807cb195ec47cebc0fc5236171389499681632dafc",
+      "receipt_hash": "2ffc56824876c6fd29855b123d86d331ca30f74be21b9e1af116a07fcbe93f0d",
+      "policy": "kiln-default",
+      "policy_hash": "62b75eb1580f61c61017761c3391b5afcab0ff7d88713ba05a9d4af51f522195"
+    },
+    {
+      "stage": "tasks",
+      "valid": true,
+      "verdict": "PASS",
+      "input_hash": "a96d5fb75bf8fdab6e648f7650432ed8f89e96db586e2a41484c773acef56626",
+      "receipt_hash": "3123387b73db30926684002fa0462c2c2dfe56c6f985fc6acc88c1114e2e67de",
+      "policy": "kiln-default",
+      "policy_hash": "62b75eb1580f61c61017761c3391b5afcab0ff7d88713ba05a9d4af51f522195"
+    }
+  ]
+}

@@ -67,6 +67,24 @@ source; neither the rest of the terminal workspace nor private ratcore is built.
 The independent browser lock and [asset regeneration rail](observation-dashboard.md#rats-browser-index)
 own registry and compiled-output identities; the root Cargo lock is unchanged.
 
+The separate Herdr viewer workspace (`web/herdr-viewer`) consumes Rio's
+`librio` terminal-state crate and its in-repository dependencies (`rio-vt`,
+`rio-graphics`, `rio-fonts`, `rio-unicode`, `rio-grapheme-width`) at
+`b13db0193c61c105b86e12b4ac6c6fc255cf0a36`, recorded in
+[`vendor/rio.source.json`](../vendor/rio.source.json). The selected MIT source
+(`rio-unicode`: `MIT OR Apache-2.0`), manifests and license notices stay
+pristine. Kiln-owned wrapper manifests under `web/herdr-viewer/rio` point
+directly to the imported sources and omit the PTY, image, glyph, renderer,
+window and clipboard features, so no PTY, image decode or C ABI is built.
+Keeping the wrappers inside the viewer workspace makes the compiled WASM
+independent of the checkout path. Kiln does not import `librio-wasm`, whose
+JavaScript ABI exposes keyboard, paste and selection input.
+Upstream declares `rust-version = "1.100.0"` only at workspace level; no
+imported package inherits it, and the pinned browser toolchain (Rust 1.90.0)
+builds the selection. The viewer's own lock and the
+[Herdr viewer asset check](operator.md#native-sdlc-operator-controls) own
+registry and compiled-output identities; the root Cargo lock is unchanged.
+
 These are selected upstream Git-object archives, not copies of mutable working
 trees. The imports preserve original source, manifests, license texts, and
 applicable provenance notices byte-for-byte. Root workspace manifests retained
@@ -116,6 +134,7 @@ scripts/import-pinned-source.sh mantle "$MANTLE_SOURCE"
 scripts/import-pinned-source.sh ucan "$UCAN_SOURCE"
 scripts/import-pinned-source.sh basalt "$BASALT_SOURCE"
 scripts/import-pinned-source.sh subwayrat "$SUBWAYRAT_SOURCE"
+scripts/import-pinned-source.sh rio "$RIO_SOURCE"
 ```
 
 The importer runs `git archive --format=tar COMMIT -- PATHS...` in the exact
