@@ -45,6 +45,8 @@ pub struct Options {
     pub native_runtime_evidence: Option<PathBuf>,
     /// Runtime-only loopback fleet coordinator endpoint.
     pub fleet: Option<PathBuf>,
+    /// Explicit bounded export from the deployment owner.
+    pub delivery_observations: Option<PathBuf>,
 }
 
 impl Options {
@@ -73,6 +75,9 @@ impl Options {
         }
         if let Some(path) = &self.fleet {
             crate::fleet::FleetProfile::load(path)?;
+        }
+        if self.delivery_observations.as_ref().is_some_and(|path| !path.is_absolute()) {
+            return Err("delivery observation path must be absolute".into());
         }
         Ok(())
     }
@@ -337,6 +342,7 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
         dispatch_recovery: dispatch_recovery.as_ref(),
         native_runtime_evidence: native_runtime.as_ref(),
         fleet: fleet.as_ref(),
+        delivery_observations: options.delivery_observations.as_deref(),
         stop: &stop,
     };
     // r[impl kiln.web.deploy.runtime] Readiness follows TLS, listener and canonical state initialization.
@@ -577,6 +583,7 @@ struct Context<'a> {
     dispatch_recovery: Option<&'a crate::dispatch_recovery::RecoveryConfig>,
     native_runtime_evidence: Option<&'a crate::runtime_evidence::RuntimeEvidenceProfile>,
     fleet: Option<&'a crate::fleet::Client>,
+    delivery_observations: Option<&'a Path>,
     stop: &'a AtomicBool,
 }
 
@@ -970,6 +977,20 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
             .target
             .split_once('?')
             .map_or(request.target.as_str(), |(path, _)| path);
+        if path == "/api/delivery/environments" {
+            if request.method != "GET" || request.target != path {
+                return error_response(405, "delivery_read_only");
+            }
+            if context.profile.restricted_projection || principal.role == crate::engine::Role::Worker {
+                return error_response(403, "delivery_observation_denied");
+            }
+            let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)
+                .ok().and_then(|elapsed| u64::try_from(elapsed.as_millis()).ok()).unwrap_or(0);
+            return match crate::delivery_observations::read(context.delivery_observations, now) {
+                Ok(value) => ApiResponse { status: 200, content_type: "application/json", body: value.to_string().into_bytes(), download_name: None, headers: Vec::new() },
+                Err(code) => error_response(503, code),
+            };
+        }
         if path == "/api/inventory" {
             return inventory_api::response(&request, context, &principal);
         }
@@ -1240,6 +1261,9 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
             "/cairn.js" => ("text/javascript; charset=utf-8", include_bytes!("cairn.js")),
             "/cairn.css" => ("text/css; charset=utf-8", include_bytes!("cairn.css")),
             "/fleet.js" => ("text/javascript; charset=utf-8", include_bytes!("fleet.js")),
+            "/factory-dashboard.js" => ("text/javascript; charset=utf-8", include_bytes!("factory-dashboard.js")),
+            "/factory-work.js" => ("text/javascript; charset=utf-8", include_bytes!("factory-work.js")),
+            "/factory-delivery.js" => ("text/javascript; charset=utf-8", include_bytes!("factory-delivery.js")),
             "/fleet.css" => ("text/css; charset=utf-8", include_bytes!("fleet.css")),
             "/swarm-view.css" => (
                 "text/css; charset=utf-8",

@@ -14,8 +14,17 @@ eligibility.
 First public version. No tag or release artifact exists yet on any remote. This
 entry describes the source tree prepared for the first tagged release.
 
+### Changed
+
+- Console pages use shorter task-first introductions. The rail keeps Fleet visible and groups secondary tools; Overview leads with failures, Workers with execution targets, and Fleet with operator attention.
+
 ### Added
 
+- Factory collects independent Fleet, Cairn and CI triage and flow observations.
+  The change cockpit follows exact work and attempt identities, and Operations
+  reuses the original-dispatch recovery controls. Delivery separates review,
+  campaign publication and optional environment readback; Runbooks shows
+  owner-reported workflow revision selections and pins.
 - Fleet shows every enrolled machine, distinguishes stale and unavailable
   observations, and includes exact issue, Cairn and work provenance.
 - Fleet can optionally observe pinned Herdr Core instances through a local Unix

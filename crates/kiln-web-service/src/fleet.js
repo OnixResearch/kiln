@@ -146,6 +146,14 @@
     return wrap;
   }
 
+  function cockpitLink(identity) {
+    if (!IDENTITY.test(text(identity))) return identityCell(identity);
+    const link = element("a", undefined, "row-link");
+    link.href = `?${new URLSearchParams({ page: "cockpit", work_id_exact: identity })}`;
+    link.append(identityCell(identity));
+    return link;
+  }
+
   function when(ms) {
     return count(ms) === null ? element("span", "Not recorded", "not-recorded") : ui().timeElement(ms);
   }
@@ -464,12 +472,12 @@
   function renderWork(state, work) {
     state.metrics.ready.textContent = String(work.ready_unclaimed);
     const ready = work.ranked.map((item) => [
-      identityCell(item.identity), text(item.repository), text(item.title),
+      cockpitLink(item.identity), text(item.repository), text(item.title),
       item.interactive ? element("span", "Interactive", "state-badge fleet-tag") : "Not interactive",
     ]);
     state.ready.replaceChildren(table(["ID", "Repository", "Title", "Mode"], ready, "No ranked work", "The coordinator reports no ranked work."));
     const blocked = work.blocked.map((item) => [
-      identityCell(item.identity), text(item.repository), text(item.title),
+      cockpitLink(item.identity), text(item.repository), text(item.title),
       Array.isArray(item.reasons) ? item.reasons.map(blockReason).join(" · ") : "Not recorded",
     ]);
     state.blocked.replaceChildren(table(["ID", "Repository", "Title", "Reasons"], blocked, "Nothing blocked", "The coordinator reports no blocked work."));
@@ -500,6 +508,11 @@
         mutate(state, cancel, `/api/fleet/attempts/${attempt.attempt}/cancel`, { reason: bounded });
       });
       actions.append(cancel);
+      if (IDENTITY.test(text(attempt.work))) {
+        const link = element("a", "Open work", "row-link");
+        link.href = `?${new URLSearchParams({ page: "cockpit", work_id_exact: attempt.work })}`;
+        actions.prepend(link);
+      }
       return [
         identityCell(attempt.attempt),
         `${label(attempt.state)}\nPhase: ${label(attempt.phase)}`,
@@ -1083,7 +1096,7 @@
     status.setAttribute("role", "status");
     button.addEventListener("click", async () => {
       const controller = state.inspectorController;
-      if (!controller) return;
+      if (!controller || !state.context.isCurrent()) return;
       const current = () => state.inspectorController === controller && state.context.isCurrent();
       button.disabled = true;
       reviewedDigest = "";
@@ -1202,7 +1215,7 @@
     const rows = [
       ["Attempt", identityCell(attempt.identity)], ["Fence", String(attempt.fence)],
       ["Work revision", `${label(attempt.applicability)} · ${attempt.work_revision ?? "Not recorded"}`],
-      ["Work identity", identityCell(attempt.work_identity)], ["Claimed", when(attempt.claimed_at_ms)],
+      ["Work identity", cockpitLink(attempt.work_identity)], ["Claimed", when(attempt.claimed_at_ms)],
       ["Recorded lease deadline", when(attempt.lease_until_ms)],
       ["Fleet session", fleetedAttempt(state, attempt)],
       ["Dispatch", [label(attempt.dispatch), attempt.unknown_outcome && label(attempt.unknown_outcome)].filter(Boolean).join(" · ")],
@@ -1505,8 +1518,13 @@
     state.runtime = element("div");
     state.campaign = element("div", undefined, "fleet-work");
     state.capacity = element("div");
-    page.append(head, machinesPanel, decisionsPanel, cairnPanel, state.inspector, issuesPanel, attemptsPanel, state.runtime,
-      claimsPanel, window.KilnFleetCapacity ? state.capacity : work, sourcesPanel, state.campaign, swarmsPanel);
+    const contextTitle = element("h2", "Supporting observations");
+    contextTitle.id = "fleet-observations-title";
+    const observations = element("section", undefined, "view-stack");
+    observations.setAttribute("aria-labelledby", contextTitle.id);
+    observations.append(contextTitle, cairnPanel, issuesPanel, sourcesPanel, state.runtime, state.campaign, swarmsPanel);
+    page.append(head, decisionsPanel, state.inspector, machinesPanel, attemptsPanel, claimsPanel,
+      window.KilnFleetCapacity ? state.capacity : work, observations);
     root.replaceChildren(page);
     state.machine = machine;
     state.updated = updated;
@@ -1582,5 +1600,11 @@
     window.removeEventListener("kiln-session-changed", onSessionChanged);
   }
 
-  window.KilnFleet = Object.freeze({ load, clear });
+  function exactRecoveryReadout(context, attempt) {
+    if (context.canOperate !== true || !context.isCurrent() || !IDENTITY.test(text(attempt?.identity))
+      || !IDENTITY.test(text(attempt?.work_identity)) || !Number.isSafeInteger(attempt.fence) || attempt.fence < 1) return null;
+    return recoveryReadout({ context: { ...context, canOperate: () => true }, inspectorController: new AbortController() }, attempt);
+  }
+
+  window.KilnFleet = Object.freeze({ load, clear, recoveryReadout: exactRecoveryReadout });
 })();

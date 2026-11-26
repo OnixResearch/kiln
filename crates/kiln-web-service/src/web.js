@@ -1186,6 +1186,7 @@
     $("source-reference").replaceChildren();
     for (const id of ["source-revision", "log-search"]) $(id).value = "";
     for (const id of ["overview-content", "project-cards", "reports-content", "compare-content", "activity-content", "run-activity-content", "evidence-content", "run-evidence-content", "automation-content", "operations-content", "principal-facts", "node-facts", "pipeline-graph", "source-status", "page-primary-action"]) $(id).replaceChildren();
+    for (const id of ["factory-dashboard", "factory-cockpit", "factory-delivery", "factory-workflows", "factory-recovery"]) $(id)?.replaceChildren();
     for (const id of ["workflow-title", "workflow-caption", "workflow-summary"]) $(id).replaceChildren();
     state.graphRun = null; state.graphZoom = 1;
     $("operator-token").value = "";
@@ -1329,14 +1330,17 @@
       worker_q: (params.get("worker_q") || "").slice(0, 256), worker_status: Object.hasOwn(window.KilnWorkers.statuses, params.get("worker_status")) ? params.get("worker_status") : "", worker: params.get("worker") || "",
       worker_campaign: params.get("worker_campaign") || "",
       runbook: (params.get("runbook") || "").slice(0, 128),
+      workflow_source: params.get("workflow_source") || "", workflow_definition: params.get("workflow_definition") || "", workflow_revision: params.get("workflow_revision") || "",
       fanout: (params.get("fanout") || "").slice(0, 128),
       dispatch: (params.get("dispatch") || "").slice(0, 128),
       rollup_cursor: (params.get("rollup_cursor") || "").slice(0, 512),
+      campaign: params.get("campaign") || "", delivery_member: params.get("delivery_member") || "",
       // r[impl kiln.cairn.workspace.scenario.reload] The selected Cairn change, its open unit, register view and filters are bound to the URL.
       cairn_repository: (params.get("cairn_repository") || "").slice(0, 64), cairn_change: (params.get("cairn_change") || "").slice(0, 1024), cairn_q: (params.get("cairn_q") || "").slice(0, 256),
       cairn_unit: (params.get("cairn_unit") || "").slice(0, 2048), cairn_lane: (params.get("cairn_lane") || "").slice(0, 32),
       cairn_blocked: params.get("cairn_blocked") === "1" ? "1" : "", cairn_decisions: params.get("cairn_decisions") === "1" ? "1" : "", cairn_view: params.get("cairn_view") === "board" ? "board" : "",
       work_id: (params.get("work_id") || "").slice(0, 128), work_kind: (params.get("work_kind") || "").slice(0, 32), work_q: (params.get("work_q") || "").slice(0, 256),
+      work_id_exact: params.get("work_id_exact") || "", attempt_id_exact: params.get("attempt_id_exact") || "",
       work_status: (params.get("work_status") || "").slice(0, 128), work_assignee: (params.get("work_assignee") || "").slice(0, 128), work_project: (params.get("work_project") || "").slice(0, 16_384),
       work_ci_project: (params.get("work_ci_project") || "").slice(0, 16_384), work_ci_repository: (params.get("work_ci_repository") || "").slice(0, 16_384),
       work_view: (params.get("work_view") || "").slice(0, 128), work_layout: ["board", "list"].includes(params.get("work_layout")) ? params.get("work_layout") : "", work_group: (params.get("work_group") || "").slice(0, 32), work_sort: (params.get("work_sort") || "").slice(0, 32),
@@ -1922,6 +1926,15 @@
     }
     scheduleRefresh();
   }
+  function loadFactory(loader, id, route) {
+    const root = $(id);
+    if (!root || !loader) return;
+    return loader(root, {
+      api, navigate, route, link: workspaceLink, canOperate: canOperate(),
+      isCurrent: () => state.route === route && !!state.session,
+    });
+  }
+
   async function loadPage() {
     const route = state.route;
     if (route.page !== "feeds") stopFeedsTimer();
@@ -1942,7 +1955,11 @@
       await window.KilnWorkUI.render(parent, route);
       return;
     }
-    if (route.page === "overview") await loadOverview();
+    if (route.page === "overview") await Promise.all([
+      loadOverview(), loadFactory(window.KilnFactoryDashboard?.load, "factory-dashboard", route),
+    ]);
+    if (route.page === "cockpit") await loadFactory(window.KilnFactoryWork?.load, "factory-cockpit", route);
+    if (route.page === "delivery") await loadFactory(window.KilnFactoryDelivery?.load, "factory-delivery", route);
     if (route.page === "guide") renderGuide($("guide-content"));
     // r[impl kiln.web.project_page] Project history renders through project.js; Run latest reuses the existing start form.
     if (route.page === "project") {
@@ -1959,6 +1976,7 @@
     if (route.page === "workers") await window.KilnWorkers.load($("workers-content"), { api, navigate, route, isCurrent: () => state.route === route && !!state.session, runLink, projectLink });
     if (route.page === "runbooks") {
       if (!window.KilnRunbooks) { $("runbooks-content").replaceChildren(element("p", "Runbooks are loading.", "small")); return; }
+      const workflows = loadFactory(window.KilnFactoryDelivery?.workflows, "factory-workflows", route);
       await window.KilnRunbooks.load($("runbooks-content"), {
         api,
         navigate,
@@ -1970,6 +1988,7 @@
         runLink,
         isCurrent: () => state.route === route && !!state.session,
       });
+      await workflows;
       return;
     }
     if (route.page === "activity") await renderEndpoint(`/api/activity?${activityQuery()}`, "activity-content", renderActivity);
@@ -1980,7 +1999,10 @@
     }
     if (route.page === "feeds") await loadFeeds();
     if (route.page === "automation") await renderEndpoint("/api/automation", "automation-content", renderAutomation);
-    if (route.page === "operations") await renderEndpoint("/api/operations", "operations-content", renderOperations);
+    if (route.page === "operations") await Promise.all([
+      renderEndpoint("/api/operations", "operations-content", renderOperations),
+      loadFactory(window.KilnFactoryWork?.recovery, "factory-recovery", route),
+    ]);
     if (route.page === "cobs") await loadCobs();
     // r[impl kiln.dashboard.source.navigation] The Source page renders through source.js.
     if (route.page === "source") {
@@ -2300,10 +2322,10 @@
     const grid = element("div", undefined, "dashboard-grid");
     const main = element("div", undefined, "dashboard-main");
     const side = element("div", undefined, "dashboard-side");
-    dashboardSection(main, "overview-health", "Project health", "card health-hero");
     dashboardSection(main, "overview-attention", "Needs attention", "dashboard-section");
-    dashboardSection(main, "overview-passed", "Recently passed", "card dashboard-section");
+    dashboardSection(main, "overview-health", "Project health", "card health-hero");
     dashboardSection(main, "overview-other", "In progress & unresolved", "card dashboard-section");
+    dashboardSection(main, "overview-passed", "Recently passed", "card dashboard-section");
     const trend = element("details", undefined, "panel overview-timing");
     const trendBody = element("div", undefined, "stack stack-sm");
     trendBody.id = "overview-trend";

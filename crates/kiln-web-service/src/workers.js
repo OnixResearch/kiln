@@ -412,19 +412,19 @@
   }
   function render(inventory, items, route) {
     const page = element("div", undefined, "workers-page");
-    if (window.KilnInventory) {
-      const observed = element("div", undefined, "workers-observed-inventories");
-      observed.dataset.inventoryRoot = "true";
-      page.append(observed);
-    }
-    page.append(campaignCard(route));
-    if (!route.worker) page.append(summary(inventory), register(inventory, items, route));
+    if (!route.worker) page.append(register(inventory, items, route), summary(inventory));
     else {
       page.append(detail(inventory, items, route));
       const browser = disclosure(`Browse ${plural(items.length, "target")}`, "browse", register(inventory, items, route));
       browser.classList.add("workers-browse");
       page.append(browser);
     }
+    if (window.KilnInventory) {
+      const observed = element("div", undefined, "workers-observed-inventories");
+      observed.dataset.inventoryRoot = "true";
+      page.append(observed);
+    }
+    page.append(campaignCard(route));
     return page;
   }
   function title() {
