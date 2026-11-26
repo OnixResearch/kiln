@@ -512,6 +512,13 @@ impl Workspace {
                 Err((status, message)) => return Ok(error(status, message)),
             }
         }
+        if req.method == "GET" && req.target == "/api/delivery/environments" {
+            return Ok(json(200, json!({"schema":"kiln.delivery-environments.v1", "configured":true, "observations":[{
+                "environment":"staging","service":"example-release-service","owner":"synthetic-deployer",
+                "intended_revision":"a".repeat(40),"observed_revision":"b".repeat(40),"rollback_revision":null,
+                "observed_at_ms":now_ms()?,"health":"healthy","freshness":"fresh","blocker":"Synthetic overlapping host claim"
+            }]})));
+        }
         if req.method == "GET" && path == "/api/fleet/machines" {
             let now = now_ms()?;
             return Ok(json(200, json!({"synthetic": true, "machines": [
@@ -521,7 +528,7 @@ impl Workspace {
                 {"machine": "example-peer", "placement_configured": false, "observed_at_ms": null, "last_seen_at_ms": null, "state": "not_reporting", "sessions": null}
             ]})));
         }
-        if req.method == "GET" && path == "/api/fleet/events" {
+        if req.method == "GET" && matches!(path, "/api/fleet/events" | "/api/fleet/claims" | "/api/fleet/work" | "/api/fleet/attempts" | "/api/fleet/decisions") {
             let version = "e".repeat(64);
             if req.target.ends_with(&format!("?after={version}")) {
                 return Ok(bytes("text/event-stream", b": heartbeat\n\n"));
@@ -533,10 +540,16 @@ impl Workspace {
                 "health": {"machine": "example-desktop", "version": "example", "api": "v1"},
                 "claims": {"claims": []},
                 "work": {"ready_unclaimed": 1, "ranked": [{"identity": work, "repository": "example/release-service", "title": "Synthetic issue work", "sources": [{"kind": "github_issue", "source": {"contract_version": 1, "provider_namespace": "github", "native_kind": "issue", "native_id": "example/release-service#42"}, "native_id": "example/release-service#42", "version": "b".repeat(64)}]}], "blocked": [], "truncated": false},
-                "attempts": {"attempts": [{"attempt": attempt, "work": work, "title": "Synthetic running attempt", "state": "running", "fence": 1, "session": {"machine": "example-desktop"}}]},
+                "attempts": {"attempts": [{"attempt": attempt, "work": work, "title": "Synthetic uncertain dispatch", "state": "running", "phase":"executing", "fence": 1, "session": {"machine": "example-desktop"}}], "truncated":false},
                 "decisions": {"decisions": []}
             });
+            if let Some(part) = path.strip_prefix("/api/fleet/").filter(|part| *part != "events") {
+                return Ok(json(200, snapshot[part].clone()));
+            }
             return Ok(bytes("text/event-stream", format!("event: snapshot\ndata: {snapshot}\n\n").as_bytes()));
+        }
+        if req.method == "GET" && req.target == format!("/api/implementation/dispatch-recovery?attempt={}&fence=1", "d".repeat(64)) {
+            return Ok(json(200, json!({"schema":"kiln.dispatch-recovery-observation.v1","attempt":"d".repeat(64),"work_identity":"a".repeat(64),"fence":1,"recovery_status":"missing_exact_request_seal","can_recover":false})));
         }
         // r[impl kiln.inventory.consumers]
         if path == "/api/inventory" {
@@ -679,6 +692,7 @@ fn asset(path: &str) -> ApiResponse {
                 "workers.js" => JS, "workers.css" => CSS, "runbooks.js" => JS, "cairn.js" => JS, "cairn.css" => CSS,
                 "fleet.js" => JS, "fleet.css" => CSS, "fleet-runtime.js" => JS,
                 "fleet-capacity.js" => JS, "fleet-capacity.css" => CSS,
+                "factory-dashboard.js" => JS, "factory-work.js" => JS, "factory-delivery.js" => JS,
                 "inventory.js" => JS, "inventory.css" => CSS, "preview-review.js" => JS,
             }
         }

@@ -8,6 +8,7 @@ pub mod campaign_controls;
 pub mod cobs;
 pub mod code_review;
 pub mod developer;
+mod delivery_observations;
 pub mod dispatch_recovery;
 pub mod engine;
 pub mod execution;

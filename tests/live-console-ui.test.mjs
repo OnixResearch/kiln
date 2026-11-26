@@ -3324,6 +3324,7 @@ test("runbooks.js dry-run preview button calls /preview and renders effects, bud
 test("Fleet filters survive snapshots alongside drafts and independent stream feedback", async () => {
   const page = cairnPage();
   Object.assign(page.document, { addEventListener() {}, removeEventListener() {} });
+  Object.assign(page.window, { addEventListener() {}, removeEventListener() {} });
   const timers = [];
   Object.assign(page, { Node: CairnNode, AbortController, TextDecoder, DOMException,
     setTimeout(callback, delay) { if (delay === 1000) timers.push(callback); return 0; }, clearTimeout() {} });
@@ -3424,6 +3425,7 @@ test("Fleet filters survive snapshots alongside drafts and independent stream fe
 test("Fleet refreshes exact Cairn changes without coordinator events and retains stale rows", async () => {
   const page = cairnPage();
   Object.assign(page.document, { addEventListener() {}, removeEventListener() {}, visibilityState: "visible" });
+  Object.assign(page.window, { addEventListener() {}, removeEventListener() {} });
   let refresh;
   Object.assign(page, { Node: CairnNode, AbortController, TextDecoder, setTimeout(callback, delay) { if (delay === 15_000) refresh = callback; }, clearTimeout() {} });
   vm.runInNewContext(asset("fleet.js"), page);
@@ -3508,6 +3510,7 @@ test("Fleet refreshes exact Cairn changes without coordinator events and retains
 test("Fleet operator inspector refuses crossed recovery evidence and links the exact verification logs", async () => {
   const page = cairnPage();
   Object.assign(page.document, { addEventListener() {}, removeEventListener() {}, visibilityState: "visible" });
+  Object.assign(page.window, { addEventListener() {}, removeEventListener() {} });
   Object.assign(page, { Node: CairnNode, AbortController, setTimeout() {}, clearTimeout() {} });
   page.confirm = () => true;
   page.window.KilnUi = { timeElement: () => new CairnNode("time") };

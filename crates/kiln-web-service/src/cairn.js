@@ -1123,6 +1123,14 @@
     }
     return item;
   }
+  function cockpitWork(identity) {
+    if (typeof identity !== "string" || !/^[0-9a-f]{64}$/.test(identity)) return copyable(identity, "Work identity");
+    const link = element("a", `Open work ${short(identity)}`, "row-link");
+    link.href = `?${new URLSearchParams({ page: "cockpit", work_id_exact: identity })}`;
+    link.title = identity;
+    return link;
+  }
+
   function attemptItem(attempt) {
     const item = element("li", undefined, "cairn-attempt");
     item.dataset.applicability = attempt.applicability === "current" ? "current" : "historical";
@@ -1162,7 +1170,7 @@
     if (attempt.applicability !== "current") item.append(element("p", "Historical: this attempt ran on a superseded work version, so its records do not apply to the current version.", "small"));
     item.append(disclosure("Exact attempt identities", `attempt:${attempt.identity}`, facts([
       ["Attempt", copyable(attempt.identity, "Attempt identity")],
-      ["Work", copyable(attempt.work_identity, "Work identity")],
+      ["Work", cockpitWork(attempt.work_identity)],
       ["Candidate", attempt.candidate?.native_id ? code(`${attempt.candidate.native_kind || "candidate"} ${attempt.candidate.native_id}`) : "Not recorded"],
       ["Verification profile", verification?.verification_profile ? shortCode(verification.verification_profile) : undefined],
       ["Lifecycle receipt", lifecycle?.lifecycle_receipt?.native_id ? shortCode(lifecycle.lifecycle_receipt.native_id) : undefined],
@@ -1368,7 +1376,7 @@
       ["Pending effects", bullets(effects, "None")],
     ]));
     card.append(disclosure("Exact member bindings", `member:${membership.campaign_id}:${membership.member}`, facts([
-      ["Bound work", membership.work_identity ? copyable(membership.work_identity, "Bound work identity") : "Not bound"],
+      ["Bound work", membership.work_identity ? cockpitWork(membership.work_identity) : "Not bound"],
       ["Bound attempt", membership.attempt_identity ? shortCode(membership.attempt_identity) : "None"],
       ["Attempt fence", membership.attempt_fence ?? "None"],
       ["Store version", String(membership.store_version)],

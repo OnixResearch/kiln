@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="/code-review.css"><script src="/code-review.js" defer></script>
   <link rel="stylesheet" href="/inventory.css"><script src="/inventory.js" defer></script>
   <script src="/cairn.js" defer></script><script src="/fleet-runtime.js" defer></script><script src="/fleet-capacity.js" defer></script><script src="/fleet.js" defer></script>
+  <script src="/factory-dashboard.js" defer></script><script src="/factory-work.js" defer></script><script src="/factory-delivery.js" defer></script>
   <link rel="stylesheet" href="/catalog.css"><link rel="stylesheet" href="/web.css"><link rel="stylesheet" href="/work.css"><link rel="stylesheet" href="/work-interaction.css"><link rel="stylesheet" href="/project.css"><link rel="stylesheet" href="/source.css"><link rel="stylesheet" href="/receipts.css"><link rel="stylesheet" href="/workers.css"><script src="/workers.js" defer></script><script src="/runbooks.js" defer></script><script src="/web.js" defer></script><script src="/work-evidence.js" defer></script><script src="/work-board.js" defer></script><script src="/work.js" defer></script><script src="/work-interaction.js" defer></script><script src="/project.js" defer></script><script src="/source.js" defer></script><script src="/receipts.js" defer></script>
   <link rel="stylesheet" href="/cairn.css"><link rel="stylesheet" href="/fleet.css">
   <link rel="stylesheet" href="/fleet-capacity.css">
@@ -27,22 +28,26 @@
   <a id="brand-home" class="brand" href="?page=overview"><span class="brand-mark" aria-hidden="true"></span><span class="nav-text brand-text">Kiln</span></a>
   <nav class="app-navigation" aria-label="Main">
     <section class="nav-group" aria-labelledby="nav-ci"><h2 id="nav-ci" class="nav-label">Continuous integration</h2>
-      <a data-page="overview" href="?page=overview"><span class="icon" data-icon="layout-grid" aria-hidden="true"></span><span class="nav-text">Overview</span></a>
+      <a data-page="overview" href="?page=overview"><span class="icon" data-icon="layout-grid" aria-hidden="true"></span><span class="nav-text">Factory</span></a>
       <a data-page="runs" href="?page=runs"><span class="icon" data-icon="circle-play" aria-hidden="true"></span><span class="nav-text">Runs</span></a>
       <a data-page="projects" href="?page=projects"><span class="icon" data-icon="folder" aria-hidden="true"></span><span class="nav-text">CI projects</span></a>
+      <details class="nav-group nav-disclosure"><summary><span class="icon" data-icon="layers" aria-hidden="true"></span><span class="nav-text">CI tools</span><span class="icon disclosure-chevron" data-icon="chevron-down" aria-hidden="true"></span></summary>
       <a data-page="workers" href="?page=workers"><span class="icon" data-icon="server" aria-hidden="true"></span><span class="nav-text">Workers</span></a>
       <a data-page="runbooks" href="?page=runbooks"><span class="icon" data-icon="layers" aria-hidden="true"></span><span class="nav-text">Runbooks</span></a>
+      </details>
     </section>
     <section class="nav-group" aria-labelledby="nav-work"><h2 id="nav-work" class="nav-label">Work</h2>
       <a data-page="work" href="?page=work"><span class="icon" data-icon="circle-alert" aria-hidden="true"></span><span class="nav-text">Issues</span></a>
+      <a data-page="code-review" href="?page=code-review"><span class="icon" data-icon="git-pull-request" aria-hidden="true"></span><span class="nav-text">Code review</span></a>
+      <a data-page="fleet" href="?page=fleet"><span class="icon" data-icon="server" aria-hidden="true"></span><span class="nav-text">Fleet</span></a>
+      <a data-page="delivery" href="?page=delivery"><span class="icon" data-icon="file-check" aria-hidden="true"></span><span class="nav-text">Delivery</span></a>
+      <details class="nav-group nav-disclosure"><summary><span class="icon" data-icon="square-plus" aria-hidden="true"></span><span class="nav-text">More work</span><span class="icon disclosure-chevron" data-icon="chevron-down" aria-hidden="true"></span></summary>
       <a data-page="inbox" href="?page=inbox"><span class="icon" data-icon="inbox" aria-hidden="true"></span><span class="nav-text">My inbox</span></a>
       <a data-page="planning" href="?page=planning"><span class="icon" data-icon="square-kanban" aria-hidden="true"></span><span class="nav-text">Planning</span></a>
-      <a data-page="code-review" href="?page=code-review"><span class="icon" data-icon="git-pull-request" aria-hidden="true"></span><span class="nav-text">Code review</span></a>
-      <details class="nav-group nav-disclosure"><summary><span class="icon" data-icon="square-plus" aria-hidden="true"></span><span class="nav-text">More work</span><span class="icon disclosure-chevron" data-icon="chevron-down" aria-hidden="true"></span></summary>
       <a data-page="triage" href="?page=triage"><span class="icon" data-icon="funnel" aria-hidden="true"></span><span class="nav-text">Requests &amp; triage</span></a>
       <a data-page="workviews" href="?page=workviews"><span class="icon" data-icon="layers" aria-hidden="true"></span><span class="nav-text">Saved views</span></a>
       <a data-page="cairn" href="?page=cairn"><span class="icon" data-icon="file-text" aria-hidden="true"></span><span class="nav-text">Cairn changes</span></a>
-      <a data-page="fleet" href="?page=fleet"><span class="icon" data-icon="server" aria-hidden="true"></span><span class="nav-text">Fleet</span></a>
+      <a data-page="cockpit" href="?page=cockpit"><span class="icon" data-icon="link" aria-hidden="true"></span><span class="nav-text">Change cockpit</span></a>
       </details>
     </section>
     <details class="nav-group nav-disclosure"><summary><span class="icon" data-icon="eye" aria-hidden="true"></span><span class="nav-text">Inspect</span><span class="icon disclosure-chevron" data-icon="chevron-down" aria-hidden="true"></span></summary>
@@ -95,7 +100,10 @@
     <!-- r[impl kiln.web.page_consistency] Long boundary and non-claim copy sits in labelled .about-view disclosures beside its section heading; text is unchanged and reachable. -->
     <div id="workspace" class="page-frame" hidden>
       <header class="page-header kiln-rule"><div class="page-header-text"><p id="workspace-eyebrow" class="page-eyebrow">Continuous integration</p><h1 id="workspace-title" class="page-title">Overview</h1><p id="observation-note" class="page-description">Finite snapshots are observations, not a complete history. Unknown historical timing stays unknown.</p></div><div class="page-actions"><div id="page-primary-action" class="cluster"></div><button id="refresh-all" class="icon-button quiet" type="button" aria-label="Refresh" title="Refresh and reconnect live observations"><span class="icon" data-icon="refresh-cw" aria-hidden="true"></span></button></div></header>
-      <section data-panel="overview" id="overview-panel" class="view-stack"><div id="overview-content" class="view-stack"></div></section>
+      <!-- r[impl kiln.web.factory_control_views] Owner-backed projections share the existing console session. -->
+      <section data-panel="overview" id="overview-panel" class="view-stack"><div id="factory-dashboard" class="view-stack"></div><div id="overview-content" class="view-stack"></div></section>
+      <section data-panel="cockpit" hidden class="view-stack"><div id="factory-cockpit" class="view-stack"></div></section>
+      <section data-panel="delivery" hidden class="view-stack"><div id="factory-delivery" class="view-stack"></div></section>
       <!-- r[impl kiln.web.wayfinding] Guide: web.js renders the contents, state legend, vocabulary and keyboard reference. -->
       <section data-panel="guide" hidden class="view-stack"><div id="guide-content" class="view-stack"></div></section>
       <section data-panel="work" hidden class="view-stack"><div id="work-content" class="view-stack"></div></section>
@@ -121,7 +129,7 @@
       <section data-panel="project" hidden class="view-stack"><div id="project-content" class="view-stack"></div></section>
       <!-- r[impl kiln.dashboard.workers.view] Workers owns the target register, filters and exact target detail. -->
       <section data-panel="workers" hidden class="view-stack" aria-label="Worker execution targets"><div id="workers-content" class="view-stack"></div></section>
-      <section data-panel="runbooks" hidden class="view-stack" aria-label="Reviewed runbook dispatch"><div id="runbooks-content" class="view-stack"></div></section>
+      <section data-panel="runbooks" hidden class="view-stack" aria-label="Reviewed runbook dispatch"><div id="runbooks-content" class="view-stack"></div><div id="factory-workflows" class="view-stack"></div></section>
       <!-- r[impl kiln.web.console_layout] Split run view: the retained-runs table sits beside the selected run at ≥90rem and above it otherwise; the inspector shows pipeline and logs side by side when it has room, one tabbed column when it does not (failed runs show logs first). -->
       <!-- r[impl kiln.web.runs_table] Retained runs table grouped by local day; header sorting reorders only the loaded page. -->
       <section data-panel="runs" hidden>
@@ -199,11 +207,11 @@
       <section data-panel="source" hidden class="view-stack"><div id="source-content" class="view-stack"></div></section>
       <!-- r[impl kiln.dashboard.reviews.view] Patchgate receipts route; receipts.js renders the list, the filters and the selected receipt into #receipts-content. -->
       <section data-panel="reviews" hidden class="view-stack"><div id="receipts-content" class="view-stack"></div></section>
-      <section data-panel="activity" class="panel" hidden><div class="section-heading"><h2>Canonical activity &amp; attributable audit</h2></div><p class="meta">Bounded retained timeline. Audit decisions and canonical events are distinct observations.</p><div id="activity-content" class="view-stack"></div></section>
-      <section data-panel="feeds" class="panel" hidden><div class="section-heading"><h2>Repository feeds</h2></div><p class="meta">Atom feeds are read-only projections of retained runs. External subscriptions are bounded observations of the feeds you add; they are not repository content or CI evidence.</p><div id="feeds-content" class="view-stack"></div></section>
+      <section data-panel="activity" class="panel" hidden><div class="section-heading"><h2>Timeline</h2></div><p class="meta">Audit decisions and canonical events are distinct observations.</p><div id="activity-content" class="view-stack"></div></section>
+      <section data-panel="feeds" class="panel" hidden><div class="section-heading"><h2>Repository feeds</h2></div><div id="feeds-content" class="view-stack"></div></section>
       <section data-panel="evidence" class="panel" hidden><h2>Evidence browser</h2><p class="meta">Inspect a retained run's source, pipeline, artifacts and recorded gate/review/provenance. Recorded verdicts are not acceptance authority.</p><form id="evidence-form" class="inline-form"><div><label for="evidence-run">Retained run ID</label><input id="evidence-run" class="run-picker" list="retained-run-options" maxlength="256" required autocomplete="off" aria-describedby="evidence-picker-help"><p id="evidence-picker-help" class="small">Choose a suggested retained run or paste its exact ID. Suggestions cover loaded runs, not all history.</p></div><button type="submit">Inspect evidence</button></form><div id="evidence-content" class="view-stack"></div></section>
       <section data-panel="automation" class="panel" hidden><div class="section-heading"><h2>Registered automation</h2></div><p class="meta">Signed push/PR intake, interval schedules and HTTPS destinations are admitted server-side. Credentials and destination URLs never enter this page. Ambiguous deliveries are not automatically retried.</p><div id="automation-content" class="view-stack"></div></section>
-      <section data-panel="operations" class="panel" hidden><div class="section-heading"><h2>Operations &amp; retention</h2></div><p class="meta">Observed capacity, queue and retained usage. Warnings do not prune canonical state.</p><div id="operations-content" class="view-stack"></div></section>
+      <section data-panel="operations" hidden class="view-stack"><div id="factory-recovery" class="view-stack"></div><section class="panel"><div class="section-heading"><h2>Capacity and retention</h2></div><div id="operations-content" class="view-stack"></div></section></section>
       <section data-panel="settings" class="panel settings-panel" hidden><h2>Access &amp; appearance</h2><dl id="principal-facts" class="facts"></dl><div class="settings-row"><label for="app-theme">Appearance</label><select id="app-theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div><div class="settings-row"><div><label for="app-density">Density</label><p id="density-help" class="small">Compact tightens spacing for dense data; touch targets stay 44px on small screens.</p></div><select id="app-density" aria-describedby="density-help"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div><div class="settings-row"><div><span class="kiln-label">Keyboard &amp; vocabulary</span><p class="small">Every destination by number, how run states read, the words Kiln uses and every shortcut.</p></div><a class="button" data-page="guide" href="?page=guide">Open Guide</a></div><p class="boundary">Appearance and navigation are URL-restored; credentials are never persisted. Viewer access is read-only. Authorization is enforced again by the service. Server policy, source bindings, signing secrets and destinations are not editable browser strings.</p></section>
     </div>
   </main>

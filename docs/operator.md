@@ -3617,6 +3617,33 @@ the exact profile and recovers original operations without blind redispatch.
 Restore the same profile, UID and state after a crash. Changed profiles require
 explicit operator review; this helper provides no automatic state migration.
 
+#### Factory and Delivery observations
+
+Factory reads Fleet claims, work and decisions, the Cairn change index and
+selected change details, and bounded CI run pages independently. A failed
+source is not an empty queue. The change cockpit expects an exact Kiln work
+version; verify links at the owning service when a record is absent from its
+bounded result. Operations reuses the owner’s original-dispatch reconciliation
+rail, not a replacement dispatch.
+
+Delivery can read a deployment owner’s export via `--delivery-observations
+/absolute/path/to/environments.json`. The operator must select a trusted,
+redacted producer and keep the directory writable only by that producer and
+its administrator. Replace the export atomically. Kiln neither queries nor
+modifies targets through this input. Without an export, environments are
+unconfigured; this does not say any target is undeployed.
+
+The JSON export has `schema: "kiln.delivery-environments.v1"` and an
+`observations` array (at most 128 unique `environment`/`service` pairs, total
+128 KiB). Each row names `environment`, `service`, `owner`, `observed_at_ms`,
+and `health` (`healthy`, `degraded`, `unhealthy`, `unknown`). It can include
+`intended_revision`, `observed_revision`, and `rollback_revision` as exact
+40- or 64-character lowercase hexadecimal identities, and `blocker` as a
+redacted explanation. Missing values remain unknown. After five minutes the
+console labels the observation stale; a matching revision does not imply
+health or rollback authorization. The read is not exposed in restricted
+projection mode. Activation and rollback remain with the deployment owner.
+
 #### Maintained desktop user-service updates
 
 The operated desktop workspace uses the **user** `kiln-web-service.service`,
