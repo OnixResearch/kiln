@@ -1,0 +1,6 @@
+{
+  "scope": "Disposable two-host Fleet and Herdr command fixtures; not live-provider qualification.",
+  "checks": {"kiln-fleet queued_move": "3 passed", "kiln-fleet split": "2 passed", "authority_coverage": "9 passed"},
+  "observations": ["Reservation rebound before session bind; stale or already bound reservations refused", "Destination capacity rechecked before launch", "Lost start reconciled without a second launch", "Two independent split units reached the selected fixture hosts"],
+  "unsupported": "Moving a running agent; no native fenced checkpoint handoff and destination resume"
+}

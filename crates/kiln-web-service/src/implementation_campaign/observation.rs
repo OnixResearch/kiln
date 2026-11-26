@@ -911,10 +911,14 @@ pub(super) fn bind_stage_request(
     Ok(())
 }
 
-fn native_prompt_profile(request: &mut Value) -> Result<&mut serde_json::Map<String, Value>, String> {
+fn native_prompt_profile(
+    request: &mut Value,
+) -> Result<&mut serde_json::Map<String, Value>, String> {
     let selected = match (
         request.get("omp").is_some_and(|value| !value.is_null()),
-        request.get("animus_implementation").is_some_and(|value| !value.is_null()),
+        request
+            .get("animus_implementation")
+            .is_some_and(|value| !value.is_null()),
     ) {
         (true, false) => "omp",
         (false, true) => "animus_implementation",
@@ -925,7 +929,13 @@ fn native_prompt_profile(request: &mut Value) -> Result<&mut serde_json::Map<Str
         .and_then(Value::as_object_mut)
         .ok_or("native Lattice request lacks its typed harness profile")?;
     if selected == "omp" {
-        for key in ["revision", "executable_blake3", "base_identity", "model", "prompt"] {
+        for key in [
+            "revision",
+            "executable_blake3",
+            "base_identity",
+            "model",
+            "prompt",
+        ] {
             if !profile.contains_key(key) {
                 return Err(format!("native OMP profile lacks supported field {key}"));
             }
@@ -1652,8 +1662,13 @@ mod tests {
     #[test]
     fn native_prompt_binding_refuses_ambiguous_harness_authoring() {
         let mut seed = json!({"animus_implementation":{"prompt":"base"}});
-        native_prompt_profile(&mut seed).unwrap().insert("prompt".into(), json!("bound"));
-        assert_eq!(seed.pointer("/animus_implementation/prompt"), Some(&json!("bound")));
+        native_prompt_profile(&mut seed)
+            .unwrap()
+            .insert("prompt".into(), json!("bound"));
+        assert_eq!(
+            seed.pointer("/animus_implementation/prompt"),
+            Some(&json!("bound"))
+        );
         seed["omp"] = json!({"prompt":"second route"});
         assert!(native_prompt_profile(&mut seed).is_err());
     }

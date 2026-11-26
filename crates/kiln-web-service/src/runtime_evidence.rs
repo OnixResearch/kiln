@@ -1,13 +1,16 @@
 //! Exact read-only native Lattice evidence for one canonical implementation attempt.
 //! This does not infer liveness, host health, or served-model/replica lineage from
 //! a Fleet placement, OMP usage, a declared model route, or a dispatch intent.
-use std::{io::Read, path::{Path, PathBuf}};
+use std::{
+    io::Read,
+    path::{Path, PathBuf},
+};
 
+use kiln_adapter_lattice::worker::WorkerTransportProfile;
+use kiln_adapter_lattice::worker::inspect::{self, NativeInstance, NativeProfile};
 use kiln_core::implementation::admit_dispatch_plan;
 use kiln_core::types::ContentId;
 use kiln_implementer::observation::ImplementationObservation;
-use kiln_adapter_lattice::worker::inspect::{self, NativeInstance, NativeProfile};
-use kiln_adapter_lattice::worker::WorkerTransportProfile;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -30,14 +33,19 @@ pub struct RuntimeEvidenceProfile {
 
 fn bounded_file(path: &Path, bound: u64) -> Result<Vec<u8>, String> {
     let file = std::fs::File::open(path).map_err(|_| "native runtime input unavailable")?;
-    let metadata = file.metadata().map_err(|_| "native runtime input unavailable")?;
-    if !metadata.is_file() || metadata.len() > bound
+    let metadata = file
+        .metadata()
+        .map_err(|_| "native runtime input unavailable")?;
+    if !metadata.is_file()
+        || metadata.len() > bound
         || std::fs::canonicalize(path).map_err(|_| "native runtime input unavailable")? != path
     {
         return Err("native runtime input is not a bounded canonical ordinary file".into());
     }
     let mut bytes = Vec::with_capacity(metadata.len() as usize);
-    file.take(bound + 1).read_to_end(&mut bytes).map_err(|_| "native runtime input unreadable")?;
+    file.take(bound + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| "native runtime input unreadable")?;
     if bytes.len() as u64 > bound {
         return Err("native runtime input exceeds byte bound".into());
     }
@@ -47,23 +55,33 @@ fn bounded_file(path: &Path, bound: u64) -> Result<Vec<u8>, String> {
 impl RuntimeEvidenceProfile {
     pub fn load(path: &Path) -> Result<Self, String> {
         let bytes = bounded_file(path, MAX_PROFILE_BYTES)?;
-        let profile: Self = serde_json::from_slice(&bytes).map_err(|_| "native runtime profile malformed")?;
+        let profile: Self =
+            serde_json::from_slice(&bytes).map_err(|_| "native runtime profile malformed")?;
         if profile.schema != PROFILE_SCHEMA
-            || [&profile.implementation_database, &profile.bound_input_directory, &profile.transport_profile]
-                .iter().any(|path| !path.is_absolute())
+            || [
+                &profile.implementation_database,
+                &profile.bound_input_directory,
+                &profile.transport_profile,
+            ]
+            .iter()
+            .any(|path| !path.is_absolute())
         {
             return Err("native runtime profile identity or paths invalid".into());
         }
         let directory = std::fs::symlink_metadata(&profile.bound_input_directory)
             .map_err(|_| "campaign bound inputs unavailable")?;
         if !directory.is_dir()
-            || std::fs::canonicalize(&profile.bound_input_directory).map_err(|_| "campaign bound inputs unavailable")?
+            || std::fs::canonicalize(&profile.bound_input_directory)
+                .map_err(|_| "campaign bound inputs unavailable")?
                 != profile.bound_input_directory
         {
             return Err("campaign bound inputs must be a canonical directory".into());
         }
-        let transport: WorkerTransportProfile = serde_json::from_slice(&bounded_file(&profile.transport_profile, MAX_TRANSPORT_PROFILE_BYTES)?)
-            .map_err(|_| "native transport profile malformed")?;
+        let transport: WorkerTransportProfile = serde_json::from_slice(&bounded_file(
+            &profile.transport_profile,
+            MAX_TRANSPORT_PROFILE_BYTES,
+        )?)
+        .map_err(|_| "native transport profile malformed")?;
         if transport.schema != "kiln.lattice-implementation-cli.v2"
             || !transport.state_directory.is_absolute()
             || !transport.output_directory.is_absolute()
@@ -119,58 +137,97 @@ pub fn read_lattice(
         .map_err(|_| "canonical attempt read unavailable")?;
     let works = works.ok_or("canonical work ledger unavailable")?;
     let attempts = attempts.ok_or("canonical attempt ledger unavailable")?;
-    let attempt = attempts.get(attempt_identity).ok_or("canonical attempt absent")?;
+    let attempt = attempts
+        .get(attempt_identity)
+        .ok_or("canonical attempt absent")?;
     if &attempt.work_identity != work_identity || attempt.fence != fence {
         return Err("canonical work/attempt/fence differ".into());
     }
-    let work = works.current().chain(works.superseded().iter())
+    let work = works
+        .current()
+        .chain(works.superseded().iter())
         .find(|candidate| candidate.identity().is_ok_and(|id| &id == work_identity))
         .ok_or("canonical attempt work unavailable")?;
-    let plan = attempts.dispatch_plan(attempt_identity).ok_or("canonical native dispatch plan unavailable")?;
+    let plan = attempts
+        .dispatch_plan(attempt_identity)
+        .ok_or("canonical native dispatch plan unavailable")?;
     if plan.execution.is_none() {
         return Err("attempt is not a native worker dispatch".into());
     }
-    let plan_id = admit_dispatch_plan(work, attempt, plan).map_err(|_| "canonical dispatch plan crossed")?;
-    if attempt.dispatch.as_ref().is_none_or(|reservation| reservation.plan != plan_id
-        || reservation.provider_profile != plan.provider_profile) {
+    let plan_id =
+        admit_dispatch_plan(work, attempt, plan).map_err(|_| "canonical dispatch plan crossed")?;
+    if attempt.dispatch.as_ref().is_none_or(|reservation| {
+        reservation.plan != plan_id || reservation.provider_profile != plan.provider_profile
+    }) {
         return Err("canonical native dispatch reservation crossed".into());
     }
-    let seal = attempt.dispatch_request_binding.as_ref().ok_or("native request seal unavailable")?;
-    let request_path = profile.bound_input_directory.join(format!("campaign-{}.request.json", attempt_identity.as_str()));
+    let seal = attempt
+        .dispatch_request_binding
+        .as_ref()
+        .ok_or("native request seal unavailable")?;
+    let request_path = profile.bound_input_directory.join(format!(
+        "campaign-{}.request.json",
+        attempt_identity.as_str()
+    ));
     let request_bytes = bounded_file(&request_path, MAX_REQUEST_BYTES)?;
     let digest = ContentId::from_blake3_hex(blake3::hash(&request_bytes).to_hex().to_string())
         .map_err(|_| "native request digest invalid")?;
     seal.validate_for(attempt_identity, fence, &plan_id, &digest)
         .map_err(|_| "native request differs from canonical dispatch seal")?;
-    let request: Value = serde_json::from_slice(&request_bytes).map_err(|_| "native request malformed")?;
-    if request.get("schema").and_then(Value::as_str) != Some("lattice.implementation-attempt-run.v3")
-        || request.pointer("/envelope/work_id").and_then(Value::as_str) != Some(work_identity.as_str())
-        || request.pointer("/envelope/attempt_id").and_then(Value::as_str) != Some(attempt_identity.as_str())
+    let request: Value =
+        serde_json::from_slice(&request_bytes).map_err(|_| "native request malformed")?;
+    if request.get("schema").and_then(Value::as_str)
+        != Some("lattice.implementation-attempt-run.v3")
+        || request.pointer("/envelope/work_id").and_then(Value::as_str)
+            != Some(work_identity.as_str())
+        || request
+            .pointer("/envelope/attempt_id")
+            .and_then(Value::as_str)
+            != Some(attempt_identity.as_str())
         || request.pointer("/envelope/fence").and_then(Value::as_u64) != Some(fence)
-        || request.pointer("/envelope/worker_profile").and_then(Value::as_str)
-            != plan.execution.as_ref().and_then(|execution| execution.native_request_profile.as_ref()).map(ContentId::as_str)
+        || request
+            .pointer("/envelope/worker_profile")
+            .and_then(Value::as_str)
+            != plan
+                .execution
+                .as_ref()
+                .and_then(|execution| execution.native_request_profile.as_ref())
+                .map(ContentId::as_str)
     {
         return Err("native request differs from exact owner attempt generation".into());
     }
     // The guarded worker created this immutable name before native dispatch.
     // It is not a generic observation directory: both owner seal and bytes agree.
-    let transport: WorkerTransportProfile = serde_json::from_slice(&bounded_file(&profile.transport_profile, MAX_TRANSPORT_PROFILE_BYTES)?)
-        .map_err(|_| "native transport profile malformed")?;
-    let frozen = transport.output_directory.join(format!("request-{}.json", digest.as_str()));
+    let transport: WorkerTransportProfile = serde_json::from_slice(&bounded_file(
+        &profile.transport_profile,
+        MAX_TRANSPORT_PROFILE_BYTES,
+    )?)
+    .map_err(|_| "native transport profile malformed")?;
+    let frozen = transport
+        .output_directory
+        .join(format!("request-{}.json", digest.as_str()));
     if bounded_file(&frozen, MAX_REQUEST_BYTES)? != request_bytes {
         return Err("frozen native request differs from canonical sealed bytes".into());
     }
     let mut inventory = inspect::inspect(&profile.transport_profile, &frozen)?;
-    if inventory.profile.revision != request.pointer("/envelope/worker_profile").and_then(Value::as_str).ok_or("native request profile unavailable")? {
+    if inventory.profile.revision
+        != request
+            .pointer("/envelope/worker_profile")
+            .and_then(Value::as_str)
+            .ok_or("native request profile unavailable")?
+    {
         return Err("native profile generation crossed".into());
     }
-    if inventory.instance.as_ref().is_some_and(|instance|
-        !exact_instance(instance, work_identity, attempt_identity, fence, &digest)) {
+    if inventory.instance.as_ref().is_some_and(|instance| {
+        !exact_instance(instance, work_identity, attempt_identity, fence, &digest)
+    }) {
         return Err("native instance crossed the exact owner attempt".into());
     }
     let model_requests = inventory.take_model_requests()?;
     let agent_lineage = inventory.take_agent_lineage();
-    let selected_animus = request.get("animus_implementation").is_some_and(Value::is_object);
+    let selected_animus = request
+        .get("animus_implementation")
+        .is_some_and(Value::is_object);
     if selected_animus == matches!(agent_lineage, inspect::AgentLineage::Unsupported) {
         return Err("native harness differs from the sealed request".into());
     }
@@ -208,21 +265,32 @@ mod tests {
         std::fs::create_dir(&bound).unwrap();
         let transport = root.path().join("transport.json");
         let profile_path = root.path().join("runtime.json");
-        let transport_json = |schema: &str| serde_json::json!({
-            "schema": schema,
-            "lattice_program":"/nix/store/native-lattice/bin/lattice",
-            "executable_blake3":"ab".repeat(32),
-            "state_directory":root.path().join("state"),
-            "output_directory":root.path().join("output"),
-        });
+        let transport_json = |schema: &str| {
+            serde_json::json!({
+                "schema": schema,
+                "lattice_program":"/nix/store/native-lattice/bin/lattice",
+                "executable_blake3":"ab".repeat(32),
+                "state_directory":root.path().join("state"),
+                "output_directory":root.path().join("output"),
+            })
+        };
         let write = |schema: &str| {
-            std::fs::write(&transport, serde_json::to_vec(&transport_json(schema)).unwrap()).unwrap();
-            std::fs::write(&profile_path, serde_json::to_vec(&serde_json::json!({
-                "schema": PROFILE_SCHEMA,
-                "implementation_database":root.path().join("owner.sqlite"),
-                "bound_input_directory":bound,
-                "transport_profile":transport,
-            })).unwrap()).unwrap();
+            std::fs::write(
+                &transport,
+                serde_json::to_vec(&transport_json(schema)).unwrap(),
+            )
+            .unwrap();
+            std::fs::write(
+                &profile_path,
+                serde_json::to_vec(&serde_json::json!({
+                    "schema": PROFILE_SCHEMA,
+                    "implementation_database":root.path().join("owner.sqlite"),
+                    "bound_input_directory":bound,
+                    "transport_profile":transport,
+                }))
+                .unwrap(),
+            )
+            .unwrap();
         };
         write("kiln.lattice-implementation-cli.v2");
         assert!(RuntimeEvidenceProfile::load(&profile_path).is_ok());
@@ -261,8 +329,10 @@ mod tests {
     #[test]
     fn zero_fence_never_reaches_canonical_owner() {
         let profile = RuntimeEvidenceProfile {
-            schema: PROFILE_SCHEMA.into(), implementation_database: "/unavailable".into(),
-            bound_input_directory: "/unavailable".into(), transport_profile: "/unavailable".into(),
+            schema: PROFILE_SCHEMA.into(),
+            implementation_database: "/unavailable".into(),
+            bound_input_directory: "/unavailable".into(),
+            transport_profile: "/unavailable".into(),
         };
         let id = ContentId::from_blake3_hex("ab".repeat(32)).unwrap();
         assert!(read_lattice(&profile, &id, &id, 0).is_err());

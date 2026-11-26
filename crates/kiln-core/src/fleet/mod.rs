@@ -9,6 +9,7 @@
 pub mod claims;
 pub mod decision;
 pub mod git_ai;
+pub mod placement;
 pub mod prompt;
 pub mod scope;
 pub mod session;

@@ -1,0 +1,10 @@
+{
+  "scope": "Disposable browser against authenticated Kiln HTTPS and the native owner CLI; no production deployment.",
+  "owner_change": "Lattice exact-source-draft-owner",
+  "owner_build": "/nix/store/kj9lpx3acvcq5j2ahwdphgpj8dcz2qg6-lattice-0.1.0",
+  "workflow": "daily-digest",
+  "observed_head_before_and_after": "10803ee3028867a5350e0ffc89d7cd748cc4b5bced7f5db07f89ac1f7b0b6d84",
+  "read_back_draft_revision": "b643eefc35a62e93e4675347daa93eb0a747a260216739a6ef28abaeef9b550f",
+  "refusals": {"stale_draft": 409, "viewer_write": 403},
+  "consumer_admission_tests": "2 passed"
+}

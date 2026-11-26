@@ -21,9 +21,9 @@ use std::sync::Mutex;
 use git2::{Repository, RepositoryOpenFlags};
 use kiln_core::repository_catalog::{
     CopyHealth, FleetLocalCopy, FleetSyncStatus, LocalVcs, MAX_CATALOG_REPOS, MAX_MACHINE_BYTES,
-    MAX_PATH_BYTES, MAX_SLUG_BYTES, RemoteEndpoint, RemoteProvider, RemoteRole, RepositoryAdmission,
-    RepositoryRecord, attach_remote_to_record, build_repository_record, default_non_claims,
-    normalize_remote, reconcile_catalog, validate_local_copy,
+    MAX_PATH_BYTES, MAX_SLUG_BYTES, RemoteEndpoint, RemoteProvider, RemoteRole,
+    RepositoryAdmission, RepositoryRecord, attach_remote_to_record, build_repository_record,
+    default_non_claims, normalize_remote, reconcile_catalog, validate_local_copy,
 };
 use kiln_core::types::ContentId;
 use nix::fcntl::{OFlag, openat};
@@ -293,7 +293,11 @@ impl CatalogService {
         Self {
             state_directory: profile.state_directory.clone(),
             coordinator_machine: resolve_coordinator_machine(),
-            projects: profile.projects.iter().map(ConfiguredProject::from).collect(),
+            projects: profile
+                .projects
+                .iter()
+                .map(ConfiguredProject::from)
+                .collect(),
             sources,
             scan_roots,
             store_lock: Mutex::new(()),
@@ -311,21 +315,33 @@ impl CatalogService {
         fleet: Option<&crate::fleet::Client>,
     ) -> ApiResponse {
         if role == Role::Worker {
-            return error_json(403, "repositories_forbidden", "worker role cannot access repositories");
+            return error_json(
+                403,
+                "repositories_forbidden",
+                "worker role cannot access repositories",
+            );
         }
         if target.contains('#')
             || target
                 .bytes()
                 .any(|byte| byte.is_ascii_control() || byte.is_ascii_whitespace())
         {
-            return error_json(400, "repository_query_invalid", "request target contains invalid characters");
+            return error_json(
+                400,
+                "repository_query_invalid",
+                "request target contains invalid characters",
+            );
         }
         let (path, query) = match target.split_once('?') {
             Some((p, q)) => (p, Some(q)),
             None => (target, None),
         };
         if query.is_some() {
-            return error_json(400, "repository_query_invalid", "repository endpoints do not accept query parameters");
+            return error_json(
+                400,
+                "repository_query_invalid",
+                "repository endpoints do not accept query parameters",
+            );
         }
         let Some(rest) = path.strip_prefix("/api/repositories") else {
             return error_json(404, "not_found", "unknown repository route");
@@ -334,20 +350,36 @@ impl CatalogService {
         match (method, rest) {
             ("GET", "") => {
                 if !body.is_empty() {
-                    return error_json(400, "unexpected_body", "GET /api/repositories takes no body");
+                    return error_json(
+                        400,
+                        "unexpected_body",
+                        "GET /api/repositories takes no body",
+                    );
                 }
                 self.handle_list(fleet)
             }
-            ("POST", "") => error_json(405, "method_not_allowed", "POST /api/repositories is not allowed"),
+            ("POST", "") => error_json(
+                405,
+                "method_not_allowed",
+                "POST /api/repositories is not allowed",
+            ),
             ("POST", "/import") => {
                 if role != Role::Operator {
-                    return error_json(403, "operator_required", "operator role required to import repositories");
+                    return error_json(
+                        403,
+                        "operator_required",
+                        "operator role required to import repositories",
+                    );
                 }
                 self.handle_import(body, fleet)
             }
             ("POST", "/refresh") => {
                 if role != Role::Operator {
-                    return error_json(403, "operator_required", "operator role required to refresh census");
+                    return error_json(
+                        403,
+                        "operator_required",
+                        "operator role required to refresh census",
+                    );
                 }
                 self.handle_refresh(body, fleet)
             }
@@ -356,7 +388,11 @@ impl CatalogService {
             }
             ("POST", suffix) => {
                 if role != Role::Operator {
-                    return error_json(403, "operator_required", "operator role required to mutate repositories");
+                    return error_json(
+                        403,
+                        "operator_required",
+                        "operator role required to mutate repositories",
+                    );
                 }
                 let Some(inner) = suffix.strip_prefix('/') else {
                     return error_json(404, "not_found", "unknown repository route");
@@ -433,7 +469,11 @@ impl CatalogService {
             }
         };
         if !crate::profile::identifier(&req.request_id) {
-            return error_json(400, "request_id_invalid", "request_id must be a bounded identifier");
+            return error_json(
+                400,
+                "request_id_invalid",
+                "request_id must be a bounded identifier",
+            );
         }
         if let Some(ref label) = req.label
             && (label.trim().is_empty()
@@ -477,15 +517,11 @@ impl CatalogService {
             };
         }
 
-        let endpoint = match normalize_remote(
-            req.provider,
-            req.role,
-            &req.url,
-            req.default_ref.as_deref(),
-        ) {
-            Ok(ep) => ep,
-            Err(diag) => return error_json(400, &diag.code, &diag.message),
-        };
+        let endpoint =
+            match normalize_remote(req.provider, req.role, &req.url, req.default_ref.as_deref()) {
+                Ok(ep) => ep,
+                Err(diag) => return error_json(400, &diag.code, &diag.message),
+            };
 
         let (status, action, mut mutated_record) = if let Some(ref attach_hex) = req.attach_to {
             let Some(target_id) = parse_content_id(attach_hex) else {
@@ -495,8 +531,13 @@ impl CatalogService {
                     "attach_to must be a 64-character lowercase BLAKE3 hex identity",
                 );
             };
-            match self.attach_to_existing(&mut store, &target_id, endpoint, req.label.clone(), fleet)
-            {
+            match self.attach_to_existing(
+                &mut store,
+                &target_id,
+                endpoint,
+                req.label.clone(),
+                fleet,
+            ) {
                 Ok(record) => (200_u16, "mirror_attached", record),
                 Err((status, code, msg)) => return error_json(status, code, &msg),
             }
@@ -541,7 +582,13 @@ impl CatalogService {
             already_recorded: false,
             request_id: req.request_id.clone(),
         };
-        record_request(&mut store, req.request_id, fingerprint, status, response.clone());
+        record_request(
+            &mut store,
+            req.request_id,
+            fingerprint,
+            status,
+            response.clone(),
+        );
         if let Err(msg) = self.save_store(&store) {
             return error_json(503, "catalog_store_write_failed", &msg);
         }
@@ -575,7 +622,11 @@ impl CatalogService {
             }
         };
         if !crate::profile::identifier(&req.request_id) {
-            return error_json(400, "request_id_invalid", "request_id must be a bounded identifier");
+            return error_json(
+                400,
+                "request_id_invalid",
+                "request_id must be a bounded identifier",
+            );
         }
 
         let fingerprint = request_fingerprint(&(
@@ -607,21 +658,17 @@ impl CatalogService {
             };
         }
 
-        let endpoint = match normalize_remote(
-            req.provider,
-            req.role,
-            &req.url,
-            req.default_ref.as_deref(),
-        ) {
-            Ok(ep) => ep,
-            Err(diag) => return error_json(400, &diag.code, &diag.message),
-        };
+        let endpoint =
+            match normalize_remote(req.provider, req.role, &req.url, req.default_ref.as_deref()) {
+                Ok(ep) => ep,
+                Err(diag) => return error_json(400, &diag.code, &diag.message),
+            };
 
-        let mut updated = match self.attach_to_existing(&mut store, &target_id, endpoint, None, fleet)
-        {
-            Ok(record) => record,
-            Err((status, code, msg)) => return error_json(status, code, &msg),
-        };
+        let mut updated =
+            match self.attach_to_existing(&mut store, &target_id, endpoint, None, fleet) {
+                Ok(record) => record,
+                Err((status, code, msg)) => return error_json(status, code, &msg),
+            };
 
         if let Ok(reconciled) = self.reconcile_single_record(&store.records, &updated, fleet) {
             updated = reconciled;
@@ -634,7 +681,13 @@ impl CatalogService {
             already_recorded: false,
             request_id: req.request_id.clone(),
         };
-        record_request(&mut store, req.request_id, fingerprint, 200, response.clone());
+        record_request(
+            &mut store,
+            req.request_id,
+            fingerprint,
+            200,
+            response.clone(),
+        );
         if let Err(msg) = self.save_store(&store) {
             return error_json(503, "catalog_store_write_failed", &msg);
         }
@@ -663,7 +716,11 @@ impl CatalogService {
             }
         };
         if !crate::profile::identifier(&req.request_id) {
-            return error_json(400, "request_id_invalid", "request_id must be a bounded identifier");
+            return error_json(
+                400,
+                "request_id_invalid",
+                "request_id must be a bounded identifier",
+            );
         }
         if req.reason.trim().is_empty()
             || req.reason.len() > MAX_REASON_BYTES
@@ -716,7 +773,13 @@ impl CatalogService {
             already_recorded: false,
             request_id: req.request_id.clone(),
         };
-        record_request(&mut store, req.request_id, fingerprint, 200, response.clone());
+        record_request(
+            &mut store,
+            req.request_id,
+            fingerprint,
+            200,
+            response.clone(),
+        );
         if let Err(msg) = self.save_store(&store) {
             return error_json(503, "catalog_store_write_failed", &msg);
         }
@@ -795,8 +858,13 @@ impl CatalogService {
         &self,
         fleet: Option<&crate::fleet::Client>,
     ) -> Result<RepositoriesResponse, (u16, &'static str, String)> {
-        let now_ms = crate::engine::host_time_ms()
-            .map_err(|_| (503_u16, "clock_unavailable", "host clock unavailable".to_owned()))?;
+        let now_ms = crate::engine::host_time_ms().map_err(|_| {
+            (
+                503_u16,
+                "clock_unavailable",
+                "host clock unavailable".to_owned(),
+            )
+        })?;
         let store = {
             let _guard = self.store_lock.lock().unwrap_or_else(|e| e.into_inner());
             self.load_store()
@@ -818,7 +886,9 @@ impl CatalogService {
             r.canonical
                 .as_ref()
                 .is_some_and(|c| c.provider == RemoteProvider::Radicle)
-                || r.remotes.iter().any(|ep| ep.provider == RemoteProvider::Radicle)
+                || r.remotes
+                    .iter()
+                    .any(|ep| ep.provider == RemoteProvider::Radicle)
         });
         let non_claims = if has_radicle {
             default_non_claims(true)
@@ -826,9 +896,8 @@ impl CatalogService {
             CATALOG_NON_CLAIMS.iter().map(|s| (*s).to_owned()).collect()
         };
 
-        let local_configured = !self.projects.is_empty()
-            || !self.sources.is_empty()
-            || !self.scan_roots.is_empty();
+        let local_configured =
+            !self.projects.is_empty() || !self.sources.is_empty() || !self.scan_roots.is_empty();
         let scan_root_strings: Vec<String> = self
             .scan_roots
             .iter()
@@ -866,7 +935,9 @@ impl CatalogService {
             summary,
             sources,
             bounded: true,
-            truncated: obs.local.truncated || obs.fleet.truncated || store.records.len() >= MAX_CATALOG_REPOS,
+            truncated: obs.local.truncated
+                || obs.fleet.truncated
+                || store.records.len() >= MAX_CATALOG_REPOS,
             non_claims,
         })
     }
@@ -881,7 +952,8 @@ impl CatalogService {
             now_ms,
         );
         let fleet_obs = observe_fleet_repositories(fleet);
-        let (all_copies, fleet_keys) = merge_local_and_fleet_copies(&local.copies, &fleet_obs.copies);
+        let (all_copies, fleet_keys) =
+            merge_local_and_fleet_copies(&local.copies, &fleet_obs.copies);
         CombinedObservation {
             local,
             fleet: fleet_obs,
@@ -925,8 +997,8 @@ impl CatalogService {
         if bytes.len() > MAX_STORE_BYTES {
             return Err("catalog store exceeds size bound".to_owned());
         }
-        let store: CatalogStore =
-            serde_json::from_slice(&bytes).map_err(|_| "catalog store JSON is malformed".to_owned())?;
+        let store: CatalogStore = serde_json::from_slice(&bytes)
+            .map_err(|_| "catalog store JSON is malformed".to_owned())?;
         if store.schema != STORE_SCHEMA || store.records.len() > MAX_CATALOG_REPOS {
             return Err("catalog store schema or bound rejected".to_owned());
         }
@@ -1089,13 +1161,11 @@ fn check_import_duplicate(
     endpoint: &RemoteEndpoint,
 ) -> Option<(&'static str, &'static str)> {
     for record in records {
-        let same_remote = record
-            .remotes
-            .iter()
-            .any(|r| r.provider == endpoint.provider && r.normalized_key == endpoint.normalized_key)
-            || record.canonical.as_ref().is_some_and(|c| {
-                c.provider == endpoint.provider && c.normalized_key == endpoint.normalized_key
-            });
+        let same_remote = record.remotes.iter().any(|r| {
+            r.provider == endpoint.provider && r.normalized_key == endpoint.normalized_key
+        }) || record.canonical.as_ref().is_some_and(|c| {
+            c.provider == endpoint.provider && c.normalized_key == endpoint.normalized_key
+        });
         if same_remote {
             if endpoint.role == RemoteRole::Canonical && record.canonical.is_some() {
                 return Some((
@@ -1179,7 +1249,10 @@ fn observe_fleet_repositories(fleet: Option<&crate::fleet::Client>) -> FleetObse
             copies: Vec::new(),
             observed_at_ms: None,
             truncated: false,
-            error: Some(format!("fleet repository census returned HTTP {}", reply.status)),
+            error: Some(format!(
+                "fleet repository census returned HTTP {}",
+                reply.status
+            )),
         };
     }
     let Ok(payload) = serde_json::from_slice::<FleetRepositoriesPayload>(&reply.body) else {
@@ -1226,7 +1299,9 @@ fn merge_local_and_fleet_copies(
         let key = (copy.machine.clone(), copy.path.clone());
         // Prefer available local observation over unavailable/missing if same (machine, path).
         match merged.get(&key) {
-            Some(existing) if existing.health == CopyHealth::Available && copy.health == CopyHealth::Unavailable => {}
+            Some(existing)
+                if existing.health == CopyHealth::Available
+                    && copy.health == CopyHealth::Unavailable => {}
             _ => {
                 merged.insert(key, copy.clone());
             }
@@ -1244,7 +1319,10 @@ fn enrich_admissions(records: &mut [RepositoryRecord], obs: &CombinedObservation
             if obs.local.source_paths.contains(&copy.path) {
                 record.admission.source_configured = true;
             }
-            if obs.fleet_keys.contains(&(copy.machine.clone(), copy.path.clone())) {
+            if obs
+                .fleet_keys
+                .contains(&(copy.machine.clone(), copy.path.clone()))
+            {
                 record.admission.fleet_enrolled = true;
             }
         }
@@ -1315,7 +1393,9 @@ fn build_host_census(
         if copy.dirty == Some(true) {
             entry.dirty_count += 1;
         }
-        entry.cairn_count = entry.cairn_count.saturating_add(copy.cairn_count.unwrap_or(0));
+        entry.cairn_count = entry
+            .cairn_count
+            .saturating_add(copy.cairn_count.unwrap_or(0));
         if copy.health == CopyHealth::Unavailable && entry.copy_count == 1 {
             entry.health = CopyHealth::Unavailable;
             if entry.error.is_none() {
@@ -1399,8 +1479,12 @@ fn observe_local_checkouts(
             truncated = true;
             break;
         }
-        match discover_scan_root(root, MAX_LOCAL_SCAN - targets.len(), &mut seen_paths, &mut targets)
-        {
+        match discover_scan_root(
+            root,
+            MAX_LOCAL_SCAN - targets.len(),
+            &mut seen_paths,
+            &mut targets,
+        ) {
             Ok(root_truncated) => {
                 if root_truncated {
                     truncated = true;
@@ -1449,7 +1533,10 @@ fn discover_scan_root(
     let meta = fs::symlink_metadata(root)
         .map_err(|_| format!("scan root unreadable: {}", root.display()))?;
     if meta.file_type().is_symlink() || !meta.is_dir() {
-        return Err(format!("scan root is not a plain directory: {}", root.display()));
+        return Err(format!(
+            "scan root is not a plain directory: {}",
+            root.display()
+        ));
     }
     let mut truncated = false;
     let mut discovered = 0usize;
@@ -1545,11 +1632,23 @@ fn inspect_checkout(
     let meta = match fs::symlink_metadata(path) {
         Ok(meta) => meta,
         Err(_) => {
-            return unavailable_copy(machine, &path_str, hint_kind, now_ms, "checkout path missing or unreadable");
+            return unavailable_copy(
+                machine,
+                &path_str,
+                hint_kind,
+                now_ms,
+                "checkout path missing or unreadable",
+            );
         }
     };
     if meta.file_type().is_symlink() || !meta.is_dir() {
-        return unavailable_copy(machine, &path_str, hint_kind, now_ms, "checkout path is not a plain directory");
+        return unavailable_copy(
+            machine,
+            &path_str,
+            hint_kind,
+            now_ms,
+            "checkout path is not a plain directory",
+        );
     }
 
     let vcs = detect_vcs_kind(path).or(hint_kind);
@@ -1603,7 +1702,8 @@ fn inspect_checkout(
                     "git object store could not be opened",
                 );
             };
-            let (head_commit, branch_or_bookmark, ahead, behind) = inspect_git_head_and_divergence(&repo);
+            let (head_commit, branch_or_bookmark, ahead, behind) =
+                inspect_git_head_and_divergence(&repo);
             let dirty = if is_worktree && !repo.is_bare() {
                 let mut opts = git2::StatusOptions::new();
                 opts.include_untracked(true).recurse_untracked_dirs(false);
@@ -1628,7 +1728,13 @@ fn inspect_checkout(
                 error: None,
             }
         }
-        None => unavailable_copy(machine, &path_str, None, now_ms, "unrecognized repository format"),
+        None => unavailable_copy(
+            machine,
+            &path_str,
+            None,
+            now_ms,
+            "unrecognized repository format",
+        ),
     }
 }
 
@@ -1950,7 +2056,10 @@ mod tests {
         );
         assert_eq!(resp.status, 201);
         let parsed: Value = serde_json::from_slice(&resp.body)?;
-        assert_eq!(parsed.get("action").and_then(Value::as_str), Some("imported"));
+        assert_eq!(
+            parsed.get("action").and_then(Value::as_str),
+            Some("imported")
+        );
         let repo_id = parsed
             .get("repository")
             .and_then(|r| r.get("identity"))

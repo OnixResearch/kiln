@@ -989,6 +989,61 @@ mod tests {
     }
 
     #[test]
+    fn queued_rebind_refuses_sealed_or_started_transport_and_preserves_plan_controls()
+    -> CoreResult<()> {
+        use crate::fleet::placement::MoveRequest;
+
+        let work = interactive_work();
+        let mut ledger = AttemptLedger::default();
+        let attempt = ledger.claim(&work, 0, DEFAULT_LEASE_MS)?;
+        let old = interactive_plan(&work, &attempt);
+        let reservation =
+            ledger.reserve_dispatch_plan(&work, &attempt.identity, attempt.fence, 1, &old)?;
+        let request = MoveRequest {
+            attempt: attempt.identity.clone(),
+            fence: attempt.fence,
+            reservation: reservation.effect_id,
+            destination: "destination".into(),
+        };
+        assert!(
+            ledger
+                .rebind_queued_dispatch(&work, &request, 2, old.workspace.identity.clone())
+                .is_err()
+        );
+        let mut rebind_won = ledger.clone();
+        let moved = rebind_won.rebind_queued_dispatch(&work, &request, 2, content('c'))?;
+        let mut expected = old.clone();
+        expected.workspace.identity = content('c');
+        assert_eq!(rebind_won.dispatch_plan(&attempt.identity), Some(&expected));
+        assert_ne!(moved.plan, reservation.plan);
+        assert!(
+            rebind_won
+                .begin_dispatch_transport(&attempt.identity, attempt.fence, 2, &reservation.plan)
+                .is_err()
+        );
+
+        ledger.bind_dispatch_request(&work, &attempt.identity, attempt.fence, 2, &content('a'))?;
+        assert!(
+            ledger
+                .rebind_queued_dispatch(&work, &request, 2, content('c'))
+                .is_err()
+        );
+        assert!(!ledger.begin_dispatch_transport(
+            &attempt.identity,
+            attempt.fence,
+            2,
+            &reservation.plan
+        )?);
+        assert!(
+            ledger
+                .rebind_queued_dispatch(&work, &request, 2, content('c'))
+                .is_err()
+        );
+        assert_eq!(ledger.dispatch_plan(&attempt.identity), Some(&old));
+        Ok(())
+    }
+
+    #[test]
     // r[verify kiln.fleet.transport.scenario.admission]
     fn interactive_plans_need_the_exact_profile_effect_and_declared_authority() {
         let work = interactive_work();

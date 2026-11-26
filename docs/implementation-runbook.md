@@ -318,6 +318,29 @@ For one explicitly registered host-local owner, the reviewed `config/fair-admiss
 
 Under an enabled admission policy, `claim` selects and binds through admission's claim command so the queue/account and current attempt are associated; it needs `--local-operator`, which is an explicit opt-in guard naming the local operator, not authentication. Without a policy, `claim` remains the existing configured-route compatibility consumer. `inspect-work --work ID` returns exact retained work, source versions and native acceptance digest.
 
+### Explicit interactive placement
+
+In Fleet, preview a split using 2–16 already-admitted independent work units
+on at least two enrolled Herdr hosts. Use `kiln-implementer claim` against the
+coordinator's implementation database to obtain each exact attempt and fence
+before transport is reserved. Ordinary automatic fleet dispatch already
+reserves a host when it claims work; those attempts cannot be rebound. Explicit
+split is available for the native interactive owner, not the separately
+governed fair-admission route.
+
+Review each unit's work revision, permitted scope, prerequisites, and selected
+host before requesting placement. Preview has no side effects. A request
+atomically reserves the whole batch, but launches are individually observed;
+it does not guarantee that capacity will remain available or that all agents
+will start. After an ambiguous start, the dispatcher only reconciles against
+provider observations; it does not send a second start. An expired attempt
+without exact termination evidence remains unresolved.
+
+Cross-host moves are unavailable. Swarm quota failover edits member metadata,
+not provider placement. A durable checkpoint receipt does not commit ownership
+or authorize destination resume; the selected retained provider does not
+provide the required cross-host placement and resource fencing.
+
 ## One real bounded worker attempt
 
 Prepare an isolated workspace from the exact admitted Git base. No linked `.git` pointer, publisher credentials, verifier-private material or database path is exposed to the coding child. The selected runtime uses the already implemented bubblewrap OMP route. It must have a reviewed OMP build at revision `e325ffc73ab86e03bdd20a91b77d8e2b3964c906`, exact executable BLAKE3 and the selected kernel/provider qualification.

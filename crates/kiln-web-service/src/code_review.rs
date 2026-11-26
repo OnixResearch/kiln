@@ -1922,7 +1922,11 @@ fn approval_summary_for_change(change: &domain::Change, profile: &Profile) -> Va
         });
     };
     let agent_votes_bind = profile.policy.agent_votes == domain::AgentVotes::Binding;
-    let agents: BTreeSet<&str> = profile.agent_principals.iter().map(String::as_str).collect();
+    let agents: BTreeSet<&str> = profile
+        .agent_principals
+        .iter()
+        .map(String::as_str)
+        .collect();
     let eligible = |vote: &&domain::Vote| {
         vote.revision == revision.id
             && vote.actor != change.owner
@@ -1937,11 +1941,12 @@ fn approval_summary_for_change(change: &domain::Change, profile: &Profile) -> Va
         .filter(eligible)
         .filter(|vote| vote.value == domain::VoteValue::Approve)
         .count();
-    let vetoed = change
-        .votes
-        .iter()
-        .filter(eligible)
-        .any(|vote| matches!(vote.value, domain::VoteValue::Veto | domain::VoteValue::NeedsRevision));
+    let vetoed = change.votes.iter().filter(eligible).any(|vote| {
+        matches!(
+            vote.value,
+            domain::VoteValue::Veto | domain::VoteValue::NeedsRevision
+        )
+    });
     json!({
         "approvals": approvals,
         "required": profile.policy.minimum_approvals,

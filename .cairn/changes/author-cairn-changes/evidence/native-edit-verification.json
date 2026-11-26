@@ -1,0 +1,7 @@
+{
+  "owner_change": "Cairn provider-artifact-replace",
+  "scope": "Disposable authenticated Kiln browser and pinned-policy Cairn provider; no production deployment.",
+  "owner_tests": "21 passed across change_artifact_cli and machine_cli",
+  "observations": ["Native create and prerequisite add/remove verified", "Proposal replacement verified in Chrome and independently read back by native Cairn"],
+  "content_blake3": "591496a4b88571fa0ca59609952078edc69c171235b1678c59b3d1c719fd2e14"
+}

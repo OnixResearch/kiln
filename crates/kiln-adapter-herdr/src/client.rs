@@ -9,6 +9,7 @@
 //! `unknown` (a mutation may have applied). An unknown mutation must be
 //! reconciled by listing before any retry; this client never retries.
 
+use std::collections::BTreeSet;
 use std::ffi::OsString;
 use std::fmt;
 use std::path::PathBuf;
@@ -32,6 +33,7 @@ use crate::placement::{
 
 pub const MAX_DETAIL_BYTES: usize = 192;
 pub const MAX_LISTED_AGENTS: usize = 256;
+pub const MAX_LISTED_PANES: usize = 256;
 pub const MAX_LISTED_WORKTREES: usize = 512;
 pub const MAX_PROMPT_BYTES: usize = 32 * 1_024;
 pub const MAX_READ_LINES: u32 = 1_000;
@@ -53,6 +55,7 @@ pub const COMMIT_HEX_LENGTHS: [usize; 2] = [40, 64];
 /// herdr error codes this client interprets.
 pub mod codes {
     pub const AGENT_NOT_FOUND: &str = "agent_not_found";
+    pub const PANE_NOT_FOUND: &str = "pane_not_found";
     pub const AGENT_NAME_TAKEN: &str = "agent_name_taken";
     pub const AGENT_NOT_READY: &str = "agent_not_ready";
     pub const AGENT_PROMPT_STALLED: &str = "agent_prompt_stalled";
@@ -273,6 +276,19 @@ struct WirePane {
     pane_id: String,
 }
 
+/// One native terminal pane's public identity; no terminal contents.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct HerdrPane {
+    pub pane_id: String,
+    pub workspace_id: String,
+    pub tab_id: String,
+}
+
+#[derive(Deserialize)]
+struct PaneList {
+    panes: Vec<HerdrPane>,
+}
+
 #[derive(Deserialize)]
 struct WireWorktree {
     path: String,
@@ -350,6 +366,77 @@ impl HerdrClient {
             return Err(HerdrFailure::rejected("herdr agent list exceeds its bound"));
         }
         Ok(list.agents.into_iter().map(HerdrAgent::from).collect())
+    }
+
+    /// List terminal panes, including panes with no agent or attempt.
+    ///
+    /// # Errors
+    /// Refuses unknown targets and malformed, oversize or unavailable inventories.
+    pub fn list_panes(&self, machine: &str) -> Result<Vec<HerdrPane>, HerdrFailure> {
+        self.panes(self.machine(machine)?)
+    }
+
+    fn panes(&self, machine: &HerdrMachine) -> Result<Vec<HerdrPane>, HerdrFailure> {
+        let stdout = self.execute(machine, &["pane", "list"], Effect::Read, self.timeout())?;
+        let list: PaneList = decode(&stdout, "pane_list", Effect::Read)?;
+        if list.panes.len() > MAX_LISTED_PANES {
+            return Err(HerdrFailure::rejected("herdr pane list exceeds its bound"));
+        }
+        let mut seen = BTreeSet::new();
+        if list.panes.iter().any(|pane| {
+            !handle(&pane.workspace_id)
+                || !handle(&pane.tab_id)
+                || !pane_handle(&pane.pane_id)
+                || !seen.insert(pane.pane_id.as_str())
+        }) {
+            return Err(HerdrFailure::rejected(
+                "herdr pane list has invalid or duplicate identities",
+            ));
+        }
+        Ok(list.panes)
+    }
+
+    /// Re-observe the selected host and read only a pane listed there by its
+    /// exact public ID. The CLI prints plain text, not the socket read envelope.
+    ///
+    /// # Errors
+    /// Refuses an invalid ID or bound, or any pane not in the fresh inventory.
+    /// Provider failures, including disappearance after listing, propagate.
+    pub fn read_observed_pane(
+        &self,
+        machine: &str,
+        pane_id: &str,
+        lines: u32,
+    ) -> Result<(HerdrPane, String), HerdrFailure> {
+        let machine = self.machine(machine)?;
+        if !pane_handle(pane_id) || !(1..=MAX_READ_LINES).contains(&lines) {
+            return Err(HerdrFailure::rejected("pane id or line bound is invalid"));
+        }
+        let pane = self
+            .panes(machine)?
+            .into_iter()
+            .find(|pane| pane.pane_id == pane_id)
+            .ok_or_else(|| HerdrFailure {
+                class: FailureClass::Rejected,
+                code: Some(codes::PANE_NOT_FOUND.to_owned()),
+                detail: "pane is not in this host's current inventory".to_owned(),
+            })?;
+        let lines = lines.to_string();
+        let args = [
+            "pane",
+            "read",
+            &pane.pane_id,
+            "--source",
+            READ_SOURCE,
+            "--lines",
+            &lines,
+            "--format",
+            "text",
+        ];
+        let stdout = self.execute(machine, &args, Effect::Read, self.timeout())?;
+        let capture = String::from_utf8(stdout)
+            .map_err(|_| HerdrFailure::rejected("herdr pane output is not UTF-8"))?;
+        Ok((pane, capture))
     }
 
     /// Kiln agents per admitted kind on every inventory machine. A machine
@@ -928,6 +1015,18 @@ fn handle(value: &str) -> bool {
             .bytes()
             .all(|byte| byte.is_ascii_alphanumeric() || b":_-".contains(&byte))
         && !value.starts_with('-')
+}
+
+/// Path-safe native handle syntax; inventory membership, not syntax, admits a read.
+#[must_use]
+pub fn pane_handle(value: &str) -> bool {
+    handle(value)
+        && value.split_once(":p").is_some_and(|(workspace, pane)| {
+            !workspace.is_empty()
+                && !workspace.contains(':')
+                && !pane.is_empty()
+                && pane.bytes().all(|byte| byte.is_ascii_alphanumeric())
+        })
 }
 
 fn branch_name(value: &str) -> bool {

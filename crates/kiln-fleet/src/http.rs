@@ -413,7 +413,9 @@ mod tests {
         .unwrap_or_else(|_| unreachable!());
         let redirect_text = String::from_utf8(redirect).unwrap_or_else(|_| unreachable!());
         assert!(redirect_text.starts_with("HTTP/1.1 303 See Other\r\n"));
-        assert!(redirect_text.contains("Location: https://console.example.ts.net:9443/?page=fleet\r\n"));
+        assert!(
+            redirect_text.contains("Location: https://console.example.ts.net:9443/?page=fleet\r\n")
+        );
         assert!(redirect_text.contains("Content-Security-Policy: default-src 'none';"));
 
         let mut injected = Vec::new();

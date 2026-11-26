@@ -3,6 +3,7 @@
 pub mod access;
 pub mod automation;
 pub mod cache;
+pub mod cairn_authoring;
 pub mod cairn_workspace;
 pub mod campaign_controls;
 pub mod cobs;
@@ -18,6 +19,8 @@ pub mod fleet;
 pub mod implementation_campaign;
 pub mod inventory;
 pub mod inventory_collection;
+pub mod lattice_authoring;
+pub mod lattice_drafts;
 pub mod monorepo;
 pub mod preview;
 pub mod profile;

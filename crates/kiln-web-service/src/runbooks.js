@@ -2032,11 +2032,228 @@
     }
   }
 
+  // r[impl kiln.sdlc.lattice_authoring]
+  function renderLatticeAuthoring(ctx, isCurrent) {
+    const panel = element("section", undefined, "panel view-stack");
+    panel.append(element("h2", "Lattice workflow source"), element("p", "Read-only: these are pinned Lattice source exports, not live catalog heads. Validation, draft save, publication, and execution are not available here.", "small"));
+    const loadButton = element("button", "Load pinned source revisions");
+    loadButton.type = "button";
+    const status = element("p", "", "small");
+    status.setAttribute("role", "status");
+    const controls = element("div", undefined, "view-stack");
+    panel.append(loadButton, status, controls);
+    const route = "/api/lattice/authoring";
+    const hex = (value) => typeof value === "string" && /^[0-9a-f]{64}$/.test(value);
+    loadButton.addEventListener("click", async () => {
+      if (loadButton.disabled || !isCurrent()) return;
+      loadButton.disabled = true;
+      status.textContent = "Loading pinned source revisions…";
+      controls.replaceChildren();
+      try {
+        const result = await ctx.api(route);
+        if (!isCurrent()) return;
+        const revisions = result?.revisions;
+        if (!Array.isArray(revisions) || revisions.length > 32 || !revisions.every((row) => isRecord(row)
+          && typeof row.workflow === "string" && hex(row.archive_blake3) && hex(row.source_revision)
+          && hex(row.expanded_artifact) && typeof row.state === "string" && typeof row.entry === "string"
+          && Array.isArray(row.members) && row.members.length <= 64 && row.members.includes(row.entry)
+          && row.members.every((member) => typeof member === "string"))) {
+          throw new Error("Invalid Lattice source listing.");
+        }
+        status.textContent = revisions.length ? "Select an exact revision and source member." : "No source archives are pinned.";
+        if (!revisions.length) return;
+        const revisionSelect = element("select");
+        const memberSelect = element("select");
+        const revisionLabel = element("label", "Source revision ");
+        const memberLabel = element("label", "Captured member ");
+        revisionLabel.append(revisionSelect);
+        memberLabel.append(memberSelect);
+        const facts = element("dl", undefined, "facts");
+        const memberStatus = element("p", "", "small");
+        memberStatus.setAttribute("role", "status");
+        const source = element("pre");
+        controls.append(revisionLabel, facts, memberLabel, memberStatus, source);
+        for (const [index, row] of revisions.entries()) {
+          const option = element("option", `${row.workflow} — ${row.source_revision.slice(0, 12)} (archive ${row.archive_blake3.slice(0, 12)})`);
+          option.value = String(index);
+          revisionSelect.append(option);
+        }
+        let selection = 0;
+        const showMember = async () => {
+          const sequence = ++selection;
+          const revision = revisions[Number(revisionSelect.value)];
+          const ordinal = memberSelect.value;
+          source.textContent = "";
+          memberStatus.textContent = "Loading exact source member…";
+          try {
+            const blob = await ctx.api(`${route}?archive=${revision.archive_blake3}&member=${ordinal}`, { kind: "blob" });
+            if (blob.size > 1_048_576) throw new Error("Source member exceeded the display bound.");
+            const bytes = await blob.arrayBuffer();
+            if (isCurrent() && selection === sequence) {
+              source.textContent = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
+              memberStatus.textContent = "";
+            }
+          } catch (error) {
+            if (isCurrent() && selection === sequence) {
+              memberStatus.textContent = error.code === "lattice_authoring_binary_member"
+                ? "This captured member is not UTF-8 text." : "The exact source member is unavailable. No other source was substituted.";
+            }
+          }
+        };
+        const showRevision = () => {
+          const revision = revisions[Number(revisionSelect.value)];
+          facts.replaceChildren();
+          appendFact(facts, "Source revision", revision.source_revision);
+          appendFact(facts, "Archive BLAKE3", revision.archive_blake3);
+          appendFact(facts, "Expanded artifact", revision.expanded_artifact);
+          appendFact(facts, "Source association", revision.state);
+          memberSelect.replaceChildren(...revision.members.map((member, index) => {
+            const option = element("option", member === revision.entry ? `${member} (entry)` : member);
+            option.value = String(index);
+            return option;
+          }));
+          memberSelect.value = String(revision.members.indexOf(revision.entry));
+          void showMember();
+        };
+        revisionSelect.addEventListener("change", showRevision);
+        memberSelect.addEventListener("change", () => { void showMember(); });
+        revisionSelect.value = "0";
+        showRevision();
+      } catch (error) {
+        if (isCurrent()) status.textContent = error.code === "lattice_authoring_unconfigured"
+          ? "No Lattice source archive index is configured." : "Pinned Lattice source revisions are unavailable.";
+      } finally {
+        if (isCurrent()) loadButton.disabled = false;
+      }
+    });
+    return panel;
+  }
+
+  function renderDraftOwner(ctx, isCurrent) {
+    const panel = element("details", undefined, "panel");
+    const status = element("p", "Open to list enrolled workflows.", "small");
+    status.setAttribute("role", "status");
+    const content = element("div");
+    panel.append(element("summary", "Edit Lattice workflow drafts"), status, content);
+    const route = "/api/lattice/drafts";
+    const native = (body) => ctx.api(route, { method: "POST", body, quiet: true });
+    const live = () => isCurrent() && panel.isConnected;
+    const identity = (value) => typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
+    const addOption = (select, label) => { const item = element("option", label); item.value = label; select.append(item); };
+    const field = (name, control) => { const label = element("label", name); label.append(control); return label; };
+    const button = (name) => { const b = element("button", name); b.type = "button"; return b; };
+    let initialized = false;
+    panel.addEventListener("toggle", async () => {
+      if (!panel.open || initialized || !live()) return;
+      initialized = true;
+      try {
+        const { workflows } = await ctx.api(route, { quiet: true });
+        if (!live()) return;
+        if (!Array.isArray(workflows) || !workflows.length) throw new Error("No workflow is enrolled");
+        const workflow = element("select");
+        workflows.forEach((id) => addOption(workflow, id));
+        const inspect = button("Read current workflow head");
+        const view = element("div");
+        let generation = 0;
+        const reset = () => { ++generation; view.replaceChildren(); };
+        workflow.addEventListener("change", reset);
+        content.append(field("Enrolled workflow", workflow), inspect, view);
+        status.textContent = "Draft saves are validated by Lattice and never publish or execute the workflow.";
+        inspect.addEventListener("click", async () => {
+          reset();
+          const token = generation;
+          const selected = workflow.value;
+          const current = () => live() && token === generation && workflow.value === selected;
+          inspect.disabled = true;
+          try {
+            const head = await native({ action: "inspect", workflow: selected });
+            if (!current()) return;
+            if (head.status !== "inspected" || head.workflow !== selected || !identity(head.head)) throw new Error("Invalid native workflow head");
+            if (!head.source) { status.textContent = "The current workflow has no editable source association."; return; }
+            const member = element("select");
+            head.source.members.forEach((name) => addOption(member, name));
+            member.value = head.source.entry;
+            const draft = element("input");
+            draft.maxLength = 128;
+            const read = button("Open draft member");
+            const editor = element("div");
+            const discard = () => editor.replaceChildren();
+            draft.addEventListener("input", discard);
+            member.addEventListener("change", discard);
+            view.append(element("p", `Current catalog head: ${head.head}`, "small"), field("Draft ID", draft), field("Source member", member), read, editor);
+            status.textContent = "Choose a draft ID and source member.";
+            read.addEventListener("click", async () => {
+              if (!current() || !/^[A-Za-z0-9_-]{1,128}$/.test(draft.value)) return;
+              discard();
+              const binding = { workflow: selected, expected_head: head.head, draft_id: draft.value, member: member.value };
+              const retained = () => current() && draft.value === binding.draft_id && member.value === binding.member;
+              read.disabled = true;
+              try {
+                const source = await native({ action: "view", ...binding });
+                if (!retained()) return;
+                if (source.status !== "viewed" || source.workflow !== binding.workflow || source.head !== binding.expected_head || source.draft_id !== binding.draft_id || source.member !== binding.member
+                    || !(source.draft_revision === null || identity(source.draft_revision)) || typeof source.content !== "string") throw new Error("Invalid native draft readback");
+                const draftText = element("textarea");
+                draftText.rows = 16;
+                draftText.value = source.content;
+                const baseline = draftText.value;
+                const save = button("Validate and save draft");
+                save.disabled = true;
+                draftText.addEventListener("input", () => { save.disabled = draftText.value === baseline || new TextEncoder().encode(draftText.value).length > 48 * 1024; });
+                editor.append(field("Workflow source", draftText), save);
+                status.textContent = source.draft_revision ? `Draft revision: ${source.draft_revision}` : "New draft from the exact displayed head.";
+                save.addEventListener("click", async () => {
+                  if (!retained() || save.disabled) return;
+                  const replacement = draftText.value;
+                  save.disabled = true;
+                  draftText.disabled = true;
+                  let submitted = false;
+                  try {
+                    const approval = await ctx.confirmControl({ title: "Validate and save draft?", verb: "Save draft", opener: save,
+                      facts: [["Workflow", selected], ["Member", binding.member], ["Head", head.head], ["Draft version", source.draft_revision || "Not yet created"]],
+                      warning: "Does not publish to the catalog or run the workflow." });
+                    if (!approval.confirmed || !retained()) return;
+                    submitted = true;
+                    const saved = await native({ action: "save", ...binding, expected_draft: source.draft_revision, content: replacement });
+                    if (!retained()) return;
+                    if (saved.status !== "saved" || saved.head !== binding.expected_head || saved.member !== binding.member || saved.draft_id !== binding.draft_id || saved.workflow !== selected || !identity(saved.draft_revision) || !saved.receipt) throw new Error("Native draft commit was not confirmed");
+                    const receipt = element("pre", JSON.stringify(saved.receipt, null, 2));
+                    editor.replaceChildren(receipt);
+                    status.textContent = `Lattice saved draft ${saved.draft_revision}. The catalog head was not changed.`;
+                  } catch (error) {
+                    if (retained()) status.textContent = `Save not confirmed: ${error?.message || "draft unavailable"}. Read the current head and draft before retrying.`;
+                  } finally {
+                    if (retained()) {
+                      if (submitted) { draftText.remove(); save.remove(); }
+                      else { save.disabled = false; draftText.disabled = false; }
+                    }
+                  }
+                });
+              } catch (error) {
+                if (retained()) status.textContent = `Draft member unavailable: ${error?.message || "read failed"}.`;
+              } finally { read.disabled = false; }
+            });
+          } catch (error) {
+            if (current()) status.textContent = `Workflow head unavailable: ${error?.message || "read failed"}.`;
+          } finally { inspect.disabled = false; }
+        });
+      } catch (error) {
+        if (live()) status.textContent = error?.status === 503 ? "No native Lattice draft owner is enrolled." : `Draft owner unavailable: ${error?.message || "read failed"}.`;
+        initialized = false;
+      }
+    });
+    return panel;
+  }
+
   async function load(root, ctx) {
     const currentGen = ++generation;
     busy = false;
     refreshPreview = null;
-    root.replaceChildren(element("p", "Loading reviewed runbooks…", "small"));
+    const isCurrent = () => generation === currentGen && (!ctx.isCurrent || ctx.isCurrent());
+    const authoring = ctx.canOperate ? renderLatticeAuthoring(ctx, isCurrent) : null;
+    const drafts = ctx.canOperate ? renderDraftOwner(ctx, isCurrent) : null;
+    const show = (content) => root.replaceChildren(...(authoring ? [authoring, drafts, content] : [content]));
+    show(element("p", "Loading reviewed runbooks…", "small"));
     let response;
     try {
       response = await ctx.api("/api/runbooks");
@@ -2045,12 +2262,12 @@
       const classified = classifyError(err);
       const warn = element("p", `${classified.title}: ${classified.message}`, "warning");
       warn.setAttribute("role", "alert");
-      root.replaceChildren(warn);
+      show(warn);
       return;
     }
     if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
     if (!isRecord(response) || !Array.isArray(response.runbooks)) {
-      root.replaceChildren(element("p", "Runbooks response was invalid.", "warning"));
+      show(element("p", "Runbooks response was invalid.", "warning"));
       return;
     }
 
@@ -2089,14 +2306,14 @@
 
     if (selectedFanoutId) {
       grid.append(left, right);
-      root.replaceChildren(grid);
+      show(grid);
       await renderFanoutInspector(right, selectedFanoutId, ctx, currentGen, "", rollupCursor);
       return;
     }
 
     if (selectedDispatchId) {
       grid.append(left, right);
-      root.replaceChildren(grid);
+      show(grid);
       await renderDispatchRollupInspector(right, selectedDispatchId, rollupCursor, ctx, currentGen);
       return;
     }
@@ -2117,7 +2334,7 @@
     }
 
     grid.append(left, right);
-    root.replaceChildren(grid);
+    show(grid);
   }
 
   function clear() {

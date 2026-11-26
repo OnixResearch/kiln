@@ -514,12 +514,15 @@ impl Workspace {
         }
         if req.method == "GET" && path == "/api/fleet/machines" {
             let now = now_ms()?;
-            return Ok(json(200, json!({"synthetic": true, "machines": [
-                {"machine": "example-desktop", "placement_configured": true, "observed_at_ms": now, "last_seen_at_ms": now, "state": "reporting", "sessions": 2, "core": {"state":"reporting","observed_at_ms":now,"last_seen_at_ms":now,"terminals":2,"statuses":{"idle":0,"working":0,"done":0,"blocked":1,"error":0,"unknown":1}}},
-                {"machine": "example-worker", "placement_configured": true, "observed_at_ms": now, "last_seen_at_ms": null, "state": "unreachable", "sessions": null, "core":{"state":"unreachable","observed_at_ms":now,"last_seen_at_ms":null,"terminals":null,"statuses":null}},
-                {"machine": "example-stale", "placement_configured": true, "observed_at_ms": now.saturating_sub(600_000), "last_seen_at_ms": now.saturating_sub(600_000), "state": "stale", "sessions": null, "core":{"state":"stale","observed_at_ms":now,"last_seen_at_ms":now.saturating_sub(600_000),"terminals":null,"statuses":null}},
-                {"machine": "example-peer", "placement_configured": false, "observed_at_ms": null, "last_seen_at_ms": null, "state": "not_reporting", "sessions": null}
-            ]})));
+            return Ok(json(
+                200,
+                json!({"synthetic": true, "machines": [
+                    {"machine": "example-desktop", "placement_configured": true, "observed_at_ms": now, "last_seen_at_ms": now, "state": "reporting", "sessions": 2, "core": {"state":"reporting","observed_at_ms":now,"last_seen_at_ms":now,"terminals":2,"statuses":{"idle":0,"working":0,"done":0,"blocked":1,"error":0,"unknown":1}}},
+                    {"machine": "example-worker", "placement_configured": true, "observed_at_ms": now, "last_seen_at_ms": null, "state": "unreachable", "sessions": null, "core":{"state":"unreachable","observed_at_ms":now,"last_seen_at_ms":null,"terminals":null,"statuses":null}},
+                    {"machine": "example-stale", "placement_configured": true, "observed_at_ms": now.saturating_sub(600_000), "last_seen_at_ms": now.saturating_sub(600_000), "state": "stale", "sessions": null, "core":{"state":"stale","observed_at_ms":now,"last_seen_at_ms":now.saturating_sub(600_000),"terminals":null,"statuses":null}},
+                    {"machine": "example-peer", "placement_configured": false, "observed_at_ms": null, "last_seen_at_ms": null, "state": "not_reporting", "sessions": null}
+                ]}),
+            ));
         }
         if req.method == "GET" && path == "/api/fleet/events" {
             let version = "e".repeat(64);
@@ -536,7 +539,10 @@ impl Workspace {
                 "attempts": {"attempts": [{"attempt": attempt, "work": work, "title": "Synthetic running attempt", "state": "running", "fence": 1, "session": {"machine": "example-desktop"}}]},
                 "decisions": {"decisions": []}
             });
-            return Ok(bytes("text/event-stream", format!("event: snapshot\ndata: {snapshot}\n\n").as_bytes()));
+            return Ok(bytes(
+                "text/event-stream",
+                format!("event: snapshot\ndata: {snapshot}\n\n").as_bytes(),
+            ));
         }
         // r[impl kiln.inventory.consumers]
         if path == "/api/inventory" {

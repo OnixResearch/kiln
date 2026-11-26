@@ -1,0 +1,5 @@
+{
+  "scope": "Disposable native Herdr 0.9.3 server, loopback Fleet coordinator, authenticated Kiln HTTPS console, and Chromium. No existing pane or production state used.",
+  "observed": "Operator enumerated pane w1:p1 and captured the seeded terminal marker through the console.",
+  "refusals": {"viewer_capture": 403, "unknown_pane": 404}
+}

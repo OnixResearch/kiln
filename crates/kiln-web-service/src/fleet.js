@@ -8,6 +8,10 @@
   const CAIRN_REFRESH_MS = 15_000;
   const CAIRN_INDEX = "/api/implementation/cairn";
   const MACHINES = "/api/fleet/machines";
+  const HERDR_MACHINE = /^[a-z0-9][a-z0-9-]{0,62}$/;
+  const HERDR_PANE = /^(?!-)[a-zA-Z0-9_-]+:p[a-zA-Z0-9]+$/;
+  const HERDR_CAPTURE_LINES = 200;
+  const MAX_HERDR_WINDOWS = 256;
   const CLAIMS_INCLUDE = "/api/fleet/claims?include=foreign,expired";
   const DISPATCH_STATUS = "/api/fleet/dispatch/status";
   const NATIVE_WORK = "/api/work";
@@ -285,6 +289,109 @@
     return "Not reported";
   }
 
+  function closeHerdrWindows(state) {
+    state.herdrWindowRequest?.abort();
+    state.herdrWindowRequest = null;
+    state.herdrWindowsHost = "";
+    state.herdrWindowsPanel.hidden = true;
+    state.herdrWindowsPanel.replaceChildren();
+  }
+
+  function herdrRequestCurrent(state, controller) {
+    return active === state && state.context.isCurrent() && currentPrincipal() === state.principal
+      && state.herdrWindowRequest === controller;
+  }
+
+  function windowRequest(state) {
+    state.herdrWindowRequest?.abort();
+    state.herdrWindowRequest = new AbortController();
+    return state.herdrWindowRequest;
+  }
+
+  async function captureHerdrWindow(state, host, path, windowId, result) {
+    if (active !== state || state.herdrWindowsHost !== host || state.context.canOperate?.() !== true) return;
+    const controller = windowRequest(state);
+    const current = () => herdrRequestCurrent(state, controller) && state.context.canOperate?.() === true;
+    result.replaceChildren(observationStatus(`Capturing ${host} / ${windowId.pane_id}…`));
+    try {
+      const value = await state.context.api(`${path}/${windowId.pane_id}/capture?lines=${HERDR_CAPTURE_LINES}`, {
+        method: "POST", body: {}, quiet: true, controller,
+      });
+      if (!current()) return;
+      if (value?.machine !== host || value.window?.pane_id !== windowId.pane_id
+        || value.window?.workspace_id !== windowId.workspace_id || value.window?.tab_id !== windowId.tab_id
+        || value.requested_lines !== HERDR_CAPTURE_LINES || count(value.line_count) === null
+        || value.line_count > HERDR_CAPTURE_LINES || typeof value.truncated !== "boolean"
+        || typeof value.text !== "string") throw new Error("Capture identity or bounds mismatch");
+      result.replaceChildren(
+        observationStatus(`${host} / ${windowId.pane_id} · ${value.line_count} lines${value.truncated ? " · Limited by Kiln" : ""}`),
+        value.text ? element("pre", value.text, "mono") : element("p", "No terminal output returned.", "small"),
+      );
+    } catch (error) {
+      if (!current()) return;
+      const explanation = error?.code === "fleet_herdr_window_unknown"
+        ? "This window is no longer in the host inventory. Refresh windows to select again."
+        : error?.status === 403 ? "Only an operator can capture terminal output." : "Terminal capture unavailable.";
+      result.replaceChildren(observationStatus(`${host} / ${windowId.pane_id} · ${explanation}`));
+    }
+  }
+
+  async function openHerdrWindows(state, host) {
+    if (active !== state || !state.context.isCurrent() || !state.listedMachines?.some(
+      (row) => row.machine === host && row.herdr_windows_configured === true,
+    )) return;
+    const controller = windowRequest(state);
+    const current = () => herdrRequestCurrent(state, controller);
+    state.herdrWindowsHost = host;
+    const panel = state.herdrWindowsPanel;
+    const path = `${MACHINES}/${host}/windows`;
+    const refresh = element("button", "Refresh windows", "quiet");
+    refresh.type = "button";
+    refresh.addEventListener("click", () => void openHerdrWindows(state, host));
+    const close = element("button", "Close windows", "quiet");
+    close.type = "button";
+    close.addEventListener("click", () => closeHerdrWindows(state));
+    const inventory = element("div");
+    inventory.append(observationStatus("Reading current Herdr windows…"));
+    const result = element("div");
+    panel.hidden = false;
+    panel.replaceChildren(element("h3", `Herdr windows · ${host}`), refresh, close, inventory, result);
+    try {
+      const value = await state.context.api(path, { quiet: true, controller });
+      if (!current()) return;
+      if (value?.machine !== host || !Array.isArray(value.windows) || value.windows.length > MAX_HERDR_WINDOWS) {
+        throw new Error("Window inventory invalid");
+      }
+      const seen = new Set();
+      for (const row of value.windows) {
+        if (typeof row?.pane_id !== "string" || row.pane_id.length > 64 || !HERDR_PANE.test(row.pane_id)
+          || !text(row.workspace_id) || !text(row.tab_id) || seen.has(row.pane_id)) throw new Error("Window identity invalid");
+        seen.add(row.pane_id);
+      }
+      if (!value.windows.length) {
+        inventory.replaceChildren(observationStatus("No Herdr windows observed on this host."));
+        return;
+      }
+      const operator = state.context.canOperate?.() === true;
+      const rows = value.windows.map((row) => {
+        const cells = [row.workspace_id, row.tab_id, element("code", row.pane_id)];
+        if (operator) {
+          const capture = element("button", "Capture output", "quiet");
+          capture.type = "button";
+          capture.setAttribute("aria-label", `Capture output for ${host} / ${row.pane_id}`);
+          capture.addEventListener("click", () => void captureHerdrWindow(state, host, path, row, result));
+          cells.push(capture);
+        }
+        return cells;
+      });
+      const headers = ["Workspace", "Tab", "Window", ...(operator ? ["Capture"] : [])];
+      inventory.replaceChildren(table(headers, rows));
+      if (!operator) result.append(observationStatus("Only operators can capture terminal output."));
+    } catch {
+      if (current()) inventory.replaceChildren(observationStatus("Herdr windows unavailable on this host."));
+    }
+  }
+
   function renderMachines(state) {
     if (!state.listedMachines) return;
     const roster = new Set(state.listedMachines.map(({ machine }) => machine));
@@ -306,6 +413,13 @@
         obsCell.append(drainBadge);
       }
       const actions = element("div", undefined, "fleet-actions");
+      if (row.herdr_windows_configured === true && HERDR_MACHINE.test(row.machine)) {
+        const open = element("button", "Browse Herdr windows", "quiet");
+        open.type = "button";
+        open.setAttribute("aria-label", `Browse Herdr windows on ${row.machine}`);
+        open.addEventListener("click", () => void openHerdrWindows(state, row.machine));
+        actions.append(open);
+      }
       if (state.context.canOperate?.() !== false) {
         const draining = Boolean(row.draining);
         const drainBtn = element("button", draining ? "Undrain" : "Drain", "quiet");
@@ -1074,6 +1188,217 @@
     } catch (_) {}
   }
 
+  // r[impl kiln.sdlc.workload_placement]
+  function movePanel(state) {
+    const panel = element("details", undefined, "panel");
+    const status = element("p", "Open to inspect eligible reservations.", "small");
+    status.setAttribute("role", "status");
+    const content = element("div");
+    panel.append(element("summary", "Move queued workload"), status, content);
+    const base = "/api/fleet/placement/move";
+    const current = () => active === state && state.context.isCurrent() && state.context.canOperate?.() === true;
+    const button = (label) => { const b = element("button", label); b.type = "button"; return b; };
+    const option = (select, value, label = value) => { const o = element("option", label); o.value = value; select.append(o); };
+    const label = (name, control) => { const l = element("label", name); l.append(control); return l; };
+    panel.addEventListener("toggle", async () => {
+      if (!panel.open || !current()) return;
+      const result = element("div");
+      content.replaceChildren(result);
+      const visible = () => current() && panel.open && result.isConnected;
+      try {
+        const capabilities = await state.context.api("/api/fleet/placement/capabilities", { quiet: true });
+        if (!visible()) return;
+        status.textContent = capabilities.active_move_reason || "Running workloads cannot be moved.";
+        if (!capabilities.move) { content.prepend(element("p", capabilities.move_reason || "Queued moves are unavailable.")); return; }
+        const attempts = (state.listedAttempts || []).filter((a) => a.queued_move_eligible === true && /^dispatch-[0-9a-f]{64}$/.test(a.reservation) && IDENTITY.test(a.attempt) && count(a.fence) > 0);
+        if (!attempts.length) { content.prepend(element("p", "No movable reservation in the current Fleet snapshot. Reopen after Fleet refreshes.")); return; }
+        const attempt = element("select");
+        const host = element("select");
+        option(host, "", "Choose a destination");
+        attempts.forEach((a) => option(attempt, a.attempt, `${a.title || "Attempt"} · ${a.attempt.slice(0, 12)}`));
+        (state.listedMachines || []).filter((m) => m.placement_configured === true && m.state === "reporting").forEach((m) => option(host, m.machine));
+        const review = button("Review queued move");
+        content.prepend(label("Queued attempt", attempt), label("New destination", host), review);
+        review.addEventListener("click", async () => {
+          const item = attempts.find((a) => a.attempt === attempt.value);
+          if (!visible() || review.disabled || !item || !host.value) return;
+          const request = { attempt: item.attempt, fence: item.fence, reservation: item.reservation, destination: host.value };
+          review.disabled = attempt.disabled = host.disabled = true;
+          let submitted;
+          const show = ({ placement }, id) => {
+            if (placement?.plan?.identity !== id || placement.plan.request?.attempt !== item.attempt) throw new Error("Move receipt did not match the exact plan.");
+            result.replaceChildren(element("p", `Move ${id}: ${placement.state} · target ${placement.plan.request.destination}${placement.session ? ` · session ${placement.session}` : ""}`));
+          };
+          try {
+            const { plan } = await state.context.api(`${base}/plan`, { method: "POST", body: request, quiet: true });
+            if (!visible()) return;
+            if (!IDENTITY.test(plan?.identity) || !plan.source || !Object.keys(request).every((key) => plan.request?.[key] === request[key])) throw new Error("Move preview did not match the selected reservation.");
+            const approval = await openConfirmDialog(state, { title: "Rebind queued reservation?", verb: "Move reservation", opener: review,
+              facts: [["Attempt", request.attempt], ["Fence", String(request.fence)], ["Reservation", request.reservation], ["From", plan.source], ["To", request.destination]],
+              warning: "This changes a queued reservation only. It does not move a running agent or confirm a launch." });
+            if (!approval.confirmed || !visible()) return;
+            submitted = plan.identity;
+            const reply = await state.context.api(base, { method: "POST", body: { plan: submitted, ...request }, quiet: true });
+            if (visible()) show(reply, submitted);
+          } catch (error) {
+            if (visible()) result.replaceChildren(element("p", `${submitted ? "Move outcome not confirmed" : "No move submitted"}: ${error?.message || "request failed"}.`));
+          } finally {
+            if (visible() && submitted) {
+              const read = button("Read move outcome");
+              read.addEventListener("click", async () => {
+                read.disabled = true;
+                try { const reply = await state.context.api(`${base}/${submitted}`, { quiet: true }); if (visible()) show(reply, submitted); }
+                catch (error) { if (visible()) result.replaceChildren(element("p", `Move outcome unavailable: ${error?.message || "read failed"}.`)); }
+                finally { read.disabled = false; if (visible()) result.append(read); }
+              });
+              result.append(read);
+            }
+            review.disabled = Boolean(submitted);
+            attempt.disabled = host.disabled = false;
+          }
+        });
+      } catch (error) {
+        if (visible()) status.textContent = `Move capabilities unavailable: ${error?.message || "read failed"}.`;
+      }
+    });
+    return panel;
+  }
+
+  function placementPanel(state) {
+    const section = element("section", undefined, "panel");
+    const open = element("button", "Place independent work units", "quiet");
+    open.type = "button";
+    const content = element("div");
+    section.append(open, content);
+    const current = () => active === state && state.context.isCurrent() && state.context.canOperate?.() === true;
+    const base = "/api/fleet/placement";
+    open.addEventListener("click", async () => {
+      if (!current()) return;
+      open.disabled = true;
+      const status = element("p", "Checking placement capabilities…", "small");
+      status.setAttribute("role", "status");
+      content.replaceChildren(status);
+      try {
+        const capabilities = await state.context.api(`${base}/capabilities`, { quiet: true });
+        if (!current()) return;
+        status.textContent = capabilities.split ? `Select independently claimed, unstarted attempts. ${capabilities.move_reason || "Existing execution cannot be moved by this provider."}` : "This coordinator has no qualified split or move provider.";
+        if (!capabilities.split) return;
+        const form = element("form");
+        const fields = element("fieldset");
+        fields.append(element("legend", "Attempts and destination machines"));
+        const choices = (state.listedAttempts || []).filter((a) => a.state === "claimed" && !a.session && IDENTITY.test(a.attempt) && count(a.fence) > 0);
+        const hosts = (state.listedMachines || []).filter((m) => m.placement_configured === true && m.state === "reporting");
+        const rows = [];
+        const add = element("button", "Add another unit", "quiet");
+        add.type = "button";
+        const addRow = () => {
+          const attempt = element("select");
+          const destination = element("select");
+          for (const select of [attempt, destination]) {
+            select.required = true;
+            const option = element("option", "Select…");
+            option.value = "";
+            select.append(option);
+          }
+          for (const a of choices) {
+            const option = element("option", `${a.title || "Attempt"} · ${a.attempt.slice(0, 12)}`);
+            option.value = a.attempt;
+            attempt.append(option);
+          }
+          for (const h of hosts) {
+            const option = element("option", h.machine);
+            option.value = h.machine;
+            destination.append(option);
+          }
+          const row = element("div");
+          for (const [name, input] of [["Attempt", attempt], ["Destination", destination]]) {
+            const label = element("label", name);
+            label.append(input);
+            row.append(label);
+          }
+          if (rows.length >= 2) {
+            const remove = element("button", "Remove unit", "quiet");
+            remove.type = "button";
+            remove.addEventListener("click", () => { rows.splice(rows.findIndex((x) => x.attempt === attempt), 1); row.remove(); add.disabled = false; });
+            row.append(remove);
+          }
+          fields.append(row);
+          rows.push({ attempt, destination });
+          add.disabled = rows.length >= 16;
+        };
+        add.addEventListener("click", addRow);
+        addRow(); addRow();
+        const preview = element("button", "Review split", "primary");
+        preview.type = "submit";
+        const result = element("div");
+        const show = (placement) => {
+          const list = element("ul");
+          for (const unit of placement.units || []) {
+            const destination = placement.plan.units.find((planned) => planned.attempt === unit.attempt)?.destination;
+            list.append(element("li", `${unit.attempt}: ${String(unit.state).replaceAll("_", " ")}${destination ? ` · target ${destination}` : ""}${unit.session ? ` · session ${unit.session}` : ""}`));
+          }
+          result.replaceChildren(element("p", `Placement ${placement.plan.identity}`, "small"), list);
+        };
+        const reconcile = (plan) => {
+          const refresh = element("button", "Read placement outcome", "quiet");
+          refresh.type = "button";
+          refresh.addEventListener("click", async () => {
+            if (!current()) return;
+            refresh.disabled = true;
+            try {
+              const reply = await state.context.api(`${base}/split/${plan}`, { quiet: true });
+              if (current()) { show(reply.placement); status.textContent = "Read the current Fleet placement outcome."; }
+            } catch (error) {
+              if (current()) status.textContent = `Placement outcome unavailable: ${error?.message || "read failed"}.`;
+            } finally { refresh.disabled = false; if (current()) result.append(refresh); }
+          });
+          result.append(refresh);
+        };
+        form.append(fields, add, preview);
+        content.append(form, result);
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          if (!current() || preview.disabled) return;
+          const units = rows.map(({ attempt, destination }) => ({ attempt: attempt.value, fence: choices.find((a) => a.attempt === attempt.value)?.fence, destination: destination.value }));
+          if (new Set(units.map((u) => u.attempt)).size !== units.length || new Set(units.map((u) => u.destination)).size < 2) {
+            status.textContent = "Select distinct attempts and at least two distinct destination machines.";
+            return;
+          }
+          preview.disabled = fields.disabled = add.disabled = true;
+          let submitted;
+          try {
+            const { plan } = await state.context.api(`${base}/split/plan`, { method: "POST", body: { units }, quiet: true });
+            if (!current()) return;
+            if (!IDENTITY.test(plan?.identity)) throw new Error("Fleet returned no exact plan identity.");
+            if (!Array.isArray(plan.units) || plan.units.length !== units.length || !units.every((u) => plan.units.some((p) => p.attempt === u.attempt && p.fence === u.fence && p.destination === u.destination && Array.isArray(p.scopes) && Array.isArray(p.dependencies)))) throw new Error("Fleet preview does not match the requested assignments.");
+            const choice = await openConfirmDialog(state, {
+              title: "Reserve the split placements?", verb: "Reserve placements", opener: preview,
+              warning: "This reserves exact hosts for already-admitted attempts. Reservations do not confirm sessions have started.",
+              facts: [["Plan", plan.identity], ...plan.units.flatMap((u) => [
+                [u.attempt, `${u.destination} · fence ${u.fence}`],
+                ["Scopes", u.scopes.map(scopeText).join(", ")],
+                ["Prerequisites", u.dependencies.join(", ") || "None"],
+              ])],
+            });
+            if (!choice.confirmed || !current()) return;
+            submitted = plan.identity;
+            const reply = await state.context.api(`${base}/split`, { method: "POST", body: { plan: submitted, units }, quiet: true });
+            if (current()) { show(reply.placement); status.textContent = "Placement reserved. Wait for Fleet to observe each session."; }
+          } catch (error) {
+            if (current()) status.textContent = submitted ? `Placement not confirmed: ${error?.message || "request failed"}. Read the plan outcome before retrying.` : `No split reserved: ${error?.message || "preview failed"}.`;
+          } finally {
+            if (current() && submitted) reconcile(submitted);
+            preview.disabled = fields.disabled = false;
+            add.disabled = rows.length >= 16;
+          }
+        });
+      } catch (error) {
+        if (current()) status.textContent = `Placement capabilities unavailable: ${error?.message || "read failed"}.`;
+      } finally { open.disabled = false; }
+    });
+    return section;
+  }
+
   function renderAcquire(state) {
     const form = element("form", undefined, "fleet-acquire");
     const scope = element("input");
@@ -1734,6 +2059,7 @@
 
   function onSessionChanged() {
     if (active && currentPrincipal() !== active.principal) clear();
+    else if (active) closeHerdrWindows(active);
   }
 
   function observationStatus(message) {
@@ -1909,9 +2235,11 @@
     state.machineCoverage = observationStatus();
     state.machineCoverage.hidden = true;
     state.machineRows = element("div");
+    state.herdrWindowsPanel = element("section");
+    state.herdrWindowsPanel.hidden = true;
     machinesPanel.append(element("h2", "Machines"),
       element("p", "Enrolled peers and observed Herdr sessions. Counts cover listed attempts by exact session machine and live claims by holder machine, not claim scope. These counts do not establish host availability.", "small"),
-      state.machineStatus, state.assignmentStatus, state.machineCoverage, state.machineRows);
+      state.machineStatus, state.assignmentStatus, state.machineCoverage, state.machineRows, state.herdrWindowsPanel);
     const issuesPanel = element("section", undefined, "panel fleet-section");
     issuesPanel.id = "fleet-issues";
     state.issueStatus = observationStatus("Reading native issues and requests…");
@@ -1977,6 +2305,7 @@
     const attempts = element("div");
     attempts.id = "fleet-attempt-register";
     attemptsPanel.append(charts, filterBar, attemptsBulk, attempts);
+    if (state.context.canOperate?.() === true) attemptsPanel.append(placementPanel(state), movePanel(state));
     const decisionsPanel = element("section", undefined, "panel fleet-section");
     state.attention = element("div");
     decisionsPanel.append(element("h2", "Operator inbox"), element("p", "Listed Cairn blockers, claims due within 15 minutes, and Fleet decisions. Check the source status before acting on a retained observation.", "small"), state.attention, element("h3", "Fleet decisions"));
@@ -2128,6 +2457,7 @@
       state.epoch += 1;
       clearTimeout(state.timer);
       state.controller?.abort();
+      closeHerdrWindows(state);
       if (typeof state.unsubscribeEvents === "function") {
         state.unsubscribeEvents();
         state.unsubscribeEvents = null;

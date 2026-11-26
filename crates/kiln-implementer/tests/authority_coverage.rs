@@ -849,6 +849,15 @@ fn every_cli_subcommand_loads_the_holder_role_of_every_check_it_reaches() {
     );
 }
 
+fn fleet_shell_functions(source: &str) -> BTreeMap<String, Vec<String>> {
+    let placement = read("crates/kiln-fleet/src/placement.rs");
+    let mut shell = functions(&code_only(source));
+    for (name, bodies) in functions(&code_only(&placement)) {
+        shell.entry(name).or_default().extend(bodies);
+    }
+    shell
+}
+
 /// Every fleet API route, `METHOD /v1/...`, and the `self` method its arm calls.
 fn fleet_routes(source: &str) -> BTreeMap<String, Option<String>> {
     let mut routes = BTreeMap::new();
@@ -864,7 +873,8 @@ fn fleet_routes(source: &str) -> BTreeMap<String, Option<String>> {
         let Some((segments, rest)) = rest.split_once("])") else {
             continue;
         };
-        if !rest.trim_start().starts_with("=>") {
+        let rest = rest.trim_start();
+        if !(rest.starts_with("=>") || (rest.starts_with("if ") && rest.contains("=>"))) {
             continue;
         }
         let path: Vec<String> = segments
@@ -898,7 +908,7 @@ fn every_fleet_route_has_a_reviewed_row_that_matches_its_handler() {
     assert_shell_rows(
         FLEET_API,
         &routes,
-        &functions(&code_only(&source)),
+        &fleet_shell_functions(&source),
         &implementer(),
     );
 }
@@ -909,7 +919,7 @@ fn every_fleet_route_loads_the_holder_role_of_every_check_it_reaches() {
     assert_eq!(FLEET_API, kiln_core::implementation::authority::FLEET_API);
     let source = read(FLEET_API);
     let routes = fleet_routes(&source);
-    let shell = functions(&code_only(&source));
+    let shell = fleet_shell_functions(&source);
     let implementer = implementer();
     let mut missing = Vec::new();
     for (route, handler) in &routes {

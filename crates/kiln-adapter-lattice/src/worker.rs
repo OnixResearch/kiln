@@ -17,12 +17,12 @@ use std::path::{Path, PathBuf};
 
 #[path = "worker_binding.rs"]
 mod binding;
+#[path = "worker_inspect.rs"]
+pub mod inspect;
 #[path = "worker_metrics.rs"]
 mod metrics;
 #[path = "worker_settlement.rs"]
 mod settlement;
-#[path = "worker_inspect.rs"]
-pub mod inspect;
 
 const MAX_OMP_OBSERVATION_BYTES: u64 = 16 * 1024;
 

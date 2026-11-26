@@ -944,7 +944,10 @@ pub fn serve(path: &std::path::Path) -> Result<(), String> {
     serve_with_console_url(path, None)
 }
 
-fn serve_with_console_url(path: &std::path::Path, cli_console_url: Option<&str>) -> Result<(), String> {
+fn serve_with_console_url(
+    path: &std::path::Path,
+    cli_console_url: Option<&str>,
+) -> Result<(), String> {
     let mut config = FleetConfig::load(path)?;
     if let Some(raw) = cli_console_url {
         config.console_url = Some(validate_console_url(raw)?);

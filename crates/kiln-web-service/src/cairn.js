@@ -1,13 +1,15 @@
 "use strict";
 // r[impl kiln.cairn.workspace] Cairn changes (?page=cairn): a register of Cairn changes (list or board) and one change's
-// next steps, units, dependencies and campaigns, joined by exact identity from the service's one bounded snapshot. The
-// projection is read-only. The only command here is the campaign owner's own decision answer, offered through the shared
-// campaign answer path exactly where the campaign inbox lists it. Displayed reasons are never parsed into decisions.
+// next steps, units, dependencies and campaigns, joined by exact identity from one bounded snapshot.
+// The projection is read-only. Native Cairn authoring is a separate capability for explicitly enrolled roots.
+// Campaign decisions continue to use the shared owner-only campaign answer path.
 (() => {
   const INDEX_SCHEMA = "kiln.cairn-workspace-index.v2";
   const DETAIL_SCHEMA = "kiln.cairn-workspace-detail.v4";
   const INDEX_ROUTE = "/api/implementation/cairn";
   const DETAIL_ROUTE = "/api/implementation/cairn/detail";
+  const AUTHORING_ROUTE = "/api/implementation/cairn/authoring";
+  const AUTHORING_SCHEMA = "kiln.cairn-authoring.v1";
   const HEX = /^[a-f0-9]{64}$/;
   // The service admits a change name of at most this many UTF-8 bytes, without "/" or control characters.
   const CHANGE_MAX_BYTES = 256;
@@ -2704,6 +2706,277 @@
     return `${target || "scope not recorded"}${path && path !== "whole" ? ` ${path}` : ""}`;
   }
 
+  let authoringPanel = null;
+  const authoringName = (value) => typeof value === "string" && value.length <= 128
+    && value !== "archive" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
+
+  function admitAuthoringSnapshot(value, repository) {
+    const state = value?.snapshot;
+    const graph = state?.graph;
+    if (!HEX.test(repository) || value?.schema !== AUTHORING_SCHEMA || value.repository !== repository
+      || !HEX.test(state?.revision) || graph?.command !== "change graph" || graph.layout !== "cairn"
+      || typeof graph.valid !== "boolean" || !Array.isArray(graph.nodes) || !Array.isArray(graph.archived_changes)
+      || graph.active_change_count !== graph.nodes.length) throw new Error("Invalid Cairn authoring readback");
+    const nodes = new Map();
+    for (const row of graph.nodes) {
+      if (!authoringName(row?.name) || nodes.has(row.name) || !Array.isArray(row.dependencies)
+        || !row.dependencies.every(authoringName) || new Set(row.dependencies).size !== row.dependencies.length) {
+        throw new Error("Invalid Cairn authoring graph");
+      }
+      nodes.set(row.name, row.dependencies);
+    }
+    if (!graph.archived_changes.every(authoringName)) throw new Error("Invalid Cairn archive names");
+    if (state.change != null && !nodes.has(state.change.name)) throw new Error("Cairn change does not match the graph");
+    return { revision: state.revision, valid: graph.valid, nodes, archived: new Set(graph.archived_changes), change: state.change };
+  }
+
+  function authoringRequest(repository, snapshot, type, change, dependency) {
+    if (!HEX.test(repository) || !HEX.test(snapshot?.revision) || !authoringName(change)) return null;
+    const action = { type, change };
+    if (type === "create") {
+      if (!snapshot.valid || snapshot.nodes.has(change) || snapshot.archived.has(change)) return null;
+    } else if (type === "add_dependency" || type === "remove_dependency") {
+      const current = snapshot.nodes.get(change);
+      if (!current || !authoringName(dependency) || change === dependency) return null;
+      if (type === "add_dependency") {
+        if (!snapshot.valid || current.includes(dependency) || !snapshot.nodes.has(dependency) && !snapshot.archived.has(dependency)) return null;
+        const pending = [dependency];
+        const seen = new Set();
+        while (pending.length) {
+          const node = pending.pop();
+          if (node === change) return null;
+          if (!seen.has(node)) { seen.add(node); for (const next of snapshot.nodes.get(node) || []) pending.push(next); }
+        }
+      } else if (!current.includes(dependency)) return null;
+      action.dependency = dependency;
+    } else return null;
+    return { repository, expected_revision: snapshot.revision, action };
+  }
+
+  // r[impl kiln.sdlc.cairn_authoring] The canonical workspace selection never authorizes a native root.
+  function nativeAuthoringPanel(route) {
+    if (!context?.canOperate?.()) { authoringPanel = null; return null; }
+    if (authoringPanel && sameSelection(authoringPanel.route, route)) return authoringPanel.node;
+    const panel = element("details", undefined, "panel cairn-authoring");
+    const status = element("p", "Open to read configured authoring roots.", "small");
+    status.setAttribute("role", "status");
+    const content = element("div");
+    panel.append(element("summary", "Author Cairn changes"), status, content);
+    authoringPanel = { route, node: panel };
+    const live = () => authoringPanel?.node === panel && panel.isConnected && context?.canOperate?.()
+      && sameSelection(route, normalizeRoute(context?.route));
+    let enrolled, choice, refresh, snapshot, locked = false, readVersion = 0;
+    let editArtifacts = false;
+    const field = (label, control) => { const node = element("label", label); node.append(control); return node; };
+    const option = (value, label = value) => { const node = element("option", label); node.value = value; return node; };
+    const button = (label) => { const node = element("button", label, "button"); node.type = "button"; return node; };
+    const editor = element("div");
+
+    async function readGraph() {
+      if (locked) return;
+      const version = ++readVersion;
+      const repository = choice.value;
+      snapshot = null;
+      editor.replaceChildren();
+      if (!repository) { status.textContent = "Choose an explicitly enrolled repository."; return; }
+      status.textContent = "Reading the native change graph…";
+      try {
+        const value = await context.api(`${AUTHORING_ROUTE}?repository=${repository}`, { quiet: true });
+        if (!live() || readVersion !== version) return;
+        snapshot = admitAuthoringSnapshot(value, repository);
+        status.textContent = "Native graph read. Review the revision before writing.";
+        renderControls(repository === route.repository ? route.change : "");
+      } catch (error) {
+        if (live() && readVersion === version) status.textContent = `Native graph unavailable: ${explain(error)}`;
+      }
+    }
+
+    function artifactControls(repository, change) {
+      const surface = element("div");
+      const kind = element("select");
+      kind.append(...["proposal", "design", "tasks"].map((id) => option(id)));
+      const load = button("Open artifact");
+      const report = element("p", "", "small");
+      report.setAttribute("role", "status");
+      const fields = element("div");
+      const target = `${AUTHORING_ROUTE}/artifact`;
+      const clear = () => { fields.replaceChildren(); report.textContent = ""; };
+      change.addEventListener("change", clear);
+      kind.addEventListener("change", clear);
+      load.addEventListener("click", async () => {
+        if (!live() || locked || !authoringName(change.value)) return;
+        clear();
+        const selected = change.value;
+        const artifact = kind.value;
+        const current = () => live() && surface.isConnected && repository === choice.value && selected === change.value && artifact === kind.value;
+        load.disabled = true;
+        try {
+          const view = await context.api(`${target}?repository=${repository}&change=${selected}&artifact=${artifact}`, { quiet: true });
+          if (!current()) return;
+          const source = view?.artifact;
+          if (view?.repository !== repository || !HEX.test(view.revision) || source?.change !== selected || source?.artifact !== artifact || !HEX.test(source.content_blake3) || typeof source.content !== "string") throw new Error("Invalid native artifact readback");
+          const text = element("textarea");
+          text.rows = 16;
+          text.value = source.content;
+          const baseline = text.value;
+          const save = button("Save artifact");
+          save.disabled = true;
+          text.addEventListener("input", () => { save.disabled = text.value === baseline || new TextEncoder().encode(text.value).length > 48 * 1024; });
+          fields.append(field("Artifact content", text), save);
+          report.textContent = `Current artifact digest: ${source.content_blake3}`;
+          save.addEventListener("click", async () => {
+            if (!current() || locked || save.disabled) return;
+            const content = text.value;
+            locked = true;
+            save.disabled = true;
+            text.disabled = true;
+            let submitted = false;
+            try {
+              const approval = await context.confirmControl({ title: "Replace Cairn artifact?", verb: "Save artifact", opener: save,
+                facts: [["Change", selected], ["Artifact", artifact], ["Expected content", source.content_blake3]],
+                warning: "Writes only the selected artifact. Does not approve gates or publish." });
+              if (!approval.confirmed || !current()) return;
+              submitted = true;
+              const reply = await context.api(target, { method: "POST", quiet: true, body: {
+                repository, change: selected, artifact, expected_revision: view.revision, expected_content_blake3: source.content_blake3, content,
+              } });
+              if (!current()) return;
+              if (reply?.repository !== repository || reply?.change !== selected || reply?.artifact !== artifact || !["applied", "reconciled"].includes(reply.outcome) || !HEX.test(reply.content_blake3)) throw new Error("Replacement was not confirmed by native readback");
+              report.textContent = `Cairn confirmed replacement: ${reply.content_blake3}. Refresh the graph before making other changes.`;
+            } catch (error) {
+              if (current()) report.textContent = `Artifact not confirmed: ${explain(error)}. Reopen it before writing again.`;
+            } finally {
+              locked = false;
+              if (current()) {
+                if (submitted) fields.replaceChildren();
+                else { save.disabled = false; text.disabled = false; }
+              }
+            }
+          });
+        } catch (error) {
+          if (current()) report.textContent = `Artifact unavailable: ${explain(error)}`;
+        } finally { load.disabled = false; }
+      });
+      surface.append(field("Artifact", kind), load, report, fields);
+      return surface;
+    }
+
+    function renderControls(selected = "") {
+      editor.replaceChildren();
+      if (!snapshot) return;
+      const displayed = snapshot;
+      const repository = choice.value;
+      const revision = element("p", "Current Cairn revision: ");
+      revision.append(code(snapshot.revision));
+      const edges = element("ul");
+      for (const [dependent, prerequisites] of snapshot.nodes) {
+        for (const prerequisite of prerequisites) edges.append(element("li", `${dependent} requires ${prerequisite}${snapshot.archived.has(prerequisite) ? " (archived)" : ""}`));
+      }
+      const graph = element("details");
+      graph.append(element("summary", "Native dependency graph"), edges.firstChild ? edges : element("p", "No dependency edges."));
+      editor.append(revision, graph);
+      if (!snapshot.valid) editor.append(element("p", "Cairn reports an invalid graph. New changes and prerequisites are disabled.", "warning"));
+      if (snapshot.change) editor.append(element("p", `Native readback: ${snapshot.change.name}.`));
+      const newName = element("input");
+      newName.maxLength = 128;
+      const change = element("select");
+      change.append(option("", "Choose an active change"), ...[...snapshot.nodes.keys()].map((id) => option(id)));
+      change.value = snapshot.nodes.has(selected) ? selected : "";
+      const prerequisite = element("input");
+      prerequisite.maxLength = 128;
+      const actions = [
+        [button("Create change"), () => authoringRequest(repository, displayed, "create", newName.value)],
+        [button("Add prerequisite"), () => authoringRequest(repository, displayed, "add_dependency", change.value, prerequisite.value)],
+        [button("Remove prerequisite"), () => authoringRequest(repository, displayed, "remove_dependency", change.value, prerequisite.value)],
+      ];
+      const enable = () => { for (const [control, request] of actions) control.disabled = locked || !request(); };
+      for (const input of [newName, change, prerequisite]) input.addEventListener("input", enable);
+      for (const [opener, request] of actions) opener.addEventListener("click", async () => {
+        const body = request();
+        if (!body || snapshot !== displayed || locked || !live()) return;
+        const { type, change: id, dependency } = body.action;
+        const label = opener.textContent;
+        locked = true;
+        choice.disabled = refresh.disabled = true;
+        enable();
+        let sent = false;
+        try {
+          const confirmation = await confirmCairnControl({ title: label, verb: label, opener,
+            warning: "This changes the enrolled local Cairn worktree. It does not commit, publish, or start work.",
+            facts: [["Repository", enrolled.get(repository)], ["Repository identity", repository], ["Change", id], ["Prerequisite", dependency], ["Expected Cairn revision", body.expected_revision]],
+          });
+          if (!confirmation?.confirmed || snapshot !== displayed || !live()) return;
+          status.textContent = "Waiting for Cairn and native readback…";
+          sent = true;
+          const result = await context.api(AUTHORING_ROUTE, { method: "POST", body, quiet: true });
+          if (!live()) return;
+          if (!["applied", "reconciled", "unknown"].includes(result?.outcome) || result.schema !== AUTHORING_SCHEMA
+            || result.repository !== repository || result.action?.type !== type || result.action.change !== id
+            || result.action.dependency !== dependency) throw new Error("Invalid authoring receipt");
+          if (result.outcome === "unknown") {
+            snapshot = null;
+            status.textContent = "Cairn's write outcome is unknown. Refresh the native graph and inspect the worktree before deciding what to do next.";
+            return;
+          }
+          const observed = admitAuthoringSnapshot(result, repository);
+          if (observed.change?.name !== id || observed.revision === body.expected_revision) throw new Error("Receipt does not match the selected change and new revision");
+          snapshot = observed;
+          status.textContent = result.outcome === "applied"
+            ? `Cairn applied the change and confirmed it by native readback. Receipt: ${result.provider?.result?.receipt_hash || "not recorded"}.`
+            : "Native readback confirmed the change; Cairn did not return a complete matching receipt.";
+        } catch (error) {
+          if (!live()) return;
+          if (sent) snapshot = null;
+          status.textContent = sent
+            ? `No authoring success was confirmed: ${explain(error)} Refresh the native graph before any new write.`
+            : `Authoring was not sent: ${explain(error)}`;
+        } finally {
+          locked = false;
+          if (live()) {
+            choice.disabled = refresh.disabled = false;
+            if (sent) renderControls(id); else enable();
+          }
+        }
+      });
+      editor.append(field("New change name", newName), actions[0][0], field("Active change", change),
+        field("Prerequisite name", prerequisite), actions[1][0], actions[2][0]);
+      if (editArtifacts) editor.append(artifactControls(repository, change));
+      enable();
+    }
+
+    panel.addEventListener("toggle", async () => {
+      if (!panel.open || enrolled) return;
+      enrolled = new Map();
+      try {
+        const value = await context.api(AUTHORING_ROUTE, { quiet: true });
+        if (!live()) return;
+        if (value?.schema !== AUTHORING_SCHEMA || value.capabilities?.create !== true
+          || value.capabilities?.edit_dependencies !== true || typeof value.capabilities?.edit_artifacts !== "boolean"
+          || !Array.isArray(value.roots)) throw new Error("Invalid Cairn authoring capabilities");
+        editArtifacts = value.capabilities.edit_artifacts;
+        for (const root of value.roots) {
+          if (!HEX.test(root?.repository) || !str(root.label) || enrolled.has(root.repository)) throw new Error("Invalid enrolled Cairn root");
+          enrolled.set(root.repository, root.label);
+        }
+        choice = element("select");
+        choice.append(option("", "Choose an enrolled repository"), ...[...enrolled].map(([id, label]) => option(id, label)));
+        choice.value = enrolled.has(route.repository) ? route.repository : enrolled.size === 1 ? enrolled.keys().next().value : "";
+        refresh = button("Refresh native graph");
+        choice.addEventListener("change", () => void readGraph());
+        refresh.addEventListener("click", () => void readGraph());
+        content.append(element("p", editArtifacts ? "Create a change, edit its prerequisites, or replace a proposal, design, or tasks artifact." : "Cairn can create a spec-driven scaffold and change prerequisites. This provider does not support editing proposal, design, tasks, or other artifact contents.", "small"), field("Enrolled repository", choice), refresh, editor);
+        await readGraph();
+      } catch (error) {
+        if (!live()) return;
+        enrolled = null;
+        status.textContent = error?.status === 503 || error?.status === 403
+          ? "Cairn authoring is not enabled for this console."
+          : `Cairn authoring unavailable: ${explain(error)}`;
+      }
+    });
+    return panel;
+  }
+
   function changePage(route, rows) {
     const page = element("div", undefined, "cairn-page");
     page.append(changeNav(route, rows));
@@ -2745,7 +3018,10 @@
     const previous = shown;
     const key = focusKey(container);
     const open = new Map([...(container.querySelectorAll?.("details[data-cairn-disclosure]") || [])].map((node) => [node.dataset.cairnDisclosure, node.open]));
-    container.replaceChildren(route.change ? changePage(route, model.rows) : registerPage(route, model.rows));
+    const page = route.change ? changePage(route, model.rows) : registerPage(route, model.rows);
+    const author = nativeAuthoringPanel(route);
+    if (author) page.append(author);
+    container.replaceChildren(page);
     if (sameSelection(previous, route)) for (const node of container.querySelectorAll?.("details[data-cairn-disclosure]") || []) if (open.has(node.dataset.cairnDisclosure)) node.open = open.get(node.dataset.cairnDisclosure);
     shown = route;
     title(route);
@@ -2833,6 +3109,7 @@
     context = null;
     model = null;
     shown = null;
+    authoringPanel = null;
     expected = null;
     notice = "";
   }
@@ -2843,5 +3120,6 @@
     slotStates: SLOT_STATES, provenance: PROVENANCE, selections: SELECTIONS, workerPairings: WORKER_PAIRINGS, slotText, familyProvenance, admitAgents,
     admitAtlasDocument, buildCairnAtlas, renderAtlasTopology, ATLAS_MAX_NODES, ATLAS_DECLARED_QUALIFIER,
     renderPlanReview, attemptLifecycleControls,
+    admitAuthoringSnapshot, authoringRequest,
   });
 })();

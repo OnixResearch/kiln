@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 use std::net::IpAddr;
 use std::sync::{Arc, Mutex};
 
-use kiln_adapter_herdr::client::{MAX_PROMPT_BYTES, codes};
+use kiln_adapter_herdr::client::{MAX_PROMPT_BYTES, codes, pane_handle};
 use kiln_adapter_herdr::{FailureClass, HerdrClient, HerdrFailure, HerdrInventory, MachineLoad};
 use kiln_core::fleet::{
     BoardPostKind, ClaimCommand, ClaimOutcome, DEFAULT_STALE_AFTER_MS, FleetAgent, FleetSession,
@@ -48,6 +48,8 @@ pub const HANDOFF_COMMIT_HEX: usize = 40;
 const MACHINE_STALE_TICKS: u64 = 3;
 // Core sends heartbeats every fifteen seconds; missing two expires the view.
 const CORE_STALE_MS: u64 = 30_000;
+/// Keep the escaped JSON transcript below the smallest Web bridge response cap.
+const MAX_WINDOW_TEXT_BYTES: usize = 24 * 1_024;
 
 #[derive(Debug, Default)]
 struct CoreObservations {
@@ -58,7 +60,11 @@ struct CoreObservations {
 }
 
 impl CoreObservations {
-    fn update(&mut self, incoming: Option<BTreeMap<String, crate::core_observer::CoreHost>>, now: u64) {
+    fn update(
+        &mut self,
+        incoming: Option<BTreeMap<String, crate::core_observer::CoreHost>>,
+        now: u64,
+    ) {
         let Some(incoming) = incoming else {
             self.invalidated = true;
             return;
@@ -77,7 +83,9 @@ impl CoreObservations {
         let last_seen = self.last_seen.get(machine).copied();
         let row = self.latest.get(machine);
         let fresh = !self.invalidated
-            && self.observed_at_ms.and_then(|at| now.checked_sub(at))
+            && self
+                .observed_at_ms
+                .and_then(|at| now.checked_sub(at))
                 .is_some_and(|age| age < CORE_STALE_MS);
         let state = match (fresh, row, last_seen) {
             (true, Some(row), _) if row.connected => "reporting",
@@ -102,9 +110,17 @@ fn core_counts_expire_and_missing_hosts_are_not_idle() {
     use crate::core_observer::CoreHost;
     let mut view = CoreObservations::default();
     assert_eq!(view.project("local", 1)["state"], "unreachable");
-    view.update(Some(BTreeMap::from([("local".to_owned(), CoreHost {
-        connected: true, terminals: Some(0), statuses: Some(BTreeMap::new()),
-    })])), 2);
+    view.update(
+        Some(BTreeMap::from([(
+            "local".to_owned(),
+            CoreHost {
+                connected: true,
+                terminals: Some(0),
+                statuses: Some(BTreeMap::new()),
+            },
+        )])),
+        2,
+    );
     assert_eq!(view.project("local", 2)["terminals"], 0);
     assert_eq!(view.project("absent", 2)["state"], "not_reporting");
     assert_eq!(view.project("local", 2 + CORE_STALE_MS)["state"], "stale");
@@ -418,6 +434,12 @@ impl Service {
                 json!({ "machine": self.config.machine, "version": env!("CARGO_PKG_VERSION"), "api": API_VERSION, "peer": machine }),
             )),
             ("GET", ["machines"]) => self.machines(now_ms),
+            ("GET", ["machines", name, "windows"]) if !rest.ends_with('/') => {
+                self.herdr_windows(name, request)
+            }
+            ("POST", ["machines", name, "windows", pane, "capture"]) if !rest.ends_with('/') => {
+                self.capture_herdr_window(machine, name, pane, request)
+            }
             ("GET", ["repositories"]) => self.repositories(request.query.as_deref(), now_ms),
             ("POST", ["machines", name, "drain"]) => {
                 self.drain_machine(machine, name, &request.body, now_ms)
@@ -429,9 +451,7 @@ impl Service {
             ("POST", ["claims", id, "release"]) => self.release(machine, id, &request.body, now_ms),
             ("GET", ["work"]) => self.work(now_ms),
             ("GET", ["attempts"]) => self.attempts(now_ms),
-            ("GET", ["attempts", id, "pane"]) => {
-                self.attempt_pane(id, request.query.as_deref())
-            }
+            ("GET", ["attempts", id, "pane"]) => self.attempt_pane(id, request.query.as_deref()),
             ("POST", ["attempts", id, "prompt"]) => {
                 self.attempt_prompt(machine, id, &request.body, now_ms)
             }
@@ -448,11 +468,22 @@ impl Service {
                 self.answer(machine, id, &request.body, now_ms)
             }
             ("GET", ["dispatch", "status"]) => Ok(self.dispatch_status()),
-            ("POST", ["dispatch", "pause"]) => {
-                self.dispatch_pause(machine, &request.body, now_ms)
-            }
+            ("POST", ["dispatch", "pause"]) => self.dispatch_pause(machine, &request.body, now_ms),
             ("POST", ["dispatch", "resume"]) => {
                 self.dispatch_resume(machine, &request.body, now_ms)
+            }
+            ("GET", ["placement", "capabilities"]) => self.placement_capabilities(machine, request),
+            ("POST", ["placement", "split", "plan"]) => {
+                self.placement_preview(machine, request, now_ms)
+            }
+            ("POST", ["placement", "split"]) => self.placement_submit(machine, request, now_ms),
+            ("GET", ["placement", "split", id]) if *id != "plan" => {
+                self.placement_status(machine, request, id, now_ms)
+            }
+            ("POST", ["placement", "move", "plan"]) => self.move_preview(machine, request, now_ms),
+            ("POST", ["placement", "move"]) => self.move_submit(machine, request, now_ms),
+            ("GET", ["placement", "move", id]) if *id != "plan" => {
+                self.move_status(machine, request, id, now_ms)
             }
             ("GET", ["swarms"]) => self.list_swarms(),
             ("POST", ["swarms"]) => self.create_swarm(machine, &request.body, now_ms),
@@ -481,7 +512,11 @@ impl Service {
                     | "attempts" | "decisions" | "metrics" | "swarms",
                 ]
                 | ["machines", _, "drain"]
+                | ["machines", _, "windows"]
+                | ["machines", _, "windows", _, "capture"]
                 | ["dispatch", "status" | "pause" | "resume"]
+                | ["placement", "capabilities" | "split" | "move"]
+                | ["placement", "split" | "move", _]
                 | ["swarms", _]
                 | [
                     "swarms",
@@ -489,7 +524,11 @@ impl Service {
                     "members" | "board" | "verdicts" | "watchdog" | "failover" | "graph",
                 ]
                 | ["claims", _, "renew" | "release"]
-                | ["attempts", _, "pane" | "prompt" | "interrupt" | "handoff" | "cancel"]
+                | [
+                    "attempts",
+                    _,
+                    "pane" | "prompt" | "interrupt" | "handoff" | "cancel",
+                ]
                 | ["decisions", _, "answer"],
             ) => Err(Response::error(
                 405,
@@ -574,21 +613,30 @@ impl Service {
 
     pub(crate) fn observe_core(&self) {
         const RECONNECT_DELAY: std::time::Duration = std::time::Duration::from_secs(2);
-        let Some(config) = &self.config.herdr_core else { return; };
+        let Some(config) = &self.config.herdr_core else {
+            return;
+        };
         let mut last_error = None;
         loop {
-            let result = crate::core_observer::observe(&config.socket, &config.version, &config.hosts, |value| {
-                if value.is_some() && last_error.take().is_some() {
-                    log::info("core.observation_restored", json!({}));
-                }
-                if let Ok(mut observations) = self.core_observations.lock() {
-                    observations.update(value, (self.clock)());
-                }
-            });
+            let result = crate::core_observer::observe(
+                &config.socket,
+                &config.version,
+                &config.hosts,
+                |value| {
+                    if value.is_some() && last_error.take().is_some() {
+                        log::info("core.observation_restored", json!({}));
+                    }
+                    if let Ok(mut observations) = self.core_observations.lock() {
+                        observations.update(value, (self.clock)());
+                    }
+                },
+            );
             if let Ok(mut observations) = self.core_observations.lock() {
                 observations.update(None, (self.clock)());
             }
-            if let Err(reason) = result && last_error != Some(reason) {
+            if let Err(reason) = result
+                && last_error != Some(reason)
+            {
                 log::warn("core.observation_unavailable", json!({ "reason": reason }));
                 last_error = Some(reason);
             }
@@ -638,7 +686,11 @@ impl Service {
         let controls = self.controls.snapshot();
         let observations = self.machine_observations.lock().ok();
         let core = self.core_observations.lock().ok();
-        let max_age = self.config.policy.tick_ms.saturating_mul(MACHINE_STALE_TICKS);
+        let max_age = self
+            .config
+            .policy
+            .tick_ms
+            .saturating_mul(MACHINE_STALE_TICKS);
         let machines: Vec<Value> = self
             .config
             .machines()
@@ -651,9 +703,7 @@ impl Service {
                 let load = observation.and_then(|row| row.load.as_ref());
                 let state = match observed_at_ms {
                     None => "not_reporting",
-                    Some(at) if !now_ms.checked_sub(at).is_some_and(|age| age < max_age) => {
-                        "stale"
-                    }
+                    Some(at) if !now_ms.checked_sub(at).is_some_and(|age| age < max_age) => "stale",
                     Some(_) if sessions.is_none() => "unreachable",
                     Some(_) => "reporting",
                 };
@@ -667,6 +717,9 @@ impl Service {
                 let mut entry = json!({
                     "machine": machine,
                     "placement_configured": observation.is_some(),
+                    "herdr_windows_configured": inventory_machine.is_some_and(|host| {
+                        machine == self.config.machine || host.herdr_machine.is_some()
+                    }),
                     "observed_at_ms": observed_at_ms,
                     "last_seen_at_ms": last_seen_at_ms,
                     "state": state,
@@ -680,8 +733,16 @@ impl Service {
                     "drained_at_ms": drain.map(|record| record.updated_at_ms),
                     "inventory": inventory_machine.map(project_inventory_machine),
                 });
-                if self.config.herdr_core.as_ref().is_some_and(|config| config.hosts.contains_key(machine)) {
-                    entry["core"] = core.as_ref().map_or_else(|| CoreObservations::default().project(machine, now_ms), |view| view.project(machine, now_ms));
+                if self
+                    .config
+                    .herdr_core
+                    .as_ref()
+                    .is_some_and(|config| config.hosts.contains_key(machine))
+                {
+                    entry["core"] = core.as_ref().map_or_else(
+                        || CoreObservations::default().project(machine, now_ms),
+                        |view| view.project(machine, now_ms),
+                    );
                 }
                 entry
             })
@@ -730,9 +791,7 @@ impl Service {
         let request_id = validate_request_id(body.request_id.as_deref())
             .map_err(|error| Response::error(400, "fleet_body", error))?;
         let hash = payload_hash(&json!({ "draining": body.draining, "reason": &reason }));
-        let req_key = request_id
-            .as_ref()
-            .map(|id| format!("drain:{name}:{id}"));
+        let req_key = request_id.as_ref().map(|id| format!("drain:{name}:{id}"));
         let response_json = self
             .controls
             .mutate(|controls| {
@@ -1080,15 +1139,13 @@ impl Service {
                 }))
             })
             .collect();
-        let mut blocked = ledger
-            .current()
-            .filter_map(|work| {
-                let key = work.canonical_key().ok()?;
-                match ledger.eligibility_of(&key)? {
-                    Eligibility::Blocked { reasons } => Some((work.identity().ok()?, work, reasons)),
-                    Eligibility::Ready => None,
-                }
-            });
+        let mut blocked = ledger.current().filter_map(|work| {
+            let key = work.canonical_key().ok()?;
+            match ledger.eligibility_of(&key)? {
+                Eligibility::Blocked { reasons } => Some((work.identity().ok()?, work, reasons)),
+                Eligibility::Ready => None,
+            }
+        });
         let blocked_rows: Vec<Value> = blocked
             .by_ref()
             .take(MAX_LISTED_WORK)
@@ -1144,6 +1201,23 @@ impl Service {
                 let observation_age_ms = session.map(|session| session.observation_age_ms(now_ms));
                 let observation_stale =
                     session.is_some_and(|session| session.is_observation_stale(now_ms, &policy));
+                let reservation = attempt
+                    .and_then(|attempt| attempt.dispatch.as_ref())
+                    .filter(|reserved| {
+                        reserved.provider_profile.as_str()
+                            == kiln_core::implementation::INTERACTIVE_PROVIDER_PROFILE
+                    });
+                let queued_move_eligible = reservation.is_some()
+                    && session.is_none()
+                    && attempt.is_some_and(|attempt| {
+                        attempt.phase == kiln_core::implementation::AttemptPhase::Claimed
+                            && attempt.superseded_by.is_none()
+                            && attempt.workflow.is_none()
+                            && attempt.dispatch_request_binding.is_none()
+                            && !attempts.dispatch_requires_recovery(&attempt.identity)
+                            && !attempts.transport_start_bound(&attempt.identity)
+                            && attempts.is_current(&attempt.identity, view.fence, now_ms)
+                    });
                 json!({
                     "attempt": view.attempt,
                     "fence": view.fence,
@@ -1151,6 +1225,8 @@ impl Service {
                     "lease_expires_ms": view.lease_expires_ms,
                     "held_by_fleet": view.held_by_fleet,
                     "phase": attempt.map(|attempt| attempt.phase),
+                    "reservation": reservation.map(|reserved| &reserved.effect_id),
+                    "queued_move_eligible": queued_move_eligible,
                     "work": attempt.map(|attempt| &attempt.work_identity),
                     "repository": work.map(|work| &work.repository),
                     "title": work.map(|work| &work.title),
@@ -1161,7 +1237,10 @@ impl Service {
                 })
             })
             .collect();
-        Ok(Response::new(200, json!({ "attempts": listed, "truncated": views.len() > MAX_LISTED_ATTEMPTS })))
+        Ok(Response::new(
+            200,
+            json!({ "attempts": listed, "truncated": views.len() > MAX_LISTED_ATTEMPTS }),
+        ))
     }
 
     // r[impl kiln.fleet.capture]
@@ -1460,11 +1539,107 @@ impl Service {
         Ok((attempt.fence, session, agent))
     }
 
+    fn window_host(&self, host: &str) -> Result<HerdrClient, Response> {
+        let unknown = || {
+            Response::error(
+                404,
+                "fleet_herdr_host_unknown",
+                "host is not configured for Herdr windows",
+            )
+        };
+        if !machine_label(host) || !self.config.machines().contains(host) {
+            return Err(unknown());
+        }
+        let herdr = self.herdr_client().ok_or_else(|| {
+            Response::error(
+                503,
+                "fleet_herdr_unavailable",
+                "no Herdr inventory is attached",
+            )
+        })?;
+        let machine = herdr.inventory().machine(host).ok_or_else(unknown)?;
+        if host != self.config.machine && machine.herdr_machine.is_none() {
+            return Err(Response::error(
+                503,
+                "fleet_herdr_unavailable",
+                "no Herdr route is configured for this host",
+            ));
+        }
+        Ok(herdr)
+    }
+
+    // r[impl kiln.sdlc.herdr_windows]
+    fn herdr_windows(&self, host: &str, request: &Request) -> Handled {
+        if request.query.is_some() || !request.body.is_empty() {
+            return Err(Response::error(
+                400,
+                "fleet_query",
+                "window inventory does not accept parameters",
+            ));
+        }
+        let windows = self
+            .window_host(host)?
+            .list_panes(host)
+            .map_err(window_read_error)?;
+        Ok(Response::new(
+            200,
+            json!({ "machine": host, "windows": windows }),
+        ))
+    }
+
+    // POST deliberately uses the Web bridge's operator-only, same-origin JSON admission.
+    fn capture_herdr_window(
+        &self,
+        actor: &str,
+        host: &str,
+        pane_id: &str,
+        request: &Request,
+    ) -> Handled {
+        self.operator(actor)?;
+        if !matches!(parse_body::<Value>(&request.body)?, Value::Object(fields) if fields.is_empty())
+        {
+            return Err(Response::error(
+                400,
+                "fleet_body",
+                "capture expects an empty JSON object",
+            ));
+        }
+        if !pane_handle(pane_id) {
+            return Err(Response::error(
+                400,
+                "fleet_herdr_window_invalid",
+                "invalid native pane ID",
+            ));
+        }
+        let requested_lines = parse_pane_lines_query(request.query.as_deref())
+            .map_err(|message| Response::error(400, "fleet_query", message))?;
+        let (window, raw) = self
+            .window_host(host)?
+            .read_observed_pane(host, pane_id, requested_lines)
+            .map_err(window_read_error)?;
+        let pane = sanitize_pane_output(&raw, requested_lines, MAX_WINDOW_TEXT_BYTES);
+        log::info(
+            "api.herdr_window_captured",
+            json!({ "actor": actor, "machine": host, "pane_id": pane_id, "requested_lines": requested_lines }),
+        );
+        Ok(Response::new(
+            200,
+            json!({
+                "machine": host,
+                "window": window,
+                "requested_lines": requested_lines,
+                "line_count": pane.line_count,
+                "truncated": pane.truncated,
+                "text": pane.text,
+            }),
+        ))
+    }
+
     // r[impl kiln.fleet.live_pane_and_machine_census]
     fn attempt_pane(&self, id: &str, query: Option<&str>) -> Handled {
         let attempt_id = path_identity(id)?;
-        let requested_lines =
-            parse_pane_lines_query(query).map_err(|msg| Response::error(400, "fleet_query", msg))?;
+        let requested_lines = parse_pane_lines_query(query)
+            .map_err(|msg| Response::error(400, "fleet_query", msg))?;
         let mut implementer = self.open("GET /v1/attempts/{id}/pane")?;
         let (fence, session, agent) = Self::live_attempt_session(&mut implementer, &attempt_id)?;
         let herdr = self.herdr_client().ok_or_else(|| {
@@ -1788,6 +1963,105 @@ impl Service {
             ));
         }
         Ok(())
+    }
+
+    fn placement_admission(&self, machine: &str, request: &Request) -> Result<(), Response> {
+        self.operator(machine)?;
+        if request.query.is_some() {
+            return Err(Response::error(
+                400,
+                "fleet_query",
+                "placement does not accept query parameters",
+            ));
+        }
+        Ok(())
+    }
+
+    fn placement_capabilities(&self, machine: &str, request: &Request) -> Handled {
+        self.placement_admission(machine, request)?;
+        Ok(Response::new(
+            200,
+            json!(crate::dispatch::placement::capabilities(self)),
+        ))
+    }
+
+    // r[impl kiln.sdlc.workload_placement]
+    fn placement_preview(&self, machine: &str, request: &Request, now_ms: u64) -> Handled {
+        self.placement_admission(machine, request)?;
+        let body = parse_body(&request.body)?;
+        let plan = crate::dispatch::placement::preview(
+            self,
+            &mut self.open("POST /v1/placement/split/plan")?,
+            body,
+            now_ms,
+        )
+        .map_err(|error| store_error(&error))?;
+        Ok(Response::new(200, json!({"plan": plan})))
+    }
+
+    fn placement_submit(&self, machine: &str, request: &Request, now_ms: u64) -> Handled {
+        self.placement_admission(machine, request)?;
+        let body = parse_body(&request.body)?;
+        let placement = crate::dispatch::placement::submit(
+            self,
+            &mut self.open("POST /v1/placement/split")?,
+            body,
+            now_ms,
+        )
+        .map_err(|error| store_error(&error))?;
+        Ok(Response::new(202, json!({"placement": placement})))
+    }
+
+    fn placement_status(&self, machine: &str, request: &Request, id: &str, now_ms: u64) -> Handled {
+        self.placement_admission(machine, request)?;
+        let identity = path_identity(id)?;
+        let placement = crate::dispatch::placement::status(
+            self,
+            &mut self.open("GET /v1/placement/split/{id}")?,
+            &identity,
+            now_ms,
+        )
+        .map_err(|error| store_error(&error))?;
+        Ok(Response::new(200, json!({"placement": placement})))
+    }
+
+    // r[impl kiln.sdlc.queued_workload_move]
+    fn move_preview(&self, machine: &str, request: &Request, now_ms: u64) -> Handled {
+        self.placement_admission(machine, request)?;
+        let body = parse_body(&request.body)?;
+        let plan = crate::dispatch::placement::preview_move(
+            self,
+            &mut self.open("POST /v1/placement/move/plan")?,
+            body,
+            now_ms,
+        )
+        .map_err(|error| store_error(&error))?;
+        Ok(Response::new(200, json!({"plan": plan})))
+    }
+
+    fn move_submit(&self, machine: &str, request: &Request, now_ms: u64) -> Handled {
+        self.placement_admission(machine, request)?;
+        let body = parse_body(&request.body)?;
+        let placement = crate::dispatch::placement::submit_move(
+            self,
+            &mut self.open("POST /v1/placement/move")?,
+            body,
+            now_ms,
+        )
+        .map_err(|error| store_error(&error))?;
+        Ok(Response::new(202, json!({"placement": placement})))
+    }
+
+    fn move_status(&self, machine: &str, request: &Request, id: &str, now_ms: u64) -> Handled {
+        self.placement_admission(machine, request)?;
+        let id = path_identity(id)?;
+        let placement = crate::dispatch::placement::status_move(
+            &mut self.open("GET /v1/placement/move/{id}")?,
+            &id,
+            now_ms,
+        )
+        .map_err(|error| store_error(&error))?;
+        Ok(Response::new(200, json!({"placement": placement})))
     }
 
     // r[impl kiln.fleet.swarm.surface]
@@ -2115,6 +2389,30 @@ fn claim_response(outcome: ClaimOutcome) -> Response {
             Response::new(200, json!({ "outcome": "released", "claim": claim }))
         }
         other => Response::new(200, json!({ "outcome": other })),
+    }
+}
+
+fn window_read_error(failure: HerdrFailure) -> Response {
+    // Provider diagnostics can include untrusted data. Do not echo them from
+    // the inventory endpoint, or log them when a capture fails.
+    if failure.is_code(codes::PANE_NOT_FOUND) {
+        Response::error(
+            404,
+            "fleet_herdr_window_unknown",
+            "window is not present on this host",
+        )
+    } else if failure.class == FailureClass::Unavailable {
+        Response::error(
+            503,
+            "fleet_herdr_unavailable",
+            "Herdr is unavailable on this host",
+        )
+    } else {
+        Response::error(
+            502,
+            "fleet_herdr_window_read",
+            "Herdr returned an invalid or refused window read",
+        )
     }
 }
 

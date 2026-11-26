@@ -7,6 +7,9 @@
 //! shell only performs effects and reports observations. Herdr outcomes that
 //! are unknown are reconciled by listing before any retry.
 
+#[path = "placement.rs"]
+pub mod placement;
+
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::OsString;
@@ -203,13 +206,8 @@ impl Dispatcher {
         }
         self.mirror(window.as_deref())?;
         let Some(herdr) = self.herdr.clone() else {
-            self.service.record_tick_summary(summarize_tick(
-                now_ms,
-                0,
-                0,
-                0,
-                Vec::new(),
-            ));
+            self.service
+                .record_tick_summary(summarize_tick(now_ms, 0, 0, 0, Vec::new()));
             return Ok(TickReport::default());
         };
         self.observe_sessions(&herdr, now_ms)?;
@@ -219,7 +217,8 @@ impl Dispatcher {
         });
         for (machine, load) in &occupancy.machines {
             let sessions = session_counts.get(machine).copied().flatten();
-            self.service.record_machine_load(machine, sessions, load.clone());
+            self.service
+                .record_machine_load(machine, sessions, load.clone());
         }
         let controls = self.service.controls_snapshot();
         let dispatch_paused = controls.dispatch_pause.paused;
@@ -236,14 +235,10 @@ impl Dispatcher {
         let planned = self.store.fleet_plan(now_ms, free_slots, &policy)?;
         let mut deferred_items = Vec::new();
         if dispatch_paused {
-            let reason = controls
-                .dispatch_pause
-                .reason
-                .as_deref()
-                .map_or_else(
-                    || "dispatch is paused".to_owned(),
-                    |reason| format!("dispatch is paused: {reason}"),
-                );
+            let reason = controls.dispatch_pause.reason.as_deref().map_or_else(
+                || "dispatch is paused".to_owned(),
+                |reason| format!("dispatch is paused: {reason}"),
+            );
             deferred_items.push(DeferredItem { work: None, reason });
         } else if raw_free_slots == 0 && total_unfiltered_slots > 0 {
             deferred_items.push(DeferredItem {
@@ -254,10 +249,7 @@ impl Dispatcher {
         let mut performed = Vec::new();
         for effect in &planned {
             if dispatch_paused
-                && matches!(
-                    effect,
-                    FleetEffect::ClaimNext | FleetEffect::Place { .. }
-                )
+                && matches!(effect, FleetEffect::ClaimNext | FleetEffect::Place { .. })
             {
                 continue;
             }
@@ -679,15 +671,45 @@ impl Dispatcher {
             store.fleet_clear_placing(attempt)?;
             Ok(false)
         };
-        let Some(plan) = self.store.dispatch_plan(attempt)? else {
-            return unplaced(&mut self.store, deferred, None, "attempt has no dispatch plan");
-        };
         let record = self
             .store
             .attempt(attempt)?
             .ok_or("attempt is not retained")?;
         let work_id = Some(record.work_identity.as_str().to_owned());
         let work = self.store.active_work(attempt, fence, now_ms)?;
+        let Some(plan) = self.store.dispatch_plan(attempt)? else {
+            return unplaced(
+                &mut self.store,
+                deferred,
+                work_id,
+                "attempt has no dispatch plan",
+            );
+        };
+        let Some(reservation) = &record.dispatch else {
+            return unplaced(
+                &mut self.store,
+                deferred,
+                work_id,
+                "attempt has no reservation",
+            );
+        };
+        // These reads can race a queued rebind; prove their exact association.
+        if !kiln_core::implementation::admit_dispatch_plan(&work, &record, &plan)
+            .is_ok_and(|identity| identity == reservation.plan)
+        {
+            return unplaced(
+                &mut self.store,
+                deferred,
+                work_id,
+                "reservation changed during placement",
+            );
+        }
+        if let Err(error) = self
+            .store
+            .fleet_check_explicit_launch(attempt, fence, now_ms)
+        {
+            return unplaced(&mut self.store, deferred, work_id, &error);
+        }
         let inventory = herdr.inventory();
         let Some(machine) = planned_machine(inventory, &plan, &record, &work) else {
             return unplaced(
@@ -721,7 +743,7 @@ impl Dispatcher {
                 "the planned machine has no free slot",
             );
         };
-        let session = match self.store.fleet_bind_session(
+        let session = match self.store.fleet_bind_reserved_session(
             Placement {
                 attempt: attempt.clone(),
                 fence,
@@ -730,6 +752,7 @@ impl Dispatcher {
                 machine: chosen.machine.clone(),
                 kind: chosen.kind.as_str().to_owned(),
             },
+            &reservation.effect_id,
             now_ms,
         ) {
             Ok(session) => session,
@@ -778,12 +801,30 @@ impl Dispatcher {
         let work = self
             .store
             .active_work(&attempt.identity, attempt.fence, now_ms)?;
+        let explicit =
+            self.store
+                .fleet_check_explicit_launch(&attempt.identity, attempt.fence, now_ms)?;
         let base = git_base(&work).ok_or("work has no exact git base commit")?;
         let machine = herdr
             .inventory()
             .machine(&session.machine)
             .cloned()
             .ok_or("session machine left the inventory")?;
+        if explicit.is_some() {
+            let plan = self
+                .store
+                .dispatch_plan(&attempt.identity)?
+                .ok_or("native reservation is missing")?;
+            if machine.checkout(&work.repository).is_none()
+                || !planned_machine(herdr.inventory(), &plan, &attempt, &work)
+                    .is_some_and(|planned| planned.label == machine.label)
+            {
+                return Err(
+                    "explicit destination checkout or workspace no longer matches its reservation"
+                        .into(),
+                );
+            }
+        }
         let kind = AgentKind::parse(&session.kind).ok_or("session kind is not admitted")?;
         let name = agent_name(&attempt.identity)?;
         let branch = branch_name(
@@ -803,14 +844,53 @@ impl Dispatcher {
         let agents = herdr
             .list_agents(&machine.label)
             .map_err(|failure| failure.to_string())?;
-        if let Some(agent) = agents
-            .iter()
-            .find(|agent| agent.name.as_deref() == Some(name.as_str()) && agent.kind.is_some())
-        {
+        if let Some(agent) = agents.iter().find(|agent| {
+            agent.name.as_deref() == Some(name.as_str())
+                && (explicit.is_some() || agent.kind.is_some())
+        }) {
+            if let Some(issued) = explicit {
+                if !issued || agent.admitted_kind() != Some(kind) {
+                    return Err(
+                        "listed agent has no matching explicit launch intent or kind".into(),
+                    );
+                }
+                let worktrees = herdr
+                    .list_worktrees(&machine.label, &work.repository)
+                    .map_err(|failure| failure.to_string())?;
+                if !worktrees.iter().any(|tree| {
+                    tree.path == path
+                        && tree.branch.as_deref() == Some(branch.as_str())
+                        && tree.open_workspace_id.as_deref() == Some(agent.workspace_id.as_str())
+                }) {
+                    return Err(
+                        "listed agent has no matching explicit worktree and workspace observation"
+                            .into(),
+                    );
+                }
+            }
             let workspace =
                 SessionWorkspace::new(&agent.workspace_id, &agent.pane_id, &path, &branch, &base)
                     .map_err(|error| error.message)?;
             return self.started(herdr, &session, name, workspace, now_ms);
+        }
+        if let Some(issued) = explicit {
+            let controls = self.service.controls_snapshot();
+            if controls.dispatch_pause.paused || controls.is_draining(&machine.label) {
+                return Err("explicit destination is draining or dispatch is paused".into());
+            }
+            let counts = kiln_adapter_herdr::count_occupancy(&agents);
+            if counts.get(&kind).copied().unwrap_or(0) >= machine.slots(kind) {
+                return Err(
+                    "explicit destination no longer has capacity for the selected agent kind"
+                        .into(),
+                );
+            }
+            if issued {
+                return Err(
+                    "explicit launch outcome requires exact provider observation before any retry"
+                        .into(),
+                );
+            }
         }
         let worktrees = herdr
             .list_worktrees(&machine.label, &work.repository)
@@ -824,6 +904,12 @@ impl Dispatcher {
                 now_ms,
             );
             return Ok(());
+        }
+        if explicit.is_some() && !self.store.fleet_begin_explicit_launch(&session, now_ms)? {
+            return Err(
+                "explicit launch outcome requires exact provider observation before any retry"
+                    .into(),
+            );
         }
         let created = match herdr.create_worktree(
             &machine.label,
@@ -926,6 +1012,9 @@ impl Dispatcher {
                 .sessions
                 .get(session_id)
                 .ok_or("session is not recorded")?;
+            let _ =
+                self.store
+                    .fleet_check_explicit_launch(&session.attempt, session.fence, now_ms)?;
             let workspace = session
                 .workspace
                 .as_ref()
@@ -1100,6 +1189,21 @@ impl Dispatcher {
         now_ms: u64,
     ) -> Result<bool, String> {
         let session = self.session(session_id)?;
+        let attempt = self.store.attempt(&session.attempt)?;
+        let explicit_unknown = attempt.as_ref().is_some_and(|attempt| {
+            attempt.fence == session.fence
+                && attempt.failure == Some(AttemptFailure::Unknown)
+                && attempt.dispatch_request_binding.is_some()
+                && attempt.dispatch.as_ref().is_some_and(|reservation| {
+                    reservation.provider_profile.as_str() == INTERACTIVE_PROVIDER_PROFILE
+                })
+        });
+        if explicit_unknown && (session.agent_name.is_none() || session.workspace.is_none()) {
+            return Err(
+                "explicit provider outcome is unknown; there is no exact workspace to retire"
+                    .into(),
+            );
+        }
         let tolerated = |outcome: Result<(), HerdrFailure>| match outcome {
             Ok(()) => Ok(()),
             Err(failure) if failure.class == FailureClass::Rejected => Ok(()),
@@ -1109,7 +1213,23 @@ impl Dispatcher {
             tolerated(herdr.interrupt(&session.machine, agent))?;
         }
         if let Some(workspace) = &session.workspace {
-            tolerated(herdr.close_workspace(&session.machine, &workspace.herdr_workspace))?;
+            let closure = herdr.close_workspace(&session.machine, &workspace.herdr_workspace);
+            if explicit_unknown {
+                closure.map_err(|failure| failure.to_string())?;
+                let agents = herdr
+                    .list_agents(&session.machine)
+                    .map_err(|failure| failure.to_string())?;
+                if agents
+                    .iter()
+                    .any(|agent| agent.name.as_deref() == session.agent_name.as_deref())
+                {
+                    return Err(
+                        "agent from explicit placement still listed after workspace closure".into(),
+                    );
+                }
+            } else {
+                tolerated(closure)?;
+            }
         }
         let config = Arc::clone(&self.service.config);
         let state = self.store.fleet_state()?;
@@ -1135,7 +1255,7 @@ impl Dispatcher {
                 &[],
             )?;
         }
-        if let Some(attempt) = self.store.attempt(&session.attempt)?
+        if let Some(attempt) = attempt
             && attempt.fence == session.fence
             && attempt.failure == Some(AttemptFailure::Unknown)
         {

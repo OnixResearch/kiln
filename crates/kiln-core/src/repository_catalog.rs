@@ -641,10 +641,9 @@ pub fn reconcile_catalog(
         let has_remotes = record.canonical.is_some() || !record.remotes.is_empty();
         record.sync_status =
             compute_sync_status(has_remotes, &record.local_copies, &record.remotes);
-        record.total_cairns = record
-            .local_copies
-            .iter()
-            .fold(0u32, |acc, c| acc.saturating_add(c.cairn_count.unwrap_or(0)));
+        record.total_cairns = record.local_copies.iter().fold(0u32, |acc, c| {
+            acc.saturating_add(c.cairn_count.unwrap_or(0))
+        });
         let has_radicle = record
             .remotes
             .iter()
@@ -733,91 +732,92 @@ fn is_explicit_github_remote(raw: &str) -> bool {
 }
 
 fn normalize_github_url(raw: &str) -> CoreResult<(String, String, String)> {
-    let (scheme_kind, owner_repo_raw) = if let Some(rest) = strip_prefix_ignore_ascii_case(raw, "https://") {
-        let Some((authority, path)) = rest.split_once('/') else {
+    let (scheme_kind, owner_repo_raw) =
+        if let Some(rest) = strip_prefix_ignore_ascii_case(raw, "https://") {
+            let Some((authority, path)) = rest.split_once('/') else {
+                return Err(Diagnostic::new(
+                    "invalid_github_url",
+                    "url",
+                    "GitHub HTTPS URL must include owner/repo",
+                ));
+            };
+            if authority.contains('@') {
+                return Err(Diagnostic::new(
+                    "embedded_credentials",
+                    "url",
+                    "HTTPS remote URL must not embed credentials",
+                ));
+            }
+            if !authority.eq_ignore_ascii_case("github.com") {
+                return Err(Diagnostic::new(
+                    "invalid_github_host",
+                    "url",
+                    "GitHub HTTPS URL must target github.com",
+                ));
+            }
+            (GithubUrlKind::Https, path)
+        } else if let Some(rest) = strip_prefix_ignore_ascii_case(raw, "ssh://") {
+            let Some((authority, path)) = rest.split_once('/') else {
+                return Err(Diagnostic::new(
+                    "invalid_github_url",
+                    "url",
+                    "GitHub SSH URL must include owner/repo",
+                ));
+            };
+            let Some((userinfo, host)) = authority.split_once('@') else {
+                return Err(Diagnostic::new(
+                    "invalid_ssh_userinfo",
+                    "url",
+                    "SSH GitHub URL must use git@github.com",
+                ));
+            };
+            if userinfo != "git" {
+                return Err(Diagnostic::new(
+                    "embedded_credentials",
+                    "url",
+                    "SSH remote URL must use git@ without an embedded password or custom token",
+                ));
+            }
+            if !host.eq_ignore_ascii_case("github.com") {
+                return Err(Diagnostic::new(
+                    "invalid_github_host",
+                    "url",
+                    "GitHub SSH URL must target github.com",
+                ));
+            }
+            (GithubUrlKind::SshScheme, path)
+        } else if let Some((left, path)) = raw.split_once(':') {
+            let Some((userinfo, host)) = left.split_once('@') else {
+                return Err(Diagnostic::new(
+                    "invalid_github_url",
+                    "url",
+                    "unsupported GitHub remote URL scheme",
+                ));
+            };
+            if userinfo != "git" {
+                return Err(Diagnostic::new(
+                    "embedded_credentials",
+                    "url",
+                    "SSH remote URL must use git@ without an embedded password or custom token",
+                ));
+            }
+            if !host.eq_ignore_ascii_case("github.com") {
+                return Err(Diagnostic::new(
+                    "invalid_github_host",
+                    "url",
+                    "GitHub SSH remote must target github.com",
+                ));
+            }
+            (GithubUrlKind::ScpSsh, path)
+        } else if !raw.contains('@') {
+            (GithubUrlKind::Https, raw)
+        } else {
             return Err(Diagnostic::new(
                 "invalid_github_url",
                 "url",
-                "GitHub HTTPS URL must include owner/repo",
+                "invalid GitHub repository specifier",
             ));
         };
-        if authority.contains('@') {
-            return Err(Diagnostic::new(
-                "embedded_credentials",
-                "url",
-                "HTTPS remote URL must not embed credentials",
-            ));
-        }
-        if !authority.eq_ignore_ascii_case("github.com") {
-            return Err(Diagnostic::new(
-                "invalid_github_host",
-                "url",
-                "GitHub HTTPS URL must target github.com",
-            ));
-        }
-        (GithubUrlKind::Https, path)
-    } else if let Some(rest) = strip_prefix_ignore_ascii_case(raw, "ssh://") {
-        let Some((authority, path)) = rest.split_once('/') else {
-            return Err(Diagnostic::new(
-                "invalid_github_url",
-                "url",
-                "GitHub SSH URL must include owner/repo",
-            ));
-        };
-        let Some((userinfo, host)) = authority.split_once('@') else {
-            return Err(Diagnostic::new(
-                "invalid_ssh_userinfo",
-                "url",
-                "SSH GitHub URL must use git@github.com",
-            ));
-        };
-        if userinfo != "git" {
-            return Err(Diagnostic::new(
-                "embedded_credentials",
-                "url",
-                "SSH remote URL must use git@ without an embedded password or custom token",
-            ));
-        }
-        if !host.eq_ignore_ascii_case("github.com") {
-            return Err(Diagnostic::new(
-                "invalid_github_host",
-                "url",
-                "GitHub SSH URL must target github.com",
-            ));
-        }
-        (GithubUrlKind::SshScheme, path)
-    } else if let Some((left, path)) = raw.split_once(':') {
-        let Some((userinfo, host)) = left.split_once('@') else {
-            return Err(Diagnostic::new(
-                "invalid_github_url",
-                "url",
-                "unsupported GitHub remote URL scheme",
-            ));
-        };
-        if userinfo != "git" {
-            return Err(Diagnostic::new(
-                "embedded_credentials",
-                "url",
-                "SSH remote URL must use git@ without an embedded password or custom token",
-            ));
-        }
-        if !host.eq_ignore_ascii_case("github.com") {
-            return Err(Diagnostic::new(
-                "invalid_github_host",
-                "url",
-                "GitHub SSH remote must target github.com",
-            ));
-        }
-        (GithubUrlKind::ScpSsh, path)
-    } else if !raw.contains('@') {
-        (GithubUrlKind::Https, raw)
-    } else {
-        return Err(Diagnostic::new(
-            "invalid_github_url",
-            "url",
-            "invalid GitHub repository specifier",
-        ));
-    };
 
     let (owner, repo) = parse_owner_repo(owner_repo_raw)?;
     let native_id = format!("{owner}/{repo}");
@@ -848,75 +848,76 @@ fn normalize_gitea_url(raw: &str) -> CoreResult<(String, String, String)> {
         ScpSsh,
     }
 
-    let (scheme, authority, path) = if let Some(rest) = strip_prefix_ignore_ascii_case(raw, "https://") {
-        let Some((authority, path)) = rest.split_once('/') else {
+    let (scheme, authority, path) =
+        if let Some(rest) = strip_prefix_ignore_ascii_case(raw, "https://") {
+            let Some((authority, path)) = rest.split_once('/') else {
+                return Err(Diagnostic::new(
+                    "invalid_gitea_url",
+                    "url",
+                    "Gitea HTTPS URL must include host and owner/repo",
+                ));
+            };
+            if authority.contains('@') {
+                return Err(Diagnostic::new(
+                    "embedded_credentials",
+                    "url",
+                    "HTTPS remote URL must not embed credentials",
+                ));
+            }
+            (GiteaScheme::Https, authority, path)
+        } else if let Some(rest) = strip_prefix_ignore_ascii_case(raw, "ssh://") {
+            let Some((authority, path)) = rest.split_once('/') else {
+                return Err(Diagnostic::new(
+                    "invalid_gitea_url",
+                    "url",
+                    "Gitea SSH URL must include host and owner/repo",
+                ));
+            };
+            let Some((userinfo, host_port)) = authority.split_once('@') else {
+                return Err(Diagnostic::new(
+                    "invalid_ssh_userinfo",
+                    "url",
+                    "SSH Gitea URL must use git@<host>",
+                ));
+            };
+            if userinfo != "git" {
+                return Err(Diagnostic::new(
+                    "embedded_credentials",
+                    "url",
+                    "SSH remote URL must use git@ without an embedded password or custom token",
+                ));
+            }
+            (GiteaScheme::SshScheme, host_port, path)
+        } else if let Some((left, path)) = raw.split_once(':') {
+            if left.contains('/') {
+                return Err(Diagnostic::new(
+                    "invalid_gitea_url",
+                    "url",
+                    "unsupported Gitea remote URL scheme",
+                ));
+            }
+            let Some((userinfo, host)) = left.split_once('@') else {
+                return Err(Diagnostic::new(
+                    "invalid_gitea_url",
+                    "url",
+                    "unsupported Gitea remote URL scheme",
+                ));
+            };
+            if userinfo != "git" {
+                return Err(Diagnostic::new(
+                    "embedded_credentials",
+                    "url",
+                    "SSH remote URL must use git@ without an embedded password or custom token",
+                ));
+            }
+            (GiteaScheme::ScpSsh, host, path)
+        } else {
             return Err(Diagnostic::new(
                 "invalid_gitea_url",
                 "url",
-                "Gitea HTTPS URL must include host and owner/repo",
+                "Gitea remote requires https://, ssh://git@, or git@<host>: scheme",
             ));
         };
-        if authority.contains('@') {
-            return Err(Diagnostic::new(
-                "embedded_credentials",
-                "url",
-                "HTTPS remote URL must not embed credentials",
-            ));
-        }
-        (GiteaScheme::Https, authority, path)
-    } else if let Some(rest) = strip_prefix_ignore_ascii_case(raw, "ssh://") {
-        let Some((authority, path)) = rest.split_once('/') else {
-            return Err(Diagnostic::new(
-                "invalid_gitea_url",
-                "url",
-                "Gitea SSH URL must include host and owner/repo",
-            ));
-        };
-        let Some((userinfo, host_port)) = authority.split_once('@') else {
-            return Err(Diagnostic::new(
-                "invalid_ssh_userinfo",
-                "url",
-                "SSH Gitea URL must use git@<host>",
-            ));
-        };
-        if userinfo != "git" {
-            return Err(Diagnostic::new(
-                "embedded_credentials",
-                "url",
-                "SSH remote URL must use git@ without an embedded password or custom token",
-            ));
-        }
-        (GiteaScheme::SshScheme, host_port, path)
-    } else if let Some((left, path)) = raw.split_once(':') {
-        if left.contains('/') {
-            return Err(Diagnostic::new(
-                "invalid_gitea_url",
-                "url",
-                "unsupported Gitea remote URL scheme",
-            ));
-        }
-        let Some((userinfo, host)) = left.split_once('@') else {
-            return Err(Diagnostic::new(
-                "invalid_gitea_url",
-                "url",
-                "unsupported Gitea remote URL scheme",
-            ));
-        };
-        if userinfo != "git" {
-            return Err(Diagnostic::new(
-                "embedded_credentials",
-                "url",
-                "SSH remote URL must use git@ without an embedded password or custom token",
-            ));
-        }
-        (GiteaScheme::ScpSsh, host, path)
-    } else {
-        return Err(Diagnostic::new(
-            "invalid_gitea_url",
-            "url",
-            "Gitea remote requires https://, ssh://git@, or git@<host>: scheme",
-        ));
-    };
 
     let (host_lower, port) = match scheme {
         GiteaScheme::ScpSsh => {
@@ -959,7 +960,10 @@ fn split_and_validate_host_port(authority: &str) -> CoreResult<(String, Option<u
         ));
     }
     if let Some((host, port_str)) = authority.split_once(':') {
-        if port_str.contains(':') || port_str.is_empty() || !port_str.bytes().all(|b| b.is_ascii_digit()) {
+        if port_str.contains(':')
+            || port_str.is_empty()
+            || !port_str.bytes().all(|b| b.is_ascii_digit())
+        {
             return Err(Diagnostic::new(
                 "invalid_gitea_port",
                 "url",
@@ -967,7 +971,11 @@ fn split_and_validate_host_port(authority: &str) -> CoreResult<(String, Option<u
             ));
         }
         let port: u16 = port_str.parse().map_err(|_| {
-            Diagnostic::new("invalid_gitea_port", "url", "Gitea URL port is out of range")
+            Diagnostic::new(
+                "invalid_gitea_port",
+                "url",
+                "Gitea URL port is out of range",
+            )
         })?;
         if port == 0 {
             return Err(Diagnostic::new(
@@ -1221,7 +1229,11 @@ fn path_slug(path: &str) -> String {
         .rsplit('/')
         .next()
         .filter(|s| !s.is_empty())
-        .unwrap_or(if trimmed.is_empty() { "local-repo" } else { trimmed });
+        .unwrap_or(if trimmed.is_empty() {
+            "local-repo"
+        } else {
+            trimmed
+        });
     truncate_utf8(base, MAX_SLUG_BYTES)
 }
 
@@ -1386,7 +1398,8 @@ mod tests {
             format!("rad://{rid}"),
             format!("rad::rad://{rid}"),
         ] {
-            let parsed = normalize_remote(RemoteProvider::Radicle, RemoteRole::Canonical, &input, None);
+            let parsed =
+                normalize_remote(RemoteProvider::Radicle, RemoteRole::Canonical, &input, None);
             let Ok(ep) = parsed else {
                 unreachable!("valid Radicle RID {input} should normalize");
             };
@@ -1419,7 +1432,9 @@ mod tests {
             .is_err()
         );
         let huge = format!("https://github.com/a/{}", "x".repeat(MAX_URL_BYTES));
-        assert!(normalize_remote(RemoteProvider::Github, RemoteRole::Canonical, &huge, None).is_err());
+        assert!(
+            normalize_remote(RemoteProvider::Github, RemoteRole::Canonical, &huge, None).is_err()
+        );
 
         // Embedded credentials
         assert!(
@@ -1485,8 +1500,13 @@ mod tests {
             "https://app.radicle.xyz/nodes/ash.radicle.garden/rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
         ] {
             assert!(
-                normalize_remote(RemoteProvider::Radicle, RemoteRole::Canonical, bad_rid, None)
-                    .is_err(),
+                normalize_remote(
+                    RemoteProvider::Radicle,
+                    RemoteRole::Canonical,
+                    bad_rid,
+                    None
+                )
+                .is_err(),
                 "expected malformed Radicle RID to be rejected: {bad_rid}"
             );
         }
@@ -1560,7 +1580,10 @@ mod tests {
     fn normalize_any_remote_url_parses_checkout_remotes() {
         assert_eq!(
             normalize_any_remote_url("git@github.com:OnixResearch/kiln.git"),
-            Some((RemoteProvider::Github, "github:onixresearch/kiln".to_string()))
+            Some((
+                RemoteProvider::Github,
+                "github:onixresearch/kiln".to_string()
+            ))
         );
         assert_eq!(
             normalize_any_remote_url("rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE"),
@@ -1647,7 +1670,10 @@ mod tests {
         offline.head_commit = None;
         offline.cairn_count = None;
         offline.error = Some("SSH unreachable".to_string());
-        let with_offline = reconcile_catalog(core::slice::from_ref(&record), &[c1.clone(), offline.clone()]);
+        let with_offline = reconcile_catalog(
+            core::slice::from_ref(&record),
+            &[c1.clone(), offline.clone()],
+        );
         assert_eq!(
             with_offline.first().map(|r| r.sync_status),
             Some(FleetSyncStatus::Unknown)

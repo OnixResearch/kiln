@@ -39,6 +39,12 @@ pub struct Options {
     pub runbooks: Option<PathBuf>,
     /// Optional on-disk Lattice runbook bundle catalog directory for BLAKE3 pin verification.
     pub runbooks_dir: Option<PathBuf>,
+    /// Explicit owner-exported Lattice workflow sources.
+    pub lattice_authoring: Option<PathBuf>,
+    /// Explicit Lattice owner configuration for draft-only workflow edits.
+    pub lattice_drafts: Option<PathBuf>,
+    /// Explicit native Cairn authoring enrollment for exclusive worktrees.
+    pub cairn_authoring: Option<PathBuf>,
     /// Optional owner profile for original Lattice recovery; requires `implementation_work`.
     pub dispatch_recovery: Option<PathBuf>,
     /// Optional immutable native inspection profile for one frozen Lattice attempt.
@@ -52,6 +58,27 @@ pub struct Options {
 }
 
 impl Options {
+    fn lattice_draft_owner(&self) -> Result<Option<crate::lattice_drafts::DraftOwner>, String> {
+        self.lattice_drafts
+            .as_deref()
+            .map(crate::lattice_drafts::DraftOwner::load)
+            .transpose()
+    }
+
+    fn lattice_sources(&self) -> Result<Option<crate::lattice_authoring::SourceCatalog>, String> {
+        self.lattice_authoring
+            .as_deref()
+            .map(crate::lattice_authoring::SourceCatalog::load)
+            .transpose()
+    }
+
+    fn cairn_authoring(&self) -> Result<Option<crate::cairn_authoring::Authoring>, String> {
+        self.cairn_authoring
+            .as_deref()
+            .map(crate::cairn_authoring::Authoring::load)
+            .transpose()
+    }
+
     fn access_profile(&self) -> Result<AccessProfile, String> {
         self.access
             .as_deref()
@@ -120,7 +147,9 @@ impl Options {
         };
         let profile = crate::runtime_evidence::RuntimeEvidenceProfile::load(path)?;
         if self.implementation_work.as_deref() != Some(profile.implementation_database.as_path()) {
-            return Err("native runtime evidence requires the same implementation database".to_owned());
+            return Err(
+                "native runtime evidence requires the same implementation database".to_owned(),
+            );
         }
         Ok(Some(profile))
     }
@@ -142,6 +171,9 @@ pub fn check(path: &Path) -> Result<(), String> {
 pub fn check_with_options(path: &Path, options: &Options) -> Result<(), String> {
     let profile = ServiceProfile::load(path)?;
     options.observation_inputs()?;
+    options.lattice_sources()?;
+    options.lattice_draft_owner()?;
+    options.cairn_authoring()?;
     let _controls = options.campaign_controls()?;
     let _recovery = options.recovery_config()?;
     let _native_runtime = options.native_runtime_config()?;
@@ -242,6 +274,9 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
     let campaign_controls = options.campaign_controls()?;
     let dispatch_recovery = options.recovery_config()?;
     let native_runtime = options.native_runtime_config()?;
+    let lattice_sources = options.lattice_sources()?;
+    let lattice_drafts = options.lattice_draft_owner()?;
+    let cairn_authoring = options.cairn_authoring()?;
     let access = options.access_profile()?;
     let access_identity = access.identity()?;
     let access_agents = access.agent_bindings();
@@ -377,6 +412,9 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
         dispatch_recovery: dispatch_recovery.as_ref(),
         native_runtime_evidence: native_runtime.as_ref(),
         fleet: fleet.as_ref(),
+        lattice_sources: lattice_sources.as_ref(),
+        lattice_drafts: lattice_drafts.as_ref(),
+        cairn_authoring: cairn_authoring.as_ref(),
         delivery_observations: options.delivery_observations.as_deref(),
         events: Some(&event_hub),
         stop: &stop,
@@ -639,6 +677,9 @@ struct Context<'a> {
     dispatch_recovery: Option<&'a crate::dispatch_recovery::RecoveryConfig>,
     native_runtime_evidence: Option<&'a crate::runtime_evidence::RuntimeEvidenceProfile>,
     fleet: Option<&'a crate::fleet::Client>,
+    lattice_sources: Option<&'a crate::lattice_authoring::SourceCatalog>,
+    lattice_drafts: Option<&'a crate::lattice_drafts::DraftOwner>,
+    cairn_authoring: Option<&'a crate::cairn_authoring::Authoring>,
     delivery_observations: Option<&'a Path>,
     events: Option<&'a EventHub>,
     stop: &'a AtomicBool,
@@ -801,9 +842,10 @@ fn connection(
         stream.get_mut().deadline = Instant::now()
             .checked_add(SSE_STREAM_LIFETIME)
             .ok_or_else(|| std::io::Error::other("stream deadline invalid"))?;
-        let mut disconnect_check = |tls_stream: &mut StreamOwned<ServerConnection, DeadlineStream>| {
-            is_tls_peer_disconnected(tls_stream)
-        };
+        let mut disconnect_check = |tls_stream: &mut StreamOwned<
+            ServerConnection,
+            DeadlineStream,
+        >| { is_tls_peer_disconnected(tls_stream) };
         return if request_path == "/api/events" {
             events_stream(&mut stream, &request, context, &mut disconnect_check)
         } else {
@@ -1156,6 +1198,30 @@ fn route(
                 context.fleet,
             );
         }
+        if matches!(
+            path,
+            crate::cairn_authoring::ROUTE | crate::cairn_authoring::ARTIFACT_ROUTE
+        ) {
+            if context.profile.restricted_projection
+                || principal.role != crate::engine::Role::Operator
+            {
+                return denied(
+                    &request,
+                    context,
+                    Some(&principal),
+                    403,
+                    "cairn_authoring_forbidden",
+                );
+            }
+            return crate::cairn_authoring::response(
+                context.cairn_authoring,
+                &request.method,
+                &request.target,
+                &request.body,
+                principal.role,
+                context.profile.restricted_projection,
+            );
+        }
         if crate::cairn_workspace::http::ROUTES.contains(&path) {
             if context.profile.restricted_projection {
                 return crate::cairn_workspace::http::restricted_response(
@@ -1296,6 +1362,46 @@ fn route(
                 principal.role,
             );
         }
+        if path == crate::lattice_drafts::ROUTE {
+            if context.profile.restricted_projection
+                || principal.role != crate::engine::Role::Operator
+            {
+                return denied(
+                    &request,
+                    context,
+                    Some(&principal),
+                    403,
+                    "lattice_draft_forbidden",
+                );
+            }
+            if request.target != path {
+                return error_response(400, "lattice_draft_query_denied");
+            }
+            let Some(owner) = context.lattice_drafts else {
+                return error_response(503, "lattice_draft_not_configured");
+            };
+            return owner.response(&request.method, &request.body, principal.role);
+        }
+        if path == crate::lattice_authoring::ROUTE {
+            if context.profile.restricted_projection
+                || principal.role != crate::engine::Role::Operator
+            {
+                return denied(
+                    &request,
+                    context,
+                    Some(&principal),
+                    403,
+                    "lattice_source_forbidden",
+                );
+            }
+            return crate::lattice_authoring::response(
+                context.lattice_sources,
+                &request.method,
+                &request.target,
+                &request.body,
+                principal.role,
+            );
+        }
         let is_rollup_read = request.method == "GET"
             && (path == "/api/runbooks/dispatches"
                 || (path.starts_with("/api/runbooks/dispatches/") && path.ends_with("/rollup"))
@@ -1411,12 +1517,36 @@ mod static_assets {
         [
             ("/", "text/html; charset=utf-8", include_bytes!("web.html")),
             // r[impl kiln.web.design_system] Pinned Lucide icon data, served from Kiln's own origin.
-            ("/icons.js", "text/javascript; charset=utf-8", include_bytes!("icons.js")),
-            ("/ui.js", "text/javascript; charset=utf-8", include_bytes!("ui.js")),
-            ("/web.js", "text/javascript; charset=utf-8", include_bytes!("web.js")),
-            ("/web.css", "text/css; charset=utf-8", include_bytes!("web.css")),
-            ("/work.js", "text/javascript; charset=utf-8", include_bytes!("work.js")),
-            ("/work.css", "text/css; charset=utf-8", include_bytes!("work.css")),
+            (
+                "/icons.js",
+                "text/javascript; charset=utf-8",
+                include_bytes!("icons.js"),
+            ),
+            (
+                "/ui.js",
+                "text/javascript; charset=utf-8",
+                include_bytes!("ui.js"),
+            ),
+            (
+                "/web.js",
+                "text/javascript; charset=utf-8",
+                include_bytes!("web.js"),
+            ),
+            (
+                "/web.css",
+                "text/css; charset=utf-8",
+                include_bytes!("web.css"),
+            ),
+            (
+                "/work.js",
+                "text/javascript; charset=utf-8",
+                include_bytes!("work.js"),
+            ),
+            (
+                "/work.css",
+                "text/css; charset=utf-8",
+                include_bytes!("work.css"),
+            ),
             (
                 "/code-review.js",
                 "text/javascript; charset=utf-8",
@@ -1452,23 +1582,75 @@ mod static_assets {
                 "text/javascript; charset=utf-8",
                 include_bytes!("work-board.js"),
             ),
-            ("/project.js", "text/javascript; charset=utf-8", include_bytes!("project.js")),
-            ("/runbooks.js", "text/javascript; charset=utf-8", include_bytes!("runbooks.js")),
-            ("/project.css", "text/css; charset=utf-8", include_bytes!("project.css")),
+            (
+                "/project.js",
+                "text/javascript; charset=utf-8",
+                include_bytes!("project.js"),
+            ),
+            (
+                "/runbooks.js",
+                "text/javascript; charset=utf-8",
+                include_bytes!("runbooks.js"),
+            ),
+            (
+                "/project.css",
+                "text/css; charset=utf-8",
+                include_bytes!("project.css"),
+            ),
             // r[impl kiln.dashboard.source.navigation] Source page module, served like the project page.
-            ("/source.js", "text/javascript; charset=utf-8", include_bytes!("source.js")),
-            ("/source.css", "text/css; charset=utf-8", include_bytes!("source.css")),
+            (
+                "/source.js",
+                "text/javascript; charset=utf-8",
+                include_bytes!("source.js"),
+            ),
+            (
+                "/source.css",
+                "text/css; charset=utf-8",
+                include_bytes!("source.css"),
+            ),
             // r[impl kiln.dashboard.reviews.view] Patchgate receipts page module, served like the source page.
-            ("/receipts.js", "text/javascript; charset=utf-8", include_bytes!("receipts.js")),
-            ("/receipts.css", "text/css; charset=utf-8", include_bytes!("receipts.css")),
+            (
+                "/receipts.js",
+                "text/javascript; charset=utf-8",
+                include_bytes!("receipts.js"),
+            ),
+            (
+                "/receipts.css",
+                "text/css; charset=utf-8",
+                include_bytes!("receipts.css"),
+            ),
             // r[impl kiln.dashboard.workers.view] One Workers presentation and shared state vocabulary.
-            ("/workers.js", "text/javascript; charset=utf-8", include_bytes!("workers.js")),
-            ("/workers.css", "text/css; charset=utf-8", include_bytes!("workers.css")),
+            (
+                "/workers.js",
+                "text/javascript; charset=utf-8",
+                include_bytes!("workers.js"),
+            ),
+            (
+                "/workers.css",
+                "text/css; charset=utf-8",
+                include_bytes!("workers.css"),
+            ),
             // r[impl kiln.cairn.workspace] Cairn changes page module, served like the receipts page.
-            ("/cairn.js", "text/javascript; charset=utf-8", include_bytes!("cairn.js")),
-            ("/cairn.css", "text/css; charset=utf-8", include_bytes!("cairn.css")),
-            ("/fleet.js", "text/javascript; charset=utf-8", include_bytes!("fleet.js")),
-            ("/fleet.css", "text/css; charset=utf-8", include_bytes!("fleet.css")),
+            (
+                "/cairn.js",
+                "text/javascript; charset=utf-8",
+                include_bytes!("cairn.js"),
+            ),
+            (
+                "/cairn.css",
+                "text/css; charset=utf-8",
+                include_bytes!("cairn.css"),
+            ),
+            (
+                "/fleet.js",
+                "text/javascript; charset=utf-8",
+                include_bytes!("fleet.js"),
+            ),
+            (
+                "/fleet.css",
+                "text/css; charset=utf-8",
+                include_bytes!("fleet.css"),
+            ),
             (
                 "/swarm-view.css",
                 "text/css; charset=utf-8",
@@ -1510,7 +1692,11 @@ mod static_assets {
                 "text/css; charset=utf-8",
                 include_bytes!("../../kiln-dashboard/src/render/catalog.css"),
             ),
-            ("/favicon.svg", "image/svg+xml", include_bytes!("favicon.svg")),
+            (
+                "/favicon.svg",
+                "image/svg+xml",
+                include_bytes!("favicon.svg"),
+            ),
         ]
     }
 
@@ -2176,7 +2362,14 @@ impl EventHub {
             fleet_version: state.fleet.as_ref().and_then(|f| f.version.clone()),
             events: initial,
         };
-        (EventSubscription { id, hub: self, queue }, snapshot)
+        (
+            EventSubscription {
+                id,
+                hub: self,
+                queue,
+            },
+            snapshot,
+        )
     }
 
     fn fanout_locked(state: &mut EventHubState, event: BroadcastEvent) {
@@ -2286,7 +2479,10 @@ impl EventHub {
     pub(crate) fn publish_repositories(&self, version: String, data: Vec<u8>) {
         let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
         let arc = Arc::new(data);
-        Self::fanout_locked(&mut state, BroadcastEvent::Repositories { version, data: arc });
+        Self::fanout_locked(
+            &mut state,
+            BroadcastEvent::Repositories { version, data: arc },
+        );
     }
 }
 
@@ -2365,8 +2561,8 @@ fn poll_fleet_once(client: &crate::fleet::Client, last_version: Option<&str>) ->
     let Some(health_bytes) = fetch_reply("/v1/health") else {
         return FleetPoll::Unavailable;
     };
-    let claims_bytes = fetch_reply("/v1/claims?include=foreign,expired")
-        .or_else(|| fetch_reply("/v1/claims"));
+    let claims_bytes =
+        fetch_reply("/v1/claims?include=foreign,expired").or_else(|| fetch_reply("/v1/claims"));
     let Some(claims_bytes) = claims_bytes else {
         return FleetPoll::Unavailable;
     };
@@ -2452,11 +2648,13 @@ pub(crate) fn watcher_step(
     }
 
     if let Some(client) = fleet {
-        let last_fleet_version = hub
-            .state
-            .lock()
-            .ok()
-            .and_then(|state| state.fleet.as_ref().filter(|f| f.available).and_then(|f| f.version.clone()));
+        let last_fleet_version = hub.state.lock().ok().and_then(|state| {
+            state
+                .fleet
+                .as_ref()
+                .filter(|f| f.available)
+                .and_then(|f| f.version.clone())
+        });
         match poll_fleet_once(client, last_fleet_version.as_deref()) {
             FleetPoll::Unchanged => {}
             FleetPoll::Updated(cached) => {
@@ -2824,8 +3022,7 @@ fn fleet_stream<S: Read + Write>(
                 }
                 _ => {
                     if last_heartbeat.elapsed() >= Duration::from_secs(4) {
-                        if writer.write_all(b": heartbeat\n\n").is_err()
-                            || writer.flush().is_err()
+                        if writer.write_all(b": heartbeat\n\n").is_err() || writer.flush().is_err()
                         {
                             break;
                         }
@@ -2860,7 +3057,24 @@ fn fleet_stream<S: Read + Write>(
 }
 
 fn fleet_response(request: &Request, context: &Context<'_>, principal: &Principal) -> ApiResponse {
-    if request.method == "POST" && principal.role != crate::engine::Role::Operator {
+    let placement = request.target.starts_with("/api/fleet/placement/");
+    let windows = request
+        .target
+        .strip_prefix("/api/fleet/machines/")
+        .is_some_and(|rest| {
+            let mut segments = rest.split('?').next().unwrap_or_default().split('/');
+            segments.next().is_some() && segments.next() == Some("windows")
+        });
+    if context.profile.restricted_projection && (placement || windows) {
+        return denied(
+            request,
+            context,
+            Some(principal),
+            403,
+            "fleet_projection_forbidden",
+        );
+    }
+    if (request.method == "POST" || placement) && principal.role != crate::engine::Role::Operator {
         return denied(request, context, Some(principal), 403, "fleet_operator");
     }
     let Some(client) = context.fleet else {
@@ -3767,12 +3981,15 @@ mod tests {
                             }
                             "/v1/health" => {
                                 sc.fetch_add(1, Ordering::Relaxed);
-                                "{\"api\":\"v1\",\"machine\":\"local\",\"version\":\"0.1.0\"}".to_owned()
+                                "{\"api\":\"v1\",\"machine\":\"local\",\"version\":\"0.1.0\"}"
+                                    .to_owned()
                             }
                             "/v1/claims?include=foreign,expired" | "/v1/claims" => {
                                 "{\"claims\":[],\"foreign_claims\":[]}".to_owned()
                             }
-                            "/v1/work" => "{\"ready_unclaimed\":0,\"ranked\":[],\"blocked\":[]}".to_owned(),
+                            "/v1/work" => {
+                                "{\"ready_unclaimed\":0,\"ranked\":[],\"blocked\":[]}".to_owned()
+                            }
                             "/v1/attempts" => "{\"attempts\":[]}".to_owned(),
                             "/v1/decisions" => "{\"decisions\":[]}".to_owned(),
                             "/v1/machines" => "{\"machines\":[]}".to_owned(),
@@ -3829,7 +4046,10 @@ mod tests {
                 .iter()
                 .filter(|ev| ev.event_name() == "fleet")
                 .count();
-            assert_eq!(fleet_events, 2, "each of the 5 tabs receives both fleet transitions");
+            assert_eq!(
+                fleet_events, 2,
+                "each of the 5 tabs receives both fleet transitions"
+            );
         }
 
         fleet_stop.store(true, Ordering::Release);

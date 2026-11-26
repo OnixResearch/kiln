@@ -42,6 +42,7 @@ const ADMISSION: &str = "crates/kiln-implementer/src/admission.rs";
 const CONFIG: &str = "crates/kiln-implementer/src/authority_config.rs";
 const CAMPAIGN: &str = "crates/kiln-implementer/src/campaign_consumer.rs";
 const FLEET: &str = "crates/kiln-implementer/src/fleet.rs";
+const PLACEMENT: &str = "crates/kiln-implementer/src/placement.rs";
 const HOST_OWNER: &str = "crates/kiln-implementer/src/host_owner.rs";
 const NATIVE: &str = "crates/kiln-implementer/src/native_publication.rs";
 const EFFECTS: &str = "crates/kiln-implementer/src/publication_effects.rs";
@@ -262,6 +263,7 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     // again before the worktree and agent start, before it adopts an agent
     // found after a restart, and before every first prompt.
     protected(FLEET, "fleet_bind_session", Op::Dispatch),
+    protected(FLEET, "fleet_bind_reserved_session", Op::Dispatch),
     protected(FLEET, "fleet_authorize_launch", Op::Dispatch),
     operator(FLEET, "fleet_clear_placing"),
     operator(FLEET, "fleet_record_issued"),
@@ -287,6 +289,14 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     operator(FLEET, "fleet_swarm_verdict"),
     operator(FLEET, "fleet_swarm_watchdog"),
     operator(FLEET, "fleet_swarm_failover"),
+    observe(PLACEMENT, "fleet_split_status"),
+    observe(PLACEMENT, "fleet_check_explicit_launch"),
+    operator(PLACEMENT, "fleet_begin_explicit_launch"),
+    observe(PLACEMENT, "fleet_move_status"),
+    operator(PLACEMENT, "fleet_prepare_move"),
+    protected(PLACEMENT, "fleet_prepare_move", Op::Dispatch),
+    operator(PLACEMENT, "fleet_prepare_split"),
+    protected(PLACEMENT, "fleet_prepare_split", Op::Dispatch),
     observe(FLEET, "fleet_swarm_graph"),
     // ── kiln-implementer CLI ──
     // Source intake loops: they admit work and never claim or dispatch.
@@ -352,6 +362,8 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     // ── Fleet API ──
     observe(FLEET_API, "GET /v1/health"),
     observe(FLEET_API, "GET /v1/machines"),
+    observe(FLEET_API, "GET /v1/machines/{name}/windows"),
+    operator(FLEET_API, "POST /v1/machines/{name}/windows/{pane}/capture"),
     operator(FLEET_API, "POST /v1/machines/{name}/drain"),
     observe(FLEET_API, "GET /v1/repositories"),
     observe(FLEET_API, "GET /v1/version"),
@@ -376,6 +388,15 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     observe(FLEET_API, "GET /v1/dispatch/status"),
     operator(FLEET_API, "POST /v1/dispatch/pause"),
     operator(FLEET_API, "POST /v1/dispatch/resume"),
+    observe(FLEET_API, "GET /v1/placement/capabilities"),
+    // Preview shares the transaction entry point with submit, but supplies no
+    // expected plan and never commits a reservation or invokes its grant check.
+    protected(FLEET_API, "POST /v1/placement/split/plan", Op::Dispatch),
+    protected(FLEET_API, "POST /v1/placement/split", Op::Dispatch),
+    observe(FLEET_API, "GET /v1/placement/split/{id}"),
+    protected(FLEET_API, "POST /v1/placement/move/plan", Op::Dispatch),
+    protected(FLEET_API, "POST /v1/placement/move", Op::Dispatch),
+    observe(FLEET_API, "GET /v1/placement/move/{id}"),
     observe(FLEET_API, "GET /v1/swarms"),
     operator(FLEET_API, "POST /v1/swarms"),
     observe(FLEET_API, "GET /v1/swarms/{id}"),
@@ -397,4 +418,32 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     // `--authority-config`, or neither for the absent profile), so each role
     // decides on the drive's profile at its own protected rows above.
     operator(CONTROLS, "POST /api/implementation/campaigns/commands"),
+    observe(
+        "crates/kiln-web-service/src/lattice_authoring.rs",
+        "GET /api/lattice/authoring",
+    ),
+    observe(
+        "crates/kiln-web-service/src/cairn_authoring.rs",
+        "GET /api/implementation/cairn/authoring",
+    ),
+    operator(
+        "crates/kiln-web-service/src/cairn_authoring.rs",
+        "POST /api/implementation/cairn/authoring",
+    ),
+    observe(
+        "crates/kiln-web-service/src/cairn_authoring.rs",
+        "GET /api/implementation/cairn/authoring/artifact",
+    ),
+    operator(
+        "crates/kiln-web-service/src/cairn_authoring.rs",
+        "POST /api/implementation/cairn/authoring/artifact",
+    ),
+    observe(
+        "crates/kiln-web-service/src/lattice_drafts.rs",
+        "GET /api/lattice/drafts",
+    ),
+    operator(
+        "crates/kiln-web-service/src/lattice_drafts.rs",
+        "POST /api/lattice/drafts",
+    ),
 ];

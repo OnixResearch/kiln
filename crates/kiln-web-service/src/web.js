@@ -2560,6 +2560,7 @@
         api,
         navigate,
         notice,
+        confirmControl,
         route,
         canOperate: canOperate(),
         principal: state.principal,

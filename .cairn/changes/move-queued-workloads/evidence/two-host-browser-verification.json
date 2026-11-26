@@ -1,0 +1,18 @@
+{
+  "scope": "Operator-approved isolated check on britton-desktop and aspen3: temporary named Herdr sessions, disposable repositories and worktrees, a disposable Fleet coordinator, and an authenticated Kiln console driven in Chromium. No production service or existing session was used.",
+  "work_intake": "Three single-unit disposable Cairn repositories admitted through kiln-cairn-intake from native implementation-ready snapshots.",
+  "split": {
+    "plan": "e694254734fb3eeaa46b40a957c292d7c70642127c1ce6f497f38b263f0afc65",
+    "observed": {"task:moved": "aspen3, agent working", "task:left": "britton-desktop, agent launched"}
+  },
+  "queued_move": {
+    "plan": "37ffd6f93c7c61c3f2a69644bd829fa2cca757bf828e407d8593ae02cbdc0b94",
+    "from": "aspen3",
+    "to": "britton-desktop",
+    "state": "observed",
+    "session": "fd0aa69f5cbe0170819147d47e9aba4c22c291b370c309cd25c4b7e4248006dd"
+  },
+  "defect_found_and_fixed": "The console rejected native dispatch-<blake3> reservation IDs; the move control now admits that exact form.",
+  "cleanup": "All three attempts cancelled to terminal; both Herdr sessions stopped; temporary saved-machine profile and disposable state removed.",
+  "unsupported": "Moving a running agent remains unavailable."
+}

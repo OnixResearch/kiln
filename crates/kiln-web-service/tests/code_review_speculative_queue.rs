@@ -948,7 +948,9 @@ fn code_review_api_projects_speculative_queue_windows_and_omits_serial_bounds() 
             ci: &[],
         },
     ))?;
-    let windows = field(&initial, "/queue_windows")?.as_array().ok_or("queue_windows")?;
+    let windows = field(&initial, "/queue_windows")?
+        .as_array()
+        .ok_or("queue_windows")?;
     assert_eq!(windows.len(), 1);
     assert_eq!(windows[0]["target_ref"], "refs/heads/main");
     assert_eq!(windows[0]["mode"], "speculative");

@@ -74,7 +74,9 @@ impl LineageReceipt {
             edge.parent_id == self.root_id
                 && edge.child_id != self.root_id
                 && super::hash(&edge.child_id)
-                && !self.edges[..index].iter().any(|other| other.child_id == edge.child_id)
+                && !self.edges[..index]
+                    .iter()
+                    .any(|other| other.child_id == edge.child_id)
         })
     }
 }

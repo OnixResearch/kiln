@@ -1,10 +1,6 @@
 //! Read-only projection of an explicitly configured deployment owner's export.
 use std::{
-    collections::BTreeSet,
-    fs::OpenOptions,
-    io::Read,
-    os::unix::fs::OpenOptionsExt,
-    path::Path,
+    collections::BTreeSet, fs::OpenOptions, io::Read, os::unix::fs::OpenOptionsExt, path::Path,
 };
 
 use serde::{Deserialize, Serialize};
@@ -62,7 +58,8 @@ fn revision(value: &str) -> bool {
 
 /// Pure projection of raw export bytes into the versioned delivery-environments JSON view.
 pub(crate) fn project(input: &[u8], now_ms: u64) -> Result<Value, &'static str> {
-    let export: Export = serde_json::from_slice(input).map_err(|_| "delivery_observation_invalid")?;
+    let export: Export =
+        serde_json::from_slice(input).map_err(|_| "delivery_observation_invalid")?;
     let mut seen = BTreeSet::new();
     if export.schema != SCHEMA
         || export.observations.len() > MAX_ROWS

@@ -84,6 +84,8 @@ fn usage() -> i32 {
     eprintln!(
         "       serve/check observations: [--inventory <path>] [--implementation-work <database>] [--campaign-controls <profile>] [--dispatch-recovery <profile>] [--native-runtime-evidence <profile>] [--delivery-observations <path>] [--artifact-previews <catalog>] [--preview-observations <owned-directory>] [--repository-root <dir>]"
     );
+    eprintln!("       serve/check workflow source catalog: [--lattice-authoring <profile>]");
+    eprintln!("       serve/check native change authoring: [--cairn-authoring <profile>]");
     eprintln!("       kiln-web-service verify-implementation --help");
     eprintln!("       kiln-web-service implementation-verification-graph --help");
     eprintln!("       kiln-web-service inventory INPUT PRINCIPAL NOW_MS [json|html]");
@@ -193,7 +195,9 @@ fn service(command: &str, mut arguments: impl Iterator<Item = String>) -> i32 {
             let Some(value) = arguments.next().filter(|value| !value.starts_with("--")) else {
                 return usage();
             };
-            options.repository_roots.push(std::path::PathBuf::from(value));
+            options
+                .repository_roots
+                .push(std::path::PathBuf::from(value));
             continue;
         }
         let slot = match flag.as_str() {
@@ -218,6 +222,9 @@ fn service(command: &str, mut arguments: impl Iterator<Item = String>) -> i32 {
             "--fleet" => &mut options.fleet,
             "--runbooks" => &mut options.runbooks,
             "--runbooks-dir" => &mut options.runbooks_dir,
+            "--lattice-authoring" => &mut options.lattice_authoring,
+            "--lattice-drafts" => &mut options.lattice_drafts,
+            "--cairn-authoring" => &mut options.cairn_authoring,
             _ => return usage(),
         };
         if slot.is_some() {

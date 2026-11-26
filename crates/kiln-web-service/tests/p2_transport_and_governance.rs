@@ -104,7 +104,10 @@ fn http_raw(
     body: &[u8],
 ) -> Result<HttpReply, Box<dyn std::error::Error>> {
     let mut stream = tls_connect(addr, Duration::from_secs(4))?;
-    let mut req = format!("{method} {target} HTTP/1.1\r\nHost: localhost:{}\r\n", addr.port());
+    let mut req = format!(
+        "{method} {target} HTTP/1.1\r\nHost: localhost:{}\r\n",
+        addr.port()
+    );
     if let Some(tok) = token {
         req.push_str(&format!("Authorization: Bearer {tok}\r\n"));
     }
@@ -164,7 +167,10 @@ fn http_json(
     token: &str,
     payload: Option<&Value>,
 ) -> Result<(u16, Value), Box<dyn std::error::Error>> {
-    let body = payload.map(serde_json::to_vec).transpose()?.unwrap_or_default();
+    let body = payload
+        .map(serde_json::to_vec)
+        .transpose()?
+        .unwrap_or_default();
     let reply = http_raw(addr, method, target, Some(token), &[], &body)?;
     let parsed: Value = serde_json::from_slice(&reply.body)?;
     Ok((reply.status, parsed))
@@ -216,16 +222,67 @@ fn gunzip_verify(gzip: &[u8]) -> Result<Vec<u8>, String> {
         Err("invalid fixed huffman code".into())
     };
     let len_table: [(u16, usize); 29] = [
-        (3, 0), (4, 0), (5, 0), (6, 0), (7, 0), (8, 0), (9, 0), (10, 0),
-        (11, 1), (13, 1), (15, 1), (17, 1), (19, 2), (23, 2), (27, 2), (31, 2),
-        (35, 3), (43, 3), (51, 3), (59, 3), (67, 4), (83, 4), (99, 4), (115, 4),
-        (131, 5), (163, 5), (195, 5), (227, 5), (258, 0),
+        (3, 0),
+        (4, 0),
+        (5, 0),
+        (6, 0),
+        (7, 0),
+        (8, 0),
+        (9, 0),
+        (10, 0),
+        (11, 1),
+        (13, 1),
+        (15, 1),
+        (17, 1),
+        (19, 2),
+        (23, 2),
+        (27, 2),
+        (31, 2),
+        (35, 3),
+        (43, 3),
+        (51, 3),
+        (59, 3),
+        (67, 4),
+        (83, 4),
+        (99, 4),
+        (115, 4),
+        (131, 5),
+        (163, 5),
+        (195, 5),
+        (227, 5),
+        (258, 0),
     ];
     let dist_table: [(u16, usize); 30] = [
-        (1, 0), (2, 0), (3, 0), (4, 0), (5, 1), (7, 1), (9, 2), (13, 2),
-        (17, 3), (25, 3), (33, 4), (49, 4), (65, 5), (97, 5), (129, 6), (193, 6),
-        (257, 7), (385, 7), (513, 8), (769, 8), (1025, 9), (1537, 9), (2049, 10),
-        (3073, 10), (4097, 11), (6145, 11), (8193, 12), (12289, 12), (16385, 13), (24577, 13),
+        (1, 0),
+        (2, 0),
+        (3, 0),
+        (4, 0),
+        (5, 1),
+        (7, 1),
+        (9, 2),
+        (13, 2),
+        (17, 3),
+        (25, 3),
+        (33, 4),
+        (49, 4),
+        (65, 5),
+        (97, 5),
+        (129, 6),
+        (193, 6),
+        (257, 7),
+        (385, 7),
+        (513, 8),
+        (769, 8),
+        (1025, 9),
+        (1537, 9),
+        (2049, 10),
+        (3073, 10),
+        (4097, 11),
+        (6145, 11),
+        (8193, 12),
+        (12289, 12),
+        (16385, 13),
+        (24577, 13),
     ];
     let mut out = Vec::new();
     loop {
@@ -401,10 +458,7 @@ fn spawn_service(
     if let Some(db) = db_path {
         cmd.arg("--implementation-work").arg(db);
     }
-    let child = cmd
-        .stdout(Stdio::null())
-        .stderr(Stdio::piped())
-        .spawn()?;
+    let child = cmd.stdout(Stdio::null()).stderr(Stdio::piped()).spawn()?;
     wait_ready(addr)?;
     Ok((Service(child), addr, op_tok, vw_tok, wk_tok))
 }
@@ -443,7 +497,10 @@ fn static_assets_etag_304_cache_control_and_gzip_negotiation()
         .get("etag")
         .cloned()
         .ok_or("missing ETag header")?;
-    assert!(etag_gzip.ends_with("-gzip\""), "expected gzip etag, got {etag_gzip}");
+    assert!(
+        etag_gzip.ends_with("-gzip\""),
+        "expected gzip etag, got {etag_gzip}"
+    );
     assert!(
         cold.body.len() < raw_web_js.len(),
         "compressed web.js ({}) should be smaller than raw ({})",
@@ -459,10 +516,7 @@ fn static_assets_etag_304_cache_control_and_gzip_negotiation()
         "GET",
         "/web.js",
         None,
-        &[
-            ("Accept-Encoding", "gzip"),
-            ("If-None-Match", &etag_gzip),
-        ],
+        &[("Accept-Encoding", "gzip"), ("If-None-Match", &etag_gzip)],
         &[],
     )?;
     assert_eq!(not_mod.status, 304);
@@ -522,7 +576,10 @@ fn static_assets_etag_304_cache_control_and_gzip_negotiation()
             !res.headers.contains_key("content-encoding"),
             "unexpected encoding for {bogus_ae}"
         );
-        assert_eq!(res.body.as_slice(), include_bytes!("../src/web.css").as_slice());
+        assert_eq!(
+            res.body.as_slice(),
+            include_bytes!("../src/web.css").as_slice()
+        );
     }
     Ok(())
 }
@@ -709,12 +766,7 @@ fn admission_plan_feedback_and_lifecycle_governance() -> Result<(), Box<dyn std:
         requested_outcome: "updated outcome".to_owned(),
         ..work_old
     };
-    implementer.admit_with_supersession(
-        &work_new,
-        None,
-        SupersessionRule::AbortActive,
-        2_500,
-    )?;
+    implementer.admit_with_supersession(&work_new, None, SupersessionRule::AbortActive, 2_500)?;
 
     // Work 4: Plan Review thread (rev 1 -> annotate -> resolve -> rev 2 -> stale rev 1 guard -> accept rev 2).
     implementer.plan_review(&PlanReviewCommand::Configure {
@@ -964,8 +1016,7 @@ fn admission_plan_feedback_and_lifecycle_governance() -> Result<(), Box<dyn std:
         http_json(addr, "GET", "/api/implementation/admission", &wk_tok, None)?.0,
         403
     );
-    let (adm_status, adm) =
-        http_json(addr, "GET", "/api/implementation/admission", &vw_tok, None)?;
+    let (adm_status, adm) = http_json(addr, "GET", "/api/implementation/admission", &vw_tok, None)?;
     assert_eq!(adm_status, 200);
     assert_eq!(adm["schema"], "kiln.implementation-admission.v1");
     assert_eq!(adm["configured"], true);
@@ -1013,7 +1064,10 @@ fn admission_plan_feedback_and_lifecycle_governance() -> Result<(), Box<dyn std:
         m2["auxiliary_calls"].is_null(),
         "unrecorded aux calls must be null"
     );
-    assert!(m2["wall_time_ms"].is_null(), "unrecorded wall time must be null");
+    assert!(
+        m2["wall_time_ms"].is_null(),
+        "unrecorded wall time must be null"
+    );
     assert_eq!(
         m2["tokens_absence_reason"],
         serde_json::to_value(AbsenceReason::NotReported).unwrap()
@@ -1058,7 +1112,9 @@ fn admission_plan_feedback_and_lifecycle_governance() -> Result<(), Box<dyn std:
         "POST",
         "/api/implementation/admission/policy",
         &op_tok,
-        Some(&json!({"request_id":"req-adm-frozen","expected_policy_id":policy_id,"shares":{"camp-alpha":5,"camp-beta":1}})),
+        Some(
+            &json!({"request_id":"req-adm-frozen","expected_policy_id":policy_id,"shares":{"camp-alpha":5,"camp-beta":1}}),
+        ),
     )?;
     assert_eq!(frozen_status, 409);
     assert_eq!(frozen_json["code"], "admission_policy_frozen");
@@ -1080,8 +1136,13 @@ fn admission_plan_feedback_and_lifecycle_governance() -> Result<(), Box<dyn std:
         drop(fresh_imp);
         let (_fresh_svc, fresh_addr, fresh_op, _, _) =
             spawn_service(root.path(), "fresh", Some(&fresh_db), false)?;
-        let (unconf_status, unconf) =
-            http_json(fresh_addr, "GET", "/api/implementation/admission", &fresh_op, None)?;
+        let (unconf_status, unconf) = http_json(
+            fresh_addr,
+            "GET",
+            "/api/implementation/admission",
+            &fresh_op,
+            None,
+        )?;
         assert_eq!(unconf_status, 200);
         assert_eq!(unconf["configured"], false);
 
@@ -1117,7 +1178,10 @@ fn admission_plan_feedback_and_lifecycle_governance() -> Result<(), Box<dyn std:
     let (pf_get_status, pf_get) = http_json(
         addr,
         "GET",
-        &format!("/api/implementation/plan-feedback?work={}", work_plan_id.as_str()),
+        &format!(
+            "/api/implementation/plan-feedback?work={}",
+            work_plan_id.as_str()
+        ),
         &vw_tok,
         None,
     )?;
@@ -1408,7 +1472,10 @@ fn admission_plan_feedback_and_lifecycle_governance() -> Result<(), Box<dyn std:
     )?;
     assert_eq!(prep_replay_status, 200);
     assert_eq!(prep_replay["already_recorded"], true);
-    assert_eq!(prep_replay["publication_digest"], prep["publication_digest"]);
+    assert_eq!(
+        prep_replay["publication_digest"],
+        prep["publication_digest"]
+    );
 
     // Remote mutation actions (`publish`, `recover-integration`, `close-source`) fail closed
     // when provider mutation authority / forge credentials are not held by the web service.
@@ -1429,7 +1496,12 @@ fn admission_plan_feedback_and_lifecycle_governance() -> Result<(), Box<dyn std:
         )?;
         assert_eq!(mut_status, 403, "action={action}");
         assert_eq!(mut_res["code"], "lifecycle_provider_mutation_unsupported");
-        assert!(mut_res["cli_parity"].as_str().unwrap().contains("kiln-implementer"));
+        assert!(
+            mut_res["cli_parity"]
+                .as_str()
+                .unwrap()
+                .contains("kiln-implementer")
+        );
     }
 
     // Restricted projection fails closed even for prepare-publication (403 lifecycle_authority_absent).

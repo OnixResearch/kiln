@@ -102,6 +102,7 @@ impl DispatchReservation {
         plan: &ContentId,
         provider_profile: &ProviderProfileId,
         now_ms: u64,
+        previous: Option<&EffectId>,
     ) -> CoreResult<Self> {
         let mut bytes = Vec::new();
         push(&mut bytes, DISPATCH_SCHEMA)?;
@@ -109,6 +110,10 @@ impl DispatchReservation {
         bytes.extend_from_slice(&attempt.fence.to_be_bytes());
         push(&mut bytes, plan.as_str())?;
         push(&mut bytes, provider_profile.as_str())?;
+        // A round trip to a previously selected host must not recreate its CAS token.
+        if let Some(previous) = previous {
+            push(&mut bytes, previous.as_str())?;
+        }
         let digest = ContentId::from_blake3_hex(blake3::hash(&bytes).to_hex().to_string())?;
         Ok(Self {
             schema: DISPATCH_SCHEMA.to_string(),
@@ -581,7 +586,7 @@ impl AttemptLedger {
                 "attempt already reserved a different provider dispatch",
             ));
         }
-        let reservation = DispatchReservation::new(attempt, plan, provider_profile, now_ms)?;
+        let reservation = DispatchReservation::new(attempt, plan, provider_profile, now_ms, None)?;
         attempt.dispatch = Some(reservation.clone());
         Ok(reservation)
     }
@@ -607,6 +612,41 @@ impl AttemptLedger {
             self.reserve_dispatch(identity, fence, now_ms, &digest, &plan.provider_profile)?;
         self.dispatch_plans
             .insert(identity.as_str().to_string(), plan.clone());
+        Ok(reservation)
+    }
+
+    /// Replace an unstarted interactive reservation, preserving the exact attempt and fence.
+    /// The Fleet store additionally compares retained sessions and launch records atomically.
+    pub fn rebind_queued_dispatch(
+        &mut self,
+        work: &ImplementationWork,
+        request: &crate::fleet::placement::MoveRequest,
+        now_ms: u64,
+        workspace: ContentId,
+    ) -> CoreResult<DispatchReservation> {
+        let (attempt, old) =
+            crate::fleet::placement::queued_move_source(self, work, request, now_ms)?;
+        if old.workspace.identity == workspace {
+            return Err(refusal(
+                "fleet_placement_source",
+                "dispatch.plan",
+                "queued move must change the native workspace identity",
+            ));
+        }
+        // Preserve every other work, budget, authority and control field.
+        let mut next = old.clone();
+        next.workspace.identity = workspace;
+        let digest = super::admit_dispatch_plan(work, attempt, &next)?;
+        let reservation = DispatchReservation::new(
+            attempt,
+            &digest,
+            &next.provider_profile,
+            now_ms,
+            Some(&request.reservation),
+        )?;
+        self.attempt_mut(&request.attempt)?.dispatch = Some(reservation.clone());
+        self.dispatch_plans
+            .insert(request.attempt.as_str().to_string(), next);
         Ok(reservation)
     }
 
@@ -1533,9 +1573,13 @@ impl AttemptLedger {
             .collect();
         for identity in identities {
             let unacknowledged = self.dispatch_started.contains(identity.as_str())
-                && self
-                    .get(&identity)
-                    .is_some_and(|attempt| attempt.workflow.is_none());
+                && self.get(&identity).is_some_and(|attempt| {
+                    attempt.workflow.is_none()
+                        || attempt.dispatch.as_ref().is_some_and(|reservation| {
+                            reservation.provider_profile.as_str()
+                                == super::INTERACTIVE_PROVIDER_PROFILE
+                        })
+                });
             let canonical_key = {
                 let attempt = self.attempt_mut(&identity)?;
                 attempt.phase = AttemptPhase::Blocked;

@@ -670,7 +670,10 @@ pub fn summarize_tick(
         *count = count.saturating_add(1);
     }
     let deferred_count = deferred_items.len();
-    let deferred = deferred_items.into_iter().take(MAX_DEFERRED_ITEMS).collect();
+    let deferred = deferred_items
+        .into_iter()
+        .take(MAX_DEFERRED_ITEMS)
+        .collect();
     TickSummary {
         ticked_at_ms,
         free_slots,
@@ -741,7 +744,11 @@ impl ControlStore {
         let result = mutate(&mut next)?;
         let encoded = serde_json::to_vec_pretty(&next)
             .map_err(|error| format!("cannot encode fleet controls: {error}"))?;
-        let tmp = PathBuf::from(format!("{}.tmp.{}", self.path.display(), std::process::id()));
+        let tmp = PathBuf::from(format!(
+            "{}.tmp.{}",
+            self.path.display(),
+            std::process::id()
+        ));
         fs::write(&tmp, &encoded)
             .map_err(|error| format!("cannot write fleet controls: {error}"))?;
         fs::rename(&tmp, &self.path)
@@ -755,9 +762,7 @@ impl ControlStore {
 mod tests {
     use super::*;
     use kiln_adapter_herdr::{AgentKind, AgentSlots, FailureClass, HerdrFailure, KindCounts};
-    use kiln_core::fleet::{
-        FleetAgent, FleetScope, FleetTarget, MirrorStatus, ScopePath,
-    };
+    use kiln_core::fleet::{FleetAgent, FleetScope, FleetTarget, MirrorStatus, ScopePath};
 
     #[test]
     fn claims_query_accepts_only_foreign_and_expired() {
@@ -828,7 +833,8 @@ mod tests {
 
     #[test]
     fn pane_sanitization_strips_ansi_and_bounds_lines_and_bytes() {
-        let raw = "\x1b[31merror:\x1b[0m line 1\r\n\x1b]0;title\x07line 2\x00bell\nline 3\nline 4\n";
+        let raw =
+            "\x1b[31merror:\x1b[0m line 1\r\n\x1b]0;title\x07line 2\x00bell\nline 3\nline 4\n";
         let pane = sanitize_pane_output(raw, 2, MAX_PANE_TEXT_BYTES);
         assert_eq!(pane.lines, vec!["line 3", "line 4"]);
         assert_eq!(pane.text, "line 3\nline 4");
@@ -877,7 +883,9 @@ mod tests {
         assert!(!ok);
         assert!(slots.is_none());
         assert_eq!(
-            err.as_ref().and_then(|v| v.get("code")).and_then(Value::as_str),
+            err.as_ref()
+                .and_then(|v| v.get("code"))
+                .and_then(Value::as_str),
             Some("server_not_running")
         );
 
@@ -900,7 +908,13 @@ mod tests {
     fn drain_and_pause_transitions_and_request_id_dedup_work() {
         let mut controls = FleetControls::default();
         assert!(!controls.is_draining("aspen3"));
-        controls.set_machine_drain("aspen3", true, Some("maintenance".into()), "britton-desktop", 10);
+        controls.set_machine_drain(
+            "aspen3",
+            true,
+            Some("maintenance".into()),
+            "britton-desktop",
+            10,
+        );
         assert!(controls.is_draining("aspen3"));
         assert_eq!(controls.draining_machines(), vec!["aspen3"]);
 

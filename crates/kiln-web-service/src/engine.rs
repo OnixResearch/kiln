@@ -143,7 +143,12 @@ impl Engine {
 
     /// Bounded live CI snapshot JSON matching `/api/live` and `/api/events` (`ci` frame).
     pub(crate) fn live_snapshot_json(&self) -> Result<(u64, Vec<u8>), String> {
-        let runs: Vec<model::RunView> = self.state.runs.values().map(model::RunRecord::view).collect();
+        let runs: Vec<model::RunView> = self
+            .state
+            .runs
+            .values()
+            .map(model::RunRecord::view)
+            .collect();
         let bytes = serde_json::to_vec(&serde_json::json!({
             "version": self.state.version,
             "runs": runs,

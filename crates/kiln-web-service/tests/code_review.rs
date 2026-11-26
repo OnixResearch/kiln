@@ -2182,9 +2182,18 @@ fn list_projection_includes_ci_summary_variants_and_approval_summary() -> Result
     // 1. No CI facts -> "none", approval_summary = 0/1, queue_position = null.
     let item = list_ci(&[])?;
     assert_eq!(text(&item, "/ci_summary")?, "none");
-    assert_eq!(field(&item, "/approval_summary/approvals")?.as_u64(), Some(0));
-    assert_eq!(field(&item, "/approval_summary/required")?.as_u64(), Some(1));
-    assert_eq!(field(&item, "/approval_summary/vetoed")?.as_bool(), Some(false));
+    assert_eq!(
+        field(&item, "/approval_summary/approvals")?.as_u64(),
+        Some(0)
+    );
+    assert_eq!(
+        field(&item, "/approval_summary/required")?.as_u64(),
+        Some(1)
+    );
+    assert_eq!(
+        field(&item, "/approval_summary/vetoed")?.as_bool(),
+        Some(false)
+    );
     assert!(field(&item, "/queue_position")?.is_null());
     assert!(field(&item, "/queue_status")?.is_null());
     assert!(field(&item, "/jj_stack")?.is_null());
@@ -2217,7 +2226,10 @@ fn list_projection_includes_ci_summary_variants_and_approval_summary() -> Result
         counts_for_required_ci: false,
         superseded_by: None,
     });
-    assert_eq!(text(&list_ci(&[awaiting])?, "/ci_summary")?, "awaiting_approval");
+    assert_eq!(
+        text(&list_ci(&[awaiting])?, "/ci_summary")?,
+        "awaiting_approval"
+    );
 
     // 5. Untrusted run approved without counts_for_required_ci -> "unknown".
     let mut uncounted = fixture.ci(&fixture.first, 5, true);
@@ -2252,7 +2264,10 @@ fn list_projection_includes_ci_summary_variants_and_approval_summary() -> Result
         &[],
     )?;
     let item = list_ci(&[])?;
-    assert_eq!(field(&item, "/approval_summary/approvals")?.as_u64(), Some(0));
+    assert_eq!(
+        field(&item, "/approval_summary/approvals")?.as_u64(),
+        Some(0)
+    );
     let approved = accepted(post(
         &workspace,
         &update(
@@ -2264,8 +2279,14 @@ fn list_projection_includes_ci_summary_variants_and_approval_summary() -> Result
         &[],
     )?)?;
     let item = list_ci(&[])?;
-    assert_eq!(field(&item, "/approval_summary/approvals")?.as_u64(), Some(1));
-    assert_eq!(field(&item, "/approval_summary/vetoed")?.as_bool(), Some(false));
+    assert_eq!(
+        field(&item, "/approval_summary/approvals")?.as_u64(),
+        Some(1)
+    );
+    assert_eq!(
+        field(&item, "/approval_summary/vetoed")?.as_bool(),
+        Some(false)
+    );
     let _veto = accepted(post(
         &workspace,
         &update(
@@ -2277,7 +2298,13 @@ fn list_projection_includes_ci_summary_variants_and_approval_summary() -> Result
         &[],
     )?)?;
     let item = list_ci(&[])?;
-    assert_eq!(field(&item, "/approval_summary/approvals")?.as_u64(), Some(0));
-    assert_eq!(field(&item, "/approval_summary/vetoed")?.as_bool(), Some(true));
+    assert_eq!(
+        field(&item, "/approval_summary/approvals")?.as_u64(),
+        Some(0)
+    );
+    assert_eq!(
+        field(&item, "/approval_summary/vetoed")?.as_bool(),
+        Some(true)
+    );
     Ok(())
 }

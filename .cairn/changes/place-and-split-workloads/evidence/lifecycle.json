@@ -1,0 +1,35 @@
+{
+  "change": "place-and-split-workloads",
+  "executable": "/nix/store/i55558yszf84n913szsqwgh3f96dy0gl-cairn/bin/cairn",
+  "policy_file": "cairn-policy/generated/cairn-policy.json",
+  "ordering": "All three gates passed before implementation edits.",
+  "gates": [
+    {
+      "stage": "proposal",
+      "valid": true,
+      "verdict": "PASS",
+      "input_hash": "ed6e4c5a66ffa1a413f33ff1da84e04db164a5e8b6158ef8071215d451bb5c6f",
+      "receipt_hash": "556e5ad6cdbac78c7c4d869580db34859384ccadf14075f5c7d8e061aae71d7d",
+      "policy": "kiln-default",
+      "policy_hash": "62b75eb1580f61c61017761c3391b5afcab0ff7d88713ba05a9d4af51f522195"
+    },
+    {
+      "stage": "design",
+      "valid": true,
+      "verdict": "PASS",
+      "input_hash": "f3d6d3f52a72c1823553ff572dea8f5bcdda3be9938356f49acc481d86479d0c",
+      "receipt_hash": "ffdf5ee56533c944e13c08b82c63e12dc2e447a2a400e4168b003cffe513010a",
+      "policy": "kiln-default",
+      "policy_hash": "62b75eb1580f61c61017761c3391b5afcab0ff7d88713ba05a9d4af51f522195"
+    },
+    {
+      "stage": "tasks",
+      "valid": true,
+      "verdict": "PASS",
+      "input_hash": "9e48131c4ffc0cd761a300cbe6825e124236acd00533dd22bad16aaf7ca8d092",
+      "receipt_hash": "e9bad810d6120dacb2c29092f4c8ea23e90790464fe235551a9d15c9c360b891",
+      "policy": "kiln-default",
+      "policy_hash": "62b75eb1580f61c61017761c3391b5afcab0ff7d88713ba05a9d4af51f522195"
+    }
+  ]
+}

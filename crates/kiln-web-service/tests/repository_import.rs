@@ -82,7 +82,10 @@ fn http_raw(
     body: &[u8],
 ) -> Result<HttpReply, Box<dyn std::error::Error>> {
     let mut stream = tls_connect(addr, Duration::from_secs(4))?;
-    let mut req = format!("{method} {target} HTTP/1.1\r\nHost: localhost:{}\r\n", addr.port());
+    let mut req = format!(
+        "{method} {target} HTTP/1.1\r\nHost: localhost:{}\r\n",
+        addr.port()
+    );
     if let Some(tok) = token {
         req.push_str(&format!("Authorization: Bearer {tok}\r\n"));
     }
@@ -132,7 +135,10 @@ fn http_json(
     token: &str,
     payload: Option<&Value>,
 ) -> Result<(u16, Value), Box<dyn std::error::Error>> {
-    let body = payload.map(serde_json::to_vec).transpose()?.unwrap_or_default();
+    let body = payload
+        .map(serde_json::to_vec)
+        .transpose()?
+        .unwrap_or_default();
     let reply = http_raw(addr, method, target, Some(token), &body)?;
     let parsed: Value = serde_json::from_slice(&reply.body)?;
     Ok((reply.status, parsed))
@@ -349,8 +355,7 @@ fn repository_import_mirrors_fleet_census_and_idempotent_lifecycle()
     let _commit_clean = init_git_repo(&clean_local_repo, None, false, &[])?;
 
     let commit_b = "b".repeat(40);
-    let (fleet_addr, fleet_stop, fleet_handle) =
-        start_mock_fleet(commit_a.clone(), commit_b)?;
+    let (fleet_addr, fleet_stop, fleet_handle) = start_mock_fleet(commit_a.clone(), commit_b)?;
 
     let cert_path = dir.join("cert.pem");
     let key_path = dir.join("key.pem");
@@ -517,7 +522,9 @@ fn repository_import_mirrors_fleet_census_and_idempotent_lifecycle()
         "POST",
         "/api/repositories/import",
         &wk_tok,
-        Some(&json!({"provider":"github","role":"mirror","url":"OnixResearch/kiln","request_id":"wk-1"})),
+        Some(
+            &json!({"provider":"github","role":"mirror","url":"OnixResearch/kiln","request_id":"wk-1"}),
+        ),
     )?;
     assert_eq!(wk_post, 403);
     let (vw_get, _) = http_json(addr, "GET", "/api/repositories", &vw_tok, None)?;
@@ -527,7 +534,9 @@ fn repository_import_mirrors_fleet_census_and_idempotent_lifecycle()
         "POST",
         "/api/repositories/import",
         &vw_tok,
-        Some(&json!({"provider":"github","role":"mirror","url":"OnixResearch/kiln","request_id":"vw-1"})),
+        Some(
+            &json!({"provider":"github","role":"mirror","url":"OnixResearch/kiln","request_id":"vw-1"}),
+        ),
     )?;
     assert_eq!(vw_post, 403);
     let (vw_refresh, _) = http_json(addr, "POST", "/api/repositories/refresh", &vw_tok, None)?;
@@ -751,7 +760,10 @@ fn repository_import_mirrors_fleet_census_and_idempotent_lifecycle()
         .find(|r| r.get("identity").and_then(Value::as_str) == Some(repo_id.as_str()))
         .ok_or("imported kiln repo not found in GET /api/repositories")?;
     assert_eq!(
-        kiln_rec.get("remotes").and_then(Value::as_array).map(Vec::len),
+        kiln_rec
+            .get("remotes")
+            .and_then(Value::as_array)
+            .map(Vec::len),
         Some(3)
     );
     assert_eq!(
@@ -830,8 +842,13 @@ fn repository_import_mirrors_fleet_census_and_idempotent_lifecycle()
     );
     sse_stream.write_all(sse_req.as_bytes())?;
     sse_stream.flush()?;
-    let (ref_status, ref_body) =
-        http_json(addr, "POST", "/api/repositories/refresh", &op_tok, Some(&json!({})))?;
+    let (ref_status, ref_body) = http_json(
+        addr,
+        "POST",
+        "/api/repositories/refresh",
+        &op_tok,
+        Some(&json!({})),
+    )?;
     assert_eq!(ref_status, 200);
     assert_eq!(
         ref_body.get("schema").and_then(Value::as_str),
@@ -842,7 +859,10 @@ fn repository_import_mirrors_fleet_census_and_idempotent_lifecycle()
         "repositories",
         Instant::now() + Duration::from_secs(4),
     )?;
-    assert_eq!(sse_ev.get("invalidated").and_then(Value::as_bool), Some(true));
+    assert_eq!(
+        sse_ev.get("invalidated").and_then(Value::as_bool),
+        Some(true)
+    );
     drop(sse_stream);
 
     // 6. Offline Fleet graceful degradation: stop mock Fleet server and verify catalog stays up.
@@ -870,9 +890,11 @@ fn repository_import_mirrors_fleet_census_and_idempotent_lifecycle()
         .get("repositories")
         .and_then(Value::as_array)
         .ok_or("missing degraded repositories array")?;
-    assert!(deg_repos.iter().any(|r| {
-        r.get("identity").and_then(Value::as_str) == Some(repo_id.as_str())
-    }));
+    assert!(
+        deg_repos
+            .iter()
+            .any(|r| { r.get("identity").and_then(Value::as_str) == Some(repo_id.as_str()) })
+    );
 
     // 7. Persistence across process restart + non-destructive removal.
     drop(svc);
@@ -884,9 +906,9 @@ fn repository_import_mirrors_fleet_census_and_idempotent_lifecycle()
         after_restart_body
             .get("repositories")
             .and_then(Value::as_array)
-            .is_some_and(|arr| arr.iter().any(|r| {
-                r.get("identity").and_then(Value::as_str) == Some(repo_id.as_str())
-            }))
+            .is_some_and(|arr| arr
+                .iter()
+                .any(|r| { r.get("identity").and_then(Value::as_str) == Some(repo_id.as_str()) }))
     );
 
     let (rem_status, rem_body) = http_json(
@@ -916,13 +938,14 @@ fn repository_import_mirrors_fleet_census_and_idempotent_lifecycle()
         .get("repositories")
         .and_then(Value::as_array)
         .ok_or("missing final repositories")?;
-    assert!(!final_repos.iter().any(|r| {
-        r.get("identity").and_then(Value::as_str) == Some(repo_id.as_str())
-    }));
+    assert!(
+        !final_repos
+            .iter()
+            .any(|r| { r.get("identity").and_then(Value::as_str) == Some(repo_id.as_str()) })
+    );
 
     // Re-check GET /api/fleet/repositories proxy route while fleet is down -> 503
-    let (fleet_proxy_status, _) =
-        http_json(addr, "GET", "/api/fleet/repositories", &op_tok, None)?;
+    let (fleet_proxy_status, _) = http_json(addr, "GET", "/api/fleet/repositories", &op_tok, None)?;
     assert_eq!(fleet_proxy_status, 503);
 
     let _ = BTreeMap::<String, String>::new();

@@ -87,11 +87,8 @@ pub fn collect_repositories(
     let inventory = loaded_inventory.as_ref();
     let tools = resolve_tools(config, inventory);
 
-    let mut all_machines: BTreeSet<String> = config
-        .machines()
-        .into_iter()
-        .map(str::to_owned)
-        .collect();
+    let mut all_machines: BTreeSet<String> =
+        config.machines().into_iter().map(str::to_owned).collect();
     if let Some(inv) = inventory {
         for machine in &inv.machines {
             all_machines.insert(machine.label.clone());
@@ -116,8 +113,12 @@ pub fn collect_repositories(
             continue;
         }
         let inv_machine = inventory.and_then(|inv| inv.machine(machine_name));
-        let (error, copies, remote_truncated) =
-            project_remote_host(machine_name, inv_machine, inventory_error.as_deref(), now_ms);
+        let (error, copies, remote_truncated) = project_remote_host(
+            machine_name,
+            inv_machine,
+            inventory_error.as_deref(),
+            now_ms,
+        );
         remote_hosts.push((machine_name.clone(), error, copies, remote_truncated));
     }
 
@@ -257,7 +258,11 @@ fn project_remote_host(
     let total = machine.repositories.len();
     let truncated = total > MAX_LOCAL_COPIES_PER_HOST;
     let mut copies = Vec::with_capacity(total.min(MAX_LOCAL_COPIES_PER_HOST));
-    for checkout_path in machine.repositories.values().take(MAX_LOCAL_COPIES_PER_HOST) {
+    for checkout_path in machine
+        .repositories
+        .values()
+        .take(MAX_LOCAL_COPIES_PER_HOST)
+    {
         let copy = FleetLocalCopy {
             machine: machine_name.to_owned(),
             path: truncate_utf8(checkout_path, MAX_PATH_BYTES),
@@ -288,9 +293,9 @@ pub fn remote_host_error(machine: &HerdrMachine) -> String {
             "remote host has no herdr_machine or ssh_target configured for checkout census"
                 .to_owned()
         }
-        (Some(herdr), _) => format!(
-            "remote host {herdr} is unreachable or offline for read-only repository census"
-        ),
+        (Some(herdr), _) => {
+            format!("remote host {herdr} is unreachable or offline for read-only repository census")
+        }
         (None, Some(ssh)) => {
             format!("remote host ({ssh}) is unreachable or offline for read-only repository census")
         }
@@ -535,7 +540,9 @@ fn inspect_local_checkout(
     };
 
     match vcs {
-        LocalVcs::Git => inspect_git_checkout(machine, path, path_string, cairn_count, tools, now_ms),
+        LocalVcs::Git => {
+            inspect_git_checkout(machine, path, path_string, cairn_count, tools, now_ms)
+        }
         LocalVcs::Jj => inspect_jj_checkout(machine, path, path_string, cairn_count, tools, now_ms),
         LocalVcs::Pijul => {
             inspect_pijul_checkout(machine, path, path_string, cairn_count, tools, now_ms)
@@ -683,8 +690,13 @@ fn inspect_git_checkout(
     let mut remotes = Vec::new();
 
     if let Some(git_bin) = tools.git.as_deref() {
-        if let Ok(rev) = run_git_readonly(git_bin, path, None, &["rev-parse", "--verify", "HEAD"], tools)
-            && is_commit_hex(&rev)
+        if let Ok(rev) = run_git_readonly(
+            git_bin,
+            path,
+            None,
+            &["rev-parse", "--verify", "HEAD"],
+            tools,
+        ) && is_commit_hex(&rev)
         {
             head_commit = Some(rev);
         }
@@ -778,8 +790,13 @@ fn inspect_jj_checkout(
                 dirty = Some(dirty.unwrap_or(false) || git_dirty);
             }
             if head_commit.is_none()
-                && let Ok(rev) =
-                    run_git_readonly(git_bin, path, None, &["rev-parse", "--verify", "HEAD"], tools)
+                && let Ok(rev) = run_git_readonly(
+                    git_bin,
+                    path,
+                    None,
+                    &["rev-parse", "--verify", "HEAD"],
+                    tools,
+                )
                 && is_commit_hex(&rev)
             {
                 head_commit = Some(rev);
@@ -841,7 +858,11 @@ fn inspect_jj_checkout(
     }
 }
 
-fn run_jj_readonly_log(jj_bin: &Path, workspace: &Path, tools: &VcsTools) -> Result<String, String> {
+fn run_jj_readonly_log(
+    jj_bin: &Path,
+    workspace: &Path,
+    tools: &VcsTools,
+) -> Result<String, String> {
     let mut child = Child::new(
         jj_bin,
         workspace,
@@ -910,7 +931,9 @@ fn resolve_jj_repo_dir(workspace: &Path) -> Option<PathBuf> {
     }
     if meta.is_file() && !meta.file_type().is_symlink() {
         let bytes = read_bounded(&repo, MAX_GIT_CONFIG_BYTES).ok()?;
-        let text = std::str::from_utf8(&bytes).ok()?.trim_end_matches(['\r', '\n']);
+        let text = std::str::from_utf8(&bytes)
+            .ok()?
+            .trim_end_matches(['\r', '\n']);
         let target = PathBuf::from(text);
         return Some(if target.is_absolute() {
             target
@@ -1079,7 +1102,10 @@ pub fn parse_git_config_remotes(config_text: &str) -> Vec<String> {
             continue;
         }
         if line.starts_with('[') && line.ends_with(']') {
-            let inner = line.get(1..line.len().saturating_sub(1)).unwrap_or("").trim();
+            let inner = line
+                .get(1..line.len().saturating_sub(1))
+                .unwrap_or("")
+                .trim();
             in_remote_section = inner
                 .get(..6)
                 .is_some_and(|prefix| prefix.eq_ignore_ascii_case("remote"))

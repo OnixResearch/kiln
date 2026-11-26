@@ -5445,6 +5445,15 @@ bounded cursor pagination (`rollup_cursor`):
   retrying, and payloads omit `params`, `env_bindings`, `source_env`,
   credentials, and raw logs.
 
+### Native SDLC operator controls
+
+- **Runbooks → Lattice workflow sources** reads exact owner-exported source revisions, not active catalog heads. Pass `--lattice-authoring /absolute/index.json` with schema `kiln.lattice-author-source-index.v1`. Each `exports` entry names `workflow`, a sibling `.author.json` `archive`, and the BLAKE3 digest of the exact archive bytes (`blake3`). Use native `lattice authoring export` for a workflow with a retained source association. The console does not validate or save drafts, publish, or execute from this view.
+- **Runbooks → Edit Lattice workflow drafts** uses a separate `--lattice-drafts /absolute/profile.json` with schema `kiln.lattice-draft-owner.v1`, absolute `executable` and `config` paths, and explicit `workflows` identifiers. The executable must provide `authoring source-edit`. The exact catalog head and draft revision (or explicit absence) are required on save. The native Lattice transaction retains a validated draft; it does not update the catalog or run the workflow.
+- **Delivery & Cairn → Author Cairn changes** takes `--cairn-authoring /absolute/profile.json`, schema `kiln.cairn-authoring-profile.v1`, absolute `cairn_executable`, and `roots` entries (`repository`, `label`, `root`). Use an explicitly enrolled, exclusive native Cairn worktree. Create and dependency writes do not have provider CAS; another writer voids the enrollment assumption. Profiles with `edit_artifacts: true` must supply a Cairn build with `change artifact show` and `replace`. This grants conditional replacement of existing proposal, design, or tasks Markdown, not gate approval, publication, or execution. Inspect native state after an unconfirmed write; do not retry automatically.
+- **Fleet & Workers → Machines** browses windows only on hosts in the coordinator's attached Herdr inventory. A capture rechecks the selected pane on that host and returns bounded text to operators only.
+- **Fleet & Workers → Attempts → Place independent work units** assigns 2–16 distinct, already-claimed, unstarted attempts to at least two explicitly selected hosts. Prepare unreserved units with `kiln-implementer claim` against the coordinator implementation database. The preview is not a reservation; an accepted reservation is not a running session. Read per-unit outcomes before acting on a lost response.
+- **Fleet & Workers → Attempts → Move queued workload** changes the host on a current Herdr dispatch reservation only before a session is bound or any launch is recorded. A successful rebind is not a started agent. Running agent migration is unavailable; the provider does not supply a fenced checkpoint handoff and target resume.
+
 ### Cairn changes
 
 <!-- r[related kiln.cairn.workspace] -->

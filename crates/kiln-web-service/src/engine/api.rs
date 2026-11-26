@@ -660,8 +660,7 @@ impl Engine {
         let outcome = view.outcome;
         let phase = view.phase.clone();
         let error_code = view.error_code.clone();
-        let still_unknown =
-            outcome == kiln_core::domain::Outcome::Unknown || phase == "unknown";
+        let still_unknown = outcome == kiln_core::domain::Outcome::Unknown || phase == "unknown";
         let reconciled = !still_unknown && !was_waiting && !was_engine_owned;
         let note = if still_unknown {
             "Provider remains unreachable or execution outcome is still unknown; do not blindly rerun."

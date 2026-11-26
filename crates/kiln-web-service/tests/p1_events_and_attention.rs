@@ -176,7 +176,10 @@ fn http_json(
     payload: Option<&Value>,
 ) -> Result<(u16, Value), Box<dyn std::error::Error>> {
     let mut stream = tls_connect(addr, Duration::from_secs(4))?;
-    let body = payload.map(serde_json::to_vec).transpose()?.unwrap_or_default();
+    let body = payload
+        .map(serde_json::to_vec)
+        .transpose()?
+        .unwrap_or_default();
     let req = format!(
         "{method} {target} HTTP/1.1\r\nHost: localhost:{}\r\nAuthorization: Bearer {token}\r\nOrigin: https://localhost:{}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
         addr.port(),
@@ -326,7 +329,13 @@ fn served_multiplexed_sse_fanout_disconnect_cleanup_and_attention_recovery()
     let claim = implementer.claim_next(1_000, 60_000)?.expect("claim");
     let attempt_id = claim.identity.clone();
     let fence = claim.fence;
-    implementer.fail(&attempt_id, fence, 2_000, FailureClass::Unknown, "ambiguous")?;
+    implementer.fail(
+        &attempt_id,
+        fence,
+        2_000,
+        FailureClass::Unknown,
+        "ambiguous",
+    )?;
 
     implementer.plan_review(&PlanReviewCommand::Configure {
         policy: Some(PlanReviewPolicy {
@@ -516,8 +525,16 @@ fn served_multiplexed_sse_fanout_disconnect_cleanup_and_attention_recovery()
             &["ready", "ci", "fleet", "cairn", "attention"],
             Instant::now() + Duration::from_secs(4),
         )?;
-        assert!(events.iter().any(|(ev, v)| ev == "ready" && v["schema"] == "kiln.events.v1"));
-        assert!(events.iter().any(|(ev, v)| ev == "attention" && v["total"].as_u64() == Some(3)));
+        assert!(
+            events
+                .iter()
+                .any(|(ev, v)| ev == "ready" && v["schema"] == "kiln.events.v1")
+        );
+        assert!(
+            events
+                .iter()
+                .any(|(ev, v)| ev == "attention" && v["total"].as_u64() == Some(3))
+        );
         readers.push(r);
     }
 
@@ -528,7 +545,11 @@ fn served_multiplexed_sse_fanout_disconnect_cleanup_and_attention_recovery()
     *fleet.version.lock().unwrap() = "b".repeat(64);
     for r in &mut readers {
         let events = read_sse_until(r, &["fleet"], Instant::now() + Duration::from_secs(4))?;
-        assert!(events.iter().any(|(ev, v)| ev == "fleet" && v["version"] == "b".repeat(64)));
+        assert!(
+            events
+                .iter()
+                .any(|(ev, v)| ev == "fleet" && v["version"] == "b".repeat(64))
+        );
     }
     assert_eq!(fleet.snapshot_calls.load(Ordering::Relaxed), 2);
 
@@ -596,7 +617,8 @@ fn served_multiplexed_sse_fanout_disconnect_cleanup_and_attention_recovery()
 
     // 5. Verify attention total dropped from 3 to 1 (only the open FleetSessionDecision remains)
     // and the surviving SSE tab received the updated attention frame!
-    let (att2_status, att2) = http_json(addr, "GET", "/api/implementation/attention", &op_tok, None)?;
+    let (att2_status, att2) =
+        http_json(addr, "GET", "/api/implementation/attention", &op_tok, None)?;
     assert_eq!(att2_status, 200);
     assert_eq!(att2["total"], 1);
     assert_eq!(att2["counts"]["PlanReviewGate"], 0);

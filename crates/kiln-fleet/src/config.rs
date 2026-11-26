@@ -360,10 +360,18 @@ impl FleetConfig {
         if let Some(core) = &self.herdr_core {
             absolute(&core.socket, "herdr_core.socket")?;
             let mut aliases = BTreeSet::new();
-            if core.version != "0.1.19" || core.hosts.is_empty() || core.hosts.iter().any(|(host, alias)| {
-                !machines.contains(host.as_str()) || (!alias.is_empty() && !machine_label(alias)) || !aliases.insert(alias)
-            }) {
-                return Err("herdr_core requires version 0.1.19 and unique aliases for enrolled hosts".to_owned());
+            if core.version != "0.1.19"
+                || core.hosts.is_empty()
+                || core.hosts.iter().any(|(host, alias)| {
+                    !machines.contains(host.as_str())
+                        || (!alias.is_empty() && !machine_label(alias))
+                        || !aliases.insert(alias)
+                })
+            {
+                return Err(
+                    "herdr_core requires version 0.1.19 and unique aliases for enrolled hosts"
+                        .to_owned(),
+                );
             }
         }
         if let Some(swarm) = &self.swarm {

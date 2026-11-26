@@ -1806,7 +1806,9 @@ fn html_gate_passport_enforces_provenance_borders_stale_attempts_and_unverified_
     // Honesty invariant: cairn-authoritative-completion never renders passed without independent canonical receipt.
     assert!(html.contains("cairn-authoritative-completion"));
     assert!(html.contains("Unverified / Pending"));
-    assert!(!html.contains("cairn-authoritative-completion</strong></div>\n<p class=\"note\">Passed"));
+    assert!(
+        !html.contains("cairn-authoritative-completion</strong></div>\n<p class=\"note\">Passed")
+    );
     // Superseded attempt is flagged historical/stale, active attempt is current.
     assert!(html.contains("data-stale=\"true\""));
     assert!(html.contains("historical/stale"));

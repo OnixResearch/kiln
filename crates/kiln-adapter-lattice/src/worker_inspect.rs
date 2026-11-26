@@ -1,7 +1,10 @@
 //! Read-only Lattice implementation-attempt inspect transport.
 //! The native producer owns lifecycle; no request or state path comes from HTTP.
 use super::{WorkerTransportProfile, program_identity, read_json};
-use bounded_exec::{CommandSpec, Disposition, EnvironmentMode, ExecutionLimits, Input, OutcomePolicy, RunRequest, TerminationScope};
+use bounded_exec::{
+    CommandSpec, Disposition, EnvironmentMode, ExecutionLimits, Input, OutcomePolicy, RunRequest,
+    TerminationScope,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{io::Read, path::Path};
@@ -97,11 +100,21 @@ struct RequestObservation {
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-enum RequestClass { NotDispatched, Completed, ResponseRejected, Uncertain, DispatchUnconfirmed }
+enum RequestClass {
+    NotDispatched,
+    Completed,
+    ResponseRejected,
+    Uncertain,
+    DispatchUnconfirmed,
+}
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
-enum Evidence { Fixture, LiveEndpoint, NoUpstreamContact }
+enum Evidence {
+    Fixture,
+    LiveEndpoint,
+    NoUpstreamContact,
+}
 
 #[derive(Clone, Debug, Deserialize)]
 struct ServiceUsage {
@@ -116,8 +129,16 @@ struct ServiceUsage {
 enum Coverage {
     Unknown,
     NoModel,
-    BrokeredUnattributed { schema: String, is_count_complete: bool, dispatched_requests: u64 },
-    Served { schema: String, is_complete: bool, services: Vec<ServiceUsage> },
+    BrokeredUnattributed {
+        schema: String,
+        is_count_complete: bool,
+        dispatched_requests: u64,
+    },
+    Served {
+        schema: String,
+        is_complete: bool,
+        services: Vec<ServiceUsage>,
+    },
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -125,8 +146,15 @@ enum Coverage {
 pub enum ModelRequests {
     Unobserved,
     NoModel,
-    BrokeredUnattributed { count_complete: bool, dispatched_requests: u64 },
-    ServingOwner { usage_complete: bool, services: Vec<ServingService>, omitted: usize },
+    BrokeredUnattributed {
+        count_complete: bool,
+        dispatched_requests: u64,
+    },
+    ServingOwner {
+        usage_complete: bool,
+        services: Vec<ServingService>,
+        omitted: usize,
+    },
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -144,12 +172,23 @@ impl NativeInventory {
         match self.model_requests.take() {
             None | Some(Coverage::Unknown) => Ok(ModelRequests::Unobserved),
             Some(Coverage::NoModel) => Ok(ModelRequests::NoModel),
-            Some(Coverage::BrokeredUnattributed { schema, is_count_complete, dispatched_requests })
-                if schema == "lattice.brokered-model-request-usage.v1" => Ok(ModelRequests::BrokeredUnattributed {
-                    count_complete: is_count_complete, dispatched_requests,
-                }),
-            Some(Coverage::Served { schema, is_complete, services })
-                if schema == "lattice.model-request-usage.v1" => project_served(is_complete, services),
+            Some(Coverage::BrokeredUnattributed {
+                schema,
+                is_count_complete,
+                dispatched_requests,
+            }) if schema == "lattice.brokered-model-request-usage.v1" => {
+                Ok(ModelRequests::BrokeredUnattributed {
+                    count_complete: is_count_complete,
+                    dispatched_requests,
+                })
+            }
+            Some(Coverage::Served {
+                schema,
+                is_complete,
+                services,
+            }) if schema == "lattice.model-request-usage.v1" => {
+                project_served(is_complete, services)
+            }
             _ => Err("unsupported native model request coverage schema".into()),
         }
     }
@@ -157,40 +196,65 @@ impl NativeInventory {
 
 fn opaque(value: &str) -> bool {
     (1..=256).contains(&value.len())
-        && value.bytes().all(|c| c.is_ascii_graphic() && !b"/\\\"'`<>{}".contains(&c))
+        && value
+            .bytes()
+            .all(|c| c.is_ascii_graphic() && !b"/\\\"'`<>{}".contains(&c))
 }
 
-fn project_served(usage_complete: bool, services: Vec<ServiceUsage>) -> Result<ModelRequests, String> {
+fn project_served(
+    usage_complete: bool,
+    services: Vec<ServiceUsage>,
+) -> Result<ModelRequests, String> {
     const MAX_DISPLAY_REQUESTS: usize = 32;
     let mut remaining = MAX_DISPLAY_REQUESTS;
     let mut omitted = 0;
     let mut seen = std::collections::BTreeSet::new();
     for service in &services {
-        if ![&service.route_name, &service.service_id, &service.model_id].into_iter().all(|v| opaque(v)) {
+        if ![&service.route_name, &service.service_id, &service.model_id]
+            .into_iter()
+            .all(|v| opaque(v))
+        {
             return Err("invalid serving route identity".into());
         }
         for observation in &service.requests {
             if !reference(&observation.request_id)
                 || !seen.insert(observation.request_id.as_str())
-                || observation.deployment_id.as_deref().is_some_and(|v| !opaque(v))
+                || observation
+                    .deployment_id
+                    .as_deref()
+                    .is_some_and(|v| !opaque(v))
                 || observation.replica.as_deref().is_some_and(|v| !opaque(v))
                 || (observation.class == RequestClass::Completed
-                    && (!matches!(observation.evidence, Some(Evidence::Fixture | Evidence::LiveEndpoint))
-                        || observation.deployment_id.is_none() || observation.deployment_generation.is_none()))
-            { return Err("invalid serving request observation".into()); }
+                    && (!matches!(
+                        observation.evidence,
+                        Some(Evidence::Fixture | Evidence::LiveEndpoint)
+                    ) || observation.deployment_id.is_none()
+                        || observation.deployment_generation.is_none()))
+            {
+                return Err("invalid serving request observation".into());
+            }
         }
     }
-    let services = services.into_iter().filter_map(|mut service| {
-        let kept = remaining.min(service.requests.len());
-        omitted += service.requests.len() - kept;
-        remaining -= kept;
-        service.requests.truncate(kept);
-        (kept > 0).then_some(ServingService {
-            route: service.route_name, service: service.service_id, expected_model: service.model_id,
-            requests: service.requests,
+    let services = services
+        .into_iter()
+        .filter_map(|mut service| {
+            let kept = remaining.min(service.requests.len());
+            omitted += service.requests.len() - kept;
+            remaining -= kept;
+            service.requests.truncate(kept);
+            (kept > 0).then_some(ServingService {
+                route: service.route_name,
+                service: service.service_id,
+                expected_model: service.model_id,
+                requests: service.requests,
+            })
         })
-    }).collect();
-    Ok(ModelRequests::ServingOwner { usage_complete, services, omitted })
+        .collect();
+    Ok(ModelRequests::ServingOwner {
+        usage_complete,
+        services,
+        omitted,
+    })
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -201,7 +265,10 @@ pub struct OwnedUnknown {
 }
 
 fn hash(value: &str) -> bool {
-    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn reference(value: &str) -> bool {
@@ -209,30 +276,52 @@ fn reference(value: &str) -> bool {
 }
 
 fn admit(inventory: NativeInventory, digest: &str) -> Result<NativeInventory, String> {
-    if inventory.schema != INVENTORY_SCHEMA || inventory.profile.schema != PROFILE_SCHEMA
-        || inventory.profile.owner != "implementation_attempt" || !hash(&inventory.profile.revision)
+    if inventory.schema != INVENTORY_SCHEMA
+        || inventory.profile.schema != PROFILE_SCHEMA
+        || inventory.profile.owner != "implementation_attempt"
+        || !hash(&inventory.profile.revision)
     {
         return Err("unsupported native Lattice inventory profile".into());
     }
     if let Some(instance) = &inventory.instance {
-        if instance.schema != INSTANCE_SCHEMA || instance.source != STATE_SOURCE
+        if instance.schema != INSTANCE_SCHEMA
+            || instance.source != STATE_SOURCE
             || instance.profile_revision != inventory.profile.revision
-            || instance.incarnation != digest || !reference(&instance.binding_identity)
-            || !reference(&instance.definition_identity) || !reference(&instance.state_digest)
+            || instance.incarnation != digest
+            || !reference(&instance.binding_identity)
+            || !reference(&instance.definition_identity)
+            || !reference(&instance.state_digest)
             || instance.fence == 0
             || instance.observed_at_epoch_ms < 0
-            || !matches!(instance.lifecycle.get("state").and_then(Value::as_str),
-                Some("admitted_not_dispatched" | "binding_rejected_before_dispatch" | "revision_blocked_before_dispatch" | "dispatch_recorded_outcome_unknown" | "terminal_observed"))
-            || !["not_requested", "requested_unobserved", "observed_terminated"].contains(&instance.cancellation.as_str())
+            || !matches!(
+                instance.lifecycle.get("state").and_then(Value::as_str),
+                Some(
+                    "admitted_not_dispatched"
+                        | "binding_rejected_before_dispatch"
+                        | "revision_blocked_before_dispatch"
+                        | "dispatch_recorded_outcome_unknown"
+                        | "terminal_observed"
+                )
+            )
+            || ![
+                "not_requested",
+                "requested_unobserved",
+                "observed_terminated",
+            ]
+            .contains(&instance.cancellation.as_str())
             || ![&instance.host_reachability, &instance.allocation_liveness]
-                .iter().all(|fact| fact.support == "unknown" && fact.owner == "kiln#49")
+                .iter()
+                .all(|fact| fact.support == "unknown" && fact.owner == "kiln#49")
         {
             return Err("native Lattice instance is crossed or unsupported".into());
         }
     }
     if let Some(receipt) = &inventory.agent_lineage
         && (!inventory.is_animus()
-            || !inventory.instance.as_ref().is_some_and(|instance| receipt.matches(instance, digest)))
+            || !inventory
+                .instance
+                .as_ref()
+                .is_some_and(|instance| receipt.matches(instance, digest)))
     {
         return Err("native agent lineage is crossed or unsupported".into());
     }
@@ -247,12 +336,16 @@ fn admit(inventory: NativeInventory, digest: &str) -> Result<NativeInventory, St
 
 fn frozen_bytes(path: &Path) -> Result<Vec<u8>, String> {
     let file = std::fs::File::open(path).map_err(|_| "frozen Lattice request unavailable")?;
-    let metadata = file.metadata().map_err(|_| "frozen Lattice request unavailable")?;
+    let metadata = file
+        .metadata()
+        .map_err(|_| "frozen Lattice request unavailable")?;
     if !metadata.is_file() || metadata.len() > MAX_REQUEST_BYTES {
         return Err("frozen Lattice request exceeds its file bound".into());
     }
     let mut bytes = Vec::with_capacity(metadata.len() as usize);
-    file.take(MAX_REQUEST_BYTES + 1).read_to_end(&mut bytes).map_err(|_| "frozen Lattice request unreadable")?;
+    file.take(MAX_REQUEST_BYTES + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| "frozen Lattice request unreadable")?;
     if bytes.len() as u64 > MAX_REQUEST_BYTES {
         return Err("frozen Lattice request exceeds its byte bound".into());
     }
@@ -270,20 +363,31 @@ pub fn inspect(profile_path: &Path, request_path: &Path) -> Result<NativeInvento
         return Err("native Lattice executable exceeds its bound".into());
     }
     if profile.schema != "kiln.lattice-implementation-cli.v2"
-        || !profile.state_directory.is_absolute() || !profile.output_directory.is_absolute()
+        || !profile.state_directory.is_absolute()
+        || !profile.output_directory.is_absolute()
         || program_identity(&profile.lattice_program)? != profile.executable_blake3
     {
         return Err("Lattice inspect profile or executable changed".into());
     }
     let request = frozen_bytes(request_path)?;
     let digest = blake3::hash(&request).to_hex().to_string();
-    let expected = profile.output_directory.join(format!("request-{digest}.json"));
-    if request_path != expected || std::fs::canonicalize(request_path).map_err(|_| "frozen Lattice request unavailable")? != expected {
+    let expected = profile
+        .output_directory
+        .join(format!("request-{digest}.json"));
+    if request_path != expected
+        || std::fs::canonicalize(request_path).map_err(|_| "frozen Lattice request unavailable")?
+            != expected
+    {
         return Err("Lattice request is not its exact frozen producer artifact".into());
     }
     for directory in [&profile.state_directory, &profile.output_directory] {
-        let meta = std::fs::symlink_metadata(directory).map_err(|_| "native Lattice directory unavailable")?;
-        if !meta.is_dir() || std::fs::canonicalize(directory).map_err(|_| "native Lattice directory unavailable")? != *directory {
+        let meta = std::fs::symlink_metadata(directory)
+            .map_err(|_| "native Lattice directory unavailable")?;
+        if !meta.is_dir()
+            || std::fs::canonicalize(directory)
+                .map_err(|_| "native Lattice directory unavailable")?
+                != *directory
+        {
             return Err("native Lattice directory is not canonical".into());
         }
         #[cfg(unix)]
@@ -297,7 +401,14 @@ pub fn inspect(profile_path: &Path, request_path: &Path) -> Result<NativeInvento
     let output = bounded_exec::run(RunRequest {
         command: CommandSpec {
             program: profile.lattice_program,
-            args: vec!["implementation-attempt".into(), "inspect".into(), "--request".into(), request_path.as_os_str().into(), "--state".into(), profile.state_directory.as_os_str().into()],
+            args: vec![
+                "implementation-attempt".into(),
+                "inspect".into(),
+                "--request".into(),
+                request_path.as_os_str().into(),
+                "--state".into(),
+                profile.state_directory.as_os_str().into(),
+            ],
             current_dir: profile.output_directory,
             environment_mode: EnvironmentMode::Clear,
             environment: Vec::new(),
@@ -312,8 +423,10 @@ pub fn inspect(profile_path: &Path, request_path: &Path) -> Result<NativeInvento
             teardown_timeout_ms: 1_000,
         },
         termination_scope: TerminationScope::ProcessGroup,
-        outcome_policy: OutcomePolicy::new(vec![0], true, true).map_err(|_| "Lattice inspect policy unavailable")?,
-    }).map_err(|_| "Lattice inspect unavailable")?;
+        outcome_policy: OutcomePolicy::new(vec![0], true, true)
+            .map_err(|_| "Lattice inspect policy unavailable")?,
+    })
+    .map_err(|_| "Lattice inspect unavailable")?;
     if output.disposition != Disposition::Succeeded {
         return Err("Lattice inspect did not produce verified native facts".into());
     }
@@ -373,7 +486,10 @@ mod tests {
         let mut animus = sample.clone();
         animus["profile"]["adapter"] = json!({"support":"declared", "value":ANIMUS_ADAPTER});
         let mut unobserved = admit(parse(animus.clone()), &digest).unwrap();
-        assert!(matches!(unobserved.take_agent_lineage(), AgentLineage::Unobserved));
+        assert!(matches!(
+            unobserved.take_agent_lineage(),
+            AgentLineage::Unobserved
+        ));
         let root = "9a".repeat(32);
         animus["agent_lineage"] = json!({
             "schema":"animus.implementation-child-lineage.v1", "work_identity":"ef".repeat(32),
@@ -382,7 +498,10 @@ mod tests {
             "edges":[{"parent_id":root, "child_id":"bc".repeat(32), "state":"completed"}],
         });
         let mut admitted = admit(parse(animus.clone()), &digest).unwrap();
-        assert!(matches!(admitted.take_agent_lineage(), AgentLineage::Recorded { .. }));
+        assert!(matches!(
+            admitted.take_agent_lineage(),
+            AgentLineage::Recorded { .. }
+        ));
         for (path, value) in [
             ("/agent_lineage/fence", json!(8)),
             ("/agent_lineage/request_identity", json!("01".repeat(32))),
@@ -394,7 +513,8 @@ mod tests {
             assert!(admit(parse(crossed), &digest).is_err(), "accepted {path}");
         }
         let mut false_readiness = sample;
-        false_readiness["instance"]["host_reachability"]["support"] = serde_json::json!("qualified");
+        false_readiness["instance"]["host_reachability"]["support"] =
+            serde_json::json!("qualified");
         assert!(admit(parse(false_readiness), &digest).is_err());
     }
 

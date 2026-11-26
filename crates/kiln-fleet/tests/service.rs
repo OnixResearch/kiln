@@ -87,6 +87,124 @@ fn text<'a>(value: &'a Value, pointer: &str) -> &'a str {
 }
 
 #[test]
+// r[verify kiln.sdlc.herdr_windows.scenario.operator]
+fn herdr_windows_refuse_unconfigured_hosts_and_unobserved_panes() -> TestResult {
+    let fixture = fixture()?;
+    let root = fixture._directory.path();
+    let local_windows = format!("/v1/machines/{COORDINATOR}/windows");
+    let remote_windows = format!("/v1/machines/{PEER}/windows");
+    let capture = format!("{remote_windows}/w1:pA/capture?lines=2");
+    assert_eq!(
+        fixture
+            .call(COORDINATOR, "GET", &local_windows, None)
+            .status,
+        503
+    );
+    let fake = executable(
+        "window-herdr",
+        r##"#!/bin/sh
+printf '%s\n' "$*" >> "$HOME/herdr-argv"
+case "$*" in
+  '--session fixture pane list')
+    printf '%s\n' '{"result":{"type":"pane_list","panes":[{"pane_id":"w1:p1","workspace_id":"w1","tab_id":"w1:t1"}]}}' ;;
+  '--machine saved-peer pane list')
+    if [ -f "$HOME/unavailable" ]; then
+      printf '%s\n' '{"error":{"code":"server_not_running","message":"private provider detail"}}' >&2
+      exit 1
+    fi
+    if [ -f "$HOME/closed" ]; then
+      printf '%s\n' '{"result":{"type":"pane_list","panes":[]}}'
+      exit 0
+    fi
+    printf '%s\n' '{"result":{"type":"pane_list","panes":[{"pane_id":"w1:pA","workspace_id":"w1","tab_id":"w1:t1","terminal_title":"private title","agent":null}]}}' ;;
+  '--machine saved-peer pane read w1:pA --source recent-unwrapped --lines 2 --format text')
+    printf 'first\n\033[32msecond\033[0m\n<last>\n' ;;
+  *) exit 2 ;;
+esac
+"##,
+    );
+    let inventory = json!({
+        "schema": "kiln.fleet-inventory.v1",
+        "executable": fake,
+        "session": "fixture",
+        "environment": { "home": root, "path": "/bin:/usr/bin" },
+        "machines": [
+            { "label": COORDINATOR, "worktree_root": root },
+            { "label": PEER, "herdr_machine": "saved-peer", "worktree_root": root },
+            { "label": "aspen1", "worktree_root": root },
+        ],
+    });
+    fixture
+        .service
+        .set_herdr(kiln_adapter_herdr::HerdrClient::new(
+            kiln_adapter_herdr::HerdrInventory::from_json(&inventory.to_string())?,
+        )?);
+    let argv = root.join("herdr-argv");
+    let denied = fixture.call(PEER, "POST", &capture, Some(json!({})));
+    assert_eq!(denied.status, 403);
+    let unknown = fixture.call(COORDINATOR, "GET", "/v1/machines/unknown/windows", None);
+    assert_eq!(unknown.status, 404);
+    let no_route = fixture.call(COORDINATOR, "GET", "/v1/machines/aspen1/windows", None);
+    assert_eq!(
+        no_route.status, 503,
+        "a remote label never falls back to Local"
+    );
+    let oversized = fixture.call(
+        COORDINATOR,
+        "POST",
+        &format!("{remote_windows}/w1:pA/capture?lines=1001"),
+        Some(json!({})),
+    );
+    assert_eq!(oversized.status, 400);
+    assert!(!argv.exists(), "refusals must not launch Herdr");
+
+    let windows = fixture.call(PEER, "GET", &remote_windows, None);
+    assert_eq!(windows.status, 200);
+    assert_eq!(
+        windows.body,
+        json!({ "machine": PEER, "windows": [
+        { "pane_id": "w1:pA", "workspace_id": "w1", "tab_id": "w1:t1" },
+    ] })
+    );
+    let wrong_host = fixture.call(
+        COORDINATOR,
+        "POST",
+        &format!("{local_windows}/w1:pA/capture"),
+        Some(json!({})),
+    );
+    assert_eq!(wrong_host.status, 404);
+    let captured = fixture.call(COORDINATOR, "POST", &capture, Some(json!({})));
+    assert_eq!(captured.status, 200);
+    assert_eq!(text(&captured.body, "/machine"), PEER);
+    assert_eq!(text(&captured.body, "/window/pane_id"), "w1:pA");
+    assert_eq!(text(&captured.body, "/text"), "second\n<last>");
+    assert_eq!(captured.body["line_count"], 2);
+    assert_eq!(captured.body["truncated"], true);
+
+    std::fs::write(root.join("closed"), "")?;
+    let stale = fixture.call(COORDINATOR, "POST", &capture, Some(json!({})));
+    assert_eq!(stale.status, 404);
+    assert_eq!(text(&stale.body, "/code"), "fleet_herdr_window_unknown");
+    assert_eq!(
+        std::fs::read_to_string(&argv)?
+            .lines()
+            .filter(|line| line.contains("pane read"))
+            .count(),
+        1
+    );
+    std::fs::write(root.join("unavailable"), "")?;
+    let unavailable = fixture.call(COORDINATOR, "GET", &remote_windows, None);
+    assert_eq!(unavailable.status, 503);
+    assert!(
+        !unavailable
+            .body
+            .to_string()
+            .contains("private provider detail")
+    );
+    Ok(())
+}
+
+#[test]
 // r[verify kiln.fleet.api.scenario.identity]
 fn peers_are_loopback_or_configured_tailnet_nodes() -> TestResult {
     let fixture = fixture()?;
@@ -439,20 +557,32 @@ fn work_rows_preserve_exact_native_source_references() -> TestResult {
     assert_eq!(response.status, 200);
     let body = response.body;
     assert_eq!(body.pointer("/truncated"), Some(&json!(false)));
-    assert_eq!(body.pointer("/ranked/0/repository"), Some(&json!(common::REPOSITORY)));
-    assert_eq!(body.pointer("/blocked/0/repository"), Some(&json!(common::REPOSITORY)));
-    assert_eq!(body.pointer("/ranked/0/sources"), Some(&json!([{
-        "kind": "github_issue",
-        "source": { "contract_version": 1, "provider_namespace": "github", "native_kind": "issue", "native_id": "onix/kiln#7" },
-        "native_id": "onix/kiln#7",
-        "version": "1".repeat(64),
-    }])));
-    assert_eq!(body.pointer("/blocked/0/sources"), Some(&json!([{
-        "kind": "cairn_task",
-        "source": { "contract_version": 1, "provider_namespace": "cairn", "native_kind": "task", "native_id": "change/task-1" },
-        "native_id": "change/task-1",
-        "version": "2".repeat(64),
-    }])));
+    assert_eq!(
+        body.pointer("/ranked/0/repository"),
+        Some(&json!(common::REPOSITORY))
+    );
+    assert_eq!(
+        body.pointer("/blocked/0/repository"),
+        Some(&json!(common::REPOSITORY))
+    );
+    assert_eq!(
+        body.pointer("/ranked/0/sources"),
+        Some(&json!([{
+            "kind": "github_issue",
+            "source": { "contract_version": 1, "provider_namespace": "github", "native_kind": "issue", "native_id": "onix/kiln#7" },
+            "native_id": "onix/kiln#7",
+            "version": "1".repeat(64),
+        }]))
+    );
+    assert_eq!(
+        body.pointer("/blocked/0/sources"),
+        Some(&json!([{
+            "kind": "cairn_task",
+            "source": { "contract_version": 1, "provider_namespace": "cairn", "native_kind": "task", "native_id": "change/task-1" },
+            "native_id": "change/task-1",
+            "version": "2".repeat(64),
+        }]))
+    );
     Ok(())
 }
 
@@ -2944,10 +3074,9 @@ exit 1
     let cfg = FleetConfig::from_json(&serde_json::to_vec(&document)?)?;
     let service = Arc::new(Service::new(cfg)?);
 
-    let base_ms = kiln_core::implementation::swarm::parse_rfc2822_ms(
-        "Thu, 26 Nov 2026 03:55:00 +0000",
-    )
-    .ok_or("bad rfc2822 date")?;
+    let base_ms =
+        kiln_core::implementation::swarm::parse_rfc2822_ms("Thu, 26 Nov 2026 03:55:00 +0000")
+            .ok_or("bad rfc2822 date")?;
 
     // Acquire one short-lived (1m) claim and one longer (10m) claim.
     let short_claim = service.route(
@@ -2996,7 +3125,10 @@ exit 1
         after_expiry_ms,
     );
     assert_eq!(default_resp.status, 200);
-    assert_eq!(default_resp.body["claims"].as_array().map(Vec::len), Some(1));
+    assert_eq!(
+        default_resp.body["claims"].as_array().map(Vec::len),
+        Some(1)
+    );
     assert_eq!(default_resp.body["claims"][0]["identity"], live_id);
     assert!(default_resp.body.get("foreign_claims").is_none());
     assert!(default_resp.body.get("expired_claims").is_none());
@@ -3008,7 +3140,10 @@ exit 1
         after_expiry_ms,
     );
     assert_eq!(foreign_only.status, 200);
-    assert_eq!(foreign_only.body["claims"].as_array().map(Vec::len), Some(1));
+    assert_eq!(
+        foreign_only.body["claims"].as_array().map(Vec::len),
+        Some(1)
+    );
     assert_eq!(
         foreign_only.body["foreign_claims"].as_array().map(Vec::len),
         Some(1)
@@ -3047,8 +3182,14 @@ exit 1
     );
     assert_eq!(both.status, 200);
     assert_eq!(both.body["claims"].as_array().map(Vec::len), Some(1));
-    assert_eq!(both.body["foreign_claims"].as_array().map(Vec::len), Some(1));
-    assert_eq!(both.body["expired_claims"].as_array().map(Vec::len), Some(1));
+    assert_eq!(
+        both.body["foreign_claims"].as_array().map(Vec::len),
+        Some(1)
+    );
+    assert_eq!(
+        both.body["expired_claims"].as_array().map(Vec::len),
+        Some(1)
+    );
 
     // When swarm read fails past WINDOW_MAX_AGE_MS, foreign_mirror explicitly reports unavailable without hiding live claims.
     std::fs::write(state_dir.join("fail"), b"down")?;
@@ -3256,7 +3397,11 @@ fn claim_cancel_and_answer_routes_accept_and_deduplicate_request_id() -> TestRes
 
     // Create a cancelable attempt and test cancel request_id acceptance & replay.
     let mut store = fixture.service.store.open_coordinator()?;
-    let work = common::work(&"a".repeat(40), &common::content('b'), &["crates/kiln-fleet"])?;
+    let work = common::work(
+        &"a".repeat(40),
+        &common::content('b'),
+        &["crates/kiln-fleet"],
+    )?;
     store.admit(&work, None)?;
     let attempt = store
         .claim_next(now + 50, kiln_core::implementation::DEFAULT_LEASE_MS)?
@@ -3464,7 +3609,11 @@ fn repositories_census_observes_local_git_and_jj_and_reports_offline_hosts() -> 
     // Negative: non-GET returns 405.
     assert_eq!(
         service
-            .route(COORDINATOR, &request("POST", "/v1/repositories", None), 5_000)
+            .route(
+                COORDINATOR,
+                &request("POST", "/v1/repositories", None),
+                5_000
+            )
             .status,
         405
     );
@@ -3481,7 +3630,11 @@ fn repositories_census_observes_local_git_and_jj_and_reports_offline_hosts() -> 
     );
     assert_eq!(
         service
-            .route(COORDINATOR, &request("GET", "/v1/repositories?", None), 5_000)
+            .route(
+                COORDINATOR,
+                &request("GET", "/v1/repositories?", None),
+                5_000
+            )
             .status,
         400
     );
@@ -3496,9 +3649,8 @@ fn repositories_census_observes_local_git_and_jj_and_reports_offline_hosts() -> 
     let hosts = response.body["hosts"]
         .as_array()
         .ok_or("missing hosts array")?;
-    let host_row = |name: &str| -> Option<&Value> {
-        hosts.iter().find(|entry| entry["machine"] == name)
-    };
+    let host_row =
+        |name: &str| -> Option<&Value> { hosts.iter().find(|entry| entry["machine"] == name) };
     let coord_host = host_row(COORDINATOR).ok_or("missing coordinator host")?;
     assert_eq!(coord_host["health"], "available");
     assert_eq!(coord_host["copy_count"], 3);
@@ -3570,7 +3722,11 @@ fn repositories_census_observes_local_git_and_jj_and_reports_offline_hosts() -> 
         .find(|c| c["path"] == missing_repo.to_string_lossy().as_ref())
         .ok_or("missing unavailable local checkout entry")?;
     assert_eq!(missing_copy["health"], "unavailable");
-    assert!(missing_copy["error"].as_str().is_some_and(|s| !s.is_empty()));
+    assert!(
+        missing_copy["error"]
+            .as_str()
+            .is_some_and(|s| !s.is_empty())
+    );
 
     let remote_copy = copies
         .iter()

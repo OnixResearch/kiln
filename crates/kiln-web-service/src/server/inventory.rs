@@ -4,12 +4,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::time::Duration;
 
-use kiln_core::fleet::{
-    Decision as FleetDecision, FleetClaim, FleetScope, is_stale_observation_decision, overlaps,
-};
 use kiln_core::fair_admission::{
     AdmissionLedger, AdmissionPolicy, Amounts, BudgetAccount, MAX_RECORDS, QueueGroupLimit,
     ReservationState, ServingBounds, ServingOrigin, ServingReadiness, SettlementProvenance,
+};
+use kiln_core::fleet::{
+    Decision as FleetDecision, FleetClaim, FleetScope, is_stale_observation_decision, overlaps,
 };
 use kiln_core::implementation::campaign::{
     CampaignOperation, CampaignState, DecisionRequestState, EffectState, MAX_ID_BYTES,
@@ -19,10 +19,9 @@ use kiln_core::implementation::continuation::{ContinuationRecord, WakeHint, Wake
 use kiln_core::implementation::{
     AbsenceReason, AttemptPhase, AuxiliaryCallObservation, BlockReason, Eligibility, Enrollment,
     FailureClass, ModelTurnObservation, PlanAnnotation, PlanDecision, PlanGate, PlanNote,
-    PlanRegion, PlanResolution, PlanReviewCommand, PlanReviewResult, PlanVerdict,
-    PublicationPhase, PublicationPlan, TextSpan, TokenObservation, VerificationOutcome,
-    WorkSourceKind, WorkerTerminalState, admit_candidate_handoff, admit_candidate_verification,
-    branch_for,
+    PlanRegion, PlanResolution, PlanReviewCommand, PlanReviewResult, PlanVerdict, PublicationPhase,
+    PublicationPlan, TextSpan, TokenObservation, VerificationOutcome, WorkSourceKind,
+    WorkerTerminalState, admit_candidate_handoff, admit_candidate_verification, branch_for,
 };
 use kiln_core::operations::FairnessStrategy;
 use kiln_core::types::{Alias, ContentId, ExternalRef};
@@ -163,7 +162,10 @@ fn campaign_status(state: &CampaignState, complete: bool) -> &'static str {
         "paused"
     } else if state.pending_effects.values().any(|effect| {
         !effect.progress_applied
-            && matches!(effect.state, EffectState::IntentPersisted | EffectState::Unknown)
+            && matches!(
+                effect.state,
+                EffectState::IntentPersisted | EffectState::Unknown
+            )
     }) {
         "reconciling"
     } else {
@@ -905,8 +907,11 @@ pub(super) fn assemble_attention(
                     .unwrap_or_default();
                 let unresolved_annotations: Vec<Value> = thread
                     .map(|t| {
-                        let resolved_ids: BTreeSet<&str> =
-                            t.resolutions.iter().map(|r| r.annotation.as_str()).collect();
+                        let resolved_ids: BTreeSet<&str> = t
+                            .resolutions
+                            .iter()
+                            .map(|r| r.annotation.as_str())
+                            .collect();
                         t.annotations
                             .iter()
                             .filter(|ann| ann.blocking && !resolved_ids.contains(ann.id.as_str()))
@@ -1226,10 +1231,7 @@ pub(super) fn assemble_attention(
                 kind: AttentionKind::FleetSessionDecision,
                 severity: AttentionSeverity::High,
                 title: if stale_observation {
-                    format!(
-                        "Stale agent observation on attempt {}",
-                        &attempt_str[..12]
-                    )
+                    format!("Stale agent observation on attempt {}", &attempt_str[..12])
                 } else {
                     format!("Agent question on attempt {}", &attempt_str[..12])
                 },
@@ -1250,7 +1252,12 @@ pub(super) fn assemble_attention(
                 }),
                 age_ms: Some(now_ms.saturating_sub(decision.raised_ms)),
                 ttl_remaining_ms: None,
-                allowed_actions: vec!["answer_decision", "inspect_pane", "cancel_attempt", "inspect"],
+                allowed_actions: vec![
+                    "answer_decision",
+                    "inspect_pane",
+                    "cancel_attempt",
+                    "inspect",
+                ],
             });
         }
 
@@ -1353,9 +1360,7 @@ pub(super) fn assemble_attention(
                     "overlaps_live_claim": overlaps_live,
                 }),
                 age_ms: Some(age_ms),
-                ttl_remaining_ms: foreign
-                    .stale_after_ms
-                    .checked_sub(age_ms),
+                ttl_remaining_ms: foreign.stale_after_ms.checked_sub(age_ms),
                 allowed_actions: vec!["inspect"],
             });
         }
@@ -1366,7 +1371,9 @@ pub(super) fn assemble_attention(
             .rank()
             .cmp(&right.severity.rank())
             .then_with(|| left.age_ms.is_none().cmp(&right.age_ms.is_none()))
-            .then_with(|| Reverse(left.age_ms.unwrap_or(0)).cmp(&Reverse(right.age_ms.unwrap_or(0))))
+            .then_with(|| {
+                Reverse(left.age_ms.unwrap_or(0)).cmp(&Reverse(right.age_ms.unwrap_or(0)))
+            })
             .then_with(|| left.kind.rank().cmp(&right.kind.rank()))
             .then_with(|| left.id.cmp(&right.id))
     });
@@ -1857,11 +1864,9 @@ pub(super) fn reconcile_termination_response(
     if body.fence == 0 {
         return error_response(400, "reconcile_fence_invalid");
     }
-    if body
-        .campaign_id
-        .as_deref()
-        .is_some_and(|cid| cid.trim().is_empty() || cid.len() > MAX_ID_BYTES || cid.chars().any(char::is_control))
-    {
+    if body.campaign_id.as_deref().is_some_and(|cid| {
+        cid.trim().is_empty() || cid.len() > MAX_ID_BYTES || cid.chars().any(char::is_control)
+    }) {
         return error_response(400, "campaign_id_invalid");
     }
     if body.reason.as_deref().is_some_and(|r| !valid_reason(r)) {
@@ -2271,11 +2276,11 @@ pub(super) fn plan_feedback_response(
         let Some(database) = context.implementation_work else {
             return error_response(503, "implementation_work_not_configured");
         };
-        let snapshot = match ImplementationObservation::open(database).and_then(|obs| obs.snapshot())
-        {
-            Ok(snapshot) => snapshot,
-            Err(_) => return error_response(503, "implementation_work_unavailable"),
-        };
+        let snapshot =
+            match ImplementationObservation::open(database).and_then(|obs| obs.snapshot()) {
+                Ok(snapshot) => snapshot,
+                Err(_) => return error_response(503, "implementation_work_unavailable"),
+            };
         let Some(ledger) = snapshot.work.as_ref() else {
             return error_response(404, "implementation_plan_missing");
         };
@@ -2351,7 +2356,10 @@ pub(super) fn plan_feedback_response(
 
     let command = match body.action.as_deref().unwrap_or("annotate") {
         "resolve" => {
-            let Some(annotation) = body.annotation_id.as_deref().filter(|id| valid_plan_name(id))
+            let Some(annotation) = body
+                .annotation_id
+                .as_deref()
+                .filter(|id| valid_plan_name(id))
             else {
                 return error_response(400, "plan_feedback_invalid");
             };
@@ -2490,10 +2498,7 @@ fn read_admission_ledger(database: &Path) -> Result<AdmissionLedger, &'static st
     let mut rows = statement
         .query(params!["fair-admission-v1", MAX_CAMPAIGN_ROW_BYTES])
         .map_err(|_| "implementation_work_unavailable")?;
-    let Some(row) = rows
-        .next()
-        .map_err(|_| "implementation_work_unavailable")?
-    else {
+    let Some(row) = rows.next().map_err(|_| "implementation_work_unavailable")? else {
         return Ok(AdmissionLedger::default());
     };
     let size: i64 = row.get(0).map_err(|_| "implementation_work_unavailable")?;
@@ -2610,11 +2615,22 @@ struct AdmissionAttemptMetricsView {
     verification_outcome: Option<VerificationOutcome>,
 }
 
-fn project_attempt_metrics(attempt: &kiln_core::implementation::ImplementationAttempt) -> AdmissionAttemptMetricsView {
+fn project_attempt_metrics(
+    attempt: &kiln_core::implementation::ImplementationAttempt,
+) -> AdmissionAttemptMetricsView {
     let usage_ref = attempt
         .metrics
         .as_ref()
-        .map(|m| (&m.usage, "metrics_receipt", true, Some(m.observed_at_ms), Some(m.elapsed_ms), m.open))
+        .map(|m| {
+            (
+                &m.usage,
+                "metrics_receipt",
+                true,
+                Some(m.observed_at_ms),
+                Some(m.elapsed_ms),
+                m.open,
+            )
+        })
         .or_else(|| {
             attempt.worker_observation.as_ref().map(|w| {
                 (
@@ -2662,8 +2678,20 @@ fn project_attempt_metrics(attempt: &kiln_core::implementation::ImplementationAt
             AuxiliaryCallObservation::Absent { reason } => (None, "absent", Some(reason)),
         };
         (
-            tok, tok_st, tok_reason, turns, turns_st, turns_reason, aux, aux_st, aux_reason,
-            source, is_recorded, obs_ms, wall_ms, is_open,
+            tok,
+            tok_st,
+            tok_reason,
+            turns,
+            turns_st,
+            turns_reason,
+            aux,
+            aux_st,
+            aux_reason,
+            source,
+            is_recorded,
+            obs_ms,
+            wall_ms,
+            is_open,
         )
     } else {
         (
@@ -2714,10 +2742,7 @@ fn project_attempt_metrics(attempt: &kiln_core::implementation::ImplementationAt
             .worker_observation
             .as_ref()
             .and_then(|w| w.model.clone()),
-        worker_terminal: attempt
-            .worker_observation
-            .as_ref()
-            .map(|w| w.terminal),
+        worker_terminal: attempt.worker_observation.as_ref().map(|w| w.terminal),
         verification_outcome: attempt.verification_outcome,
     }
 }
@@ -2775,7 +2800,10 @@ fn build_admission_projection(
         if let Some(parent) = &acc.parent
             && let Some(quota) = ledger.quotas.get(id)
         {
-            add_amounts(transferred_by_parent.entry(parent.clone()).or_default(), quota);
+            add_amounts(
+                transferred_by_parent.entry(parent.clone()).or_default(),
+                quota,
+            );
         }
     }
 
@@ -2791,8 +2819,14 @@ fn build_admission_projection(
     for res in ledger.reservations.values() {
         match res.state {
             ReservationState::Committed => {
-                add_amounts(held_by_acc.entry(res.account.clone()).or_default(), &res.amounts);
-                add_amounts(held_by_work.entry(res.work_version.clone()).or_default(), &res.amounts);
+                add_amounts(
+                    held_by_acc.entry(res.account.clone()).or_default(),
+                    &res.amounts,
+                );
+                add_amounts(
+                    held_by_work.entry(res.work_version.clone()).or_default(),
+                    &res.amounts,
+                );
             }
             ReservationState::Tentative => {
                 add_amounts(
@@ -2801,8 +2835,14 @@ fn build_admission_projection(
                 );
             }
             ReservationState::Unknown => {
-                add_amounts(unknown_by_acc.entry(res.account.clone()).or_default(), &res.amounts);
-                add_amounts(held_by_work.entry(res.work_version.clone()).or_default(), &res.amounts);
+                add_amounts(
+                    unknown_by_acc.entry(res.account.clone()).or_default(),
+                    &res.amounts,
+                );
+                add_amounts(
+                    held_by_work.entry(res.work_version.clone()).or_default(),
+                    &res.amounts,
+                );
             }
             ReservationState::Settled => {
                 match ledger
@@ -2841,9 +2881,8 @@ fn build_admission_projection(
                     }
                 }
             }
-            ReservationState::Rejected
-            | ReservationState::Expired
-            | ReservationState::Released => {}
+            ReservationState::Rejected | ReservationState::Expired | ReservationState::Released => {
+            }
         }
     }
 
@@ -3246,7 +3285,10 @@ pub(super) fn lifecycle_action_response(
     if request.target.contains('?') {
         return error_response(400, "lifecycle_query_invalid");
     }
-    let Some(action) = request.target.strip_prefix("/api/implementation/lifecycle/") else {
+    let Some(action) = request
+        .target
+        .strip_prefix("/api/implementation/lifecycle/")
+    else {
         return error_response(404, "lifecycle_action_unknown");
     };
     if !matches!(
@@ -3371,7 +3413,9 @@ pub(super) fn lifecycle_action_response(
             return error_response(409, "lifecycle_publication_unverified");
         };
         let branch = match body.branch.as_deref() {
-            Some(b) if valid_optional_text(b, kiln_core::implementation::MAX_BRANCH_BYTES, false) => {
+            Some(b)
+                if valid_optional_text(b, kiln_core::implementation::MAX_BRANCH_BYTES, false) =>
+            {
                 b.to_owned()
             }
             Some(_) => return error_response(400, "lifecycle_branch_invalid"),
@@ -3382,7 +3426,9 @@ pub(super) fn lifecycle_action_response(
                 .unwrap_or_else(|| branch_for(&body.work_id, &body.attempt_id)),
         };
         let base_branch = match body.base_branch.as_deref() {
-            Some(b) if valid_optional_text(b, kiln_core::implementation::MAX_BRANCH_BYTES, false) => {
+            Some(b)
+                if valid_optional_text(b, kiln_core::implementation::MAX_BRANCH_BYTES, false) =>
+            {
                 b.to_owned()
             }
             Some(_) => return error_response(400, "lifecycle_branch_invalid"),
@@ -3393,7 +3439,9 @@ pub(super) fn lifecycle_action_response(
                 .unwrap_or_else(|| "main".to_owned()),
         };
         let title = match body.title.as_deref() {
-            Some(t) if valid_optional_text(t, kiln_core::implementation::MAX_TITLE_BYTES, false) => {
+            Some(t)
+                if valid_optional_text(t, kiln_core::implementation::MAX_TITLE_BYTES, false) =>
+            {
                 t.to_owned()
             }
             Some(_) => return error_response(400, "lifecycle_title_invalid"),
@@ -3462,7 +3510,10 @@ pub(super) fn lifecycle_action_response(
                 };
             }
         };
-        let publication = implementer.publication_record(&body.attempt_id).ok().flatten();
+        let publication = implementer
+            .publication_record(&body.attempt_id)
+            .ok()
+            .flatten();
         if let Some(hub) = context.events {
             hub.wake_watcher();
         }
@@ -3516,7 +3567,10 @@ pub(super) fn lifecycle_action_response(
                 PublicationPhase::Integrated | PublicationPhase::SourceReconciled
             ) =>
         {
-            let receipt = implementer.integration_receipt(&body.attempt_id).ok().flatten();
+            let receipt = implementer
+                .integration_receipt(&body.attempt_id)
+                .ok()
+                .flatten();
             return json_ok(json!({
                 "schema": LIFECYCLE_RESULT_SCHEMA,
                 "action": action,
@@ -3531,7 +3585,10 @@ pub(super) fn lifecycle_action_response(
             }));
         }
         "close-source" if publication.phase == PublicationPhase::SourceReconciled => {
-            let receipt = implementer.source_status_receipt(&body.attempt_id).ok().flatten();
+            let receipt = implementer
+                .source_status_receipt(&body.attempt_id)
+                .ok()
+                .flatten();
             return json_ok(json!({
                 "schema": LIFECYCLE_RESULT_SCHEMA,
                 "action": action,
@@ -3682,7 +3739,11 @@ pub(crate) mod tests {
             );
         }
         assert_eq!(
-            admit_campaign_request("GET", Role::Viewer, "/api/implementation/campaigns?unknown=1"),
+            admit_campaign_request(
+                "GET",
+                Role::Viewer,
+                "/api/implementation/campaigns?unknown=1"
+            ),
             Err((400, "campaign_projection_query_invalid"))
         );
     }
@@ -3738,11 +3799,22 @@ pub(crate) mod tests {
             agent_definition: hash.clone(),
             require_one_writer_per_repository: true,
         };
-        store.start(make_contract("camp-done")).map_err(std::io::Error::other)?;
-        store.cancel("camp-done", 1).map_err(std::io::Error::other)?;
-        store.start(make_contract("camp-older")).map_err(std::io::Error::other)?;
-        store.start(make_contract("camp-newer")).map_err(std::io::Error::other)?;
-        let mut newer_state = store.inspect("camp-newer").map_err(std::io::Error::other)?.ok_or("missing")?;
+        store
+            .start(make_contract("camp-done"))
+            .map_err(std::io::Error::other)?;
+        store
+            .cancel("camp-done", 1)
+            .map_err(std::io::Error::other)?;
+        store
+            .start(make_contract("camp-older"))
+            .map_err(std::io::Error::other)?;
+        store
+            .start(make_contract("camp-newer"))
+            .map_err(std::io::Error::other)?;
+        let mut newer_state = store
+            .inspect("camp-newer")
+            .map_err(std::io::Error::other)?
+            .ok_or("missing")?;
         newer_state.decisions.insert(
             hash.clone(),
             HumanDecisionRequest {
@@ -3784,7 +3856,10 @@ pub(crate) mod tests {
             "UPDATE implementation_campaign SET bytes = ?1 WHERE campaign_id = 'camp-older'",
             params![b"{bad json".to_vec()],
         )?;
-        assert_eq!(read_campaign_index(&db_path).err(), Some("campaign_projection_record_invalid"));
+        assert_eq!(
+            read_campaign_index(&db_path).err(),
+            Some("campaign_projection_record_invalid")
+        );
         Ok(())
     }
 
@@ -3793,7 +3868,7 @@ pub(crate) mod tests {
     fn unified_attention_aggregates_all_six_kinds_and_survives_unavailable_fleet()
     -> Result<(), Box<dyn std::error::Error>> {
         use kiln_core::fleet::{
-            ClaimState, FleetAgent, FleetScope, MirrorStatus, ScopePath, FleetTarget,
+            ClaimState, FleetAgent, FleetScope, FleetTarget, MirrorStatus, ScopePath,
         };
         use kiln_core::implementation::campaign::{
             CAMPAIGN_SCHEMA, CampaignContract, CompletionGoal, DecisionKind, HumanDecisionRequest,
@@ -3804,7 +3879,9 @@ pub(crate) mod tests {
             ImplementationWork, PlanReviewCommand, PlanReviewPolicy, PlanStep, SourceRef,
             TerminalPolicy, WorkBudget, WorkSourceKind,
         };
-        use kiln_core::types::{AttemptId, CandidateId, EffectId, PipelineRevisionId, PolicyId, ProviderProfileId};
+        use kiln_core::types::{
+            AttemptId, CandidateId, EffectId, PipelineRevisionId, PolicyId, ProviderProfileId,
+        };
         use kiln_core::workflow::{WorkflowControls, WorkflowEffectPlan};
 
         let dir = tempfile::tempdir()?;
@@ -3815,7 +3892,8 @@ pub(crate) mod tests {
             repositories: BTreeSet::from(["onix/kiln".to_owned(), "onix/other".to_owned()]),
             actors: BTreeSet::from(["local:operator".to_owned()]),
         };
-        let mut implementer = Implementer::open_with_local_operator(&db_path, enrollment.clone(), "local:operator")?;
+        let mut implementer =
+            Implementer::open_with_local_operator(&db_path, enrollment.clone(), "local:operator")?;
         let work_item = ImplementationWork {
             schema: IMPLEMENTATION_WORK_SCHEMA.to_owned(),
             revision: 1,
@@ -3846,7 +3924,9 @@ pub(crate) mod tests {
             terminal_policy: TerminalPolicy::VerifiedPullRequest,
             priority: 1,
         };
-        let work_id = work_item.identity().map_err(|e| std::io::Error::other(e.message))?;
+        let work_id = work_item
+            .identity()
+            .map_err(|e| std::io::Error::other(e.message))?;
         implementer.admit(&work_item, None)?;
         let work2 = ImplementationWork {
             repository: "onix/other".to_owned(),
@@ -3859,7 +3939,9 @@ pub(crate) mod tests {
             }],
             ..work_item
         };
-        let _work2_id = work2.identity().map_err(|e| std::io::Error::other(e.message))?;
+        let _work2_id = work2
+            .identity()
+            .map_err(|e| std::io::Error::other(e.message))?;
         implementer.admit(&work2, None)?;
         let claim2 = implementer.claim_next(1_000, 60_000)?.expect("claim2");
         let attempt2_id = claim2.identity.clone();
@@ -3884,7 +3966,9 @@ pub(crate) mod tests {
                 text: "Implement pure core".into(),
             }],
         };
-        let plan_id = plan.identity().map_err(|e| std::io::Error::other(e.message))?;
+        let plan_id = plan
+            .identity()
+            .map_err(|e| std::io::Error::other(e.message))?;
         implementer.plan_review(&PlanReviewCommand::Propose { plan })?;
 
         let mut store = CampaignStore::open(&db_path)?;
@@ -4003,7 +4087,14 @@ pub(crate) mod tests {
             runbook: None,
             fanout_run_id: None,
         };
-        let _ = (EffectId::new("eff-1"), CandidateId::new("cand-1"), PipelineRevisionId::new("pipe-1"), PolicyId::new("pol-1"), ProviderProfileId::new("prov-1"), std::mem::size_of::<WorkflowEffectPlan>());
+        let _ = (
+            EffectId::new("eff-1"),
+            CandidateId::new("cand-1"),
+            PipelineRevisionId::new("pipe-1"),
+            PolicyId::new("pol-1"),
+            ProviderProfileId::new("prov-1"),
+            std::mem::size_of::<WorkflowEffectPlan>(),
+        );
 
         let now_ms = 5_000;
         let fleet_ok = FleetAttentionInput {
@@ -4143,7 +4234,10 @@ pub(crate) mod tests {
             },
         );
         assert!(!degraded.sources.fleet.available);
-        assert_eq!(degraded.sources.fleet.error.as_deref(), Some("fleet_unavailable"));
+        assert_eq!(
+            degraded.sources.fleet.error.as_deref(),
+            Some("fleet_unavailable")
+        );
         assert_eq!(degraded.counts.plan_review_gate, 1);
         assert_eq!(degraded.counts.unknown_termination_or_dispatch, 1);
         assert_eq!(degraded.counts.campaign_decision, 1);
@@ -4173,7 +4267,8 @@ pub(crate) mod tests {
             repositories: BTreeSet::from(["onix/kiln".to_owned()]),
             actors: BTreeSet::from(["local:operator".to_owned()]),
         };
-        let mut implementer = Implementer::open_with_local_operator(&db_path, enrollment, "local:operator")?;
+        let mut implementer =
+            Implementer::open_with_local_operator(&db_path, enrollment, "local:operator")?;
         let work_item = ImplementationWork {
             schema: IMPLEMENTATION_WORK_SCHEMA.to_owned(),
             revision: 1,
@@ -4204,12 +4299,20 @@ pub(crate) mod tests {
             terminal_policy: TerminalPolicy::VerifiedPullRequest,
             priority: 1,
         };
-        let work_id = work_item.identity().map_err(|e| std::io::Error::other(e.message))?;
+        let work_id = work_item
+            .identity()
+            .map_err(|e| std::io::Error::other(e.message))?;
         implementer.admit(&work_item, None)?;
         let claim = implementer.claim_next(1_000, 60_000)?.expect("claim");
         let attempt_id = claim.identity.clone();
         let fence = claim.fence;
-        implementer.fail(&attempt_id, fence, 2_000, FailureClass::Unknown, "ambiguous")?;
+        implementer.fail(
+            &attempt_id,
+            fence,
+            2_000,
+            FailureClass::Unknown,
+            "ambiguous",
+        )?;
 
         implementer.plan_review(&PlanReviewCommand::Configure {
             policy: Some(PlanReviewPolicy {
@@ -4229,7 +4332,9 @@ pub(crate) mod tests {
                 text: "Ship".into(),
             }],
         };
-        let plan_id = plan.identity().map_err(|e| std::io::Error::other(e.message))?;
+        let plan_id = plan
+            .identity()
+            .map_err(|e| std::io::Error::other(e.message))?;
         implementer.plan_review(&PlanReviewCommand::Propose { plan })?;
 
         let mut store = CampaignStore::open(&db_path)?;
@@ -4312,17 +4417,23 @@ pub(crate) mod tests {
                 "max_events_per_run": 8, "max_state_bytes": 1048576
             }
         }))?;
-        let credentials = crate::auth::Credentials::load(&profile, crate::access::AccessProfile::default())
-            .map_err(std::io::Error::other)?;
-        let engine = std::sync::Mutex::new(crate::engine::Engine::open_with_ports(
-            profile.clone(),
-            BTreeMap::from([(
-                "fixture".to_owned(),
-                Box::new(DummyWorkflowPort(
-                    profile.projects[0].execution_capabilities(profile.bounds.max_runs).map_err(std::io::Error::other)?
-                )) as Box<dyn kiln_provider_api::WorkflowPort + Send>,
-            )]),
-        ).map_err(std::io::Error::other)?);
+        let credentials =
+            crate::auth::Credentials::load(&profile, crate::access::AccessProfile::default())
+                .map_err(std::io::Error::other)?;
+        let engine = std::sync::Mutex::new(
+            crate::engine::Engine::open_with_ports(
+                profile.clone(),
+                BTreeMap::from([(
+                    "fixture".to_owned(),
+                    Box::new(DummyWorkflowPort(
+                        profile.projects[0]
+                            .execution_capabilities(profile.bounds.max_runs)
+                            .map_err(std::io::Error::other)?,
+                    )) as Box<dyn kiln_provider_api::WorkflowPort + Send>,
+                )]),
+            )
+            .map_err(std::io::Error::other)?,
+        );
         let cobs = crate::cobs::Browser::new(None)?;
         let sources = crate::sources::Browser::new(None)?;
         let reviews = crate::reviews::Browser::new(None)?;
@@ -4344,6 +4455,9 @@ pub(crate) mod tests {
             dispatch_recovery: None,
             native_runtime_evidence: None,
             fleet: None,
+            lattice_sources: None,
+            lattice_drafts: None,
+            cairn_authoring: None,
             delivery_observations: None,
             events: None,
             stop: &stop,
@@ -4386,7 +4500,10 @@ pub(crate) mod tests {
         };
         assert_eq!(
             campaign_wake_response(
-                &wake_req("/api/implementation/campaigns/camp-wake/wake", json!({"kind":"operator"})),
+                &wake_req(
+                    "/api/implementation/campaigns/camp-wake/wake",
+                    json!({"kind":"operator"})
+                ),
                 &ctx,
                 &viewer
             )
@@ -4395,7 +4512,10 @@ pub(crate) mod tests {
         );
         assert_eq!(
             campaign_wake_response(
-                &wake_req("/api/implementation/campaigns/camp-wake/wake", json!({"kind":"bogus"})),
+                &wake_req(
+                    "/api/implementation/campaigns/camp-wake/wake",
+                    json!({"kind":"bogus"})
+                ),
                 &ctx,
                 &operator
             )
@@ -4404,7 +4524,10 @@ pub(crate) mod tests {
         );
         assert_eq!(
             campaign_wake_response(
-                &wake_req("/api/implementation/campaigns/missing/wake", json!({"kind":"operator"})),
+                &wake_req(
+                    "/api/implementation/campaigns/missing/wake",
+                    json!({"kind":"operator"})
+                ),
                 &ctx,
                 &operator
             )
@@ -4444,7 +4567,9 @@ pub(crate) mod tests {
             403
         );
         let pr_ok = plan_review_response(
-            &plan_req(json!({"work_id":work_id,"plan_id":plan_id,"verdict":"accepted","request_id":"req-pr-2"})),
+            &plan_req(
+                json!({"work_id":work_id,"plan_id":plan_id,"verdict":"accepted","request_id":"req-pr-2"}),
+            ),
             &ctx,
             &operator,
         );
@@ -4485,7 +4610,9 @@ pub(crate) mod tests {
             404
         );
         let rec_ok = reconcile_termination_response(
-            &rec_req(json!({"campaign_id":"camp-wake","work_id":work_id,"attempt_id":attempt_id,"fence":fence,"request_id":"req-rt-4"})),
+            &rec_req(
+                json!({"campaign_id":"camp-wake","work_id":work_id,"attempt_id":attempt_id,"fence":fence,"request_id":"req-rt-4"}),
+            ),
             &ctx,
             &operator,
         );
@@ -4519,22 +4646,40 @@ pub(crate) mod tests {
         fn profile(&self) -> &kiln_core::provider::CapabilityProfile {
             &self.0
         }
-        fn dispatch(&mut self, _: &kiln_core::workflow::WorkflowEffectPlan) -> kiln_provider_api::PortResult<kiln_core::workflow::WorkflowObservation> {
+        fn dispatch(
+            &mut self,
+            _: &kiln_core::workflow::WorkflowEffectPlan,
+        ) -> kiln_provider_api::PortResult<kiln_core::workflow::WorkflowObservation> {
             unreachable!()
         }
-        fn recover_dispatch(&mut self, _: &kiln_core::workflow::WorkflowEffectPlan) -> kiln_provider_api::PortResult<kiln_core::workflow::WorkflowObservation> {
+        fn recover_dispatch(
+            &mut self,
+            _: &kiln_core::workflow::WorkflowEffectPlan,
+        ) -> kiln_provider_api::PortResult<kiln_core::workflow::WorkflowObservation> {
             unreachable!()
         }
-        fn observe(&mut self, _: &kiln_core::types::EffectId) -> kiln_provider_api::PortResult<kiln_core::workflow::WorkflowObservation> {
+        fn observe(
+            &mut self,
+            _: &kiln_core::types::EffectId,
+        ) -> kiln_provider_api::PortResult<kiln_core::workflow::WorkflowObservation> {
             unreachable!()
         }
-        fn control(&mut self, _: &kiln_core::workflow::WorkflowControlRequest) -> kiln_provider_api::PortResult<kiln_core::workflow::WorkflowObservation> {
+        fn control(
+            &mut self,
+            _: &kiln_core::workflow::WorkflowControlRequest,
+        ) -> kiln_provider_api::PortResult<kiln_core::workflow::WorkflowObservation> {
             unreachable!()
         }
-        fn reconcile(&mut self, _: &kiln_core::types::EffectId) -> kiln_provider_api::PortResult<kiln_core::workflow::WorkflowObservation> {
+        fn reconcile(
+            &mut self,
+            _: &kiln_core::types::EffectId,
+        ) -> kiln_provider_api::PortResult<kiln_core::workflow::WorkflowObservation> {
             unreachable!()
         }
-        fn read_log(&mut self, _: &kiln_core::workflow::WorkflowLogReadRequest) -> kiln_provider_api::PortResult<kiln_core::workflow::WorkflowLogChunk> {
+        fn read_log(
+            &mut self,
+            _: &kiln_core::workflow::WorkflowLogReadRequest,
+        ) -> kiln_provider_api::PortResult<kiln_core::workflow::WorkflowLogChunk> {
             unreachable!()
         }
     }

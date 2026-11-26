@@ -22,6 +22,7 @@ pub const MIN_FLEET_RESPONSE_BYTES: usize = 65_536;
 pub const MAX_FLEET_RESPONSE_BYTES: usize = 4_194_304;
 pub const MAX_MACHINE_LABEL_BYTES: usize = 63;
 pub const MAX_PANE_READ_LINES: u32 = 1_000;
+const MAX_PANE_ID_BYTES: usize = 64;
 
 /// Runtime-only console projection policy. It is deliberately outside the
 /// canonical service profile: adding an observation endpoint must not change
@@ -321,10 +322,24 @@ pub fn upstream_path(method: &str, target: &str) -> Option<String> {
     match (method, segments.as_slice()) {
         ("GET", ["health"]) if query.is_none() => Some("/v1/health".into()),
         ("GET", ["machines"]) if query.is_none() => Some("/v1/machines".into()),
-        ("GET", ["repositories"]) if query.is_none() => Some("/v1/repositories".into()),
-        ("POST", ["machines", name, "drain"])
-            if query.is_none() && machine_label(name) =>
+        // r[impl kiln.sdlc.herdr_windows]
+        ("GET", ["machines", host, "windows"]) if query.is_none() && machine_label(host) => {
+            Some(format!("/v1/machines/{host}/windows"))
+        }
+        // Keep capture POST: fleet_response applies the authenticated operator gate.
+        ("POST", ["machines", host, "windows", pane, "capture"])
+            if machine_label(host) && pane_handle(pane) =>
         {
+            let suffix = match query {
+                None => String::new(),
+                Some(raw) => format!("?{}", validated_pane_query(raw)?),
+            };
+            Some(format!(
+                "/v1/machines/{host}/windows/{pane}/capture{suffix}"
+            ))
+        }
+        ("GET", ["repositories"]) if query.is_none() => Some("/v1/repositories".into()),
+        ("POST", ["machines", name, "drain"]) if query.is_none() && machine_label(name) => {
             Some(format!("/v1/machines/{name}/drain"))
         }
         ("GET", ["claims"]) => {
@@ -349,6 +364,23 @@ pub fn upstream_path(method: &str, target: &str) -> Option<String> {
         ("GET", ["dispatch", "status"]) if query.is_none() => Some("/v1/dispatch/status".into()),
         ("POST", ["dispatch", action @ ("pause" | "resume")]) if query.is_none() => {
             Some(format!("/v1/dispatch/{action}"))
+        }
+        ("GET", ["placement", "capabilities"]) if query.is_none() => {
+            Some("/v1/placement/capabilities".into())
+        }
+        ("POST", ["placement", "split", "plan"]) if query.is_none() => {
+            Some("/v1/placement/split/plan".into())
+        }
+        ("POST", ["placement", "split"]) if query.is_none() => Some("/v1/placement/split".into()),
+        ("GET", ["placement", "split", id]) if query.is_none() && identity(id) => {
+            Some(format!("/v1/placement/split/{id}"))
+        }
+        ("POST", ["placement", "move", "plan"]) if query.is_none() => {
+            Some("/v1/placement/move/plan".into())
+        }
+        ("POST", ["placement", "move"]) if query.is_none() => Some("/v1/placement/move".into()),
+        ("GET", ["placement", "move", id]) if query.is_none() && identity(id) => {
+            Some(format!("/v1/placement/move/{id}"))
         }
         ("GET", ["swarms"]) if query.is_none() => Some("/v1/swarms".into()),
         ("GET", ["swarms", id]) if query.is_none() && identity(id) => {
@@ -396,6 +428,19 @@ fn machine_label(value: &str) -> bool {
         && value
             .bytes()
             .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
+}
+
+fn pane_handle(value: &str) -> bool {
+    value.len() <= MAX_PANE_ID_BYTES
+        && !value.starts_with('-')
+        && value.split_once(":p").is_some_and(|(workspace, pane)| {
+            !workspace.is_empty()
+                && workspace
+                    .bytes()
+                    .all(|byte| byte.is_ascii_alphanumeric() || b"_-".contains(&byte))
+                && !pane.is_empty()
+                && pane.bytes().all(|byte| byte.is_ascii_alphanumeric())
+        })
 }
 
 fn validated_claims_query(raw: &str) -> Option<String> {
@@ -507,12 +552,47 @@ mod tests {
     const ID: &str = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
     #[test]
+    fn herdr_window_routes_only_allow_exact_host_and_pane_reads() {
+        let list = "/api/fleet/machines/aspen3/windows";
+        let capture = "/api/fleet/machines/aspen3/windows/w1:p1/capture";
+        assert_eq!(
+            upstream_path("GET", list).as_deref(),
+            Some("/v1/machines/aspen3/windows")
+        );
+        assert_eq!(
+            upstream_path("POST", &format!("{capture}?lines=0010")).as_deref(),
+            Some("/v1/machines/aspen3/windows/w1:p1/capture?lines=10")
+        );
+        for (method, target) in [
+            ("GET", capture),
+            ("POST", list),
+            ("GET", "/api/fleet/machines/aspen3/windows?source=local"),
+            ("POST", "/api/fleet/machines/aspen3/windows/w1%3Ap1/capture"),
+            ("POST", "/api/fleet/machines/aspen3/windows/--help/capture"),
+            (
+                "POST",
+                "/api/fleet/machines/aspen3/windows/w1:p1/capture?lines=1&lines=2",
+            ),
+            (
+                "POST",
+                "/api/fleet/machines/aspen3/windows/w1:p1/capture?lines=1001",
+            ),
+            ("GET", "/api/fleet/machines/../windows"),
+        ] {
+            assert_eq!(upstream_path(method, target), None, "{method} {target}");
+        }
+    }
+
+    #[test]
     fn routes_are_an_exact_allowlist() {
         assert_eq!(
             upstream_path("GET", "/api/fleet/claims").as_deref(),
             Some("/v1/claims")
         );
-        assert_eq!(upstream_path("GET", "/api/fleet/machines").as_deref(), Some("/v1/machines"));
+        assert_eq!(
+            upstream_path("GET", "/api/fleet/machines").as_deref(),
+            Some("/v1/machines")
+        );
         assert_eq!(upstream_path("POST", "/api/fleet/machines"), None);
         assert_eq!(
             upstream_path("GET", "/api/fleet/decisions").as_deref(),
@@ -680,7 +760,10 @@ mod tests {
             ("GET", format!("/api/fleet/attempts/{ID}/pane?lines=0")),
             ("GET", format!("/api/fleet/attempts/{ID}/pane?lines=1001")),
             ("GET", format!("/api/fleet/attempts/{ID}/pane?lines=abc")),
-            ("GET", format!("/api/fleet/attempts/{ID}/pane?lines=10&extra=1")),
+            (
+                "GET",
+                format!("/api/fleet/attempts/{ID}/pane?lines=10&extra=1"),
+            ),
             ("GET", format!("/api/fleet/attempts/{ID}/pane?foo=1")),
             ("GET", format!("/api/fleet/attempts/not-hex/pane")),
             ("GET", format!("/api/fleet/attempts/{ID}/prompt")),
@@ -690,7 +773,10 @@ mod tests {
             ("GET", "/api/fleet/claims?".to_string()),
             ("GET", "/api/fleet/claims?include=".to_string()),
             ("GET", "/api/fleet/claims?include=bogus".to_string()),
-            ("GET", "/api/fleet/claims?include=foreign,foreign".to_string()),
+            (
+                "GET",
+                "/api/fleet/claims?include=foreign,foreign".to_string(),
+            ),
             ("GET", "/api/fleet/claims?include=foreign,".to_string()),
             ("GET", "/api/fleet/claims?other=1".to_string()),
             ("POST", "/api/fleet/dispatch/status".to_string()),

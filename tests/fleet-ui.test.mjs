@@ -590,6 +590,67 @@ test("Machine & Slot Census distinguishes Unavailable vs Available slots and ref
   }
 });
 
+test("Herdr browser uses configured hosts and keeps terminal capture operator-only", async () => {
+  const pane = { pane_id: "w1:pA", workspace_id: "w1", tab_id: "w1:t1" };
+  const rows = ["aspen3", "offline", "enrolled-only"].map((machine) => ({
+    machine, herdr_windows_configured: machine !== "enrolled-only", placement_configured: false,
+    state: "not_reporting", observed_at_ms: null, last_seen_at_ms: null, sessions: null,
+  }));
+  const list = "/api/fleet/machines/aspen3/windows";
+  const capture = `${list}/w1:pA/capture?lines=200`;
+  const result = {
+    machine: "aspen3", window: pane, requested_lines: 200, line_count: 1, truncated: false, text: "<script>plain text</script>",
+  };
+  const settle = () => new Promise((resolve) => setImmediate(resolve));
+  for (const canOperate of [false, true]) {
+    let finishLateCapture;
+    let captures = 0;
+    const env = setup({
+      canOperate,
+      apiHandler: async (path) => {
+        if (path === "/api/fleet/machines") return { machines: rows };
+        if (path === list) return { machine: "aspen3", windows: [pane] };
+        if (path === capture) {
+          if (captures++ === 0) return result;
+          return new Promise((resolve) => { finishLateCapture = resolve; });
+        }
+        if (path === "/api/fleet/machines/offline/windows") throw new Error("unavailable");
+        return {};
+      },
+    });
+    const control = (label) => descendants(env.root).find((node) => node.getAttribute?.("aria-label") === label);
+    try {
+      env.fleet.load(env.root, env.loadCtx);
+      await settle();
+      assert.equal(control("Browse Herdr windows on enrolled-only"), undefined);
+      control("Browse Herdr windows on aspen3").click();
+      await settle();
+      assert.match(allText(env.root), /Herdr windows · aspen3/);
+      assert.match(allText(env.root), /w1:pA/);
+      const button = control("Capture output for aspen3 / w1:pA");
+      if (!canOperate) {
+        assert.equal(button, undefined);
+        assert.equal(env.apiCalls.some((call) => call.path === capture), false);
+        continue;
+      }
+      button.click();
+      await settle();
+      assert.deepEqual(plain(env.apiCalls.find((call) => call.path === capture)), { path: capture, method: "POST", body: {} });
+      const pre = descendants(env.root).find((node) => node.localName === "pre" && node.textContent === result.text);
+      assert.ok(pre, "terminal content is displayed as text");
+      button.click();
+      control("Browse Herdr windows on offline").click();
+      finishLateCapture(result);
+      await settle();
+      assert.match(allText(env.root), /Herdr windows · offline/);
+      assert.match(allText(env.root), /Herdr windows unavailable on this host/);
+      assert.doesNotMatch(allText(env.root), /plain text/);
+    } finally {
+      env.cleanup();
+    }
+  }
+});
+
 test("foreign and expired claims counts and mirror errors render explicitly", async () => {
   const env = setup({
     apiHandler: async (path) => {

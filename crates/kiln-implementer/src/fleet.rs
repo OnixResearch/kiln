@@ -20,7 +20,7 @@ use kiln_core::implementation::{
     AttemptLedger, DEFAULT_LEASE_MS, INTERACTIVE_PROVIDER_PROFILE, ImplementationAttempt,
     TransportLaunches, WorkLedger,
 };
-use kiln_core::types::{ContentId, Diagnostic};
+use kiln_core::types::{ContentId, Diagnostic, EffectId};
 use rusqlite::{Transaction, TransactionBehavior};
 use serde::{Deserialize, Serialize};
 
@@ -185,7 +185,26 @@ impl Implementer {
         placement: Placement,
         now_ms: u64,
     ) -> Result<FleetSession, String> {
-        self.with_fleet_dispatch(Access::Write, now_ms, |ledgers, fleet, gate| {
+        self.bind_session(placement, None, now_ms)
+    }
+
+    /// Bind only if the dispatcher still holds the exact reservation it selected.
+    pub fn fleet_bind_reserved_session(
+        &mut self,
+        placement: Placement,
+        expected: &EffectId,
+        now_ms: u64,
+    ) -> Result<FleetSession, String> {
+        self.bind_session(placement, Some(expected), now_ms)
+    }
+
+    fn bind_session(
+        &mut self,
+        placement: Placement,
+        expected: Option<&EffectId>,
+        now_ms: u64,
+    ) -> Result<FleetSession, String> {
+        self.with_fleet_dispatch(Access::Write, now_ms, |tx, ledgers, fleet, gate| {
             let attempt = ledgers
                 .attempts
                 .get(&placement.attempt)
@@ -195,6 +214,18 @@ impl Implementer {
                         .is_current(&attempt.identity, placement.fence, now_ms)
                 })
                 .ok_or_else(fence_stale)?;
+            let reserved = attempt.dispatch.as_ref().map(|reservation| &reservation.effect_id);
+            if expected.is_some() && expected != reserved {
+                return Err("fleet_placement_stale: reservation changed before session bind".into());
+            }
+            let (moved, _) = load::<Option<kiln_core::fleet::placement::MovePlan>>(
+                tx, &crate::admission::moved_attempt_row(&placement.attempt),
+            )?;
+            if let Some(moved) = moved
+                && (expected != Some(&moved.new_reservation) || placement.machine != moved.request.destination)
+            {
+                return Err("fleet_placement_stale: session bind must match the moved reservation and destination".into());
+            }
             if attempt.work_identity != placement.work
                 || attempt.work_revision != placement.work_revision
             {
@@ -240,7 +271,7 @@ impl Implementer {
         session: &ContentId,
         now_ms: u64,
     ) -> Result<(), String> {
-        self.with_fleet_dispatch(Access::Read, now_ms, |ledgers, fleet, gate| {
+        self.with_fleet_dispatch(Access::Read, now_ms, |_, ledgers, fleet, gate| {
             let session = fleet
                 .sessions
                 .sessions
@@ -731,7 +762,12 @@ impl Implementer {
         &mut self,
         access: Access,
         now_ms: u64,
-        apply: impl FnOnce(&Ledgers, &mut FleetState, &mut DispatchGate<'_>) -> Result<T, String>,
+        apply: impl FnOnce(
+            &Transaction<'_>,
+            &Ledgers,
+            &mut FleetState,
+            &mut DispatchGate<'_>,
+        ) -> Result<T, String>,
     ) -> Result<T, String> {
         let transaction = begin(&mut self.connection, access)?;
         let (work, _) = load::<WorkLedger>(&transaction, WORK_KIND)?;
@@ -745,7 +781,12 @@ impl Implementer {
             launches: &launches,
             now_ms,
         };
-        let result = apply(&Ledgers { work, attempts }, &mut state, &mut gate)?;
+        let result = apply(
+            &transaction,
+            &Ledgers { work, attempts },
+            &mut state,
+            &mut gate,
+        )?;
         finish(transaction, access, version, &state)?;
         Ok(result)
     }

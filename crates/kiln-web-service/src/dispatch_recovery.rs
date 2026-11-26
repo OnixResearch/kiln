@@ -10,12 +10,11 @@ use kiln_adapter_lattice::{
     UnixWorkflowExchange, admit_implementation_request, recover_implementation_request,
 };
 use kiln_core::implementation::{
-    AttemptLedger, AttemptPhase, Enrollment, ImplementationAttempt, WorkLedger,
-    admit_dispatch_plan,
+    AttemptLedger, AttemptPhase, Enrollment, ImplementationAttempt, WorkLedger, admit_dispatch_plan,
 };
 use kiln_core::types::{ContentId, ExternalRef};
-use kiln_implementer::{Implementer, current_unix_ms};
 use kiln_implementer::observation::ImplementationObservation;
+use kiln_implementer::{Implementer, current_unix_ms};
 use kiln_provider_api::inventory::InventoryReadFailure;
 use lattice_workflow_contract::{CapabilityProfile, WorkflowRequest};
 use lattice_workflow_transport::TransportProfile;
@@ -69,8 +68,8 @@ impl RecoveryConfig {
             return Err("recovery profile path must be absolute".into());
         }
         let bytes = read_bounded(path, MAX_PROFILE_BYTES)?;
-        let profile: RecoveryProfile = serde_json::from_slice(&bytes)
-            .map_err(|_| "recovery profile is malformed")?;
+        let profile: RecoveryProfile =
+            serde_json::from_slice(&bytes).map_err(|_| "recovery profile is malformed")?;
         if profile.schema != PROFILE_SCHEMA
             || profile.principal.is_empty()
             || profile.principal.len() > 128
@@ -87,8 +86,10 @@ impl RecoveryConfig {
             return Err("recovery transport cannot carry the adapter response bound".into());
         }
         kiln_core::implementation::authority::LocalOperatorAuthority::new(
-            profile.local_operator.clone(), false,
-        ).map_err(|_| "recovery local operator is invalid")?;
+            profile.local_operator.clone(),
+            false,
+        )
+        .map_err(|_| "recovery local operator is invalid")?;
         UnixWorkflowExchange::new(
             profile.socket_path.clone(),
             profile.transport_profile.clone(),
@@ -100,25 +101,35 @@ impl RecoveryConfig {
         if request_bytes.is_empty() {
             return Err("recovery request is empty".into());
         }
-        let request = serde_json::from_slice(&request_bytes)
-            .map_err(|_| "recovery request is malformed")?;
+        let request =
+            serde_json::from_slice(&request_bytes).map_err(|_| "recovery request is malformed")?;
         // The owner seals the file bytes; the adapter sends the parsed request's
         // canonical encoding. Both are retained from this protected input.
-        let request_digest = ContentId::from_blake3_hex(blake3::hash(&request_bytes).to_hex().to_string())
-            .map_err(|_| "recovery request digest is invalid")?;
-        Ok(Self { profile, request, request_bytes, request_digest })
+        let request_digest =
+            ContentId::from_blake3_hex(blake3::hash(&request_bytes).to_hex().to_string())
+                .map_err(|_| "recovery request digest is invalid")?;
+        Ok(Self {
+            profile,
+            request,
+            request_bytes,
+            request_digest,
+        })
     }
 }
 
 fn absolute(path: &Path) -> bool {
     path.is_absolute()
-        && path.components().all(|part| matches!(part, Component::RootDir | Component::Normal(_)))
+        && path
+            .components()
+            .all(|part| matches!(part, Component::RootDir | Component::Normal(_)))
 }
 
 fn read_bounded(path: &Path, limit: u64) -> Result<Vec<u8>, String> {
     let mut file = std::fs::File::open(path).map_err(|_| "recovery input unavailable")?;
     let mut bytes = Vec::new();
-    file.by_ref().take(limit + 1).read_to_end(&mut bytes)
+    file.by_ref()
+        .take(limit + 1)
+        .read_to_end(&mut bytes)
         .map_err(|_| "recovery input unavailable")?;
     if bytes.len() as u64 > limit {
         return Err("recovery input exceeds byte bound".into());
@@ -141,20 +152,41 @@ fn pinned_request_admitted(
     if config.request_bytes.is_empty() || database != config.profile.database.as_path() {
         return false;
     }
-    let Some(binding) = attempt.dispatch_request_binding.as_ref() else { return false };
-    let Some(reservation) = attempt.dispatch.as_ref() else { return false };
-    let Some(plan) = ledger.dispatch_plan(&attempt.identity).filter(|plan| plan.execution.is_none()) else {
+    let Some(binding) = attempt.dispatch_request_binding.as_ref() else {
         return false;
     };
-    let Some(work) = work.and_then(|work| work.current().chain(work.superseded().iter()).find(|work| {
-        work.identity().is_ok_and(|identity| identity == attempt.work_identity)
-    })) else { return false };
+    let Some(reservation) = attempt.dispatch.as_ref() else {
+        return false;
+    };
+    let Some(plan) = ledger
+        .dispatch_plan(&attempt.identity)
+        .filter(|plan| plan.execution.is_none())
+    else {
+        return false;
+    };
+    let Some(work) = work.and_then(|work| {
+        work.current().chain(work.superseded().iter()).find(|work| {
+            work.identity()
+                .is_ok_and(|identity| identity == attempt.work_identity)
+        })
+    }) else {
+        return false;
+    };
     binding.request_digest == config.request_digest
-        && binding.validate_for(&attempt.identity, attempt.fence, &reservation.plan, &config.request_digest).is_ok()
-        && admit_dispatch_plan(work, attempt, plan).is_ok_and(|identity| identity == reservation.plan)
+        && binding
+            .validate_for(
+                &attempt.identity,
+                attempt.fence,
+                &reservation.plan,
+                &config.request_digest,
+            )
+            .is_ok()
+        && admit_dispatch_plan(work, attempt, plan)
+            .is_ok_and(|identity| identity == reservation.plan)
         && plan.provider_profile == reservation.provider_profile
         && admit_implementation_request(plan, reservation, attempt, &config.request).is_ok()
-        && lattice_workflow_contract::validate_request(&config.profile.profile, &config.request).is_ok()
+        && lattice_workflow_contract::validate_request(&config.profile.profile, &config.request)
+            .is_ok()
 }
 
 fn recovery_admitted(
@@ -167,11 +199,13 @@ fn recovery_admitted(
 ) -> bool {
     pinned_request_admitted(config, database, work, ledger, attempt)
         && ledger.is_current(&attempt.identity, attempt.fence, now_ms)
-        && matches!(attempt.phase, AttemptPhase::Claimed | AttemptPhase::Executing)
+        && matches!(
+            attempt.phase,
+            AttemptPhase::Claimed | AttemptPhase::Executing
+        )
         && attempt.workflow.is_none()
         && ledger.dispatch_requires_recovery(&attempt.identity)
 }
-
 
 fn exact_query(target: &str) -> Option<(ContentId, u64)> {
     let query = target.strip_prefix(ROUTE)?.strip_prefix('?')?;
@@ -228,10 +262,13 @@ fn observation(
         let work = work
             .into_iter()
             .flat_map(|ledger| ledger.current().chain(ledger.superseded().iter()))
-            .find(|work| work.identity().is_ok_and(|identity| identity == attempt.work_identity))
+            .find(|work| {
+                work.identity()
+                    .is_ok_and(|identity| identity == attempt.work_identity)
+            })
             .ok_or("dispatch_recovery_malformed")?;
-        let digest = admit_dispatch_plan(work, attempt, plan)
-            .map_err(|_| "dispatch_recovery_malformed")?;
+        let digest =
+            admit_dispatch_plan(work, attempt, plan).map_err(|_| "dispatch_recovery_malformed")?;
         if dispatch.is_none_or(|reserved| {
             reserved.plan != digest || reserved.provider_profile != plan.provider_profile
         }) {
@@ -338,27 +375,49 @@ pub fn response(
         }
         Err(_) => return error(503, "dispatch_recovery_unavailable"),
     };
-    let Some(attempt) = ledger.get(&identity).filter(|attempt| attempt.fence == fence) else {
+    let Some(attempt) = ledger
+        .get(&identity)
+        .filter(|attempt| attempt.fence == fence)
+    else {
         return error(404, "dispatch_recovery_attempt_not_found");
     };
     let admitted = config.is_some_and(|config| {
-        recovery_admitted(config, database, work.as_ref(), &ledger, attempt, current_unix_ms())
-            && Implementer::open_read_only(database, config.profile.enrollment.clone())
-                .and_then(|mut owner| owner.dispatch_record(&identity))
-                .is_ok_and(|record| record.is_some_and(|record| {
-                    record.transport_started && record.launch.is_none() && record.request.is_none()
+        recovery_admitted(
+            config,
+            database,
+            work.as_ref(),
+            &ledger,
+            attempt,
+            current_unix_ms(),
+        ) && Implementer::open_read_only(database, config.profile.enrollment.clone())
+            .and_then(|mut owner| owner.dispatch_record(&identity))
+            .is_ok_and(|record| {
+                record.is_some_and(|record| {
+                    record.transport_started
+                        && record.launch.is_none()
+                        && record.request.is_none()
                         && record.attempt == *attempt
-                }))
+                })
+            })
     });
     if let Some(command) = command {
-        let Some(config) = config else { return error(503, "dispatch_recovery_input_not_configured") };
+        let Some(config) = config else {
+            return error(503, "dispatch_recovery_input_not_configured");
+        };
         if !admitted || command.request_digest != config.request_digest {
             return error(409, "dispatch_recovery_not_admitted");
         }
         let Some(reservation) = attempt.dispatch.as_ref() else {
             return error(409, "dispatch_recovery_not_admitted");
         };
-        return recover_original(config, database, &identity, fence, &attempt.work_identity, &reservation.plan);
+        return recover_original(
+            config,
+            database,
+            &identity,
+            fence,
+            &attempt.work_identity,
+            &reservation.plan,
+        );
     }
     let mut value = match observation(work.as_ref(), &ledger, attempt) {
         Ok(value) => value,
@@ -366,11 +425,14 @@ pub fn response(
     };
     value["can_recover"] = serde_json::json!(admitted);
     if admitted {
-        value["request_digest"] = serde_json::json!(config.expect("admitted configuration").request_digest);
+        value["request_digest"] =
+            serde_json::json!(config.expect("admitted configuration").request_digest);
     }
     // A sealed original plan remains visible after provider acknowledgment or
     // lease expiry; this does not imply recovery is still actionable.
-    if config.is_some_and(|config| pinned_request_admitted(config, database, work.as_ref(), &ledger, attempt)) {
+    if config.is_some_and(|config| {
+        pinned_request_admitted(config, database, work.as_ref(), &ledger, attempt)
+    }) {
         // This is the pinned requested plan, not observed execution. Never
         // expose adapter operation identities, arguments, or request payloads.
         if let Some(config) = config {
@@ -405,11 +467,14 @@ pub fn response(
 }
 
 fn unknown(identity: &ContentId, fence: u64, work: &ContentId) -> ApiResponse {
-    json_response(503, serde_json::json!({
-        "schema": RESULT_SCHEMA, "attempt": identity, "fence": fence,
-        "work_identity": work, "outcome": "unknown",
-        "code": "dispatch_recovery_unknown",
-    }))
+    json_response(
+        503,
+        serde_json::json!({
+            "schema": RESULT_SCHEMA, "attempt": identity, "fence": fence,
+            "work_identity": work, "outcome": "unknown",
+            "code": "dispatch_recovery_unknown",
+        }),
+    )
 }
 
 fn json_response(status: u16, value: serde_json::Value) -> ApiResponse {
@@ -434,19 +499,37 @@ fn recover_original(
         Ok(owner) => owner,
         Err(_) => return unknown(identity, fence, work),
     };
-    if owner.select_local_operator(config.profile.local_operator.clone()).is_err() {
+    if owner
+        .select_local_operator(config.profile.local_operator.clone())
+        .is_err()
+    {
         return unknown(identity, fence, work);
     }
     // This profile recovers legacy socket dispatches only. Other launch
     // cohorts require their own recorded launch and frozen-request authority.
-    if owner.authorize_current(identity, fence, current_unix_ms()).is_err()
+    if owner
+        .authorize_current(identity, fence, current_unix_ms())
+        .is_err()
         || !owner.dispatch_record(identity).is_ok_and(|record| {
             record.is_some_and(|record| {
-                record.transport_started && record.launch.is_none() && record.request.is_none()
-                    && record.attempt.fence == fence && &record.attempt.work_identity == work
-                    && record.attempt.dispatch.as_ref().is_some_and(|reservation| &reservation.plan == plan)
-                    && record.attempt.dispatch_request_binding.as_ref().is_some_and(|seal|
-                        seal.validate_for(identity, fence, plan, &config.request_digest).is_ok())
+                record.transport_started
+                    && record.launch.is_none()
+                    && record.request.is_none()
+                    && record.attempt.fence == fence
+                    && &record.attempt.work_identity == work
+                    && record
+                        .attempt
+                        .dispatch
+                        .as_ref()
+                        .is_some_and(|reservation| &reservation.plan == plan)
+                    && record
+                        .attempt
+                        .dispatch_request_binding
+                        .as_ref()
+                        .is_some_and(|seal| {
+                            seal.validate_for(identity, fence, plan, &config.request_digest)
+                                .is_ok()
+                        })
                     && record.attempt.workflow.is_none()
             })
         })
@@ -462,23 +545,35 @@ fn recover_original(
         Ok(transport) => transport,
         Err(_) => return unknown(identity, fence, work),
     };
-    let accepted = match recover_implementation_request(&mut transport, &config.profile.profile, &config.request) {
+    let accepted = match recover_implementation_request(
+        &mut transport,
+        &config.profile.profile,
+        &config.request,
+    ) {
         Ok(accepted) => accepted,
         Err(_) => return unknown(identity, fence, work),
     };
-    let workflow = match ExternalRef::new("lattice", "workflow", accepted.execution_identity.as_str()) {
-        Ok(workflow) => workflow,
-        Err(_) => return unknown(identity, fence, work),
-    };
-    if owner.start_execution(identity, fence, current_unix_ms(), &workflow).is_err()
-        || owner.admission_execution_observed(identity, fence, current_unix_ms()).is_err()
+    let workflow =
+        match ExternalRef::new("lattice", "workflow", accepted.execution_identity.as_str()) {
+            Ok(workflow) => workflow,
+            Err(_) => return unknown(identity, fence, work),
+        };
+    if owner
+        .start_execution(identity, fence, current_unix_ms(), &workflow)
+        .is_err()
+        || owner
+            .admission_execution_observed(identity, fence, current_unix_ms())
+            .is_err()
     {
         return unknown(identity, fence, work);
     }
-    json_response(200, serde_json::json!({
-        "schema": RESULT_SCHEMA, "attempt": identity, "fence": fence,
-        "work_identity": work, "outcome": "accepted", "workflow": workflow,
-    }))
+    json_response(
+        200,
+        serde_json::json!({
+            "schema": RESULT_SCHEMA, "attempt": identity, "fence": fence,
+            "work_identity": work, "outcome": "accepted", "workflow": workflow,
+        }),
+    )
 }
 
 #[cfg(test)]
@@ -499,12 +594,39 @@ mod tests {
         ] {
             assert!(exact_query(&format!("{ROUTE}?{suffix}")).is_none());
         }
-        assert_eq!(response(None, None, "GET", &target, Role::Worker, "owner", &[]).status, 403);
-        assert_eq!(response(None, None, "GET", &target, Role::Viewer, "owner", &[]).status, 403);
-        assert_eq!(response(None, None, "PUT", &target, Role::Operator, "owner", &[]).status, 405);
-        assert_eq!(response(None, None, "POST", &target, Role::Operator, "owner", &[]).status, 503);
-        assert_eq!(response(None, None, "GET", &target, Role::Operator, "owner", &[]).status, 503);
-        assert_eq!(response(None, None, "GET", "/api/implementation/dispatch-recovery?attempt=bad", Role::Operator, "owner", &[]).status, 400);
+        assert_eq!(
+            response(None, None, "GET", &target, Role::Worker, "owner", &[]).status,
+            403
+        );
+        assert_eq!(
+            response(None, None, "GET", &target, Role::Viewer, "owner", &[]).status,
+            403
+        );
+        assert_eq!(
+            response(None, None, "PUT", &target, Role::Operator, "owner", &[]).status,
+            405
+        );
+        assert_eq!(
+            response(None, None, "POST", &target, Role::Operator, "owner", &[]).status,
+            503
+        );
+        assert_eq!(
+            response(None, None, "GET", &target, Role::Operator, "owner", &[]).status,
+            503
+        );
+        assert_eq!(
+            response(
+                None,
+                None,
+                "GET",
+                "/api/implementation/dispatch-recovery?attempt=bad",
+                Role::Operator,
+                "owner",
+                &[]
+            )
+            .status,
+            400
+        );
     }
 
     #[test]
@@ -526,7 +648,8 @@ mod tests {
             "failure": null,
             "cause": null,
             "superseded_by": null
-        })).unwrap();
+        }))
+        .unwrap();
         let mut stored = serde_json::to_value(AttemptLedger::default()).unwrap();
         stored["attempts"][identity.as_str()] = serde_json::to_value(&attempt).unwrap();
         stored["dispatch_started"] = serde_json::json!([identity]);
@@ -554,7 +677,13 @@ mod tests {
     fn recovery_command_requires_one_digest_and_no_route_inputs() {
         let digest = "ab".repeat(32);
         let command = format!("{{\"request_digest\":\"{digest}\"}}");
-        assert_eq!(serde_json::from_str::<RecoveryCommand>(&command).unwrap().request_digest.as_str(), digest.as_str());
+        assert_eq!(
+            serde_json::from_str::<RecoveryCommand>(&command)
+                .unwrap()
+                .request_digest
+                .as_str(),
+            digest.as_str()
+        );
         for extra in ["socket_path", "request", "executable", "attempt", "fence"] {
             let command = format!("{{\"request_digest\":\"{digest}\",\"{extra}\":\"/tmp/other\"}}");
             assert!(serde_json::from_str::<RecoveryCommand>(&command).is_err());

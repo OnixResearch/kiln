@@ -115,7 +115,7 @@ impl ErrorClass {
     }
 }
 
-const NOT_FOUND: [&str; 7] = [
+const NOT_FOUND: &[&str] = &[
     "fleet_claim_unknown",
     "fleet_session_unknown",
     "fleet_decision_unknown",
@@ -123,8 +123,9 @@ const NOT_FOUND: [&str; 7] = [
     "fleet_swarm_member_unknown",
     "implementation_attempt_missing",
     "fleet_attempt_unknown",
+    "fleet_placement_unknown",
 ];
-const CONFLICT: [&str; 24] = [
+const CONFLICT: &[&str] = &[
     "fleet_claim_stale",
     "fleet_claim_limit",
     "fleet_decision_answered",
@@ -149,6 +150,12 @@ const CONFLICT: [&str; 24] = [
     "implementation_frozen_work_stale",
     "implementation_candidate_handoff",
     "fleet_handoff_session",
+    "fleet_placement_stale",
+    "fleet_placement_source",
+    "fleet_placement_dependencies",
+    "fleet_placement_overlap",
+    "fleet_placement_unavailable",
+    "fleet_placement_changed",
 ];
 const FORBIDDEN: [&str; 7] = [
     "fleet_decision_operator",

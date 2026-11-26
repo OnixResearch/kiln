@@ -166,7 +166,9 @@ pub fn render_html_with_refresh(html: &HtmlReport, refresh_seconds: Option<u64>)
     }
     out.push_str("<section id=\"evidence\" aria-labelledby=\"evidence-heading\"><div class=\"section-heading\"><div><p class=\"eyebrow\">Trust boundaries</p><h2 id=\"evidence-heading\">Evidence &amp; provenance</h2></div><span class=\"pill\">Admitted facts, not authority</span></div><p class=\"note\">Local admitted observations only. Filtering and selection do not run jobs or change canonical state.</p>\n");
     out.push_str(&gate_passport_section(html));
-    out.push_str("<details class=\"disclosure\"><summary>Report provenance</summary><dl class=\"facts\">\n");
+    out.push_str(
+        "<details class=\"disclosure\"><summary>Report provenance</summary><dl class=\"facts\">\n",
+    );
     push_fact(
         &mut out,
         "observation profile",
@@ -645,7 +647,12 @@ fn events_section(events: &EventTailView) -> String {
 fn gate_passport_section(html: &HtmlReport) -> String {
     let report = &html.report;
     let mut attempt_details = std::collections::BTreeMap::new();
-    for view in report.views.attempt_detail.iter().chain(html.attempts.iter()) {
+    for view in report
+        .views
+        .attempt_detail
+        .iter()
+        .chain(html.attempts.iter())
+    {
         if let ViewBody::AttemptDetail(detail) = &view.body {
             attempt_details.insert(detail.attempt_id.as_str(), detail);
         }
@@ -708,8 +715,13 @@ fn gate_passport_section(html: &HtmlReport) -> String {
             let total_changes: u64 = friction.classes.iter().map(|c| c.changes).sum();
             let total_approved: u64 = friction.classes.iter().map(|c| c.approved_changes).sum();
             let total_merged: u64 = friction.classes.iter().map(|c| c.merged_changes).sum();
-            let agent_submitted: u64 = friction.classes.iter().map(|c| c.agent_submitted_changes).sum();
-            let advisory_approvals: u64 = friction.classes.iter().map(|c| c.advisory_approvals).sum();
+            let agent_submitted: u64 = friction
+                .classes
+                .iter()
+                .map(|c| c.agent_submitted_changes)
+                .sum();
+            let advisory_approvals: u64 =
+                friction.classes.iter().map(|c| c.advisory_approvals).sum();
             cards.push((
                 "observed",
                 format!(

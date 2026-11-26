@@ -1,6 +1,11 @@
 // r[impl kiln.admission.durable]
 //! Bounded durable fair admission over the implementation state owner.
 //! No second database, claim or physical resource ledger is created.
+#[path = "placement.rs"]
+mod placement;
+pub(crate) use placement::moved_attempt_row;
+pub use placement::{MoveState, MoveStatus, SplitStatus, UnitState, UnitStatus};
+
 use crate::{ATTEMPT_KIND, Implementer, WORK_KIND, diagnostic, load, save, text};
 use kiln_core::fair_admission::*;
 use kiln_core::implementation::authority::{AuthoritySelection, ProtectedAuthority};

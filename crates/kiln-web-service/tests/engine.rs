@@ -1807,11 +1807,25 @@ fn reconcile_endpoint_refreshes_unknown_runs_without_creating_replacement_runs()
     // Viewer, Worker, missing run, malformed ID, invalid body, and query params are rejected.
     let reconcile_path = format!("/api/runs/{run_id}/reconcile");
     assert_eq!(
-        call(&mut engine, "POST", &reconcile_path, json!({}), Role::Viewer).status,
+        call(
+            &mut engine,
+            "POST",
+            &reconcile_path,
+            json!({}),
+            Role::Viewer
+        )
+        .status,
         403
     );
     assert_eq!(
-        call(&mut engine, "POST", &reconcile_path, json!({}), Role::Worker).status,
+        call(
+            &mut engine,
+            "POST",
+            &reconcile_path,
+            json!({}),
+            Role::Worker
+        )
+        .status,
         403
     );
     assert_eq!(
@@ -1887,9 +1901,12 @@ fn reconcile_endpoint_refreshes_unknown_runs_without_creating_replacement_runs()
     assert_eq!(field(&body, "error_code"), "provider_unavailable");
     assert_eq!(body["run"]["id"], run_id);
     assert_eq!(
-        field(&value(&get(&mut engine, "/api/runs", Role::Operator)), "runs")
-            .as_array()
-            .map(Vec::len),
+        field(
+            &value(&get(&mut engine, "/api/runs", Role::Operator)),
+            "runs"
+        )
+        .as_array()
+        .map(Vec::len),
         Some(1)
     );
 
@@ -1917,9 +1934,12 @@ fn reconcile_endpoint_refreshes_unknown_runs_without_creating_replacement_runs()
     assert_eq!(body["run"]["id"], run_id);
     assert_eq!(body["run"]["outcome"], "Success");
     assert_eq!(
-        field(&value(&get(&mut engine, "/api/runs", Role::Operator)), "runs")
-            .as_array()
-            .map(Vec::len),
+        field(
+            &value(&get(&mut engine, "/api/runs", Role::Operator)),
+            "runs"
+        )
+        .as_array()
+        .map(Vec::len),
         Some(1)
     );
 }
