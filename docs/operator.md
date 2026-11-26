@@ -1937,8 +1937,8 @@ all read:
 | Group | Destinations |
 | --- | --- |
 | 0 Start here | 0.0 Guide |
-| 1 Continuous integration | 1.1 Overview, 1.2 Runs, 1.3 CI projects (a project's history shares 1.3), 1.4 Workers |
-| 2 Work | 2.1 Issues, 2.2 My inbox, 2.3 Planning, 2.4 Code review, 2.5 Requests & triage, 2.6 Saved views, 2.7 Cairn changes |
+| 1 Continuous integration | 1.1 Overview, 1.2 Runs, 1.3 CI projects (a project's history shares 1.3), 1.4 Workers, 1.5 Runbooks |
+| 2 Work | 2.1 Issues, 2.2 My inbox, 2.3 Planning, 2.4 Code review, 2.7 Cairn changes, 2.8 Fleet (and under **More work**: 2.5 Requests & triage, 2.6 Saved views) |
 | 3 Inspect | 3.1 Source, 3.2 Patchgate receipts, 3.3 Activity, 3.4 Feeds, 3.5 Evidence |
 | 4 Administration | 4.1 Automation, 4.2 Operations, 4.3 Raw collaboration history, 4.4 Settings |
 
@@ -1983,7 +1983,10 @@ button that refreshes and reconnects live observations.
 The top bar holds the search/command trigger (**Ctrl K**), the running count, a
 live-connection indicator and an account menu with the signed-in identity, an
 **Appearance** switch (System, Light, Dark), **Appearance & settings** and
-**Clear session**. The switch and **Settings → Appearance** write the same URL
+**Clear session** (sessions remain active across browser `pagehide`/sleep
+transitions and clear only on explicit **Clear session** or rejected
+authorization; bearer tokens stay in memory only). The switch and
+**Settings → Appearance** write the same URL
 state. **Density** changes spacing without shrinking mobile touch targets.
 Menus and dialogs arrive with one short fade; page changes are immediate, and a
 reduced-motion preference removes every transition and animation.

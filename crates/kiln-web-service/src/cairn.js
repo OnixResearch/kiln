@@ -748,7 +748,7 @@
     const heading = element("h2", "Changes");
     heading.id = titleId;
     const intro = element("div");
-    intro.append(heading, element("p", "Each Cairn change named by canonical work or a selected campaign member, keyed by repository identity and change name. A lane is where the change's least-advanced unit stands; a stop anywhere needs attention.", "small"));
+    intro.append(heading, element("p", "Each lane shows the change’s least-advanced unit. A stop in any unit needs attention.", "small"));
     head.append(intro);
     panel.append(head);
     if (index.error) {

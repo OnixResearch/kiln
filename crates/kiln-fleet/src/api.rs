@@ -22,7 +22,7 @@ use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 
-use crate::config::FleetConfig;
+use crate::config::{FleetConfig, fleet_console_target, validate_console_url};
 use crate::http::{Request, Response};
 use crate::identity::PeerIdentity;
 use crate::log;
@@ -30,8 +30,6 @@ use crate::store::{Store, classify, error_code};
 use crate::swarm::SwarmLink;
 
 pub const API_VERSION: &str = "v1";
-/// Embedded operator view. Polls the v1 routes from the same origin.
-const UI_PAGE: &str = include_str!("ui.html");
 pub const MAX_LISTED_WORK: usize = 100;
 pub const MAX_LISTED_ATTEMPTS: usize = 256;
 pub const MAX_LISTED_DECISIONS: usize = 256;
@@ -296,6 +294,9 @@ impl Service {
     /// # Errors
     /// Returns the enrollment or swarm diagnostic.
     pub fn new(config: FleetConfig) -> Result<Self, String> {
+        if let Some(console_url) = &config.console_url {
+            validate_console_url(console_url)?;
+        }
         let store = Store::load(
             &config.implementer.database,
             &config.implementer.enrollment,
@@ -334,11 +335,15 @@ impl Service {
         }
     }
 
+    // r[impl kiln.fleet.unified_console_surface]
     /// Route one request from an authenticated `machine`.
     #[must_use]
     pub fn route(&self, machine: &str, request: &Request, now_ms: u64) -> Response {
-        if request.method == "GET" && matches!(request.path.as_str(), "/" | "/ui") {
-            return Response::html(200, UI_PAGE.to_owned());
+        if matches!(request.path.as_str(), "/" | "/ui") {
+            if request.method != "GET" {
+                return Response::error(405, "fleet_method", "method not allowed on this route");
+            }
+            return console_pointer_response(self.config.console_url.as_deref());
         }
         let Some(rest) = request.path.strip_prefix("/v1/") else {
             return Response::error(404, "fleet_route", "no such route");
@@ -1425,4 +1430,40 @@ pub fn store_error(error: &str) -> Response {
     let class = classify(error);
     let code = error_code(error).unwrap_or("fleet_store");
     Response::error(class.status(), code, error)
+}
+
+fn console_pointer_response(console_url: Option<&str>) -> Response {
+    match console_url {
+        Some(raw) => match fleet_console_target(raw) {
+            Ok(target) => Response::redirect(target.clone(), redirect_html(&target)),
+            Err(error) => Response::error(500, "fleet_console_url", error),
+        },
+        None => Response::html(200, unconfigured_pointer_html()),
+    }
+}
+
+fn escape_html(value: &str) -> String {
+    let mut out = String::with_capacity(value.len());
+    for ch in value.chars() {
+        match ch {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '"' => out.push_str("&quot;"),
+            '\'' => out.push_str("&#x27;"),
+            _ => out.push(ch),
+        }
+    }
+    out
+}
+
+fn redirect_html(target: &str) -> String {
+    let escaped = escape_html(target);
+    format!(
+        "<!doctype html>\n<html lang=\"en\">\n<head><meta charset=\"utf-8\"><title>Kiln Fleet Console</title></head>\n<body>\n<h1>Kiln Fleet</h1>\n<p>The Fleet UI has moved to the unified Kiln Factory Control Plane.</p>\n<p><a href=\"{escaped}\">Open Factory Control Plane (Fleet)</a></p>\n</body>\n</html>\n"
+    )
+}
+
+fn unconfigured_pointer_html() -> String {
+    "<!doctype html>\n<html lang=\"en\">\n<head><meta charset=\"utf-8\"><title>Kiln Fleet Console</title></head>\n<body>\n<h1>Kiln Fleet</h1>\n<p>The standalone Fleet UI has been combined into the unified <code>kiln-web-service</code> Factory Control Plane (<code>/?page=fleet</code>).</p>\n<p>Configure <code>console_url</code> (or <code>KILN_CONSOLE_URL</code> / <code>--console-url</code>) on <code>kiln-fleet</code> to redirect <code>/</code> and <code>/ui</code> to your Factory Control Plane, or use the <code>kiln-fleet</code> CLI (<code>kiln-fleet status</code>, <code>kiln-fleet watch</code>, <code>kiln-fleet claims</code>) and <code>/v1/*</code> API endpoints.</p>\n</body>\n</html>\n".to_owned()
 }

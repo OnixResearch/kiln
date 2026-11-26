@@ -1041,7 +1041,7 @@ impl Workspace {
                 "saved_views":projection.saved_queries,"notifications":notifications,"notifications_total":notifications_total,
                 "next_notification_offset":next_notification_offset,"operations":operations,"operations_total":pending.len(),"next_operation_offset":next_operation_offset,
                 "contribution_sources":intake::sources(profile,&state,principal)?,"intake_enabled":profile.intake.is_some(),"jj_intake":jj_intake::published(profile),
-                "queue":state.queue,"queue_enabled":profile.queue.is_some(),"noise":noise::published(profile.review.as_ref()),
+                "queue":state.queue,"queue_enabled":profile.queue.is_some(),"queue_windows":queue::window_projections(profile, &state),"noise":noise::published(profile.review.as_ref()),
                 "target_write_boundary":{"scope":"configured_provider_only","targets":profile.provider.target_refs,"unmanaged_writers":"Operator must restrict repository filesystem and other push credentials; service admission does not control external writers"},
                 "bounded":true,"non_claims":["External delivery reports receiver acceptance, not email receipt.","Provider-created commits use the service signature, not an attestation of the original author's identity.","Configured provider policy does not prevent unmanaged repository writers."]}),
             );

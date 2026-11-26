@@ -203,6 +203,7 @@ button.chip[aria-pressed="true"] { background: var(--foreground); color: var(--b
 .app-sidebar .nav-label { min-width: 0; margin: 0; padding: var(--space-1) .5rem var(--space-1); overflow: hidden; font-size: .625rem; text-overflow: ellipsis; white-space: nowrap; transition: opacity var(--motion-fast) ease; }
 .nav-disclosure { display: block; }
 .nav-disclosure > summary { list-style: none; }
+.nav-disclosure:not([open]) > :not(summary) { display: none; }
 .nav-disclosure > summary::-webkit-details-marker { display: none; }
 .nav-disclosure > summary > .disclosure-chevron { width: .875rem; height: .875rem; margin-inline-end: .5rem; }
 .nav-disclosure[open] > summary > svg:not(.disclosure-chevron) { background: var(--list-hover); }
@@ -480,6 +481,19 @@ button.account-button[aria-expanded="true"], #app-menu-toggle[aria-expanded="tru
 .run-untrusted > * { margin: 0; }
 .run-untrusted-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); min-width: 0; }
 .run-untrusted-head > h3 { margin: 0; font-size: var(--text-sm); font-weight: 700; }
+/* r[impl kiln.web.run_supersession_and_reconcile] Supersession/drift banner and Unknown Reconciliation Card; shared tokens only. */
+.run-supersession { display: grid; gap: var(--space-2); min-width: 0; padding: var(--space-3); border: 1px solid color-mix(in srgb, var(--warning) 60%, transparent); border-radius: var(--radius); background: var(--warning-background); }
+.run-supersession[hidden] { display: none; }
+.run-supersession > * { margin: 0; }
+.run-supersession-head, .run-reconcile-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); min-width: 0; }
+.run-supersession-head > h3, .run-reconcile-head > h3 { margin: 0; font-size: var(--text-sm); font-weight: 700; }
+.run-reconcile { display: grid; gap: var(--space-2); min-width: 0; padding: var(--space-3); border: 1px solid color-mix(in srgb, var(--unknown) 60%, transparent); border-radius: var(--radius); background: var(--unknown-background); }
+.run-reconcile[hidden] { display: none; }
+.run-reconcile > * { margin: 0; }
+.run-reconcile-actions, .run-supersession-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.confirm-reason-field { display: grid; gap: var(--space-1); margin-top: var(--space-3); }
+.confirm-reason-field[hidden] { display: none; }
+.confirm-reason-field input { width: 100%; min-width: 0; }
 .run-picker { font: var(--text-sm) var(--mono); }
 .run-picker + .small { margin-top: .4rem; }
 /* Fact lists read as a specification sheet: label terms beside monospace values. */

@@ -68,9 +68,30 @@ pub(crate) struct Client {
     max_response_bytes: usize,
 }
 
+pub(crate) const JSON_CONTENT_TYPE: &str = "application/json; charset=utf-8";
+pub(crate) const PROMETHEUS_CONTENT_TYPE: &str = "text/plain; version=0.0.4; charset=utf-8";
+pub(crate) const TEXT_CONTENT_TYPE: &str = "text/plain; charset=utf-8";
+
 pub(crate) struct Reply {
     pub(crate) status: u16,
+    pub(crate) content_type: &'static str,
     pub(crate) body: Vec<u8>,
+}
+
+pub(crate) fn classify_content_type(header: Option<&str>) -> &'static str {
+    let Some(raw) = header else {
+        return JSON_CONTENT_TYPE;
+    };
+    let normalized = raw.trim().to_ascii_lowercase();
+    if normalized.starts_with("text/plain") {
+        if normalized.contains("version=0.0.4") {
+            PROMETHEUS_CONTENT_TYPE
+        } else {
+            TEXT_CONTENT_TYPE
+        }
+    } else {
+        JSON_CONTENT_TYPE
+    }
 }
 
 #[derive(Deserialize)]
@@ -118,6 +139,12 @@ impl Client {
         }
         let response = request.send().map_err(|_| ())?;
         let status = response.status().as_u16();
+        let content_type = classify_content_type(
+            response
+                .headers()
+                .get(reqwest::header::CONTENT_TYPE)
+                .and_then(|value| value.to_str().ok()),
+        );
         let mut bytes = Vec::new();
         response
             .take((self.max_response_bytes + 1) as u64)
@@ -128,6 +155,7 @@ impl Client {
         }
         Ok(Reply {
             status,
+            content_type,
             body: bytes,
         })
     }
@@ -222,9 +250,14 @@ impl Client {
 /// or unvalidated query reaches the fleet service. Swarm routes are strictly
 /// read-only (`GET`).
 // r[impl kiln.fleet.swarm.console]
+// r[impl kiln.fleet.unified_console_surface]
 pub fn upstream_path(method: &str, target: &str) -> Option<String> {
     let rest = target.strip_prefix("/api/fleet/")?;
-    if rest.contains('#') {
+    if rest.contains('#')
+        || rest
+            .bytes()
+            .any(|byte| byte.is_ascii_control() || byte.is_ascii_whitespace())
+    {
         return None;
     }
     let (path, query) = match rest.split_once('?') {
@@ -245,6 +278,8 @@ pub fn upstream_path(method: &str, target: &str) -> Option<String> {
         ("GET", ["work"]) if query.is_none() => Some("/v1/work".into()),
         ("GET", ["attempts"]) if query.is_none() => Some("/v1/attempts".into()),
         ("GET", ["decisions"]) if query.is_none() => Some("/v1/decisions".into()),
+        ("GET", ["metrics"]) if query.is_none() => Some("/v1/metrics".into()),
+        ("GET", ["version"]) if query.is_none() => Some("/v1/version".into()),
         ("GET", ["swarms"]) if query.is_none() => Some("/v1/swarms".into()),
         ("GET", ["swarms", id]) if query.is_none() && identity(id) => {
             Some(format!("/v1/swarms/{id}"))
@@ -381,6 +416,39 @@ mod tests {
         }
         assert_eq!(upstream_path("DELETE", "/api/fleet/claims"), None);
         assert_eq!(upstream_path("POST", "/api/fleet/health"), None);
+        // Metrics and version proxy allowlist (r[kiln.fleet.unified_console_surface]).
+        assert_eq!(
+            upstream_path("GET", "/api/fleet/metrics").as_deref(),
+            Some("/v1/metrics")
+        );
+        assert_eq!(
+            upstream_path("GET", "/api/fleet/version").as_deref(),
+            Some("/v1/version")
+        );
+        for refused in [
+            ("POST", "/api/fleet/metrics"),
+            ("PUT", "/api/fleet/metrics"),
+            ("DELETE", "/api/fleet/metrics"),
+            ("POST", "/api/fleet/version"),
+            ("DELETE", "/api/fleet/version"),
+            ("GET", "/api/fleet/metrics/"),
+            ("GET", "/api/fleet/metrics/extra"),
+            ("GET", "/api/fleet/version/extra"),
+            ("GET", "/api/fleet/metrics?x=1"),
+            ("GET", "/api/fleet/metrics?"),
+            ("GET", "/api/fleet/version?x=1"),
+            ("GET", "/api/fleet/metrics#frag"),
+            ("GET", "/api/fleet/version#frag"),
+            ("GET", "/api/fleet/metrics/../claims"),
+            ("GET", "/api/fleet/../metrics"),
+            ("GET", "/api/fleet/%2e%2e/metrics"),
+            ("GET", "/api/fleet/metrics%2f.."),
+            ("GET", "/api/fleet/metrics%3fx=1"),
+            ("GET", "/api/fleet/metrics\r\n"),
+            ("GET", "/api/fleet//metrics"),
+        ] {
+            assert_eq!(upstream_path(refused.0, refused.1), None, "{refused:?}");
+        }
         // Read-only swarm proxy allowlist.
         assert_eq!(
             upstream_path("GET", "/api/fleet/swarms").as_deref(),
@@ -466,10 +534,85 @@ mod tests {
             .call("POST", "/v1/claims", Some(br#"{"scope":"repo"}"#))
             .unwrap_or_else(|_| unreachable!("reply"));
         assert_eq!(reply.status, 200);
+        assert_eq!(reply.content_type, JSON_CONTENT_TYPE);
         assert_eq!(reply.body, br#"{"attempts":[]}"#);
         let (request, body) = server.join().unwrap_or_else(|_| unreachable!("server"));
         assert!(request.starts_with("POST /v1/claims HTTP/1.1\r\n"));
         assert_eq!(body, br#"{"scope":"repo"}"#);
+    }
+
+    #[test]
+    // r[verify kiln.fleet.unified_console_surface.scenario.proxy]
+    fn preserves_prometheus_and_json_content_types_for_metrics_and_version() {
+        let listener =
+            TcpListener::bind("127.0.0.1:0").unwrap_or_else(|_| unreachable!("listener"));
+        let address = listener
+            .local_addr()
+            .unwrap_or_else(|_| unreachable!("address"));
+        let server = std::thread::spawn(move || {
+            for _ in 0..3 {
+                let (stream, _) = listener.accept().unwrap_or_else(|_| unreachable!("accept"));
+                let mut reader =
+                    BufReader::new(stream.try_clone().unwrap_or_else(|_| unreachable!("clone")));
+                let mut request_line = String::new();
+                reader
+                    .read_line(&mut request_line)
+                    .unwrap_or_else(|_| unreachable!("request"));
+                loop {
+                    let mut line = String::new();
+                    reader
+                        .read_line(&mut line)
+                        .unwrap_or_else(|_| unreachable!("header"));
+                    if line == "\r\n" || line.is_empty() {
+                        break;
+                    }
+                }
+                let path = request_line.split_whitespace().nth(1).unwrap_or("/");
+                let (status, content_type, body) = match path {
+                    "/v1/metrics" => (
+                        "200 OK",
+                        "text/plain; version=0.0.4; charset=utf-8",
+                        "# TYPE kiln_fleet_claims gauge\nkiln_fleet_claims 2\n",
+                    ),
+                    "/v1/version" => (
+                        "200 OK",
+                        "application/json",
+                        r#"{"machine":"m","version":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}"#,
+                    ),
+                    _ => ("404 Not Found", "application/json", r#"{"error":"nope"}"#),
+                };
+                let response = format!(
+                    "HTTP/1.1 {status}\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+                stream
+                    .try_clone()
+                    .unwrap_or_else(|_| unreachable!("response"))
+                    .write_all(response.as_bytes())
+                    .unwrap_or_else(|_| unreachable!("write"));
+            }
+        });
+        let client = Client::new(&profile(address)).unwrap_or_else(|_| unreachable!("client"));
+        let metrics = client
+            .call("GET", "/v1/metrics", None)
+            .unwrap_or_else(|_| unreachable!("metrics"));
+        assert_eq!(metrics.status, 200);
+        assert_eq!(metrics.content_type, PROMETHEUS_CONTENT_TYPE);
+        assert!(String::from_utf8_lossy(&metrics.body).contains("kiln_fleet_claims 2"));
+
+        let version = client
+            .call("GET", "/v1/version", None)
+            .unwrap_or_else(|_| unreachable!("version"));
+        assert_eq!(version.status, 200);
+        assert_eq!(version.content_type, JSON_CONTENT_TYPE);
+        assert!(String::from_utf8_lossy(&version.body).contains("aaaaaaaaaaaaaaaa"));
+
+        let missing = client
+            .call("GET", "/v1/unknown", None)
+            .unwrap_or_else(|_| unreachable!("missing"));
+        assert_eq!(missing.status, 404);
+        assert_eq!(missing.content_type, JSON_CONTENT_TYPE);
+        server.join().unwrap_or_else(|_| unreachable!("server"));
     }
 
     #[test]

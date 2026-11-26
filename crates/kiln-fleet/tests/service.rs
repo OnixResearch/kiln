@@ -160,30 +160,116 @@ fn peers_are_loopback_or_configured_tailnet_nodes() -> TestResult {
 
 #[test]
 // r[verify kiln.fleet.api] r[verify kiln.fleet.api.scenario.identity]
-fn serves_the_operator_view_only_to_authenticated_peers() -> TestResult {
+// r[verify kiln.fleet.unified_console_surface]
+// r[verify kiln.fleet.unified_console_surface.scenario.combined]
+fn serves_the_unified_console_pointer_only_to_authenticated_peers() -> TestResult {
     let ip = |text: &str| text.parse::<IpAddr>().unwrap_or_else(|_| unreachable!());
     let fixture = fixture()?;
     let page = fixture
         .service
         .handle(ip("127.0.0.1"), &request("GET", "/", None));
     assert_eq!(page.status, 200);
+    assert!(page.location.is_none());
     let document = page.html.as_deref().unwrap_or_default();
-    assert!(document.contains("Kiln fleet"));
-    assert!(document.contains("/v1/claims"));
-    assert!(document.contains("/v1/decisions"));
+    assert!(document.contains("Factory Control Plane"));
+    assert!(document.contains("/?page=fleet"));
+    assert!(document.contains("console_url"));
+    assert!(!document.contains("<script"));
+    assert!(!document.contains("prompt("));
+    assert!(!document.contains("alert("));
+    assert!(!document.contains("setInterval"));
     let mut bytes = Vec::new();
     kiln_fleet::http::write_response(&mut bytes, &page)?;
     let head = String::from_utf8_lossy(&bytes);
     assert!(head.starts_with("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\n"));
     assert!(head.contains("Content-Security-Policy:"));
+
     let alias = fixture
         .service
         .handle(ip("127.0.0.1"), &request("GET", "/ui", None));
     assert_eq!(alias.status, 200);
+    assert_eq!(alias.html, page.html);
+
+    let wrong_method = fixture
+        .service
+        .handle(ip("127.0.0.1"), &request("POST", "/", None));
+    assert_eq!(wrong_method.status, 405);
+
     let refused = fixture
         .service
         .handle(ip("100.100.1.2"), &request("GET", "/", None));
     assert_eq!(refused.status, 403);
+    Ok(())
+}
+
+#[test]
+// r[verify kiln.fleet.unified_console_surface]
+// r[verify kiln.fleet.unified_console_surface.scenario.combined]
+fn configured_console_url_redirects_root_and_ui_to_unified_fleet_page() -> TestResult {
+    let ip = |text: &str| text.parse::<IpAddr>().unwrap_or_else(|_| unreachable!());
+    let directory = tempfile::tempdir()?;
+    write_enrollment(directory.path())?;
+    let mut document = config(directory.path(), &FAKE_TAILSCALE);
+    if let Some(object) = document.as_object_mut() {
+        object.insert(
+            "console_url".into(),
+            json!("https://britton-desktop.bison-tailor.ts.net:9443/"),
+        );
+    }
+    let parsed = FleetConfig::from_json(&serde_json::to_vec(&document)?)?;
+    let service = Service::new(parsed)?;
+
+    for path in ["/", "/ui"] {
+        let response = service.handle(ip("127.0.0.1"), &request("GET", path, None));
+        assert_eq!(response.status, 303, "{path}");
+        assert_eq!(
+            response.location.as_deref(),
+            Some("https://britton-desktop.bison-tailor.ts.net:9443/?page=fleet"),
+            "{path}"
+        );
+        let html = response.html.as_deref().unwrap_or_default();
+        assert!(html.contains("https://britton-desktop.bison-tailor.ts.net:9443/?page=fleet"));
+        assert!(!html.contains("<script"));
+        assert!(!html.contains("prompt("));
+        assert!(!html.contains("alert("));
+
+        let mut wire = Vec::new();
+        kiln_fleet::http::write_response(&mut wire, &response)?;
+        let wire_text = String::from_utf8_lossy(&wire);
+        assert!(wire_text.starts_with("HTTP/1.1 303 See Other\r\n"));
+        assert!(wire_text.contains(
+            "Location: https://britton-desktop.bison-tailor.ts.net:9443/?page=fleet\r\n"
+        ));
+    }
+
+    // Unauthenticated peers remain rejected before any redirect is issued.
+    let refused = service.handle(ip("100.100.1.2"), &request("GET", "/ui", None));
+    assert_eq!(refused.status, 403);
+    assert!(refused.location.is_none());
+
+    // Malformed or injection-bearing console_url values fail closed at config and service init.
+    for invalid in [
+        "javascript:alert(1)",
+        "https://console.example\r\nX-Injected: 1",
+        "https://",
+        "https://console.example/?x=1",
+        "https://console.example/#frag",
+    ] {
+        let mut bad_doc = config(directory.path(), &FAKE_TAILSCALE);
+        if let Some(object) = bad_doc.as_object_mut() {
+            object.insert("console_url".into(), json!(invalid));
+        }
+        assert!(
+            FleetConfig::from_json(&serde_json::to_vec(&bad_doc)?).is_err(),
+            "{invalid:?}"
+        );
+        let mut bad_cfg = FleetConfig::from_json(&serde_json::to_vec(&config(
+            directory.path(),
+            &FAKE_TAILSCALE,
+        ))?)?;
+        bad_cfg.console_url = Some(invalid.to_owned());
+        assert!(Service::new(bad_cfg).is_err(), "{invalid:?}");
+    }
     Ok(())
 }
 
@@ -1431,8 +1517,9 @@ fn attempts_and_metrics_expose_session_observation_age() -> TestResult {
         .route(COORDINATOR, &request("GET", "/ui", None), stale_now);
     assert_eq!(ui_response.status, 200);
     let ui_html = ui_response.html.as_deref().unwrap_or_default();
-    assert!(ui_html.contains("observation_age_ms"));
-    assert!(ui_html.contains("observation_stale"));
+    assert!(ui_html.contains("Factory Control Plane"));
+    assert!(ui_html.contains("/?page=fleet"));
+    assert!(!ui_html.contains("<script"));
     Ok(())
 }
 

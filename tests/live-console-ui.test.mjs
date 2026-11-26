@@ -1339,6 +1339,14 @@ class CairnNode {
     if (simple.startsWith(".")) return this.classList.contains(simple.slice(1));
     if (simple === "[data-focus-key]") return Boolean(this.dataset.focusKey);
     if (simple === "details[data-cairn-disclosure]") return this.tagName === "details" && Boolean(this.dataset.cairnDisclosure);
+    if (simple.startsWith("[") && simple.endsWith("]")) {
+      const attr = simple.slice(1, -1);
+      if (attr.startsWith("data-")) {
+        const key = attr.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+        return Boolean(this.dataset[key]) || this.attributes.has(attr);
+      }
+      return this.attributes.has(attr);
+    }
     return this.tagName === simple;
   }
   querySelectorAll(selector) {
@@ -1356,7 +1364,7 @@ function cairnPage() {
   const document = { activeElement: null, title: "" };
   document.createElement = (tag) => Object.assign(new CairnNode(tag), { ownerDocument: document });
   document.createTextNode = (text) => Object.assign(new CairnNode("#text"), { text, ownerDocument: document });
-  const page = { window: {}, document, location: { search: "" }, URLSearchParams, setTimeout, clearTimeout, crypto: webcrypto };
+  const page = { window: { addEventListener() {}, removeEventListener() {} }, document, location: { search: "" }, URLSearchParams, setTimeout, clearTimeout, crypto: webcrypto };
   vm.runInNewContext(asset("inventory.js"), page);
   vm.runInNewContext(asset("cairn.js"), page);
   return page;
@@ -2806,6 +2814,7 @@ test("KilnRunbooks getEnrolledProjects and web.js refreshAll update preview when
     activeElement: null,
     title: "",
     createElement: (tag) => Object.assign(new WebNode(tag), { ownerDocument: webDoc }),
+    createElementNS: (_ns, tag) => Object.assign(new WebNode(tag), { ownerDocument: webDoc }),
     createTextNode: (t) => Object.assign(new WebNode("#text"), { text: t, ownerDocument: webDoc }),
     getElementById: (id) => nodeFor(id),
     querySelectorAll: () => [],
@@ -3509,7 +3518,6 @@ test("Fleet operator inspector refuses crossed recovery evidence and links the e
   const page = cairnPage();
   Object.assign(page.document, { addEventListener() {}, removeEventListener() {}, visibilityState: "visible" });
   Object.assign(page, { Node: CairnNode, AbortController, setTimeout() {}, clearTimeout() {} });
-  page.confirm = () => true;
   page.window.KilnUi = { timeElement: () => new CairnNode("time") };
   vm.runInNewContext(asset("fleet.js"), page);
   const root = page.document.createElement("div");
@@ -3527,7 +3535,7 @@ test("Fleet operator inspector refuses crossed recovery evidence and links the e
   const settle = () => new Promise((resolve) => setImmediate(resolve));
   const button = (title) => root.querySelectorAll("button").find((node) => node.textContent.trim() === title);
   try {
-    page.window.KilnFleet.load(root, { isCurrent: () => true, stream: () => new Promise(() => {}),
+    page.window.KilnFleet.load(root, { isCurrent: () => true, confirmControl: async () => ({ confirmed: true, reason: "" }), stream: () => new Promise(() => {}),
       async api(path, options) {
         requested.push(path);
         if (path === "/api/implementation/cairn") return index;
@@ -3615,4 +3623,457 @@ test("Fleet runtime does not attribute a crossed fence, expired device, or synth
   assert.equal(observation(projection, attempt, 95).machine, null);
   projection.snapshot.synthetic = true;
   assert.equal(observation(projection, attempt, 95).worker, null);
+});
+
+// r[verify kiln.web.factory_p0_rail_promotion]
+test("Cairn changes and Fleet are promoted out of More work while preserving all 23 destinations", () => {
+  const html = asset("web.html");
+  const navWorkStart = html.indexOf('aria-labelledby="nav-work"');
+  const navWorkEnd = html.indexOf("</section>", navWorkStart);
+  assert.ok(navWorkStart > 0 && navWorkEnd > navWorkStart);
+  const navWork = html.slice(navWorkStart, navWorkEnd);
+  const moreStart = navWork.indexOf("<details");
+  const moreEnd = navWork.indexOf("</details>");
+  assert.ok(moreStart > 0 && moreEnd > moreStart);
+  const visibleWork = navWork.slice(0, moreStart);
+  const collapsedMore = navWork.slice(moreStart, moreEnd);
+  assert.ok(visibleWork.includes('data-page="cairn"'), "Cairn changes promoted out of More work");
+  assert.ok(visibleWork.includes('data-page="fleet"'), "Fleet promoted out of More work");
+  assert.ok(collapsedMore.includes('data-page="triage"'), "Requests & triage inside More work");
+  assert.ok(collapsedMore.includes('data-page="workviews"'), "Saved views inside More work");
+  assert.ok(!collapsedMore.includes('data-page="cairn"'));
+  assert.ok(!collapsedMore.includes('data-page="fleet"'));
+  const topLevel = [...ui.destinations].filter((place) => place.parent === null);
+  assert.equal(topLevel.length, 23);
+  for (const place of topLevel) {
+    assert.ok(html.includes(`data-page="${place.page}"`), `missing rail link for ${place.page}`);
+  }
+});
+
+// r[verify kiln.web.factory_p0_control_safety]
+test("Fleet Renew, Release, and Cancel use #control-dialog with reason capture and CONTROL_FRESHNESS_MS guard without prompt or alert", async () => {
+  const fleetSource = asset("fleet.js");
+  assert.doesNotMatch(fleetSource, /\bwindow\.prompt\s*\(|\bprompt\s*\(/);
+  assert.doesNotMatch(fleetSource, /\bwindow\.alert\s*\(|\balert\s*\(/);
+  assert.doesNotMatch(fleetSource, /\bconfirm\s*\(/);
+
+  const originalNow = Date.now;
+  let fakeNow = 1_700_000_000_000;
+  const FakeDate = class extends Date {
+    constructor(...args) { super(...(args.length ? args : [fakeNow])); }
+    static now() { return fakeNow; }
+  };
+  const page = cairnPage();
+  Object.assign(page.document, { addEventListener() {}, removeEventListener() {}, visibilityState: "visible" });
+  Object.assign(page, { Node: CairnNode, AbortController, TextDecoder, DOMException, Date: FakeDate, setTimeout() { return 0; }, clearTimeout() {} });
+  page.window.KilnUi = { timeElement: () => new CairnNode("time") };
+  vm.runInNewContext(fleetSource, page);
+  const root = new CairnNode("div");
+  let stream;
+  const mutations = [];
+  let confirmResponse = { confirmed: false, reason: "" };
+  let beforeConfirmHook = null;
+  const confirmCalls = [];
+  const claimId = "c".repeat(64);
+  const attemptId = "a".repeat(64);
+  const snapshot = {
+    version: "1".repeat(64),
+    health: { api: "v1", machine: "fixture", version: "1" },
+    claims: { claims: [{ identity: claimId, fence: 5, state: "open", expires_ms: fakeNow + 600_000, scope: { target: "onixresearch/kiln", path: "." }, holder: { tool: "omp", host: "desktop", session: "s1" }, purpose: "work" }] },
+    work: { ready_unclaimed: 0, ranked: [], blocked: [] },
+    attempts: { attempts: [{ attempt: attemptId, state: "executing", phase: "running", repository: "onixresearch/kiln", title: "Task", session: { machine: "desktop", state: "working" } }] },
+    decisions: { decisions: [] },
+  };
+  const sendSnapshot = async () => {
+    stream.enqueue(new TextEncoder().encode(`event: snapshot\ndata: ${JSON.stringify(snapshot)}\n\n`));
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+  try {
+    page.window.KilnFleet.load(root, {
+      isCurrent: () => true,
+      stream: () => new ReadableStream({ start(controller) { stream = controller; } }),
+      confirmControl: async (options) => {
+        confirmCalls.push(options);
+        if (beforeConfirmHook) beforeConfirmHook();
+        return confirmResponse;
+      },
+      api: async (path, options = {}) => {
+        if (path === "/api/implementation/cairn") return cairnIndex();
+        mutations.push({ path, method: options.method, body: plain(options.body) });
+        return { ok: true };
+      },
+    });
+    await sendSnapshot();
+    const clickButton = async (label) => {
+      const btn = root.querySelectorAll("button").find((node) => node.textContent.trim() === label);
+      assert.ok(btn, `button ${label} exists`);
+      await btn.listeners.get("click")[0]();
+    };
+
+    // Unconfirmed Release never mutates.
+    confirmResponse = { confirmed: false, reason: "abort" };
+    await clickButton("Release");
+    assert.equal(confirmCalls.length, 1);
+    assert.equal(mutations.length, 0);
+
+    // Blank reason on Cancel never mutates.
+    confirmResponse = { confirmed: true, reason: "   " };
+    await clickButton("Cancel");
+    assert.equal(mutations.length, 0);
+
+    // Valid confirmed Release, Renew, and Cancel send exact payloads.
+    const settle = () => new Promise((resolve) => setImmediate(resolve));
+    confirmResponse = { confirmed: true, reason: "releasing finished scope" };
+    await clickButton("Release");
+    await settle();
+    assert.deepEqual(mutations.at(-1), { path: `/api/fleet/claims/${claimId}/release`, method: "POST", body: { fence: 5, note: "releasing finished scope" } });
+
+    await sendSnapshot();
+    confirmResponse = { confirmed: true, reason: "" };
+    await clickButton("Renew");
+    await settle();
+    assert.deepEqual(mutations.at(-1), { path: `/api/fleet/claims/${claimId}/renew`, method: "POST", body: { fence: 5 } });
+
+    await sendSnapshot();
+    confirmResponse = { confirmed: true, reason: "operator aborted" };
+    await clickButton("Cancel");
+    await settle();
+    assert.deepEqual(mutations.at(-1), { path: `/api/fleet/attempts/${attemptId}/cancel`, method: "POST", body: { reason: "operator aborted" } });
+
+    // Stale snapshot (> 30s) before dialog is blocked without opening dialog or mutating.
+    await sendSnapshot();
+    const countBeforeStale = mutations.length;
+    const callsBeforeStale = confirmCalls.length;
+    fakeNow += 31_000;
+    await clickButton("Release");
+    assert.equal(confirmCalls.length, callsBeforeStale);
+    assert.equal(mutations.length, countBeforeStale);
+    assert.match(root.textContent, /stale or disconnected/i);
+
+    // Snapshot going stale while dialog is open is blocked after confirmation.
+    await sendSnapshot();
+    beforeConfirmHook = () => { fakeNow += 31_000; };
+    confirmResponse = { confirmed: true, reason: "went stale while open" };
+    await clickButton("Cancel");
+    beforeConfirmHook = null;
+    assert.equal(mutations.length, countBeforeStale);
+    assert.match(root.textContent, /became stale or changed/i);
+  } finally {
+    Date.now = originalNow;
+    page.window.KilnFleet.clear();
+    try { stream?.close(); } catch {}
+  }
+});
+
+// Helper for full web.js P0 tests (pagehide, supersession, dirty_snapshot, Unknown Reconciliation Card).
+function createWebHarness({ locationSearch = "?page=runs", fetchImpl }) {
+  class WebNode extends CairnNode {
+    constructor(tag, id = "") {
+      super(tag);
+      this.id = id;
+      this.value = "";
+      this.disabled = false;
+      this.checked = false;
+      this.required = false;
+      this.open = false;
+      this.tabIndex = 0;
+      this.className = "";
+      this.scrollTop = 0;
+      this.scrollHeight = 0;
+      this.href = "";
+      const self = this;
+      this.classList = {
+        add(...names) { const set = new Set((self.className || "").split(/\s+/).filter(Boolean)); for (const n of names) set.add(n); self.className = [...set].join(" "); },
+        remove(...names) { const rm = new Set(names); self.className = (self.className || "").split(/\s+/).filter((x) => x && !rm.has(x)).join(" "); },
+        toggle(name, force) { const has = self.classList.contains(name); const want = force === undefined ? !has : Boolean(force); if (want) self.classList.add(name); else self.classList.remove(name); return want; },
+        contains(name) { return (self.className || "").split(/\s+/).includes(name); },
+      };
+    }
+    get options() { return this.children; }
+    toggleAttribute(name, force) { const has = this.attributes.has(name); const want = force === undefined ? !has : Boolean(force); if (want) this.setAttribute(name, ""); else this.removeAttribute(name); return want; }
+    showModal() { this.open = true; }
+    close() { this.open = false; }
+    getClientRects() { return []; }
+    focus() {}
+    scrollIntoView() {}
+  }
+  const nodes = new Map();
+  const nodeFor = (id) => { if (!nodes.has(id)) nodes.set(id, new WebNode("div", id)); return nodes.get(id); };
+  const docEl = new WebNode("html");
+  const bodyEl = new WebNode("body");
+  const docListeners = new Map();
+  const webDoc = {
+    documentElement: docEl,
+    body: bodyEl,
+    activeElement: null,
+    title: "",
+    createElement: (tag) => Object.assign(new WebNode(tag), { ownerDocument: webDoc }),
+    createElementNS: (_ns, tag) => Object.assign(new WebNode(tag), { ownerDocument: webDoc }),
+    createTextNode: (t) => Object.assign(new WebNode("#text"), { text: t, ownerDocument: webDoc }),
+    getElementById: (id) => nodeFor(id),
+    querySelectorAll: () => [],
+    querySelector: () => new WebNode("div"),
+    addEventListener(type, fn) { docListeners.set(type, [...(docListeners.get(type) || []), fn]); },
+    removeEventListener() {},
+  };
+  const winListeners = new Map();
+  const webWindow = {
+    matchMedia: () => ({ matches: false, addEventListener() {} }),
+    addEventListener(type, fn) { winListeners.set(type, [...(winListeners.get(type) || []), fn]); },
+    removeEventListener(type, fn) { winListeners.set(type, (winListeners.get(type) || []).filter((x) => x !== fn)); },
+    dispatchEvent(event) { for (const fn of winListeners.get(event.type) || []) fn(event); },
+    scrollTo() {},
+  };
+  const mockResponse = (bodyText, contentType = "application/json", status = 200) => {
+    const bytes = new TextEncoder().encode(bodyText);
+    let read = false;
+    return {
+      ok: status >= 200 && status < 300,
+      status,
+      headers: { get: (name) => (String(name).toLowerCase() === "content-type" ? contentType : null) },
+      body: {
+        getReader: () => ({
+          read: async () => { if (read) return { done: true, value: undefined }; read = true; return { done: false, value: bytes }; },
+          cancel: async () => {},
+          releaseLock() {},
+        }),
+      },
+    };
+  };
+  const loc = { search: locationSearch, hash: "", pathname: "/" };
+  const updateLocation = (url) => {
+    if (typeof url === "string") loc.search = new URL(url, "http://localhost").search;
+  };
+  const webCtx = {
+    window: webWindow, document: webDoc, Node: WebNode, Element: WebNode, HTMLElement: WebNode, Event, URL, DOMException,
+    AbortController, URLSearchParams, TextEncoder, TextDecoder, Intl, crypto: webcrypto,
+    location: loc,
+    history: { pushState: (_s, _t, u) => updateLocation(u), replaceState: (_s, _t, u) => updateLocation(u) },
+    fetch: (url, opts) => fetchImpl(url, opts, mockResponse),
+    setTimeout, clearTimeout, setInterval, clearInterval,
+  };
+  webWindow.window = webWindow;
+  vm.runInNewContext(asset("icons.js"), webCtx);
+  vm.runInNewContext(asset("ui.js"), webCtx);
+  vm.runInNewContext(asset("workers.js"), webCtx);
+  vm.runInNewContext(asset("web.js"), webCtx);
+  return { nodeFor, webWindow, webCtx, winListeners };
+}
+
+// r[verify kiln.web.session_continuity_pagehide]
+test("pagehide preserves authenticated session while explicit sign-out clears credentials", async () => {
+  assert.doesNotMatch(asset("web.js"), /addEventListener\(\s*["']pagehide["']/);
+  const { nodeFor, winListeners, webWindow } = createWebHarness({
+    locationSearch: "?page=overview",
+    fetchImpl: async (url, _opts, mockResponse) => {
+      const u = String(url);
+      if (u === "/api/session") return mockResponse(JSON.stringify({ principal: { id: "local:op", label: "Op", role: "operator" }, permissions: { read: true, operate: true } }));
+      if (u === "/api/projects") return mockResponse(JSON.stringify({ available: [], enrolled: [] }));
+      if (u.startsWith("/api/live")) return mockResponse(": heartbeat\n\n", "text/event-stream");
+      if (u.startsWith("/api/runs")) return mockResponse(JSON.stringify({ runs: [], next_cursor: null, total: 0 }));
+      if (u === "/api/overview") return mockResponse(JSON.stringify({ projects: [], totals: { runs: 0, failed: 0, active: 0, queued: 0, unknown: 0, succeeded: 0, cancelled: 0 } }));
+      if (u === "/api/workers") return mockResponse(JSON.stringify({ schema: "kiln.web-workers.v1", bounded: true, storage_failed: false, summary: { targets: 0, configured_slots: 0, enrolled_slots: 0, active: 0, free_slots: 0, queued: 0 }, workers: [] }));
+      if (u.startsWith("/api/activity")) return mockResponse(JSON.stringify({ events: [], next_cursor: null }));
+      return mockResponse("{}");
+    },
+  });
+  try {
+    await new Promise((r) => setTimeout(r, 40));
+    assert.equal(nodeFor("workspace").hidden, false);
+    assert.equal(nodeFor("login-panel").hidden, true);
+    assert.equal(winListeners.has("pagehide"), false);
+    webWindow.dispatchEvent(new Event("pagehide"));
+    assert.equal(nodeFor("workspace").hidden, false);
+    assert.equal(nodeFor("login-panel").hidden, true);
+    assert.match(nodeFor("auth-status").textContent, /Op/);
+    // Explicit sign-out still clears session immediately.
+    nodeFor("logout").listeners.get("click")[0]();
+    assert.equal(nodeFor("workspace").hidden, true);
+    assert.equal(nodeFor("login-panel").hidden, false);
+    assert.equal(nodeFor("auth-status").textContent, "Signed out");
+  } finally {
+    nodeFor("logout").listeners.get("click")[0]();
+  }
+});
+
+// r[verify kiln.web.run_supersession_and_reconcile]
+test("RunView renders superseded_by, dirty_snapshot, and Unknown Reconciliation Card calling /reconcile without blind reruns", async () => {
+  const calls = [];
+  let reconcileAttempt = 0;
+  const supersededRun = {
+    id: "run-superseded-1", project_id: "proj-1", source_revision: "abc1234567890", canonical_tree: "t".repeat(64),
+    repository: { provider_namespace: "git", native_kind: "repo", native_id: "onixresearch/kiln" },
+    revision: 2, attempt_id: "att-1", outcome: "Cancelled", phase: "superseded",
+    execution: { provider_namespace: "lattice", native_kind: "workflow", native_id: "wf-1" },
+    sequence: 3, nodes: [], controls: { cancel: false, pause: false, resume: false }, error_code: null,
+    superseded_by: "run-newer-2", superseded_revision: "def9876543210",
+    dirty_snapshot: { manifest_id: "man-1", base_revision: "base-rev-001", synthetic_revision: "syn-rev-002" },
+    log_bounds: { maximum_chunk_bytes: 16384, maximum_total_bytes: 65536, maximum_chunks: 16 },
+    ordinal: 1, parent_run_id: null, selected_nodes: [], edges: [],
+    created_at_ms: 1700000000000, started_at_ms: 1700000001000, completed_at_ms: 1700000002000, duration_ms: 1000,
+    report_summary: {}, step_telemetry: [],
+  };
+  const unknownRun = {
+    ...supersededRun, id: "run-unknown-1", outcome: "Unknown", phase: "unknown",
+    superseded_by: null, superseded_revision: null, dirty_snapshot: null,
+    error_code: "provider_unreachable",
+  };
+  let activeRun = supersededRun;
+  const { nodeFor } = createWebHarness({
+    locationSearch: "?page=runs&run=run-superseded-1",
+    fetchImpl: async (url, opts = {}, mockResponse) => {
+      const u = String(url);
+      calls.push({ url: u, method: opts.method || "GET", body: opts.body ? JSON.parse(opts.body) : null });
+      if (u === "/api/session") return mockResponse(JSON.stringify({ principal: { id: "local:op", label: "Op", role: "operator" }, permissions: { read: true, operate: true } }));
+      if (u === "/api/projects") return mockResponse(JSON.stringify({ available: [], enrolled: [{ id: "proj-1", label: "Kiln", repository: "onixresearch/kiln", reference: "refs/heads/main", pipeline_identity: "p" }] }));
+      if (u.startsWith("/api/live")) return mockResponse(": heartbeat\n\n", "text/event-stream");
+      if (u.startsWith("/api/runs?")) return mockResponse(JSON.stringify({ runs: [activeRun], next_cursor: null, total: 1 }));
+      if (u === "/api/runs/run-superseded-1") return mockResponse(JSON.stringify(supersededRun));
+      if (u === "/api/runs/run-unknown-1") return mockResponse(JSON.stringify(unknownRun));
+      if (u === "/api/runs/run-unknown-1/reconcile" && opts.method === "POST") {
+        reconcileAttempt += 1;
+        if (reconcileAttempt === 1) {
+          return mockResponse(JSON.stringify({
+            run: unknownRun, reconciled: false, still_unknown: true, outcome: "Unknown", phase: "unknown",
+            error_code: "provider_unreachable", note: "Provider remains unreachable; run stays Unknown.",
+          }));
+        }
+        const reconciledRun = { ...unknownRun, outcome: "Success", phase: "terminal", error_code: null };
+        activeRun = reconciledRun;
+        return mockResponse(JSON.stringify({
+          run: reconciledRun, reconciled: true, still_unknown: false, outcome: "Success", phase: "terminal",
+          error_code: null, note: "Provider observation reconciled execution state.",
+        }));
+      }
+      if (u.endsWith("/artifacts")) return mockResponse(JSON.stringify({ artifacts: [] }));
+      if (u.endsWith("/activity")) return mockResponse(JSON.stringify({ events: [], next_cursor: null }));
+      if (u.endsWith("/evidence")) return mockResponse(JSON.stringify({}));
+      return mockResponse("{}");
+    },
+  });
+  try {
+    await new Promise((r) => setTimeout(r, 50));
+    // Verify superseded_by & dirty_snapshot in runTableRow and #run-supersession / #run-exact-facts.
+    const listText = nodeFor("run-list").textContent;
+    assert.match(listText, /Superseded/);
+    assert.match(listText, /Dirty snapshot/);
+    assert.ok(nodeFor("run-list").querySelectorAll("a").some((a) => a.href.includes("run=run-newer-2")), "runTableRow links to superseded_by");
+    assert.equal(nodeFor("run-supersession").hidden, false);
+    const supText = nodeFor("run-supersession").textContent;
+    assert.match(supText, /run-newer-2/);
+    assert.match(supText, /def9876543210/);
+    assert.match(supText, /man-1/);
+    assert.match(supText, /base-rev-001/);
+    assert.match(supText, /syn-rev-002/);
+    assert.ok(nodeFor("run-supersession").querySelectorAll("a").some((a) => a.href.includes("run=run-newer-2")));
+    assert.equal(nodeFor("run-reconcile").hidden, true);
+
+    // Select Unknown run via row click simulation or navigation: update location/load Unknown run.
+    activeRun = unknownRun;
+    nodeFor("refresh-all").listeners.get("click")[0]();
+    await new Promise((r) => setTimeout(r, 50));
+    const unknownRow = nodeFor("run-list").querySelectorAll("tr").find((tr) => tr.dataset?.runId === "run-unknown-1");
+    assert.ok(unknownRow);
+    unknownRow.listeners.get("click")[0]({ target: unknownRow });
+    await new Promise((r) => setTimeout(r, 50));
+
+    assert.equal(nodeFor("run-reconcile").hidden, false);
+    assert.match(nodeFor("run-reconcile").textContent, /Unknown execution · Reconciliation required/);
+    assert.match(nodeFor("run-reconcile").textContent, /Do not blindly rerun/);
+    const probeBtn = nodeFor("run-reconcile").querySelectorAll("button").find((b) => b.id === "reconcile-run");
+    assert.ok(probeBtn);
+
+    // 1st probe: provider remains unreachable -> honest still_unknown retention.
+    await probeBtn.listeners.get("click")[0]();
+    await new Promise((r) => setTimeout(r, 40));
+    assert.equal(calls.filter((c) => c.url.endsWith("/rerun")).length, 0);
+    assert.equal(calls.filter((c) => c.url === "/api/runs/run-unknown-1/reconcile").length, 1);
+    assert.equal(nodeFor("run-reconcile").hidden, false);
+    assert.match(nodeFor("run-reconcile").textContent, /Provider remains unreachable; run stays Unknown/);
+
+    // 2nd probe: provider reconciles to Success -> card hides and notice confirms.
+    const probeBtn2 = nodeFor("run-reconcile").querySelectorAll("button").find((b) => b.id === "reconcile-run");
+    await probeBtn2.listeners.get("click")[0]();
+    await new Promise((r) => setTimeout(r, 40));
+    assert.equal(calls.filter((c) => c.url === "/api/runs/run-unknown-1/reconcile").length, 2);
+    assert.equal(nodeFor("run-reconcile").hidden, true);
+    assert.match(nodeFor("notice").textContent, /Provider reconciliation probed/);
+  } finally {
+    nodeFor("logout").listeners.get("click")[0]();
+  }
+});
+
+// r[verify kiln.implementation.campaign.index_route]
+test("Workers and Fleet populate selectable campaign lists from GET /api/implementation/campaigns with empty state", async () => {
+  const page = cairnPage();
+  Object.assign(page, { Node: CairnNode, AbortController, setTimeout() {}, clearTimeout() {} });
+  page.window.KilnUi = { timeElement: () => new CairnNode("time"), icon: () => new CairnNode("svg") };
+  vm.runInNewContext(asset("workers.js"), page);
+  const root = page.document.createElement("div");
+  const navigated = [];
+  const workersPayload = {
+    schema: "kiln.web-workers.v1", bounded: true, storage_failed: false,
+    summary: { targets: 0, configured_slots: 0, enrolled_slots: 0, active: 0, free_slots: 0, queued: 0 },
+    workers: [],
+  };
+  let indexPayload = {
+    schema: "kiln.implementation-campaigns.v1",
+    campaigns: [
+      { campaign_id: "camp-alpha", status: "active", store_version: 2, revision: 1, repository: "onixresearch/kiln", repository_identity: "a".repeat(64), member_count: 3, pending_decisions: 2, unissued_decisions: 0, pending_effects: 0, paused: false, cancelled: false, complete: false, updated_at: 1700000000000 },
+      { campaign_id: "camp-beta", status: "paused", store_version: 5, revision: 1, repository: "onixresearch/kiln", repository_identity: "a".repeat(64), member_count: 1, pending_decisions: 0, unissued_decisions: 0, pending_effects: 0, paused: true, cancelled: false, complete: false, updated_at: 1699999000000 },
+    ],
+    bounded: true, truncated: false,
+  };
+  const ctx = {
+    route: { page: "workers", worker_campaign: "" },
+    isCurrent: () => true,
+    navigate: (patch) => navigated.push(patch),
+    runLink: () => new CairnNode("a"),
+    projectLink: () => new CairnNode("a"),
+    api: async (path) => {
+      if (path === "/api/workers") return workersPayload;
+      if (path === "/api/inventory") throw new Error("inventory unavailable");
+      if (path === "/api/implementation/campaigns") return indexPayload;
+      if (path === "/api/implementation/campaign-definitions") return { schema: "kiln.campaign-definitions.v1", definitions: [] };
+      throw new Error(`unexpected ${path}`);
+    },
+  };
+  const settle = () => new Promise((resolve) => setImmediate(resolve));
+  await page.window.KilnWorkers.load(root, ctx);
+  await settle();
+  // No raw campaign ID text input.
+  assert.equal(root.querySelectorAll("input").find((n) => n.id === "workers-campaign-id"), undefined);
+  const select = root.querySelectorAll("select").find((n) => n.id === "workers-campaign-select");
+  assert.ok(select, "workers campaign select rendered");
+  assert.match(select.textContent, /camp-alpha · active · 2 pending decisions/);
+  assert.match(select.textContent, /camp-beta · paused · 0 pending decisions/);
+  select.value = "camp-alpha";
+  select.listeners.get("change")[0]();
+  assert.equal(navigated.at(-1).worker_campaign, "camp-alpha");
+
+  // Empty campaign store renders explicit empty state without error.
+  indexPayload = { schema: "kiln.implementation-campaigns.v1", campaigns: [], bounded: true, truncated: false };
+  await page.window.KilnWorkers.load(root, ctx);
+  await settle();
+  assert.match(root.textContent, /No active or recent implementation campaigns in the store/);
+
+  // Fleet loadFleetCampaign renders selectable index too, and honors empty state.
+  const fleetCampaignRoot = page.document.createElement("div");
+  const fleetNav = [];
+  indexPayload = {
+    schema: "kiln.implementation-campaigns.v1",
+    campaigns: [{ campaign_id: "camp-gamma", status: "blocked", store_version: 1, revision: 1, repository: "onixresearch/kiln", repository_identity: "a".repeat(64), member_count: 2, pending_decisions: 1, unissued_decisions: 0, pending_effects: 0, paused: false, cancelled: false, complete: false, updated_at: 1700000000000 }],
+    bounded: true, truncated: false,
+  };
+  await page.window.KilnInventory.loadFleetCampaign(fleetCampaignRoot, ctx, "", (id) => fleetNav.push(id));
+  await settle();
+  const fleetSelect = fleetCampaignRoot.querySelectorAll("select").find((n) => n.id === "fleet-campaign-select");
+  assert.ok(fleetSelect);
+  assert.match(fleetSelect.textContent, /camp-gamma · blocked · 1 pending decision/);
+  fleetSelect.value = "camp-gamma";
+  fleetSelect.listeners.get("change")[0]();
+  assert.deepEqual(fleetNav, ["camp-gamma"]);
+
+  page.window.KilnWorkers.clear();
+  page.window.KilnInventory.clear();
 });

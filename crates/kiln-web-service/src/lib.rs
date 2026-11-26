@@ -7,6 +7,7 @@ pub mod cairn_workspace;
 pub mod campaign_controls;
 pub mod cobs;
 pub mod code_review;
+mod delivery_observations;
 pub mod developer;
 pub mod dispatch_recovery;
 pub mod engine;

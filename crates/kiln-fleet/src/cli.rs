@@ -10,7 +10,7 @@ use serde_json::{Value, json};
 
 use crate::api::Service;
 use crate::client::{ApiClient, SERVER_ENVIRONMENT};
-use crate::config::FleetConfig;
+use crate::config::{CONSOLE_URL_ENVIRONMENT, FleetConfig, validate_console_url};
 use crate::dispatch::Dispatcher;
 use crate::mcp::McpServer;
 use crate::{log, server};
@@ -20,7 +20,7 @@ pub const EXIT_REFUSED: i32 = 1;
 pub const EXIT_USAGE: i32 = 2;
 
 pub const USAGE: &str = "usage:
-  kiln-fleet run --config FILE
+  kiln-fleet run --config FILE [--console-url URL]
   kiln-fleet check-config --config FILE
   kiln-fleet mcp [--server URL] [--tool NAME]
   kiln-fleet claim --scope '<target> <path>' --tool T --session S --purpose TEXT [--lease-minutes N]
@@ -51,7 +51,7 @@ pub fn main_with(arguments: &[String]) -> i32 {
         return EXIT_OK;
     }
     let outcome = match command.as_str() {
-        "run" => flags(rest, &["--config"], &[]).map(|flags| run(&flags)),
+        "run" => flags(rest, &["--config"], &["--console-url"]).map(|flags| run(&flags)),
         "check-config" => flags(rest, &["--config"], &[]).map(|flags| check_config(&flags)),
         "mcp" => flags(rest, &[], &["--server", "--tool"]).and_then(|flags| mcp(&flags)),
         "claim" => flags(
@@ -926,7 +926,8 @@ fn check_config(flags: &Flags) -> i32 {
 
 fn run(flags: &Flags) -> i32 {
     let path = PathBuf::from(flags.get("--config").cloned().unwrap_or_default());
-    match serve(&path) {
+    let console_url = flags.get("--console-url").map(String::as_str);
+    match serve_with_console_url(&path, console_url) {
         Ok(()) => EXIT_OK,
         Err(error) => {
             log::warn("service.failed", json!({ "error": error }));
@@ -940,7 +941,22 @@ fn run(flags: &Flags) -> i32 {
 /// # Errors
 /// Returns a start-up diagnostic.
 pub fn serve(path: &std::path::Path) -> Result<(), String> {
-    let config = FleetConfig::load(path)?;
+    serve_with_console_url(path, None)
+}
+
+fn serve_with_console_url(path: &std::path::Path, cli_console_url: Option<&str>) -> Result<(), String> {
+    let mut config = FleetConfig::load(path)?;
+    if let Some(raw) = cli_console_url {
+        config.console_url = Some(validate_console_url(raw)?);
+    } else if config.console_url.is_none() {
+        match std::env::var(CONSOLE_URL_ENVIRONMENT) {
+            Ok(raw) => config.console_url = Some(validate_console_url(&raw)?),
+            Err(std::env::VarError::NotPresent) => {}
+            Err(std::env::VarError::NotUnicode(_)) => {
+                return Err(format!("{CONSOLE_URL_ENVIRONMENT} is not valid UTF-8"));
+            }
+        }
+    }
     let addresses = config.listen_addresses()?;
     let service = Arc::new(Service::new(config)?);
     let listeners = server::bind(&addresses)?;

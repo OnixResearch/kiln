@@ -43,6 +43,7 @@
     runSort: null,
     // Failure-first log defaults for the selected failed run: { run, node, stream, fellBack }.
     failureFirst: null,
+    reconcileStatus: null,
     liveTicker: null, logAutoFollow: false, followDeclined: "", startProject: "",
   };
 
@@ -397,6 +398,23 @@
     const status = [livePill(run.outcome, run.phase)];
     const retry = retryBadge(run);
     if (retry) status.push(retry);
+    if (run.superseded_by || run.superseded_revision) {
+      const superseded = element("span", "Superseded", "state-badge");
+      superseded.dataset.tone = "warning";
+      superseded.title = `Superseded${run.superseded_by ? ` by ${run.superseded_by}` : ""}${run.superseded_revision ? ` at ${run.superseded_revision}` : ""}`;
+      status.push(superseded);
+      if (run.superseded_by) {
+        const jump = workspaceLink({ page: "runs", run: run.superseded_by, node: "", stream: "", view: "pipeline" }, `→ ${shortIdentity(run.superseded_by)}`, "row-link");
+        jump.title = `Open superseding run ${run.superseded_by}`;
+        status.push(jump);
+      }
+    }
+    if (run.dirty_snapshot && typeof run.dirty_snapshot === "object") {
+      const dirty = element("span", "Dirty snapshot", "state-badge");
+      dirty.dataset.tone = "warning";
+      dirty.title = `Dirty working-tree snapshot (base ${text(run.dirty_snapshot.base_revision)}, manifest ${text(run.dirty_snapshot.manifest_id)})`;
+      status.push(dirty);
+    }
     cell("status", status);
     const name = element("div", undefined, "run-project");
     name.append(projectLink(run.project_id, label, "run-project-link"), element("span", shortIdentity(run.id), "run-id mono"));
@@ -511,12 +529,17 @@
     state.run = null;
     state.observedAt = 0;
     state.failureFirst = null;
+    state.reconcileStatus = null;
     stopLiveTicker();
     dismissControl();
     resetLogs();
     state.artifactsGeneration++;
     $("artifact-list").replaceChildren();
     $("artifact-status").textContent = "Loading retained artifact metadata…";
+    $("run-supersession").hidden = true;
+    $("run-supersession").replaceChildren();
+    $("run-reconcile").hidden = true;
+    $("run-reconcile").replaceChildren();
     $("empty-run").hidden = true;
     $("run-detail").hidden = true;
     renderRunList();
@@ -617,6 +640,16 @@
     const badges = [livePill(run.outcome, run.phase), phaseChip(run.phase)];
     const retry = retryBadge(run);
     if (retry) badges.push(retry);
+    if (run.superseded_by || run.superseded_revision) {
+      const superseded = element("span", "Superseded", "state-badge");
+      superseded.dataset.tone = "warning";
+      badges.push(superseded);
+    }
+    if (run.dirty_snapshot && typeof run.dirty_snapshot === "object") {
+      const dirty = element("span", "Dirty snapshot", "state-badge");
+      dirty.dataset.tone = "warning";
+      badges.push(dirty);
+    }
     $("run-badges").replaceChildren(...badges);
     const warnings = [];
     if (run.error_code) warnings.push(`Service diagnostic: ${text(run.error_code)}.`);
@@ -627,8 +660,11 @@
     const revision = element("span", shortIdentity(run.source_revision), "mono");
     revision.title = text(run.source_revision);
     addFactTiles($("run-facts"), [["Source revision", revision], ["Created", when(run.created_at_ms)], ["Started", ui.runInstantElement(run, "started_at_ms")], ["Completed", ui.runInstantElement(run, "completed_at_ms")], ["Duration", ui.runDurationElement(run)]]);
+    renderSupersession(run);
+    renderReconcile(run);
     const affected = ui.affectedSummary(run.affected);
-    addFacts($("run-exact-facts"), [["Run ID", run.id], ["Project", run.project_id], ["Repository", run.repository], ["Source revision", run.source_revision], ["Canonical tree", run.canonical_tree], ["Run revision", run.revision], ["Attempt", run.attempt_id], ["Sequence", run.sequence], ["Parent run", run.parent_run_id], ...(run.fanout_run_id ? [["Fan-out parent", workspaceLink({ page: "runbooks", runbook: run.runbook?.runbook_id || "", fanout: run.fanout_run_id }, run.fanout_run_id)]] : []), ["Created", timestamp(run.created_at_ms)], ["Started", timestamp(run.started_at_ms)], ["Completed", timestamp(run.completed_at_ms)], ...(affected?.identity ? [["Affected-set BLAKE3", affected.identity]] : [])]);
+    const dirty = run.dirty_snapshot && typeof run.dirty_snapshot === "object" ? run.dirty_snapshot : null;
+    addFacts($("run-exact-facts"), [["Run ID", run.id], ["Project", run.project_id], ["Repository", run.repository], ["Source revision", run.source_revision], ["Canonical tree", run.canonical_tree], ["Run revision", run.revision], ["Attempt", run.attempt_id], ["Sequence", run.sequence], ["Parent run", run.parent_run_id], ...(run.superseded_by ? [["Superseded by", workspaceLink({ page: "runs", run: run.superseded_by, node: "", stream: "", view: "pipeline" }, run.superseded_by)]] : []), ...(run.superseded_revision ? [["Superseded revision", run.superseded_revision]] : []), ...(dirty ? [["Dirty snapshot manifest", dirty.manifest_id], ["Snapshot base revision", dirty.base_revision], ["Snapshot synthetic revision", dirty.synthetic_revision]] : []), ...(run.fanout_run_id ? [["Fan-out parent", workspaceLink({ page: "runbooks", runbook: run.runbook?.runbook_id || "", fanout: run.fanout_run_id }, run.fanout_run_id)]] : []), ["Created", timestamp(run.created_at_ms)], ["Started", timestamp(run.started_at_ms)], ["Completed", timestamp(run.completed_at_ms)], ...(affected?.identity ? [["Affected-set BLAKE3", affected.identity]] : [])]);
     renderWhy(affected);
     renderUntrusted(run);
     $("execution-identity").textContent = text(run.execution);
@@ -699,6 +735,85 @@
     ]);
     const note = gate.awaitingApproval ? "Nothing runs until an operator approves this exact commit; a new commit needs a new approval." : "Approved untrusted runs and their retries run only on untrusted-capable runners, without secrets, workload token or cache.";
     target.replaceChildren(head, facts, element("p", `${note} Approving a run is not a code-review approval.`, "small"));
+  }
+  // r[impl kiln.web.run_supersession_and_reconcile] Surface RunView.superseded_by, superseded_revision, and dirty_snapshot with drift notice and direct jump.
+  function renderSupersession(run) {
+    const target = $("run-supersession");
+    const supersededBy = typeof run.superseded_by === "string" && run.superseded_by ? run.superseded_by : "";
+    const supersededRevision = typeof run.superseded_revision === "string" && run.superseded_revision ? run.superseded_revision : "";
+    const dirty = run.dirty_snapshot && typeof run.dirty_snapshot === "object" ? run.dirty_snapshot : null;
+    const active = Boolean(supersededBy || supersededRevision || dirty);
+    target.hidden = !active;
+    if (!active) { target.replaceChildren(); return; }
+    const head = element("div", undefined, "run-supersession-head");
+    const heading = element("h3", supersededBy || supersededRevision ? "Target drift · superseded run" : "Dirty working-tree snapshot");
+    heading.id = "run-supersession-title";
+    head.append(heading);
+    const messages = [];
+    if (supersededBy || supersededRevision) messages.push("This run was superseded by a newer target revision. Its result does not satisfy the moved target.");
+    if (dirty) messages.push("Dirty working-tree snapshot: this run executed against a synthetic snapshot rather than a clean committed revision.");
+    const facts = element("dl", undefined, "facts");
+    addFacts(facts, [
+      ...(supersededBy ? [["Superseded by", workspaceLink({ page: "runs", run: supersededBy, node: "", stream: "", view: "pipeline" }, supersededBy)]] : []),
+      ...(supersededRevision ? [["Superseding revision", supersededRevision]] : []),
+      ...(dirty ? [["Snapshot manifest", dirty.manifest_id], ["Base revision", dirty.base_revision], ["Synthetic tree revision", dirty.synthetic_revision]] : []),
+    ]);
+    const actions = element("div", undefined, "run-supersession-actions");
+    if (supersededBy) {
+      const jump = workspaceLink({ page: "runs", run: supersededBy, node: "", stream: "", view: "pipeline" }, "Open superseding run", "button");
+      actions.append(jump);
+    }
+    const gate = ui.untrustedSummary(run.untrusted);
+    if (canOperate() && !gate && !run.runbook && !dirty && (supersededBy || supersededRevision)) {
+      const rebuild = element("button", "Run latest admitted reference…", "quiet");
+      rebuild.type = "button";
+      rebuild.disabled = state.mutation;
+      rebuild.addEventListener("click", () => { void prepareRerun("latest"); });
+      actions.append(rebuild);
+    }
+    target.replaceChildren(head, element("p", messages.join(" "), "small"), facts, ...(actions.childElementCount ? [actions] : []));
+  }
+  // r[impl kiln.web.run_supersession_and_reconcile] First-class Unknown Reconciliation Card calling POST /api/runs/{id}/reconcile without blind reruns.
+  async function reconcileRun(runId) {
+    const result = await mutate(`${pathFor(runId)}/reconcile`, {}, "Provider reconciliation probed.");
+    if (!result || !state.session) return;
+    if (result.run && typeof result.run === "object") {
+      state.runs = state.runs.map((item) => item.id === result.run.id ? result.run : item);
+      renderRunList();
+      if (state.selected === result.run.id) {
+        state.reconcileStatus = {
+          runId: result.run.id,
+          stillUnknown: Boolean(result.still_unknown),
+          message: typeof result.note === "string" && result.note ? result.note : result.still_unknown ? "Provider remains unreachable; run stays Unknown." : `Reconciled: ${text(result.outcome)} (${text(result.phase)}).`,
+        };
+        adoptRun(result.run);
+        if (result.still_unknown) notice(state.reconcileStatus.message, "warning");
+      }
+    }
+  }
+  function renderReconcile(run) {
+    const target = $("run-reconcile");
+    const isUnknown = run.outcome === "Unknown" || text(run.phase).toLowerCase() === "unknown";
+    target.hidden = !isUnknown;
+    if (!isUnknown) { target.replaceChildren(); return; }
+    const head = element("div", undefined, "run-reconcile-head");
+    const heading = element("h3", "Unknown execution · Reconciliation required");
+    heading.id = "run-reconcile-title";
+    head.append(heading, statePill("unknown", "Unknown", run.outcome));
+    const guardrail = element("p", "Execution outcome is Unknown: provider completion or termination could not be confirmed. Do not blindly rerun or assume failure; probe the provider first to reconcile this execution without creating a replacement run.", "small");
+    const actions = element("div", undefined, "run-reconcile-actions");
+    const probe = element("button", "Reconcile / Probe Provider", "primary");
+    probe.id = "reconcile-run";
+    probe.type = "button";
+    probe.disabled = !canOperate() || state.mutation;
+    probe.addEventListener("click", () => { void reconcileRun(run.id); });
+    actions.append(probe);
+    if (!canOperate()) actions.append(element("span", "Operator access is required to probe the provider.", "small"));
+    const statusLine = element("p", state.reconcileStatus?.runId === run.id ? state.reconcileStatus.message : "", "small");
+    statusLine.id = "run-reconcile-status";
+    statusLine.setAttribute("role", "status");
+    statusLine.hidden = !statusLine.textContent;
+    target.replaceChildren(head, guardrail, actions, statusLine);
   }
   function renderStepTelemetry(run) {
     const target = $("step-telemetry");
@@ -834,18 +949,55 @@
       if (epoch === state.epoch) setMutation(false);
     }
   }
-  function dismissControl() {
+  const DEFAULT_CONFIRM_WARNING = "This affects the exact execution/source below. Mutations are never automatically retried. Unknown effects require observation before a new request.";
+  function resetConfirmReason() {
+    if ($("confirm-reason-field")) $("confirm-reason-field").hidden = true;
+    if ($("confirm-reason")) { $("confirm-reason").value = ""; $("confirm-reason").required = false; }
+    if ($("confirm-reason-error")) { $("confirm-reason-error").textContent = ""; $("confirm-reason-error").hidden = true; }
+    if ($("confirm-warning")) $("confirm-warning").textContent = DEFAULT_CONFIRM_WARNING;
+  }
+  function dismissControl(resolved = false) {
+    const pending = state.confirm;
     state.confirm = null;
     if ($("control-dialog").open) $("control-dialog").close();
     $("confirm-facts").replaceChildren();
+    resetConfirmReason();
+    if (!resolved && pending?.resolve) pending.resolve({ confirmed: false, reason: "" });
+    if (!resolved) pending?.opener?.focus?.();
   }
   // r[impl kiln.web.design_system] Confirmation copy names the run and the verb: the title asks the decision, the
   // commit repeats the verb (danger only for cancellation) and the dismissal names the state that is kept.
   function confirmWording(title, verb, dismiss, danger) {
+    resetConfirmReason();
     $("confirm-title").textContent = title;
     $("confirm-control").textContent = verb;
     $("confirm-control").className = danger ? "danger" : "primary";
     $("dismiss-control").textContent = dismiss;
+  }
+  function confirmControl({ title, verb, dismiss = "Cancel", danger = false, warning = DEFAULT_CONFIRM_WARNING, facts = [], reason = null, opener = null }) {
+    dismissControl();
+    return new Promise((resolve) => {
+      const maxReason = reason?.maxLength || 1024;
+      state.confirm = {
+        resolve,
+        opener: opener || document.activeElement,
+        requireReason: Boolean(reason?.required),
+        maxReason,
+      };
+      confirmWording(title, verb, dismiss, danger);
+      if ($("confirm-warning")) $("confirm-warning").textContent = warning || DEFAULT_CONFIRM_WARNING;
+      addFacts($("confirm-facts"), facts);
+      if (reason && $("confirm-reason-field") && $("confirm-reason")) {
+        $("confirm-reason-field").hidden = false;
+        if ($("confirm-reason-label")) $("confirm-reason-label").textContent = reason.label || "Reason";
+        $("confirm-reason").placeholder = reason.placeholder || "";
+        $("confirm-reason").maxLength = maxReason;
+        $("confirm-reason").required = Boolean(reason.required);
+        $("confirm-reason").value = reason.initial || "";
+      }
+      $("control-dialog").showModal();
+      (reason?.required && $("confirm-reason") ? $("confirm-reason") : $("dismiss-control")).focus();
+    });
   }
   async function prepareControl(action) {
     if (!canOperate()) return;
@@ -1128,8 +1280,9 @@
     $("project-content").replaceChildren();
     stopFeedsTimer();
     stopLiveTicker();
-    state.runSort = null; state.failureFirst = null; state.followDeclined = ""; state.startProject = "";
+    state.runSort = null; state.failureFirst = null; state.reconcileStatus = null; state.followDeclined = ""; state.startProject = "";
     $("run-progress").hidden = true;
+    for (const id of ["run-supersession", "run-reconcile"]) { $(id).hidden = true; $(id).replaceChildren(); }
     for (const id of ["header-approve", "header-cancel", "header-rerun"]) $(id).hidden = true;
     for (const id of ["work-content", "planning-content", "inbox-content", "triage-content", "workviews-content"]) $(id).replaceChildren();
     window.dispatchEvent(new Event("kiln-session-changed"));
@@ -2001,7 +2154,7 @@
     // page aborts its refresh cycle.
     if (route.page === "fleet") {
       if (!window.KilnFleet) { $("fleet-content").replaceChildren(element("p", "Fleet coordination is loading.", "small")); return; }
-      await window.KilnFleet.load($("fleet-content"), { api, stream: apiStream, navigate, runLink, canOperate, route, isCurrent: () => state.route === route && !!state.session });
+      await window.KilnFleet.load($("fleet-content"), { api, stream: apiStream, navigate, runLink, canOperate, confirmControl, route, isCurrent: () => state.route === route && !!state.session });
     }
     if (route.page === "runs") await loadRunView();
   }
@@ -2300,10 +2453,10 @@
     const grid = element("div", undefined, "dashboard-grid");
     const main = element("div", undefined, "dashboard-main");
     const side = element("div", undefined, "dashboard-side");
-    dashboardSection(main, "overview-health", "Project health", "card health-hero");
     dashboardSection(main, "overview-attention", "Needs attention", "dashboard-section");
     dashboardSection(main, "overview-passed", "Recently passed", "card dashboard-section");
     dashboardSection(main, "overview-other", "In progress & unresolved", "card dashboard-section");
+    dashboardSection(main, "overview-health", "Project health", "card health-hero");
     const trend = element("details", undefined, "panel overview-timing");
     const trendBody = element("div", undefined, "stack stack-sm");
     trendBody.id = "overview-trend";
@@ -3412,12 +3565,26 @@
   $("header-rerun").addEventListener("click", () => { void prepareRerun("exact"); });
   $("header-approve").addEventListener("click", () => { void prepareApprove(); });
   $("log-jump-error").addEventListener("click", jumpToFirstError);
-  $("dismiss-control").addEventListener("click", dismissControl);
-  $("control-dialog").addEventListener("cancel", dismissControl);
+  $("dismiss-control").addEventListener("click", () => dismissControl());
+  $("control-dialog").addEventListener("cancel", () => dismissControl());
   $("control-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const pending = state.confirm;
-    if (!pending || state.mutation) return;
+    if (!pending) return;
+    if (pending.resolve) {
+      const reason = ($("confirm-reason")?.value || "").trim().slice(0, pending.maxReason || 1024);
+      if (pending.requireReason && !reason) {
+        if ($("confirm-reason-error")) { $("confirm-reason-error").textContent = "A reason is required."; $("confirm-reason-error").hidden = false; }
+        $("confirm-reason")?.focus?.();
+        return;
+      }
+      const { resolve, opener } = pending;
+      dismissControl(true);
+      opener?.focus?.();
+      resolve({ confirmed: true, reason });
+      return;
+    }
+    if (state.mutation) return;
     dismissControl();
     if (pending.approve) await mutate(`${pathFor(pending.id)}/approve`, pending.approve, "Approval admitted for this exact commit. Observe the run for dispatch and its outcome; no success is inferred.");
     else if (pending.mode) await mutate(`${pathFor(pending.id)}/rerun`, { mode: pending.mode }, "New source-bound candidate requested.").then((result) => { if (result?.id) navigate({ page: "runs", run: result.id, node: "", stream: "", view: "pipeline" }); });
@@ -3467,8 +3634,11 @@
   window.addEventListener("kiln-work-ready", () => {
     if (state.session && ["work", "planning", "inbox", "triage", "workviews"].includes(state.route?.page)) void readAction(loadPage)();
   });
-  // Restoration rechecks network authorization; a cleared bearer is never restored.
-  window.addEventListener("pagehide", () => logout("Disconnected when leaving the live page."));
-  window.addEventListener("pageshow", (event) => { if (event.persisted) void discoverNetworkAccess(); });
+  // Restoration rechecks network authorization when signed out; pagehide preserves active sessions across sleep/navigation.
+  window.addEventListener("pageshow", (event) => {
+    if (!event.persisted) return;
+    if (!state.session) void discoverNetworkAccess();
+    else void readAction(refreshAll)();
+  });
   void discoverNetworkAccess();
 })();

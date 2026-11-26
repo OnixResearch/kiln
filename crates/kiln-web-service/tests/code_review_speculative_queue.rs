@@ -931,3 +931,73 @@ fn advisory_approvals_never_admit_or_qualify_a_speculative_candidate() -> Result
     assert!(field(&h.detail(0)?, "/change/submission")?.is_null());
     Ok(())
 }
+
+// r[verify kiln.review.queue.speculative.window_projection]
+// r[verify kiln.review.queue.speculative.window_projection.scenario.exposed]
+#[test]
+fn code_review_api_projects_speculative_queue_windows_and_omits_serial_bounds() -> Result {
+    let mut speculative = Harness::new(window(1, 3), 2)?;
+    let initial = accepted(speculative.workspace.response(
+        "GET",
+        "/api/code-review",
+        &[],
+        kiln_web_service::code_review::RequestContext {
+            role: Role::Viewer,
+            principal: SUBMITTER,
+            now_ms: 100,
+            ci: &[],
+        },
+    ))?;
+    let windows = field(&initial, "/queue_windows")?.as_array().ok_or("queue_windows")?;
+    assert_eq!(windows.len(), 1);
+    assert_eq!(windows[0]["target_ref"], "refs/heads/main");
+    assert_eq!(windows[0]["mode"], "speculative");
+    assert_eq!(windows[0]["depth"], 3);
+    assert_eq!(
+        windows[0]["bounds"],
+        json!({"floor": 1, "ceiling": 3, "increase": 1, "decrease": 1})
+    );
+
+    // Ejecting an incompatible entry shrinks the recorded depth and surfaces it in /api/code-review.
+    speculative.enqueue_all()?;
+    speculative.tick()?;
+    let candidate = speculative.candidate(0)?;
+    speculative.finish(&candidate, false)?;
+    speculative.tick()?;
+    let shrunk = accepted(speculative.workspace.response(
+        "GET",
+        "/api/code-review",
+        &[],
+        kiln_web_service::code_review::RequestContext {
+            role: Role::Viewer,
+            principal: SUBMITTER,
+            now_ms: 200,
+            ci: &[],
+        },
+    ))?;
+    assert_eq!(field(&shrunk, "/queue_windows/0/depth")?, 2);
+    assert_eq!(field(&shrunk, "/queue_windows/0/mode")?, "speculative");
+
+    // Serial mode omits speculative window claims rather than fabricating defaults.
+    let serial_harness = Harness::new(serial(), 1)?;
+    let serial_view = accepted(serial_harness.workspace.response(
+        "GET",
+        "/api/code-review",
+        &[],
+        kiln_web_service::code_review::RequestContext {
+            role: Role::Viewer,
+            principal: SUBMITTER,
+            now_ms: 100,
+            ci: &[],
+        },
+    ))?;
+    let serial_windows = field(&serial_view, "/queue_windows")?
+        .as_array()
+        .ok_or("serial queue_windows")?;
+    assert_eq!(serial_windows.len(), 1);
+    assert_eq!(serial_windows[0]["target_ref"], "refs/heads/main");
+    assert_eq!(serial_windows[0]["mode"], "serial");
+    assert!(serial_windows[0].get("depth").is_none());
+    assert!(serial_windows[0].get("bounds").is_none());
+    Ok(())
+}

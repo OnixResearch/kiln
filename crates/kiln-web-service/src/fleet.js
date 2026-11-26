@@ -24,6 +24,7 @@
   ]);
   const AGGREGATE_REFRESH_MS = CAIRN_REFRESH_MS;
   const STREAM_BACKOFF_MAX_MS = 30_000;
+  const CONTROL_FRESHNESS_MS = 30_000;
   const LEASE_NOTICE_MS = 15 * 60_000;
   const ATTENTION_LIMIT = 8;
   const IDENTITY = /^[0-9a-f]{64}$/;
@@ -440,6 +441,115 @@
       state.listedClaims && state.cairnWorkerCells ? "No listed Cairn changes or claim leases need attention." : "Waiting for Cairn or Fleet observations.", "small"));
   }
 
+  function isSnapshotFresh(state, now = Date.now()) {
+    return state.connection?.dataset?.state === "live"
+      && Number.isFinite(state.observedAt)
+      && state.observedAt > 0
+      && (now - state.observedAt) < CONTROL_FRESHNESS_MS;
+  }
+
+  async function openConfirmDialog(state, options) {
+    if (typeof state.context?.confirmControl === "function") {
+      return state.context.confirmControl(options);
+    }
+    const dialog = typeof document?.getElementById === "function" ? document.getElementById("control-dialog") : null;
+    const form = typeof document?.getElementById === "function" ? document.getElementById("control-form") : null;
+    if (!dialog || !form) {
+      notice(state.command, "Confirmation dialog is unavailable; no command was sent.");
+      return { confirmed: false, reason: "" };
+    }
+    const byId = (id) => document.getElementById(id);
+    const title = byId("confirm-title");
+    const warning = byId("confirm-warning");
+    const facts = byId("confirm-facts");
+    const confirmBtn = byId("confirm-control");
+    const dismissBtn = byId("dismiss-control");
+    const reasonField = byId("confirm-reason-field");
+    const reasonLabel = byId("confirm-reason-label");
+    const reasonInput = byId("confirm-reason");
+    const reasonError = byId("confirm-reason-error");
+    if (title) title.textContent = options.title || "Confirm action";
+    if (warning) warning.textContent = options.warning || "";
+    if (confirmBtn) {
+      confirmBtn.textContent = options.verb || "Confirm";
+      confirmBtn.className = options.danger ? "danger" : "primary";
+    }
+    if (dismissBtn) dismissBtn.textContent = options.dismiss || "Cancel";
+    if (facts) {
+      facts.replaceChildren();
+      for (const [term, value] of options.facts || []) {
+        if (value === undefined || value === null || value === "") continue;
+        facts.append(element("dt", term), element("dd", value));
+      }
+    }
+    if (reasonField && reasonInput) {
+      if (options.reason) {
+        reasonField.hidden = false;
+        if (reasonLabel) reasonLabel.textContent = options.reason.label || "Reason";
+        reasonInput.placeholder = options.reason.placeholder || "";
+        reasonInput.maxLength = options.reason.maxLength || REASON_MAX;
+        reasonInput.required = Boolean(options.reason.required);
+        reasonInput.value = options.reason.initial || "";
+      } else {
+        reasonField.hidden = true;
+        reasonInput.required = false;
+        reasonInput.value = "";
+      }
+      if (reasonError) { reasonError.textContent = ""; reasonError.hidden = true; }
+    }
+    return new Promise((resolve) => {
+      let settled = false;
+      const cleanup = () => {
+        form.removeEventListener("submit", onSubmit);
+        dismissBtn?.removeEventListener("click", onCancel);
+        dialog.removeEventListener("cancel", onCancel);
+        if (dialog.open) dialog.close();
+        if (reasonField) reasonField.hidden = true;
+        if (reasonInput) { reasonInput.value = ""; reasonInput.required = false; }
+        if (reasonError) { reasonError.textContent = ""; reasonError.hidden = true; }
+      };
+      const finish = (result) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        options.opener?.focus?.();
+        resolve(result);
+      };
+      const onCancel = () => finish({ confirmed: false, reason: "" });
+      const onSubmit = (event) => {
+        event.preventDefault();
+        const max = options.reason?.maxLength || REASON_MAX;
+        const reason = (reasonInput?.value || "").trim().slice(0, max);
+        if (options.reason?.required && !reason) {
+          if (reasonError) { reasonError.textContent = "A reason is required."; reasonError.hidden = false; }
+          reasonInput?.focus?.();
+          return;
+        }
+        finish({ confirmed: true, reason });
+      };
+      form.addEventListener("submit", onSubmit);
+      dismissBtn?.addEventListener("click", onCancel);
+      dialog.addEventListener("cancel", onCancel);
+      dialog.showModal();
+      (options.reason?.required ? reasonInput : dismissBtn)?.focus?.();
+    });
+  }
+
+  async function confirmGuardedFleetMutation(state, options) {
+    if (!isSnapshotFresh(state)) {
+      notice(state.command, "Fleet observation snapshot is stale or disconnected (older than 30s). Wait for a live snapshot before mutating.");
+      return { confirmed: false, reason: "" };
+    }
+    const expectedVersion = state.version;
+    const choice = await openConfirmDialog(state, options);
+    if (!choice?.confirmed) return { confirmed: false, reason: "" };
+    if (!state.context?.isCurrent?.() || !isSnapshotFresh(state) || (expectedVersion && state.version !== expectedVersion)) {
+      notice(state.command, "Fleet observation became stale or changed before confirmation completed. Nothing was sent.");
+      return { confirmed: false, reason: "" };
+    }
+    return choice;
+  }
+
   function renderClaims(state, claims) {
     state.listedClaims = claims;
     renderAttention(state);
@@ -451,10 +561,48 @@
       actions.id = `fleet-claim-${claim.identity}`;
       const renew = element("button", "Renew", "quiet");
       renew.type = "button";
-      renew.addEventListener("click", () => mutate(state, renew, `/api/fleet/claims/${claim.identity}/renew`, { fence: claim.fence }));
+      renew.addEventListener("click", async () => {
+        const choice = await confirmGuardedFleetMutation(state, {
+          title: `Renew claim ${claim.identity.slice(0, 12)}?`,
+          verb: "Renew claim",
+          dismiss: "Keep current lease",
+          danger: false,
+          warning: "Renews this coordination claim lease for the exact fence shown. Requires a fresh snapshot (within 30s).",
+          facts: [
+            ["Claim", claim.identity],
+            ["Scope", scopeText(claim.scope)],
+            ["Holder", holderText(claim.holder)],
+            ["Fence", String(claim.fence)],
+          ],
+          reason: { label: "Renewal note (optional)", placeholder: "Optional context for this renewal", required: false, maxLength: REASON_MAX },
+          opener: renew,
+        });
+        if (!choice.confirmed) return;
+        void mutate(state, renew, `/api/fleet/claims/${claim.identity}/renew`, { fence: claim.fence });
+      });
       const release = element("button", "Release", "quiet");
       release.type = "button";
-      release.addEventListener("click", () => mutate(state, release, `/api/fleet/claims/${claim.identity}/release`, { fence: claim.fence }));
+      release.addEventListener("click", async () => {
+        const choice = await confirmGuardedFleetMutation(state, {
+          title: `Release claim ${claim.identity.slice(0, 12)}?`,
+          verb: "Release claim",
+          dismiss: "Keep claim",
+          danger: true,
+          warning: "Releases this coordination claim for the exact fence shown. Requires a fresh snapshot (within 30s) and explicit reason.",
+          facts: [
+            ["Claim", claim.identity],
+            ["Scope", scopeText(claim.scope)],
+            ["Holder", holderText(claim.holder)],
+            ["Fence", String(claim.fence)],
+          ],
+          reason: { label: "Release reason", placeholder: "Why this claim is being released", required: true, maxLength: REASON_MAX },
+          opener: release,
+        });
+        if (!choice.confirmed) return;
+        const bounded = text(choice.reason).trim().slice(0, REASON_MAX);
+        if (!bounded) { notice(state.command, "A release reason is required."); return; }
+        void mutate(state, release, `/api/fleet/claims/${claim.identity}/release`, { fence: claim.fence, note: bounded });
+      });
       actions.append(renew, release);
       return [identityCell(claim.identity), scopeText(claim.scope), holderText(claim.holder), text(claim.purpose), when(claim.expires_ms), actions];
     });
@@ -492,12 +640,26 @@
       const actions = element("div", undefined, "fleet-actions");
       const cancel = element("button", "Cancel", "quiet");
       cancel.type = "button";
-      cancel.addEventListener("click", () => {
-        const reason = prompt("Cancel reason");
-        if (reason === null) return;
-        const bounded = reason.trim().slice(0, REASON_MAX);
+      cancel.addEventListener("click", async () => {
+        const choice = await confirmGuardedFleetMutation(state, {
+          title: `Cancel attempt ${attempt.attempt.slice(0, 12)}?`,
+          verb: "Cancel attempt",
+          dismiss: "Keep attempt",
+          danger: true,
+          warning: "Cancels this attempt at the fleet coordinator. Requires a fresh snapshot (within 30s) and explicit reason.",
+          facts: [
+            ["Attempt", attempt.attempt],
+            ["Work", text(attempt.title) || text(attempt.work) || "Not recorded"],
+            ["State", label(attempt.state)],
+            ["Session", `${text(session.machine) || "Machine not recorded"} ${text(session.agent_name) || ""}`.trim()],
+          ],
+          reason: { label: "Cancel reason", placeholder: "Why this attempt is being cancelled", required: true, maxLength: REASON_MAX },
+          opener: cancel,
+        });
+        if (!choice.confirmed) return;
+        const bounded = text(choice.reason).trim().slice(0, REASON_MAX);
         if (!bounded) { notice(state.command, "A cancel reason is required."); return; }
-        mutate(state, cancel, `/api/fleet/attempts/${attempt.attempt}/cancel`, { reason: bounded });
+        void mutate(state, cancel, `/api/fleet/attempts/${attempt.attempt}/cancel`, { reason: bounded });
       });
       actions.append(cancel);
       return [
@@ -799,7 +961,8 @@
     if (sourcesChanged) renderWorkSources(state, snapshot.work, snapshot.attempts);
     renderMachines(state);
     state.machine.textContent = `${snapshot.health.machine} · fleet ${snapshot.health.version}`;
-    const received = new Date();
+    state.observedAt = Date.now();
+    const received = new Date(state.observedAt);
     state.updated.dateTime = received.toISOString();
     state.updated.textContent = `Last snapshot · ${received.toLocaleString()}`;
   }
@@ -815,6 +978,7 @@
     }
     if (frame.event === "heartbeat") {
       if (!state.version) throw new Error("Fleet has not supplied a snapshot.");
+      state.observedAt = Date.now();
       live(state);
       return true;
     }
@@ -1061,7 +1225,21 @@
     reconcile.addEventListener("click", async () => {
       const controller = state.inspectorController;
       if (!reviewedDigest || !controller || reconcile.disabled || !state.context.isCurrent()) return;
-      if (!confirm(`Reconcile the original request for attempt ${attempt.identity}, fence ${attempt.fence}? This does not start a replacement.`)) return;
+      const choice = await openConfirmDialog(state, {
+        title: `Reconcile original dispatch for attempt ${attempt.identity.slice(0, 12)}?`,
+        verb: "Reconcile original dispatch",
+        dismiss: "Keep unconfirmed",
+        danger: false,
+        warning: "Probes/reconciles the original retained dispatch request. This does not start a replacement.",
+        facts: [
+          ["Attempt", attempt.identity],
+          ["Fence", String(attempt.fence)],
+          ["Work", attempt.work_identity],
+          ["Request digest", reviewedDigest],
+        ],
+        opener: reconcile,
+      });
+      if (!choice.confirmed || state.inspectorController !== controller || !state.context.isCurrent()) return;
       const request_digest = reviewedDigest;
       reviewedDigest = "";
       reconcile.hidden = true;
@@ -1372,7 +1550,7 @@
     clear();
     const state = {
       context, controller: null, timer: 0, inFlight: false, mutating: false, signatures: [],
-      root, principal: currentPrincipal(),
+      root, principal: currentPrincipal(), observedAt: 0,
       version: "", epoch: 0, failures: 0, answerInputs: new Map(),
     };
     const page = element("div", undefined, "fleet-page");

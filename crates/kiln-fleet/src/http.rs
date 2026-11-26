@@ -37,6 +37,8 @@ pub struct Response {
     pub html: Option<String>,
     /// `Some` serves plain text, including Prometheus exposition format.
     pub text: Option<String>,
+    /// Optional `Location` header for redirect responses.
+    pub location: Option<String>,
 }
 
 impl Response {
@@ -47,6 +49,7 @@ impl Response {
             body,
             html: None,
             text: None,
+            location: None,
         }
     }
 
@@ -58,6 +61,19 @@ impl Response {
             body: Value::Null,
             html: Some(document),
             text: None,
+            location: None,
+        }
+    }
+
+    /// One `303 See Other` redirect with an HTML fallback link.
+    #[must_use]
+    pub const fn redirect(location: String, document: String) -> Self {
+        Self {
+            status: 303,
+            body: Value::Null,
+            html: Some(document),
+            text: None,
+            location: Some(location),
         }
     }
 
@@ -69,6 +85,7 @@ impl Response {
             body: Value::Null,
             html: None,
             text: Some(body),
+            location: None,
         }
     }
 
@@ -80,6 +97,7 @@ impl Response {
             body: serde_json::json!({ "error": message.into(), "code": code }),
             html: None,
             text: None,
+            location: None,
         }
     }
 }
@@ -245,7 +263,7 @@ pub fn write_response(writer: &mut impl Write, response: &Response) -> std::io::
         (Some(document), _) => (
             "text/html; charset=utf-8",
             document.as_bytes().to_vec(),
-            "Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src data:; base-uri 'none'; form-action 'self'\r\n",
+            "Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'\r\n",
         ),
         (None, Some(text)) => (
             "text/plain; version=0.0.4; charset=utf-8",
@@ -258,9 +276,24 @@ pub fn write_response(writer: &mut impl Write, response: &Response) -> std::io::
             "",
         ),
     };
+    let location_header = match &response.location {
+        Some(location) => {
+            if location
+                .bytes()
+                .any(|byte| byte.is_ascii_control() || byte.is_ascii_whitespace())
+            {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "response Location header contains control characters or whitespace",
+                ));
+            }
+            format!("Location: {location}\r\n")
+        }
+        None => String::new(),
+    };
     write!(
         writer,
-        "HTTP/1.1 {} {}\r\nContent-Type: {content_type}\r\n{policy}X-Content-Type-Options: nosniff\r\nContent-Length: {}\r\nConnection: close\r\nCache-Control: no-store\r\n\r\n",
+        "HTTP/1.1 {} {}\r\nContent-Type: {content_type}\r\n{location_header}{policy}X-Content-Type-Options: nosniff\r\nContent-Length: {}\r\nConnection: close\r\nCache-Control: no-store\r\n\r\n",
         response.status,
         reason(response.status),
         body.len()
@@ -275,6 +308,8 @@ pub const fn reason(status: u16) -> &'static str {
         200 => "OK",
         201 => "Created",
         202 => "Accepted",
+        302 => "Found",
+        303 => "See Other",
         400 => "Bad Request",
         403 => "Forbidden",
         404 => "Not Found",
@@ -366,5 +401,28 @@ mod tests {
         assert!(text.contains("Content-Length: 7\r\n"));
         assert!(text.contains("Connection: close\r\n"));
         assert!(text.ends_with("{\"a\":1}"));
+
+        let mut redirect = Vec::new();
+        write_response(
+            &mut redirect,
+            &Response::redirect(
+                "https://console.example.ts.net:9443/?page=fleet".into(),
+                "<a href=\"https://console.example.ts.net:9443/?page=fleet\">Fleet</a>".into(),
+            ),
+        )
+        .unwrap_or_else(|_| unreachable!());
+        let redirect_text = String::from_utf8(redirect).unwrap_or_else(|_| unreachable!());
+        assert!(redirect_text.starts_with("HTTP/1.1 303 See Other\r\n"));
+        assert!(redirect_text.contains("Location: https://console.example.ts.net:9443/?page=fleet\r\n"));
+        assert!(redirect_text.contains("Content-Security-Policy: default-src 'none';"));
+
+        let mut injected = Vec::new();
+        assert!(
+            write_response(
+                &mut injected,
+                &Response::redirect("https://example.com\r\nX-Evil: 1".into(), String::new()),
+            )
+            .is_err()
+        );
     }
 }

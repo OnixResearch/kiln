@@ -36,6 +36,9 @@ pub const MAX_REPOSITORY_BYTES: usize = 128;
 pub const MAX_ARGV: usize = 64;
 pub const MAX_ARG_BYTES: usize = 4_096;
 pub const MAX_GROUP_BYTES: usize = 64;
+pub const MAX_CONSOLE_URL_BYTES: usize = 2_048;
+/// Environment variable naming the unified `kiln-web-service` Factory Control Plane base URL.
+pub const CONSOLE_URL_ENVIRONMENT: &str = "KILN_CONSOLE_URL";
 /// Placeholders substituted as whole arguments in `verify_argv`/`publish_argv`.
 pub const PLACEHOLDERS: [&str; 8] = [
     "{attempt}",
@@ -84,6 +87,9 @@ pub struct FleetConfig {
     /// `authority_operator`.
     #[serde(default)]
     pub authority_config: Option<PathBuf>,
+    /// Optional base URL of the unified `kiln-web-service` Factory Control Plane.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub console_url: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -366,6 +372,9 @@ impl FleetConfig {
         if let Some(capture) = &self.capture {
             validate_capture(capture)?;
         }
+        if let Some(console_url) = &self.console_url {
+            validate_console_url(console_url)?;
+        }
         self.validate_policy()?;
         self.validate_dispatch()
     }
@@ -503,6 +512,63 @@ fn validate_argv(argv: &[String], field: &str) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+/// Validate and normalize a `kiln-web-service` Factory Control Plane base URL.
+///
+/// Rejects control characters, whitespace, credentials, queries, fragments, and
+/// non-HTTP(S) schemes so redirect `Location` headers cannot be injected.
+///
+/// # Errors
+/// Returns a diagnostic when the URL is empty, oversized, malformed, or unsafe.
+pub fn validate_console_url(raw: &str) -> Result<String, String> {
+    if raw.is_empty() || raw.len() > MAX_CONSOLE_URL_BYTES {
+        return Err(format!(
+            "console_url must be non-empty and at most {MAX_CONSOLE_URL_BYTES} bytes"
+        ));
+    }
+    if raw
+        .bytes()
+        .any(|byte| byte.is_ascii_control() || byte.is_ascii_whitespace())
+    {
+        return Err("console_url must not contain whitespace or control characters".to_owned());
+    }
+    let after_scheme = if let Some(rest) = raw.strip_prefix("https://") {
+        rest
+    } else if let Some(rest) = raw.strip_prefix("http://") {
+        rest
+    } else {
+        return Err("console_url must use http:// or https://".to_owned());
+    };
+    let normalized_rest = after_scheme.trim_end_matches('/');
+    let authority = normalized_rest.split('/').next().unwrap_or_default();
+    if authority.is_empty()
+        || authority.contains('@')
+        || authority.starts_with(':')
+        || normalized_rest.contains('?')
+        || normalized_rest.contains('#')
+        || normalized_rest
+            .bytes()
+            .any(|byte| matches!(byte, b'<' | b'>' | b'"' | b'\'' | b'`' | b'\\'))
+    {
+        return Err(
+            "console_url must be a clean http:// or https:// base URL without credentials, query, or fragment"
+                .to_owned(),
+        );
+    }
+    let scheme = raw
+        .get(..raw.len().saturating_sub(after_scheme.len()))
+        .unwrap_or_default();
+    Ok(format!("{scheme}{normalized_rest}"))
+}
+
+/// Resolve the unified Factory Control Plane Fleet destination URL (`<base>/?page=fleet`).
+///
+/// # Errors
+/// Returns a diagnostic when `base_url` is malformed or unsafe.
+pub fn fleet_console_target(base_url: &str) -> Result<String, String> {
+    let normalized = validate_console_url(base_url)?;
+    Ok(format!("{normalized}/?page=fleet"))
 }
 
 fn absolute(path: &Path, field: &str) -> Result<(), String> {
@@ -837,6 +903,55 @@ mod tests {
         ] {
             let ip: IpAddr = address.parse().unwrap_or_else(|_| unreachable!());
             assert_eq!(tailnet(ip), expected, "{address}");
+        }
+    }
+
+    #[test]
+    fn console_url_validation_accepts_clean_http_urls_and_refuses_injection() {
+        for (raw, expected) in [
+            (
+                "https://britton-desktop.bison-tailor.ts.net:9443",
+                "https://britton-desktop.bison-tailor.ts.net:9443/?page=fleet",
+            ),
+            (
+                "https://britton-desktop.bison-tailor.ts.net:9443/",
+                "https://britton-desktop.bison-tailor.ts.net:9443/?page=fleet",
+            ),
+            (
+                "http://127.0.0.1:8080/kiln/",
+                "http://127.0.0.1:8080/kiln/?page=fleet",
+            ),
+            ("http://[::1]:8080", "http://[::1]:8080/?page=fleet"),
+        ] {
+            assert_eq!(fleet_console_target(raw).as_deref(), Ok(expected), "{raw}");
+            let mut value = document();
+            set(&mut value, "/console_url", json!(raw));
+            assert!(parse(&value).is_ok(), "{raw}");
+        }
+
+        let oversized = format!("https://example.com/{}", "a".repeat(MAX_CONSOLE_URL_BYTES));
+        for bad in [
+            "",
+            " ",
+            "https://",
+            "https:///fleet",
+            "javascript:alert(1)",
+            "ftp://example.com",
+            "https://example.com\r\nX-Injected: 1",
+            "https://example.com\n",
+            "https://example.com/a b",
+            "https://user@example.com",
+            "https://:8080",
+            "https://example.com/?x=1",
+            "https://example.com/#frag",
+            "https://example.com/<script>",
+            &oversized,
+        ] {
+            assert!(validate_console_url(bad).is_err(), "{bad:?}");
+            assert!(
+                refused(|value| set(value, "/console_url", json!(bad))),
+                "{bad:?}"
+            );
         }
     }
 }
