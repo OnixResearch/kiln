@@ -2897,3 +2897,418 @@ fn hold_slow_renew_crossing_deadline_stops_child_without_second_renew() -> TestR
 
     Ok(())
 }
+
+#[test]
+// r[verify kiln.fleet.live_pane_and_machine_census]
+// r[verify kiln.fleet.live_pane_and_machine_census.scenario.offline_and_foreign]
+fn claims_include_foreign_and_expired_and_reject_invalid_queries() -> TestResult {
+    const SWARM_SCRIPT: &str = r#"#!/bin/sh
+state=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --state-dir) state="$2"; shift 2 ;;
+    groups)
+      if [ -f "$state/fail" ]; then echo "swarm down" >&2; exit 1; fi
+      printf '%s\n' '[{"name":"bots.claims","high":1,"low":1,"posting":"y"}]'
+      exit 0 ;;
+    read)
+      if [ -f "$state/fail" ]; then echo "swarm down" >&2; exit 1; fi
+      printf '%s\n' '[{"number":1,"message_id":"<foreign-1@swarm.local>","from":"omp on aspen1 <aspen1@swarm.local>","subject":"CLAIM onixresearch/kiln crates/kiln-fleet","date":"Thu, 26 Nov 2026 03:50:00 +0000","references":""}]'
+      exit 0 ;;
+    *) shift ;;
+  esac
+done
+exit 1
+"#;
+    let directory = tempfile::tempdir()?;
+    let root = directory.path();
+    write_enrollment(root)?;
+    let state_dir = root.join("swarm-state");
+    std::fs::create_dir_all(&state_dir)?;
+    let swarm_bin = executable("iroh-news", SWARM_SCRIPT);
+
+    let mut document = config(root, &FAKE_TAILSCALE);
+    let object = document
+        .as_object_mut()
+        .ok_or("configuration is not an object")?;
+    object.insert(
+        "swarm".into(),
+        json!({
+            "enabled": true,
+            "executable": swarm_bin,
+            "state_dir": state_dir,
+            "group": "bots.claims",
+            "from": "kiln on britton-desktop <kiln-coordinator@swarm.local>",
+        }),
+    );
+    let cfg = FleetConfig::from_json(&serde_json::to_vec(&document)?)?;
+    let service = Arc::new(Service::new(cfg)?);
+
+    let base_ms = kiln_core::implementation::swarm::parse_rfc2822_ms(
+        "Thu, 26 Nov 2026 03:55:00 +0000",
+    )
+    .ok_or("bad rfc2822 date")?;
+
+    // Acquire one short-lived (1m) claim and one longer (10m) claim.
+    let short_claim = service.route(
+        PEER,
+        &request(
+            "POST",
+            "/v1/claims",
+            Some(json!({
+                "scope": "OnixResearch/kiln crates/kiln-core",
+                "tool": "omp",
+                "session": "short-s",
+                "purpose": "expiring claim",
+                "lease_minutes": 1,
+            })),
+        ),
+        base_ms,
+    );
+    assert_eq!(short_claim.status, 201, "{}", short_claim.body);
+    let short_id = text(&short_claim.body, "/claim/identity").to_owned();
+
+    let live_claim = service.route(
+        PEER,
+        &request(
+            "POST",
+            "/v1/claims",
+            Some(json!({
+                "scope": "OnixResearch/kiln crates/kiln-web-service",
+                "tool": "omp",
+                "session": "live-s",
+                "purpose": "live claim",
+                "lease_minutes": 30,
+            })),
+        ),
+        base_ms,
+    );
+    assert_eq!(live_claim.status, 201, "{}", live_claim.body);
+    let live_id = text(&live_claim.body, "/claim/identity").to_owned();
+
+    // Advance past the 1m lease so short_claim expires.
+    let after_expiry_ms = base_ms + 2 * 60_000;
+
+    // Default GET /v1/claims preserves exact backwards-compatible envelope.
+    let default_resp = service.route(
+        COORDINATOR,
+        &request("GET", "/v1/claims", None),
+        after_expiry_ms,
+    );
+    assert_eq!(default_resp.status, 200);
+    assert_eq!(default_resp.body["claims"].as_array().map(Vec::len), Some(1));
+    assert_eq!(default_resp.body["claims"][0]["identity"], live_id);
+    assert!(default_resp.body.get("foreign_claims").is_none());
+    assert!(default_resp.body.get("expired_claims").is_none());
+
+    // ?include=foreign surfaces ForeignClaim with holder, scope, mirror info.
+    let foreign_only = service.route(
+        COORDINATOR,
+        &request("GET", "/v1/claims?include=foreign", None),
+        after_expiry_ms,
+    );
+    assert_eq!(foreign_only.status, 200);
+    assert_eq!(foreign_only.body["claims"].as_array().map(Vec::len), Some(1));
+    assert_eq!(
+        foreign_only.body["foreign_claims"].as_array().map(Vec::len),
+        Some(1)
+    );
+    assert_eq!(
+        foreign_only.body["foreign_claims"][0]["scope_text"],
+        "onixresearch/kiln crates/kiln-fleet"
+    );
+    assert_eq!(
+        foreign_only.body["foreign_claims"][0]["mirror_status"],
+        "foreign"
+    );
+    assert_eq!(foreign_only.body["foreign_mirror"]["status"], "ok");
+    assert!(foreign_only.body.get("expired_claims").is_none());
+
+    // ?include=expired surfaces the expired claim cleanly.
+    let expired_only = service.route(
+        COORDINATOR,
+        &request("GET", "/v1/claims?include=expired", None),
+        after_expiry_ms,
+    );
+    assert_eq!(expired_only.status, 200);
+    assert_eq!(
+        expired_only.body["expired_claims"].as_array().map(Vec::len),
+        Some(1)
+    );
+    assert_eq!(expired_only.body["expired_claims"][0]["identity"], short_id);
+    assert_eq!(expired_only.body["expired_truncated"], false);
+    assert!(expired_only.body.get("foreign_claims").is_none());
+
+    // ?include=foreign,expired returns both alongside live claims.
+    let both = service.route(
+        COORDINATOR,
+        &request("GET", "/v1/claims?include=foreign,expired", None),
+        after_expiry_ms,
+    );
+    assert_eq!(both.status, 200);
+    assert_eq!(both.body["claims"].as_array().map(Vec::len), Some(1));
+    assert_eq!(both.body["foreign_claims"].as_array().map(Vec::len), Some(1));
+    assert_eq!(both.body["expired_claims"].as_array().map(Vec::len), Some(1));
+
+    // When swarm read fails past WINDOW_MAX_AGE_MS, foreign_mirror explicitly reports unavailable without hiding live claims.
+    std::fs::write(state_dir.join("fail"), b"down")?;
+    let degraded = service.route(
+        COORDINATOR,
+        &request("GET", "/v1/claims?include=foreign", None),
+        after_expiry_ms + kiln_fleet::swarm::WINDOW_MAX_AGE_MS + 1,
+    );
+    assert_eq!(degraded.status, 200);
+    assert_eq!(degraded.body["claims"].as_array().map(Vec::len), Some(1));
+    assert_eq!(degraded.body["foreign_mirror"]["status"], "unavailable");
+    assert!(degraded.body["foreign_mirror"]["error"].is_string());
+
+    // Invalid include tokens and unknown query params fail with 400.
+    for bad in [
+        "/v1/claims?",
+        "/v1/claims?include=",
+        "/v1/claims?include=bogus",
+        "/v1/claims?include=foreign,foreign",
+        "/v1/claims?other=1",
+    ] {
+        assert_eq!(
+            service
+                .route(COORDINATOR, &request("GET", bad, None), after_expiry_ms)
+                .status,
+            400,
+            "{bad}"
+        );
+    }
+
+    Ok(())
+}
+
+#[test]
+// r[verify kiln.fleet.live_pane_and_machine_census]
+fn machine_drain_and_dispatch_pause_require_operator_and_persist_controls() -> TestResult {
+    let directory = tempfile::tempdir()?;
+    let root = directory.path();
+    write_enrollment(root)?;
+    let document = config(root, &FAKE_TAILSCALE);
+    let cfg = FleetConfig::from_json(&serde_json::to_vec(&document)?)?;
+    let service = Arc::new(Service::new(cfg.clone())?);
+
+    // Wrong methods return 405.
+    for (method, path) in [
+        ("GET", "/v1/machines/aspen3/drain"),
+        ("POST", "/v1/dispatch/status"),
+        ("GET", "/v1/dispatch/pause"),
+        ("GET", "/v1/dispatch/resume"),
+    ] {
+        assert_eq!(
+            service
+                .route(COORDINATOR, &request(method, path, None), 1_000)
+                .status,
+            405,
+            "{method} {path}"
+        );
+    }
+
+    // Unknown machine or malformed label fails closed.
+    assert_eq!(
+        service
+            .route(
+                COORDINATOR,
+                &request(
+                    "POST",
+                    "/v1/machines/unknown-host/drain",
+                    Some(json!({ "draining": true })),
+                ),
+                1_000,
+            )
+            .status,
+        404
+    );
+    assert_eq!(
+        service
+            .route(
+                COORDINATOR,
+                &request(
+                    "POST",
+                    "/v1/machines/BadHost/drain",
+                    Some(json!({ "draining": true })),
+                ),
+                1_000,
+            )
+            .status,
+        400
+    );
+
+    // Drain + pause persist across Service::new reload on the same store path.
+    let drained = service.route(
+        COORDINATOR,
+        &request(
+            "POST",
+            &format!("/v1/machines/{PEER}/drain"),
+            Some(json!({ "draining": true, "reason": "kernel upgrade", "request_id": "d-1" })),
+        ),
+        2_000,
+    );
+    assert_eq!(drained.status, 200);
+    let paused = service.route(
+        COORDINATOR,
+        &request(
+            "POST",
+            "/v1/dispatch/pause",
+            Some(json!({ "reason": "incident freeze", "request_id": "p-1" })),
+        ),
+        3_000,
+    );
+    assert_eq!(paused.status, 200);
+
+    drop(service);
+    let reloaded = Arc::new(Service::new(cfg)?);
+    let status = reloaded.route(PEER, &request("GET", "/v1/dispatch/status", None), 4_000);
+    assert_eq!(status.status, 200);
+    assert_eq!(status.body["state"], "paused");
+    assert_eq!(status.body["paused_reason"], "incident freeze");
+    assert_eq!(status.body["draining_machines"], json!([PEER]));
+
+    let machines = reloaded.route(PEER, &request("GET", "/v1/machines", None), 4_000);
+    assert_eq!(machines.status, 200);
+    let peer_row = machines.body["machines"]
+        .as_array()
+        .and_then(|rows| rows.iter().find(|row| row["machine"] == PEER))
+        .ok_or("missing peer row")?;
+    assert_eq!(peer_row["draining"], true);
+    assert_eq!(peer_row["drain_reason"], "kernel upgrade");
+    assert_eq!(peer_row["health"], "unavailable");
+    assert!(peer_row["slots"].is_null());
+
+    Ok(())
+}
+
+#[test]
+fn claim_cancel_and_answer_routes_accept_and_deduplicate_request_id() -> TestResult {
+    let fixture = fixture()?;
+    let now: u64 = 10_000_000_000;
+
+    let granted = fixture.service.route(
+        PEER,
+        &request(
+            "POST",
+            "/v1/claims",
+            Some(json!({
+                "scope": "OnixResearch/kiln crates/kiln-fleet",
+                "tool": "omp",
+                "session": "s-req",
+                "purpose": "idempotency test",
+                "request_id": "claim-req-1",
+            })),
+        ),
+        now,
+    );
+    assert_eq!(granted.status, 201, "{}", granted.body);
+    let claim_id = text(&granted.body, "/claim/identity").to_owned();
+
+    let renewed = fixture.service.route(
+        COORDINATOR,
+        &request(
+            "POST",
+            &format!("/v1/claims/{claim_id}/renew"),
+            Some(json!({ "fence": 1, "lease_minutes": 30, "request_id": "renew-req-1" })),
+        ),
+        now + 10,
+    );
+    assert_eq!(renewed.status, 200, "{}", renewed.body);
+    assert_eq!(renewed.body["outcome"], "renewed");
+
+    // Replaying the same request_id returns cached 200 even after fence moved to 2.
+    let renewed_replay = fixture.service.route(
+        COORDINATOR,
+        &request(
+            "POST",
+            &format!("/v1/claims/{claim_id}/renew"),
+            Some(json!({ "fence": 1, "lease_minutes": 30, "request_id": "renew-req-1" })),
+        ),
+        now + 20,
+    );
+    assert_eq!(renewed_replay.status, 200);
+    assert_eq!(renewed_replay.body, renewed.body);
+
+    // Reusing the same request_id with a different payload returns 409.
+    let renew_conflict = fixture.service.route(
+        COORDINATOR,
+        &request(
+            "POST",
+            &format!("/v1/claims/{claim_id}/renew"),
+            Some(json!({ "fence": 2, "lease_minutes": 60, "request_id": "renew-req-1" })),
+        ),
+        now + 30,
+    );
+    assert_eq!(renew_conflict.status, 409);
+
+    let released = fixture.service.route(
+        COORDINATOR,
+        &request(
+            "POST",
+            &format!("/v1/claims/{claim_id}/release"),
+            Some(json!({ "fence": 1, "note": "done", "request_id": "release-req-1" })),
+        ),
+        now + 40,
+    );
+    assert_eq!(released.status, 200, "{}", released.body);
+    assert_eq!(released.body["outcome"], "released");
+
+    // Create a cancelable attempt and test cancel request_id acceptance & replay.
+    let mut store = fixture.service.store.open_coordinator()?;
+    let work = common::work(&"a".repeat(40), &common::content('b'), &["crates/kiln-fleet"])?;
+    store.admit(&work, None)?;
+    let attempt = store
+        .claim_next(now + 50, kiln_core::implementation::DEFAULT_LEASE_MS)?
+        .ok_or("missing attempt")?;
+    let attempt_id = attempt.identity.as_str().to_owned();
+
+    let cancelled = fixture.service.route(
+        COORDINATOR,
+        &request(
+            "POST",
+            &format!("/v1/attempts/{attempt_id}/cancel"),
+            Some(json!({ "reason": "operator stop", "request_id": "cancel-req-1" })),
+        ),
+        now + 60,
+    );
+    assert_eq!(cancelled.status, 200, "{}", cancelled.body);
+    let cancel_replay = fixture.service.route(
+        COORDINATOR,
+        &request(
+            "POST",
+            &format!("/v1/attempts/{attempt_id}/cancel"),
+            Some(json!({ "reason": "operator stop", "request_id": "cancel-req-1" })),
+        ),
+        now + 70,
+    );
+    assert_eq!(cancel_replay.status, 200);
+    assert_eq!(cancel_replay.body, cancelled.body);
+
+    // Invalid request_id fails closed with 400.
+    let bad_req_id = fixture.service.route(
+        COORDINATOR,
+        &request(
+            "POST",
+            &format!("/v1/attempts/{attempt_id}/cancel"),
+            Some(json!({ "reason": "operator stop", "request_id": "bad id with spaces" })),
+        ),
+        now + 80,
+    );
+    assert_eq!(bad_req_id.status, 400);
+
+    // Answer accepts optional request_id too (404 when decision does not exist, not 400).
+    let missing_decision = "c".repeat(64);
+    let ans = fixture.service.route(
+        COORDINATOR,
+        &request(
+            "POST",
+            &format!("/v1/decisions/{missing_decision}/answer"),
+            Some(json!({ "text": "proceed", "request_id": "answer-req-1" })),
+        ),
+        now + 90,
+    );
+    assert_eq!(ans.status, 404, "{}", ans.body);
+
+    Ok(())
+}

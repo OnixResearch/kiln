@@ -20,6 +20,8 @@ pub const MIN_FLEET_TIMEOUT_MS: u64 = 250;
 pub const MAX_FLEET_TIMEOUT_MS: u64 = 10_000;
 pub const MIN_FLEET_RESPONSE_BYTES: usize = 65_536;
 pub const MAX_FLEET_RESPONSE_BYTES: usize = 4_194_304;
+pub const MAX_MACHINE_LABEL_BYTES: usize = 63;
+pub const MAX_PANE_READ_LINES: u32 = 1_000;
 
 /// Runtime-only console projection policy. It is deliberately outside the
 /// canonical service profile: adding an observation endpoint must not change
@@ -251,6 +253,7 @@ impl Client {
 /// read-only (`GET`).
 // r[impl kiln.fleet.swarm.console]
 // r[impl kiln.fleet.unified_console_surface]
+// r[impl kiln.fleet.live_pane_and_machine_census]
 pub fn upstream_path(method: &str, target: &str) -> Option<String> {
     let rest = target.strip_prefix("/api/fleet/")?;
     if rest.contains('#')
@@ -274,12 +277,34 @@ pub fn upstream_path(method: &str, target: &str) -> Option<String> {
     match (method, segments.as_slice()) {
         ("GET", ["health"]) if query.is_none() => Some("/v1/health".into()),
         ("GET", ["machines"]) if query.is_none() => Some("/v1/machines".into()),
-        ("GET", ["claims"]) if query.is_none() => Some("/v1/claims".into()),
+        ("POST", ["machines", name, "drain"])
+            if query.is_none() && machine_label(name) =>
+        {
+            Some(format!("/v1/machines/{name}/drain"))
+        }
+        ("GET", ["claims"]) => {
+            let suffix = match query {
+                None => String::new(),
+                Some(raw) => format!("?{}", validated_claims_query(raw)?),
+            };
+            Some(format!("/v1/claims{suffix}"))
+        }
         ("GET", ["work"]) if query.is_none() => Some("/v1/work".into()),
         ("GET", ["attempts"]) if query.is_none() => Some("/v1/attempts".into()),
+        ("GET", ["attempts", id, "pane"]) if identity(id) => {
+            let suffix = match query {
+                None => String::new(),
+                Some(raw) => format!("?{}", validated_pane_query(raw)?),
+            };
+            Some(format!("/v1/attempts/{id}/pane{suffix}"))
+        }
         ("GET", ["decisions"]) if query.is_none() => Some("/v1/decisions".into()),
         ("GET", ["metrics"]) if query.is_none() => Some("/v1/metrics".into()),
         ("GET", ["version"]) if query.is_none() => Some("/v1/version".into()),
+        ("GET", ["dispatch", "status"]) if query.is_none() => Some("/v1/dispatch/status".into()),
+        ("POST", ["dispatch", action @ ("pause" | "resume")]) if query.is_none() => {
+            Some(format!("/v1/dispatch/{action}"))
+        }
         ("GET", ["swarms"]) if query.is_none() => Some("/v1/swarms".into()),
         ("GET", ["swarms", id]) if query.is_none() && identity(id) => {
             Some(format!("/v1/swarms/{id}"))
@@ -304,14 +329,74 @@ pub fn upstream_path(method: &str, target: &str) -> Option<String> {
         {
             Some(format!("/v1/claims/{id}/{action}"))
         }
-        ("POST", ["attempts", id, "cancel"]) if query.is_none() && identity(id) => {
-            Some(format!("/v1/attempts/{id}/cancel"))
+        ("POST", ["attempts", id, action @ ("cancel" | "prompt" | "interrupt")])
+            if query.is_none() && identity(id) =>
+        {
+            Some(format!("/v1/attempts/{id}/{action}"))
         }
         ("POST", ["decisions", id, "answer"]) if query.is_none() && identity(id) => {
             Some(format!("/v1/decisions/{id}/answer"))
         }
         _ => None,
     }
+}
+
+fn machine_label(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= MAX_MACHINE_LABEL_BYTES
+        && value
+            .bytes()
+            .next()
+            .is_some_and(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
+}
+
+fn validated_claims_query(raw: &str) -> Option<String> {
+    if raw.is_empty() {
+        return None;
+    }
+    let (key, value) = raw.split_once('=')?;
+    if key != "include" || value.is_empty() || value.contains('&') {
+        return None;
+    }
+    let mut seen_foreign = false;
+    let mut seen_expired = false;
+    let mut tokens = Vec::new();
+    for token in value.split(',') {
+        match token {
+            "foreign" if !seen_foreign => {
+                seen_foreign = true;
+                tokens.push("foreign");
+            }
+            "expired" if !seen_expired => {
+                seen_expired = true;
+                tokens.push("expired");
+            }
+            _ => return None,
+        }
+    }
+    Some(format!("include={}", tokens.join(",")))
+}
+
+fn validated_pane_query(raw: &str) -> Option<String> {
+    if raw.is_empty() {
+        return None;
+    }
+    let (key, value) = raw.split_once('=')?;
+    if key != "lines"
+        || value.is_empty()
+        || value.contains('&')
+        || !value.bytes().all(|b| b.is_ascii_digit())
+    {
+        return None;
+    }
+    let parsed = value.parse::<u32>().ok()?;
+    if !(1..=MAX_PANE_READ_LINES).contains(&parsed) {
+        return None;
+    }
+    Some(format!("lines={parsed}"))
 }
 
 fn validated_graph_query(raw: &str) -> Option<String> {
@@ -483,6 +568,91 @@ mod tests {
             ),
             ("GET", format!("/api/fleet/swarms/{ID}/board?bogus=1")),
             ("GET", format!("/api/fleet/swarms/{ID}?x=1")),
+        ] {
+            assert_eq!(upstream_path(refused.0, &refused.1), None, "{refused:?}");
+        }
+    }
+
+    #[test]
+    // r[verify kiln.fleet.live_pane_and_machine_census]
+    fn p1_control_plane_routes_are_strictly_allowlisted() {
+        assert_eq!(
+            upstream_path("POST", "/api/fleet/machines/aspen3/drain").as_deref(),
+            Some("/v1/machines/aspen3/drain")
+        );
+        assert_eq!(
+            upstream_path("GET", &format!("/api/fleet/attempts/{ID}/pane")).as_deref(),
+            Some(format!("/v1/attempts/{ID}/pane").as_str())
+        );
+        assert_eq!(
+            upstream_path("GET", &format!("/api/fleet/attempts/{ID}/pane?lines=200")).as_deref(),
+            Some(format!("/v1/attempts/{ID}/pane?lines=200").as_str())
+        );
+        assert_eq!(
+            upstream_path("GET", &format!("/api/fleet/attempts/{ID}/pane?lines=1000")).as_deref(),
+            Some(format!("/v1/attempts/{ID}/pane?lines=1000").as_str())
+        );
+        assert_eq!(
+            upstream_path("POST", &format!("/api/fleet/attempts/{ID}/prompt")).as_deref(),
+            Some(format!("/v1/attempts/{ID}/prompt").as_str())
+        );
+        assert_eq!(
+            upstream_path("POST", &format!("/api/fleet/attempts/{ID}/interrupt")).as_deref(),
+            Some(format!("/v1/attempts/{ID}/interrupt").as_str())
+        );
+        assert_eq!(
+            upstream_path("GET", "/api/fleet/claims?include=foreign").as_deref(),
+            Some("/v1/claims?include=foreign")
+        );
+        assert_eq!(
+            upstream_path("GET", "/api/fleet/claims?include=expired").as_deref(),
+            Some("/v1/claims?include=expired")
+        );
+        assert_eq!(
+            upstream_path("GET", "/api/fleet/claims?include=foreign,expired").as_deref(),
+            Some("/v1/claims?include=foreign,expired")
+        );
+        assert_eq!(
+            upstream_path("GET", "/api/fleet/dispatch/status").as_deref(),
+            Some("/v1/dispatch/status")
+        );
+        assert_eq!(
+            upstream_path("POST", "/api/fleet/dispatch/pause").as_deref(),
+            Some("/v1/dispatch/pause")
+        );
+        assert_eq!(
+            upstream_path("POST", "/api/fleet/dispatch/resume").as_deref(),
+            Some("/v1/dispatch/resume")
+        );
+
+        for refused in [
+            ("GET", "/api/fleet/machines/aspen3/drain".to_string()),
+            ("POST", "/api/fleet/machines/Aspen3/drain".to_string()),
+            ("POST", "/api/fleet/machines/../drain".to_string()),
+            ("POST", "/api/fleet/machines/aspen3/drain?x=1".to_string()),
+            ("POST", format!("/api/fleet/attempts/{ID}/pane")),
+            ("GET", format!("/api/fleet/attempts/{ID}/pane?")),
+            ("GET", format!("/api/fleet/attempts/{ID}/pane?lines=0")),
+            ("GET", format!("/api/fleet/attempts/{ID}/pane?lines=1001")),
+            ("GET", format!("/api/fleet/attempts/{ID}/pane?lines=abc")),
+            ("GET", format!("/api/fleet/attempts/{ID}/pane?lines=10&extra=1")),
+            ("GET", format!("/api/fleet/attempts/{ID}/pane?foo=1")),
+            ("GET", format!("/api/fleet/attempts/not-hex/pane")),
+            ("GET", format!("/api/fleet/attempts/{ID}/prompt")),
+            ("POST", format!("/api/fleet/attempts/{ID}/prompt?x=1")),
+            ("GET", format!("/api/fleet/attempts/{ID}/interrupt")),
+            ("POST", format!("/api/fleet/attempts/{ID}/interrupt?x=1")),
+            ("GET", "/api/fleet/claims?".to_string()),
+            ("GET", "/api/fleet/claims?include=".to_string()),
+            ("GET", "/api/fleet/claims?include=bogus".to_string()),
+            ("GET", "/api/fleet/claims?include=foreign,foreign".to_string()),
+            ("GET", "/api/fleet/claims?include=foreign,".to_string()),
+            ("GET", "/api/fleet/claims?other=1".to_string()),
+            ("POST", "/api/fleet/dispatch/status".to_string()),
+            ("GET", "/api/fleet/dispatch/pause".to_string()),
+            ("GET", "/api/fleet/dispatch/resume".to_string()),
+            ("POST", "/api/fleet/dispatch/pause?x=1".to_string()),
+            ("GET", "/api/fleet/dispatch/status?x=1".to_string()),
         ] {
             assert_eq!(upstream_path(refused.0, &refused.1), None, "{refused:?}");
         }

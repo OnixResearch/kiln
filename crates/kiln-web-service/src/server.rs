@@ -1,11 +1,11 @@
 //! Bounded HTTPS shell. Authorization precedes every application call.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex, Once};
+use std::sync::{Arc, Condvar, Mutex, Once};
 use std::time::{Duration, Instant};
 
 use rustls::{ServerConfig, ServerConnection, StreamOwned};
@@ -331,6 +331,7 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
         .as_ref()
         .map(crate::fleet::Client::new)
         .transpose()?;
+    let event_hub = EventHub::new();
     let context = Context {
         profile: &profile,
         credentials: &credentials,
@@ -347,6 +348,7 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
         native_runtime_evidence: native_runtime.as_ref(),
         fleet: fleet.as_ref(),
         delivery_observations: options.delivery_observations.as_deref(),
+        events: Some(&event_hub),
         stop: &stop,
     };
     // r[impl kiln.web.deploy.runtime] Readiness follows TLS, listener and canonical state initialization.
@@ -357,6 +359,8 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
         let engine_ref = &engine;
         let review_ref = &code_review;
         let fleet_ref = fleet.as_ref();
+        let hub_ref = &event_hub;
+        let impl_work_ref = options.implementation_work.as_deref();
         let polling = scope.spawn(move || {
             while !stop_ref.load(Ordering::Acquire) {
                 let result = (|| -> Result<(), ()> {
@@ -375,6 +379,7 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
                         review_ref.advance_queue(&mut engine, now).map_err(|_| ())?;
                         notifications
                     };
+                    hub_ref.wake_watcher();
                     review_ref.deliver_notifications(now).map_err(|_| ())?;
                     // One bounded serial executor: no HTTPS runs under Engine's
                     // mutex and no detached deliveries accumulate across polls.
@@ -385,16 +390,29 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
                             .map_err(|_| ())?
                             .record_notification(observation)
                             .map_err(|_| ())?;
+                        hub_ref.wake_watcher();
                     }
                     Ok(())
                 })();
                 if result.is_err() {
                     failed_ref.store(true, Ordering::Release);
                     stop_ref.store(true, Ordering::Release);
+                    hub_ref.wake_watcher();
                     break;
                 }
                 std::thread::park_timeout(Duration::from_millis(profile.bounds.poll_interval_ms));
             }
+        });
+        let watcher_tick = Duration::from_millis(profile.bounds.poll_interval_ms.clamp(100, 1_000));
+        let _watcher = scope.spawn(move || {
+            run_coordinator_watcher(
+                hub_ref,
+                engine_ref,
+                fleet_ref,
+                impl_work_ref,
+                stop_ref,
+                watcher_tick,
+            );
         });
         let feeds_policy = profile
             .feeds
@@ -473,6 +491,7 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
                     {
                         stop.store(true, Ordering::Release);
                         polling.thread().unpark();
+                        event_hub.wake_watcher();
                         return Err("connection worker could not start".to_owned());
                     }
                 }
@@ -482,11 +501,13 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
                 Err(_) => {
                     stop.store(true, Ordering::Release);
                     polling.thread().unpark();
+                    event_hub.wake_watcher();
                     return Err("listener failed".to_owned());
                 }
             }
         }
         polling.thread().unpark();
+        event_hub.wake_watcher();
         Ok(())
     })?;
     if poll_failed.load(Ordering::Acquire) {
@@ -588,6 +609,7 @@ struct Context<'a> {
     native_runtime_evidence: Option<&'a crate::runtime_evidence::RuntimeEvidenceProfile>,
     fleet: Option<&'a crate::fleet::Client>,
     delivery_observations: Option<&'a Path>,
+    events: Option<&'a EventHub>,
     stop: &'a AtomicBool,
 }
 
@@ -737,19 +759,32 @@ fn connection(
             return write_response(&mut stream, error_response(status, "request_rejected"));
         }
     };
+    let request_path = request
+        .target
+        .split_once('?')
+        .map_or(request.target.as_str(), |(path, _)| path);
     if request.method == "GET"
-        && request
-            .target
-            .split_once('?')
-            .map_or(request.target.as_str(), |(path, _)| path)
-            == "/api/fleet/events"
+        && (request_path == "/api/fleet/events" || request_path == "/api/events")
     {
         stream.get_mut().deadline = Instant::now()
-            .checked_add(Duration::from_secs(45 * 60))
+            .checked_add(SSE_STREAM_LIFETIME)
             .ok_or_else(|| std::io::Error::other("stream deadline invalid"))?;
-        return fleet_stream(&mut stream, &request, context);
+        let mut disconnect_check = |tls_stream: &mut StreamOwned<ServerConnection, DeadlineStream>| {
+            is_tls_peer_disconnected(tls_stream)
+        };
+        return if request_path == "/api/events" {
+            events_stream(&mut stream, &request, context, &mut disconnect_check)
+        } else {
+            fleet_stream(&mut stream, &request, context, &mut disconnect_check)
+        };
     }
+    let is_post = request.method == "POST";
     let response = route(request, context);
+    if is_post && (200..300).contains(&response.status) {
+        if let Some(hub) = context.events {
+            hub.wake_watcher();
+        }
+    }
     write_response(&mut stream, response)
 }
 
@@ -1010,11 +1045,26 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
             .target
             .split_once('?')
             .map_or(request.target.as_str(), |(path, _)| path);
+        if path == "/api/events" || path == "/api/fleet/events" {
+            return error_response(405, "events_method_denied");
+        }
         if path == "/api/delivery/environments" {
             return delivery_environments_response(&request, context, &principal);
         }
         if path == "/api/inventory" {
             return inventory_api::response(&request, context, &principal);
+        }
+        if path == "/api/implementation/attention" {
+            return inventory_api::attention_response(&request, context, &principal);
+        }
+        if path == "/api/implementation/reconcile-termination" {
+            return inventory_api::reconcile_termination_response(&request, context, &principal);
+        }
+        if path == "/api/implementation/plan-review" {
+            return inventory_api::plan_review_response(&request, context, &principal);
+        }
+        if path.starts_with("/api/implementation/campaigns/") && path.ends_with("/wake") {
+            return inventory_api::campaign_wake_response(&request, context, &principal);
         }
         if path == "/api/implementation/campaigns" {
             return inventory_api::campaign_response(&request, context, &principal);
@@ -1331,6 +1381,739 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
     }
 }
 
+const SSE_STREAM_LIFETIME: Duration = Duration::from_secs(45 * 60);
+const SSE_DISCONNECT_POLL_INTERVAL: Duration = Duration::from_millis(200);
+const SSE_KEEPALIVE_INTERVAL: Duration = Duration::from_secs(15);
+const MAX_SSE_SUBSCRIBER_QUEUE: usize = 64;
+const EVENT_HUB_SCHEMA: &str = "kiln.events.v1";
+const CHANNEL_CI: usize = 0;
+const CHANNEL_FLEET: usize = 1;
+const CHANNEL_CAIRN: usize = 2;
+const CHANNEL_ATTENTION: usize = 3;
+
+#[derive(Clone, Debug)]
+pub(super) struct CachedFleetData {
+    pub(super) available: bool,
+    pub(super) version: Option<String>,
+    pub(super) snapshot_bytes: Option<Arc<Vec<u8>>>,
+    pub(super) claims_bytes: Option<Arc<Vec<u8>>>,
+    pub(super) decisions_bytes: Option<Arc<Vec<u8>>>,
+    pub(super) attempts_bytes: Option<Arc<Vec<u8>>>,
+}
+
+#[derive(Clone, Debug)]
+#[allow(dead_code)]
+enum BroadcastEvent {
+    Ci {
+        version: u64,
+        data: Arc<Vec<u8>>,
+    },
+    Fleet {
+        version: String,
+        data: Arc<Vec<u8>>,
+    },
+    FleetUnavailable {
+        data: Arc<Vec<u8>>,
+    },
+    Cairn {
+        version: String,
+        data: Arc<Vec<u8>>,
+    },
+    Attention {
+        digest: String,
+        data: Arc<Vec<u8>>,
+    },
+}
+
+impl BroadcastEvent {
+    const fn channel_index(&self) -> usize {
+        match self {
+            Self::Ci { .. } => CHANNEL_CI,
+            Self::Fleet { .. } | Self::FleetUnavailable { .. } => CHANNEL_FLEET,
+            Self::Cairn { .. } => CHANNEL_CAIRN,
+            Self::Attention { .. } => CHANNEL_ATTENTION,
+        }
+    }
+
+    fn event_name(&self) -> &'static str {
+        match self {
+            Self::Ci { .. } => "ci",
+            Self::Fleet { .. } | Self::FleetUnavailable { .. } => "fleet",
+            Self::Cairn { .. } => "cairn",
+            Self::Attention { .. } => "attention",
+        }
+    }
+
+    fn payload(&self) -> &[u8] {
+        match self {
+            Self::Ci { data, .. }
+            | Self::Fleet { data, .. }
+            | Self::FleetUnavailable { data }
+            | Self::Cairn { data, .. }
+            | Self::Attention { data, .. } => data.as_slice(),
+        }
+    }
+}
+
+#[derive(Default)]
+struct SubscriberQueue {
+    events: VecDeque<BroadcastEvent>,
+    closed: bool,
+}
+
+struct SubscriberHandle {
+    id: u64,
+    channels: [bool; 4],
+    queue: Arc<(Mutex<SubscriberQueue>, Condvar)>,
+}
+
+struct EventHubState {
+    ci_version: u64,
+    ci_snapshot: Option<Arc<Vec<u8>>>,
+    fleet: Option<CachedFleetData>,
+    cairn_version: Option<String>,
+    cairn_event: Option<Arc<Vec<u8>>>,
+    attention_digest: Option<String>,
+    attention_event: Option<Arc<Vec<u8>>>,
+    next_sub_id: u64,
+    subscribers: Vec<SubscriberHandle>,
+    watcher_wakeup: bool,
+}
+
+pub(crate) struct EventHub {
+    state: Mutex<EventHubState>,
+    watcher_cv: Condvar,
+}
+
+struct InitialSnapshot {
+    ci_version: u64,
+    fleet_version: Option<String>,
+    events: Vec<BroadcastEvent>,
+}
+
+struct EventSubscription<'a> {
+    id: u64,
+    hub: &'a EventHub,
+    queue: Arc<(Mutex<SubscriberQueue>, Condvar)>,
+}
+
+impl Drop for EventSubscription<'_> {
+    fn drop(&mut self) {
+        if let Ok(mut q) = self.queue.0.lock() {
+            q.closed = true;
+            self.queue.1.notify_all();
+        }
+        if let Ok(mut state) = self.hub.state.lock() {
+            state.subscribers.retain(|sub| sub.id != self.id);
+        }
+    }
+}
+
+impl EventHub {
+    pub(crate) fn new() -> Self {
+        Self {
+            state: Mutex::new(EventHubState {
+                ci_version: 0,
+                ci_snapshot: None,
+                fleet: None,
+                cairn_version: None,
+                cairn_event: None,
+                attention_digest: None,
+                attention_event: None,
+                next_sub_id: 1,
+                subscribers: Vec::new(),
+                watcher_wakeup: false,
+            }),
+            watcher_cv: Condvar::new(),
+        }
+    }
+
+    pub(crate) fn wake_watcher(&self) {
+        if let Ok(mut state) = self.state.lock() {
+            state.watcher_wakeup = true;
+            for sub in &state.subscribers {
+                sub.queue.1.notify_all();
+            }
+            self.watcher_cv.notify_all();
+        }
+    }
+
+    pub(super) fn cached_fleet_attention(&self) -> Option<CachedFleetData> {
+        self.state.lock().ok().and_then(|state| state.fleet.clone())
+    }
+
+    fn subscribe(&self, channels: [bool; 4]) -> (EventSubscription<'_>, InitialSnapshot) {
+        let queue = Arc::new((Mutex::new(SubscriberQueue::default()), Condvar::new()));
+        let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+        let id = state.next_sub_id;
+        state.next_sub_id = state.next_sub_id.saturating_add(1);
+        state.subscribers.push(SubscriberHandle {
+            id,
+            channels,
+            queue: Arc::clone(&queue),
+        });
+        let mut initial = Vec::new();
+        if channels[CHANNEL_CI]
+            && let Some(data) = &state.ci_snapshot
+        {
+            initial.push(BroadcastEvent::Ci {
+                version: state.ci_version,
+                data: Arc::clone(data),
+            });
+        }
+        if channels[CHANNEL_FLEET]
+            && let Some(fleet) = &state.fleet
+        {
+            if fleet.available {
+                if let (Some(version), Some(data)) = (&fleet.version, &fleet.snapshot_bytes) {
+                    initial.push(BroadcastEvent::Fleet {
+                        version: version.clone(),
+                        data: Arc::clone(data),
+                    });
+                }
+            } else if let Some(data) = &fleet.snapshot_bytes {
+                initial.push(BroadcastEvent::FleetUnavailable {
+                    data: Arc::clone(data),
+                });
+            }
+        }
+        if channels[CHANNEL_CAIRN]
+            && let (Some(version), Some(data)) = (&state.cairn_version, &state.cairn_event)
+        {
+            initial.push(BroadcastEvent::Cairn {
+                version: version.clone(),
+                data: Arc::clone(data),
+            });
+        }
+        if channels[CHANNEL_ATTENTION]
+            && let (Some(digest), Some(data)) = (&state.attention_digest, &state.attention_event)
+        {
+            initial.push(BroadcastEvent::Attention {
+                digest: digest.clone(),
+                data: Arc::clone(data),
+            });
+        }
+        let snapshot = InitialSnapshot {
+            ci_version: state.ci_version,
+            fleet_version: state.fleet.as_ref().and_then(|f| f.version.clone()),
+            events: initial,
+        };
+        (EventSubscription { id, hub: self, queue }, snapshot)
+    }
+
+    fn fanout_locked(state: &mut EventHubState, event: BroadcastEvent) {
+        let ch = event.channel_index();
+        state.subscribers.retain(|sub| {
+            let Ok(mut q) = sub.queue.0.lock() else {
+                return false;
+            };
+            if q.closed {
+                return false;
+            }
+            if sub.channels[ch] {
+                if q.events.len() >= MAX_SSE_SUBSCRIBER_QUEUE {
+                    if let Some(pos) = q.events.iter().position(|old| old.channel_index() == ch) {
+                        q.events.remove(pos);
+                    } else {
+                        q.events.pop_front();
+                    }
+                }
+                q.events.push_back(event.clone());
+                sub.queue.1.notify_one();
+            }
+            true
+        });
+    }
+
+    fn publish_ci(&self, version: u64, data: Vec<u8>) -> bool {
+        let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+        if state.ci_snapshot.is_some() && state.ci_version == version {
+            return false;
+        }
+        let arc = Arc::new(data);
+        state.ci_version = version;
+        state.ci_snapshot = Some(Arc::clone(&arc));
+        Self::fanout_locked(&mut state, BroadcastEvent::Ci { version, data: arc });
+        true
+    }
+
+    fn publish_fleet_available(&self, cached: CachedFleetData) -> bool {
+        let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+        let same = state.fleet.as_ref().is_some_and(|prev| {
+            prev.available && prev.version.is_some() && prev.version == cached.version
+        });
+        if same {
+            return false;
+        }
+        let Some(version) = cached.version.clone() else {
+            return false;
+        };
+        let Some(data) = cached.snapshot_bytes.clone() else {
+            return false;
+        };
+        state.fleet = Some(cached);
+        Self::fanout_locked(&mut state, BroadcastEvent::Fleet { version, data });
+        true
+    }
+
+    fn publish_fleet_unavailable(&self) -> bool {
+        let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+        if state.fleet.as_ref().is_some_and(|prev| !prev.available) {
+            return false;
+        }
+        let data = Arc::new(
+            serde_json::json!({
+                "unavailable": true,
+                "error": "fleet_unavailable",
+            })
+            .to_string()
+            .into_bytes(),
+        );
+        state.fleet = Some(CachedFleetData {
+            available: false,
+            version: None,
+            snapshot_bytes: Some(Arc::clone(&data)),
+            claims_bytes: None,
+            decisions_bytes: None,
+            attempts_bytes: None,
+        });
+        Self::fanout_locked(&mut state, BroadcastEvent::FleetUnavailable { data });
+        true
+    }
+
+    fn publish_cairn(&self, version: String, data: Vec<u8>) -> bool {
+        let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+        if state.cairn_version.as_deref() == Some(version.as_str()) {
+            return false;
+        }
+        let arc = Arc::new(data);
+        state.cairn_version = Some(version.clone());
+        state.cairn_event = Some(Arc::clone(&arc));
+        Self::fanout_locked(&mut state, BroadcastEvent::Cairn { version, data: arc });
+        true
+    }
+
+    fn publish_attention(&self, digest: String, data: Vec<u8>) -> bool {
+        let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+        if state.attention_digest.as_deref() == Some(digest.as_str()) {
+            return false;
+        }
+        let arc = Arc::new(data);
+        state.attention_digest = Some(digest.clone());
+        state.attention_event = Some(Arc::clone(&arc));
+        Self::fanout_locked(&mut state, BroadcastEvent::Attention { digest, data: arc });
+        true
+    }
+}
+
+fn read_cairn_version(database: &Path) -> Option<String> {
+    let connection = Connection::open_with_flags(
+        database,
+        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )
+    .ok()?;
+    let _ = connection.pragma_update(None, "query_only", true);
+    let table_sum = |table: &str| -> i64 {
+        let exists: bool = connection
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name=?1)",
+                rusqlite::params![table],
+                |row| row.get(0),
+            )
+            .unwrap_or(false);
+        if !exists {
+            return 0;
+        }
+        connection
+            .query_row(
+                &format!("SELECT COALESCE(SUM(version), 0) FROM {table}"),
+                [],
+                |row| row.get(0),
+            )
+            .unwrap_or(0)
+    };
+    Some(format!(
+        "{}:{}:{}",
+        table_sum("implementation_state"),
+        table_sum("implementation_campaign"),
+        table_sum("implementation_campaign_continuation")
+    ))
+}
+
+use rusqlite::{Connection, OpenFlags};
+
+enum FleetPoll {
+    Unchanged,
+    Updated(CachedFleetData),
+    Unavailable,
+}
+
+fn poll_fleet_once(client: &crate::fleet::Client, last_version: Option<&str>) -> FleetPoll {
+    let Ok(version_reply) = client.call("GET", "/v1/version", None) else {
+        return FleetPoll::Unavailable;
+    };
+    if !(200..300).contains(&version_reply.status) {
+        return FleetPoll::Unavailable;
+    }
+    let Ok(version_val) = serde_json::from_slice::<serde_json::Value>(&version_reply.body) else {
+        return FleetPoll::Unavailable;
+    };
+    let Some(version) = version_val
+        .get("version")
+        .and_then(serde_json::Value::as_str)
+        .filter(|value| {
+            value.len() == 64
+                && value
+                    .bytes()
+                    .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        })
+        .map(str::to_owned)
+    else {
+        return FleetPoll::Unavailable;
+    };
+    if last_version == Some(version.as_str()) {
+        return FleetPoll::Unchanged;
+    }
+    let fetch_reply = |path: &str| -> Option<Vec<u8>> {
+        let reply = client.call("GET", path, None).ok()?;
+        (200..300).contains(&reply.status).then_some(reply.body)
+    };
+    let Some(health_bytes) = fetch_reply("/v1/health") else {
+        return FleetPoll::Unavailable;
+    };
+    let claims_bytes = fetch_reply("/v1/claims?include=foreign,expired")
+        .or_else(|| fetch_reply("/v1/claims"));
+    let Some(claims_bytes) = claims_bytes else {
+        return FleetPoll::Unavailable;
+    };
+    let Some(work_bytes) = fetch_reply("/v1/work") else {
+        return FleetPoll::Unavailable;
+    };
+    let Some(attempts_bytes) = fetch_reply("/v1/attempts") else {
+        return FleetPoll::Unavailable;
+    };
+    let Some(decisions_bytes) = fetch_reply("/v1/decisions") else {
+        return FleetPoll::Unavailable;
+    };
+    let machines_bytes = fetch_reply("/v1/machines");
+    let parse = |bytes: &[u8]| serde_json::from_slice::<serde_json::Value>(bytes).ok();
+    let (Some(health), Some(claims), Some(work), Some(attempts), Some(decisions)) = (
+        parse(&health_bytes),
+        parse(&claims_bytes),
+        parse(&work_bytes),
+        parse(&attempts_bytes),
+        parse(&decisions_bytes),
+    ) else {
+        return FleetPoll::Unavailable;
+    };
+    let machines = machines_bytes.as_deref().and_then(parse);
+    let mut snapshot = serde_json::json!({
+        "version": version,
+        "health": health,
+        "claims": claims,
+        "work": work,
+        "attempts": attempts,
+        "decisions": decisions,
+    });
+    if let (Some(machines), Some(obj)) = (machines, snapshot.as_object_mut()) {
+        obj.insert("machines".into(), machines);
+    }
+    let Ok(snapshot_bytes) = serde_json::to_vec(&snapshot) else {
+        return FleetPoll::Unavailable;
+    };
+    FleetPoll::Updated(CachedFleetData {
+        available: true,
+        version: Some(version),
+        snapshot_bytes: Some(Arc::new(snapshot_bytes)),
+        claims_bytes: Some(Arc::new(claims_bytes)),
+        decisions_bytes: Some(Arc::new(decisions_bytes)),
+        attempts_bytes: Some(Arc::new(attempts_bytes)),
+    })
+}
+
+pub(crate) fn watcher_step(
+    hub: &EventHub,
+    engine: &Mutex<Engine>,
+    fleet: Option<&crate::fleet::Client>,
+    implementation_work: Option<&Path>,
+) {
+    let mut changed = false;
+    let (ci_version, ci_runs, ci_repos, ci_json) = {
+        let last_ci = hub
+            .state
+            .lock()
+            .map(|state| (state.ci_version, state.ci_snapshot.is_some()))
+            .unwrap_or((0, false));
+        if let Ok(guard) = engine.lock() {
+            let ver = guard.state_version();
+            let snapshot_json = if !last_ci.1 || ver != last_ci.0 {
+                guard.live_snapshot_json().ok().map(|(_, bytes)| bytes)
+            } else {
+                None
+            };
+            (
+                Some(ver),
+                guard.attention_runs(),
+                guard.project_repositories(),
+                snapshot_json,
+            )
+        } else {
+            (None, Vec::new(), Vec::new(), None)
+        }
+    };
+    if let (Some(ver), Some(bytes)) = (ci_version, ci_json)
+        && hub.publish_ci(ver, bytes)
+    {
+        changed = true;
+    }
+
+    if let Some(client) = fleet {
+        let last_fleet_version = hub
+            .state
+            .lock()
+            .ok()
+            .and_then(|state| state.fleet.as_ref().filter(|f| f.available).and_then(|f| f.version.clone()));
+        match poll_fleet_once(client, last_fleet_version.as_deref()) {
+            FleetPoll::Unchanged => {}
+            FleetPoll::Updated(cached) => {
+                if hub.publish_fleet_available(cached) {
+                    changed = true;
+                }
+            }
+            FleetPoll::Unavailable => {
+                if hub.publish_fleet_unavailable() {
+                    changed = true;
+                }
+            }
+        }
+    }
+
+    if let Some(db) = implementation_work
+        && let Some(cairn_ver) = read_cairn_version(db)
+    {
+        let payload = serde_json::json!({
+            "invalidated": true,
+            "version": cairn_ver,
+        })
+        .to_string()
+        .into_bytes();
+        if hub.publish_cairn(cairn_ver, payload) {
+            changed = true;
+        }
+    }
+
+    let need_attention = changed
+        || hub
+            .state
+            .lock()
+            .is_ok_and(|state| state.attention_event.is_none());
+    if need_attention && let Ok(now_ms) = crate::engine::host_time_ms() {
+        let fleet_cached = hub.cached_fleet_attention();
+        if let Some((digest, payload)) = inventory_api::attention_summary_for_event(
+            now_ms,
+            ci_runs,
+            ci_repos,
+            implementation_work,
+            fleet_cached.as_ref(),
+        ) {
+            hub.publish_attention(digest, payload);
+        }
+    }
+}
+
+fn run_coordinator_watcher(
+    hub: &EventHub,
+    engine: &Mutex<Engine>,
+    fleet: Option<&crate::fleet::Client>,
+    implementation_work: Option<&Path>,
+    stop: &AtomicBool,
+    tick: Duration,
+) {
+    while !stop.load(Ordering::Acquire) {
+        watcher_step(hub, engine, fleet, implementation_work);
+        if stop.load(Ordering::Acquire) {
+            break;
+        }
+        let Ok(mut state) = hub.state.lock() else {
+            break;
+        };
+        if !state.watcher_wakeup {
+            let (guard, _) = hub
+                .watcher_cv
+                .wait_timeout(state, tick)
+                .unwrap_or_else(|e| e.into_inner());
+            state = guard;
+        }
+        state.watcher_wakeup = false;
+    }
+}
+
+fn is_tls_peer_disconnected(stream: &mut StreamOwned<ServerConnection, DeadlineStream>) -> bool {
+    if stream.get_ref().stream.set_nonblocking(true).is_err() {
+        return false;
+    }
+    let mut peek_buf = [0u8; 1];
+    let disconnected = match stream.get_ref().stream.peek(&mut peek_buf) {
+        Ok(0) => true,
+        Ok(_) => {
+            let mut drain = [0u8; 64];
+            match stream.read(&mut drain) {
+                Ok(0) => true,
+                Ok(_) => false,
+                Err(error)
+                    if matches!(
+                        error.kind(),
+                        std::io::ErrorKind::WouldBlock | std::io::ErrorKind::Interrupted
+                    ) =>
+                {
+                    false
+                }
+                Err(_) => true,
+            }
+        }
+        Err(error)
+            if matches!(
+                error.kind(),
+                std::io::ErrorKind::WouldBlock | std::io::ErrorKind::Interrupted
+            ) =>
+        {
+            false
+        }
+        Err(_) => true,
+    };
+    let _ = stream.get_ref().stream.set_nonblocking(false);
+    disconnected
+}
+
+fn parse_channels(target: &str) -> Result<[bool; 4], ()> {
+    let Some((_, query)) = target.split_once('?') else {
+        return Ok([true, true, true, true]);
+    };
+    let value = query.strip_prefix("channels=").ok_or(())?;
+    if value.is_empty() || value.contains('&') {
+        return Err(());
+    }
+    let mut channels = [false; 4];
+    for item in value.split(',') {
+        match item {
+            "ci" => channels[CHANNEL_CI] = true,
+            "fleet" => channels[CHANNEL_FLEET] = true,
+            "cairn" => channels[CHANNEL_CAIRN] = true,
+            "attention" => channels[CHANNEL_ATTENTION] = true,
+            _ => return Err(()),
+        }
+    }
+    Ok(channels)
+}
+
+fn write_sse_frame<W: Write>(writer: &mut W, event: &str, data: &[u8]) -> std::io::Result<()> {
+    let text = std::str::from_utf8(data)
+        .map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidData, "non-utf8 event"))?;
+    write!(writer, "event: {event}\ndata: {text}\n\n")
+}
+
+// r[impl kiln.web.multiplexed_sse_events]
+fn events_stream<S: Read + Write>(
+    stream: &mut S,
+    request: &Request,
+    context: &Context<'_>,
+    is_disconnected: &mut dyn FnMut(&mut S) -> bool,
+) -> std::io::Result<()> {
+    let principal = match authenticate_http(request, context) {
+        Ok(Some(principal)) => principal,
+        Ok(None) => return write_response(stream, error_response(401, "unauthorized")),
+        Err(response) => return write_response(stream, response),
+    };
+    if principal.role == crate::engine::Role::Worker {
+        return write_response(
+            stream,
+            denied(request, context, Some(&principal), 403, "events_forbidden"),
+        );
+    }
+    if let Err((status, code)) = api_admission(request, &context.profile.origin, Some(&principal)) {
+        return write_response(
+            stream,
+            denied(request, context, Some(&principal), status, code),
+        );
+    }
+    let Ok(channels) = parse_channels(&request.target) else {
+        return write_response(stream, error_response(400, "events_query_invalid"));
+    };
+    let Some(hub) = context.events else {
+        return write_response(stream, error_response(503, "events_unavailable"));
+    };
+    let (sub, initial) = hub.subscribe(channels);
+    write!(
+        stream,
+        "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-store\r\nConnection: close\r\n{SECURITY_HEADERS}\r\n"
+    )?;
+    let channel_names: Vec<&'static str> = [
+        channels[CHANNEL_CI].then_some("ci"),
+        channels[CHANNEL_FLEET].then_some("fleet"),
+        channels[CHANNEL_CAIRN].then_some("cairn"),
+        channels[CHANNEL_ATTENTION].then_some("attention"),
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
+    let ready_payload = serde_json::json!({
+        "schema": EVENT_HUB_SCHEMA,
+        "channels": channel_names,
+        "fleet_configured": context.fleet.is_some(),
+        "cairn_configured": context.implementation_work.is_some(),
+        "ci_version": initial.ci_version,
+        "fleet_version": initial.fleet_version,
+    })
+    .to_string()
+    .into_bytes();
+    write_sse_frame(stream, "ready", &ready_payload)?;
+    for event in initial.events {
+        write_sse_frame(stream, event.event_name(), event.payload())?;
+    }
+    stream.flush()?;
+
+    let deadline = Instant::now()
+        .checked_add(SSE_STREAM_LIFETIME)
+        .ok_or_else(|| std::io::Error::other("stream deadline invalid"))?;
+    let mut last_keepalive = Instant::now();
+    while Instant::now() < deadline && !context.stop.load(Ordering::Acquire) {
+        if is_disconnected(stream) {
+            break;
+        }
+        let next_event = {
+            let Ok(mut q) = sub.queue.0.lock() else {
+                break;
+            };
+            if q.events.is_empty() && !q.closed {
+                let (guard, _) = sub
+                    .queue
+                    .1
+                    .wait_timeout(q, SSE_DISCONNECT_POLL_INTERVAL)
+                    .unwrap_or_else(|e| e.into_inner());
+                q = guard;
+            }
+            if q.closed {
+                break;
+            }
+            q.events.pop_front()
+        };
+        if let Some(event) = next_event {
+            if write_sse_frame(stream, event.event_name(), event.payload()).is_err()
+                || stream.flush().is_err()
+            {
+                break;
+            }
+            last_keepalive = Instant::now();
+        } else if last_keepalive.elapsed() >= SSE_KEEPALIVE_INTERVAL {
+            if stream.write_all(b": keepalive\n\n").is_err() || stream.flush().is_err() {
+                break;
+            }
+            last_keepalive = Instant::now();
+        }
+    }
+    Ok(())
+}
+
 fn event_after(target: &str) -> Result<Option<String>, ()> {
     let Some((_, query)) = target.split_once('?') else {
         return Ok(None);
@@ -1355,10 +2138,12 @@ fn event_after(target: &str) -> Result<Option<String>, ()> {
 // r[impl kiln.web.network.boundaries] The console projects only the reviewed
 // fleet coordinator routes over its loopback listener. It never stores fleet
 // authority, and every mutation still passes the fleet service's own checks.
-fn fleet_stream<W: Write>(
-    writer: &mut W,
+// r[impl kiln.web.multiplexed_sse_events] Consumes the single shared watcher.
+fn fleet_stream<S: Read + Write>(
+    writer: &mut S,
     request: &Request,
     context: &Context<'_>,
+    is_disconnected: &mut dyn FnMut(&mut S) -> bool,
 ) -> std::io::Result<()> {
     let principal = match authenticate_http(request, context) {
         Ok(Some(principal)) => principal,
@@ -1389,9 +2174,89 @@ fn fleet_stream<W: Write>(
     )?;
     writer.flush()?;
     let deadline = Instant::now()
-        .checked_add(Duration::from_secs(45 * 60))
+        .checked_add(SSE_STREAM_LIFETIME)
         .ok_or_else(|| std::io::Error::other("stream deadline invalid"))?;
+
+    if let Some(hub) = context.events {
+        let (sub, initial) = hub.subscribe([false, true, false, false]);
+        for event in initial.events {
+            match event {
+                BroadcastEvent::Fleet { version, data }
+                    if after.as_deref() != Some(version.as_str()) =>
+                {
+                    after = Some(version);
+                    if write_sse_frame(writer, "snapshot", &data).is_err()
+                        || writer.flush().is_err()
+                    {
+                        return Ok(());
+                    }
+                }
+                BroadcastEvent::FleetUnavailable { .. } => {
+                    let _ = writer.write_all(b": unavailable\n\n");
+                    let _ = writer.flush();
+                    return Ok(());
+                }
+                _ => {}
+            }
+        }
+        let mut last_heartbeat = Instant::now();
+        while Instant::now() < deadline && !context.stop.load(Ordering::Acquire) {
+            if is_disconnected(writer) {
+                break;
+            }
+            let next_event = {
+                let Ok(mut q) = sub.queue.0.lock() else {
+                    break;
+                };
+                if q.events.is_empty() && !q.closed {
+                    let (guard, _) = sub
+                        .queue
+                        .1
+                        .wait_timeout(q, SSE_DISCONNECT_POLL_INTERVAL)
+                        .unwrap_or_else(|e| e.into_inner());
+                    q = guard;
+                }
+                if q.closed {
+                    break;
+                }
+                q.events.pop_front()
+            };
+            match next_event {
+                Some(BroadcastEvent::Fleet { version, data }) => {
+                    if after.as_deref() != Some(version.as_str()) {
+                        after = Some(version);
+                        if write_sse_frame(writer, "snapshot", &data).is_err()
+                            || writer.flush().is_err()
+                        {
+                            break;
+                        }
+                        last_heartbeat = Instant::now();
+                    }
+                }
+                Some(BroadcastEvent::FleetUnavailable { .. }) => {
+                    let _ = writer.write_all(b": unavailable\n\n");
+                    let _ = writer.flush();
+                    break;
+                }
+                _ => {
+                    if last_heartbeat.elapsed() >= Duration::from_secs(4) {
+                        if writer.write_all(b": heartbeat\n\n").is_err()
+                            || writer.flush().is_err()
+                        {
+                            break;
+                        }
+                        last_heartbeat = Instant::now();
+                    }
+                }
+            }
+        }
+        return Ok(());
+    }
+
     while Instant::now() < deadline && !context.stop.load(Ordering::Acquire) {
+        if is_disconnected(writer) {
+            break;
+        }
         let (wrote, failed) = match client.events(after.clone()) {
             Ok(crate::fleet::EventFrame::Snapshot { version, data }) => {
                 let Ok(data) = String::from_utf8(data) else {
@@ -2177,5 +3042,214 @@ mod tests {
             .headers
             .insert("x-kiln-role".into(), "operator".into());
         assert!(forbidden_identity(&request));
+    }
+
+    // r[verify kiln.web.multiplexed_sse_events]
+    #[test]
+    fn event_hub_parses_channels_fans_out_to_five_subscribers_and_prunes_drops() {
+        assert_eq!(parse_channels("/api/events"), Ok([true, true, true, true]));
+        assert_eq!(
+            parse_channels("/api/events?channels=ci,attention"),
+            Ok([true, false, false, true])
+        );
+        assert_eq!(parse_channels("/api/events?channels="), Err(()));
+        assert_eq!(parse_channels("/api/events?channels=bogus"), Err(()));
+        assert_eq!(parse_channels("/api/events?other=1"), Err(()));
+
+        let hub = EventHub::new();
+        let subs: Vec<_> = (0..5)
+            .map(|_| hub.subscribe([true, true, true, true]).0)
+            .collect();
+        assert_eq!(hub.state.lock().unwrap().subscribers.len(), 5);
+
+        assert!(hub.publish_ci(1, b"{\"version\":1,\"runs\":[]}".to_vec()));
+        assert!(!hub.publish_ci(1, b"{\"version\":1,\"runs\":[]}".to_vec()));
+        assert!(hub.publish_cairn("1:1:0".into(), b"{\"invalidated\":true}".to_vec()));
+
+        for sub in &subs {
+            let q = sub.queue.0.lock().unwrap();
+            assert_eq!(q.events.len(), 2);
+            assert_eq!(q.events[0].event_name(), "ci");
+            assert_eq!(q.events[1].event_name(), "cairn");
+        }
+
+        // Dropping 4 subscribers immediately prunes them from EventHub.
+        let mut iter = subs.into_iter();
+        let keeper = iter.next().unwrap();
+        drop(iter);
+        assert_eq!(hub.state.lock().unwrap().subscribers.len(), 1);
+        drop(keeper);
+        assert_eq!(hub.state.lock().unwrap().subscribers.len(), 0);
+    }
+
+    #[test]
+    fn shared_watcher_polls_upstream_fleet_once_regardless_of_subscriber_count()
+    -> Result<(), Box<dyn std::error::Error>> {
+        use std::sync::atomic::AtomicUsize;
+
+        let dir = tempfile::tempdir()?;
+        let repo_dir = dir.path().join("repo");
+        git2::Repository::init(&repo_dir)?;
+        let op_tok = dir.path().join("op.token");
+        let wk_tok = dir.path().join("wk.token");
+        std::fs::write(&op_tok, "a".repeat(64))?;
+        std::fs::write(&wk_tok, "b".repeat(64))?;
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&op_tok, std::fs::Permissions::from_mode(0o400))?;
+            std::fs::set_permissions(&wk_tok, std::fs::Permissions::from_mode(0o400))?;
+        }
+        let cert_path = dir.path().join("cert.pem");
+        let key_path = dir.path().join("key.pem");
+        std::fs::write(&cert_path, "dummy")?;
+        std::fs::write(&key_path, "dummy")?;
+        let profile: ServiceProfile = serde_json::from_value(serde_json::json!({
+            "schema": "kiln.web-service.v1",
+            "service_id": "watcher-test",
+            "listen_address": "127.0.0.1:9443",
+            "origin": "https://localhost:9443",
+            "tls": {"certificate_path": cert_path, "private_key_path": key_path, "min_version": "TLS1.3"},
+            "operator_token_file": op_tok,
+            "worker_token_file": wk_tok,
+            "state_directory": dir.path().join("state"),
+            "projects": [{
+                "id": "fixture",
+                "label": "Fixture",
+                "repository_path": repo_dir,
+                "reference": "refs/heads/main",
+                "source_limits": {"max_entries": 32, "max_path_bytes": 1024, "max_file_bytes": 4096, "max_total_bytes": 16384},
+                "workflow": {
+                    "socket_path": dir.path().join("lattice.sock"),
+                    "allowed_user_ids": [nix::unistd::geteuid().as_raw()],
+                    "transport_limits": {"maximum_frame_bytes": 1048576, "maximum_log_bytes": 65536, "maximum_connections": 4, "read_deadline_milliseconds": 1000, "write_deadline_milliseconds": 1000},
+                    "adapter_limits": {"maximum_request_bytes": 1048576, "maximum_response_bytes": 1048576},
+                    "policy_id": "reviewed-policy",
+                    "provider_profile_id": "reviewed-lattice",
+                    "platform": "linux-x86_64",
+                    "nodes": [{"id": "job", "kind": "test", "effect_class": "test", "adapter_kind": "local", "operation_identity": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],
+                    "edges": [],
+                    "controls": {"cancel": true, "pause": false, "resume": false},
+                    "bounds": {"max_nodes": 8, "max_edges": 16, "max_log_references": 32, "max_log_read_bytes": 4096, "max_total_log_bytes": 65536}
+                }
+            }],
+            "bounds": {
+                "max_request_bytes": 16384, "max_response_bytes": 1048576, "max_header_bytes": 4096,
+                "max_connections": 8, "timeout_seconds": 2, "poll_interval_ms": 10, "max_projects": 2,
+                "max_runs": 4, "max_artifact_bytes": 1024, "max_artifacts": 2, "max_run_artifact_bytes": 2048,
+                "max_total_artifact_bytes": 4096, "max_log_read_bytes": 4096, "max_requests": 32,
+                "max_events_per_run": 8, "max_state_bytes": 1048576
+            }
+        }))?;
+        let capability = profile.projects[0].execution_capabilities(profile.bounds.max_runs)?;
+        let engine = Mutex::new(Engine::open_with_ports(
+            profile,
+            BTreeMap::from([(
+                "fixture".to_owned(),
+                Box::new(inventory_api::tests::DummyWorkflowPort(capability))
+                    as Box<dyn kiln_provider_api::WorkflowPort + Send>,
+            )]),
+        )?);
+
+        let fleet_listener = TcpListener::bind("127.0.0.1:0")?;
+        let fleet_addr = fleet_listener.local_addr()?;
+        let version_calls = Arc::new(AtomicUsize::new(0));
+        let snapshot_calls = Arc::new(AtomicUsize::new(0));
+        let fleet_stop = Arc::new(AtomicBool::new(false));
+        let fleet_version = Arc::new(Mutex::new("a".repeat(64)));
+
+        let vc = Arc::clone(&version_calls);
+        let sc = Arc::clone(&snapshot_calls);
+        let fs = Arc::clone(&fleet_stop);
+        let fv = Arc::clone(&fleet_version);
+        fleet_listener.set_nonblocking(true)?;
+        let mock_handle = std::thread::spawn(move || {
+            while !fs.load(Ordering::Acquire) {
+                match fleet_listener.accept() {
+                    Ok((mut sock, _)) => {
+                        let _ = sock.set_nonblocking(false);
+                        let mut buf = [0u8; 2048];
+                        let n = sock.read(&mut buf).unwrap_or(0);
+                        let req = String::from_utf8_lossy(&buf[..n]);
+                        let path = req
+                            .lines()
+                            .next()
+                            .and_then(|l| l.split_whitespace().nth(1))
+                            .unwrap_or("/");
+                        let body = match path {
+                            "/v1/version" => {
+                                vc.fetch_add(1, Ordering::Relaxed);
+                                let v = fv.lock().unwrap().clone();
+                                format!("{{\"version\":\"{v}\"}}")
+                            }
+                            "/v1/health" => {
+                                sc.fetch_add(1, Ordering::Relaxed);
+                                "{\"api\":\"v1\",\"machine\":\"local\",\"version\":\"0.1.0\"}".to_owned()
+                            }
+                            "/v1/claims?include=foreign,expired" | "/v1/claims" => {
+                                "{\"claims\":[],\"foreign_claims\":[]}".to_owned()
+                            }
+                            "/v1/work" => "{\"ready_unclaimed\":0,\"ranked\":[],\"blocked\":[]}".to_owned(),
+                            "/v1/attempts" => "{\"attempts\":[]}".to_owned(),
+                            "/v1/decisions" => "{\"decisions\":[]}".to_owned(),
+                            "/v1/machines" => "{\"machines\":[]}".to_owned(),
+                            _ => "{\"error\":\"not_found\"}".to_owned(),
+                        };
+                        let resp = format!(
+                            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                            body.len(),
+                            body
+                        );
+                        let _ = sock.write_all(resp.as_bytes());
+                        let _ = sock.flush();
+                    }
+                    Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                        std::thread::sleep(Duration::from_millis(5));
+                    }
+                    Err(_) => break,
+                }
+            }
+        });
+
+        let fleet_client = crate::fleet::Client::new(&crate::fleet::FleetProfile {
+            schema: crate::fleet::FLEET_PROFILE_SCHEMA.into(),
+            address: fleet_addr.to_string(),
+            timeout_ms: 2_000,
+            max_response_bytes: 1_048_576,
+        })?;
+
+        let hub = EventHub::new();
+        let subs: Vec<_> = (0..5)
+            .map(|_| hub.subscribe([true, true, true, true]).0)
+            .collect();
+
+        // First watcher_step: 1 upstream version check + 1 snapshot fetch -> fanned out to all 5 subscribers.
+        watcher_step(&hub, &engine, Some(&fleet_client), None);
+        assert_eq!(version_calls.load(Ordering::Relaxed), 1);
+        assert_eq!(snapshot_calls.load(Ordering::Relaxed), 1);
+
+        // Second watcher_step with unchanged fleet version: only 1 /v1/version check, 0 snapshot fetches!
+        watcher_step(&hub, &engine, Some(&fleet_client), None);
+        assert_eq!(version_calls.load(Ordering::Relaxed), 2);
+        assert_eq!(snapshot_calls.load(Ordering::Relaxed), 1);
+
+        // Advance fleet version -> 1 new snapshot fetch fanned out to all 5 subscribers.
+        *fleet_version.lock().unwrap() = "b".repeat(64);
+        watcher_step(&hub, &engine, Some(&fleet_client), None);
+        assert_eq!(version_calls.load(Ordering::Relaxed), 3);
+        assert_eq!(snapshot_calls.load(Ordering::Relaxed), 2);
+
+        for sub in subs {
+            let q = sub.queue.0.lock().unwrap();
+            let fleet_events = q
+                .events
+                .iter()
+                .filter(|ev| ev.event_name() == "fleet")
+                .count();
+            assert_eq!(fleet_events, 2, "each of the 5 tabs receives both fleet transitions");
+        }
+
+        fleet_stop.store(true, Ordering::Release);
+        let _ = mock_handle.join();
+        Ok(())
     }
 }

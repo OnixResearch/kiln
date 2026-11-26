@@ -23,6 +23,9 @@
   });
   const localTimeZone = localTimeFormat.resolvedOptions().timeZone;
   const $ = (id) => document.getElementById(id);
+  const MAX_PANE_POLL_MS = 3000;
+  const CHORD_TIMEOUT_MS = 1000;
+  const LEASE_EXPIRING_MS = 15 * 60 * 1000;
   const state = {
     session: null, token: null, epoch: 0, requests: new Set(), urls: new Set(), urlTimers: new Set(),
     projects: { available: [], enrolled: [] }, runs: [], selected: null, run: null,
@@ -32,7 +35,7 @@
     liveRunning: null, busy: 0,
     logTimer: null, logGeneration: 0, logBusy: false, logNext: "0", logKey: "",
     artifactsGeneration: 0, confirm: null, mutation: false, detailGeneration: 0,
-    principal: null, permissions: {}, route: null, nextCursor: null, total: 0,
+    principal: null, permissions: {}, route: null, routeLoaded: false, nextCursor: null, total: 0,
     runsGeneration: 0, pageGeneration: 0, refsGeneration: 0,
     endpointGeneration: new Map(),
     runsError: "",
@@ -45,6 +48,13 @@
     failureFirst: null,
     reconcileStatus: null,
     liveTicker: null, logAutoFollow: false, followDeclined: "", startProject: "",
+    events: { status: "disconnected", ready: null, ci: null, fleet: null, fleetObservedAt: 0, cairn: null, attention: null },
+    eventSubscribers: new Set(),
+    factory: { attention: null, machines: null, claims: null, dispatch: null, cairn: null, codeReview: null, showAllClaims: false },
+    inspector: { open: false, kind: "", id: "", items: [], paneTimer: null, paneController: null, paneLines: 200, returnFocus: null },
+    selectedRuns: new Set(),
+    chordPrefix: "", chordTimer: null,
+    feedsTimer: null,
   };
 
   function text(value) {
@@ -114,14 +124,45 @@
     $("live-activity-count").textContent = String(running);
     $("live-activity-unit").textContent = running === 1 ? "run" : "runs";
     $("live-activity").hidden = running === 0;
+    if ($("global-firing-count")) $("global-firing-count").textContent = String(running);
     document.documentElement.toggleAttribute("data-firing", running > 0);
+  }
+  function setSseHealth(status, label) {
+    state.events.status = status;
+    const badge = $("sse-health-badge");
+    if (badge) {
+      badge.dataset.sse = status;
+      badge.textContent = label;
+    }
+  }
+  function updateGlobalLiveStrip() {
+    const strip = $("global-live-strip");
+    if (!strip) return;
+    strip.hidden = !state.session;
+    const escalations = state.events.attention?.total ?? state.factory.attention?.total ?? 0;
+    const escalationsEl = $("global-escalations-count");
+    const escalationsPill = $("global-escalations-pill");
+    if (escalationsEl) escalationsEl.textContent = String(escalations);
+    if (escalationsPill) escalationsPill.dataset.alert = String(escalations > 0);
+    const now = Date.now();
+    const claims = state.events.fleet?.claims?.claims || state.factory.claims?.claims || [];
+    const foreign = state.factory.claims?.foreign_claims || [];
+    const expiring = claims.filter((c) => c && (c.state === "open" || c.state?.state === "open") && Number.isSafeInteger(c.expires_ms) && c.expires_ms - now <= LEASE_EXPIRING_MS).length + foreign.length;
+    const claimsEl = $("global-expiring-claims-count");
+    const claimsPill = $("global-expiring-claims-pill");
+    if (claimsEl) claimsEl.textContent = String(expiring);
+    if (claimsPill) claimsPill.dataset.alert = String(expiring > 0);
   }
   function connection(message, healthy) {
     state.connected = healthy;
     $("connection-status").textContent = message;
     $("connection-status").title = message;
     $("connection-status").dataset.state = healthy ? "connected" : "stale";
+    if (healthy) setSseHealth("live", "Live: SSE");
+    else if (/Disconnected/i.test(message)) setSseHealth("disconnected", "Disconnected");
+    else setSseHealth("reconnecting", "Reconnecting");
     showLiveActivity(healthy);
+    updateGlobalLiveStrip();
     updateControlButtons();
   }
   // r[impl kiln.web.request_feedback]
@@ -312,7 +353,7 @@
     projectDescriptions();
     renderProjects();
     renderRunList();
-    if (state.route?.page === "runbooks") window.KilnRunbooks?.refreshEnrolledProjects?.();
+    if (activeSubPageFor(state.route) === "runbooks") window.KilnRunbooks?.refreshEnrolledProjects?.();
   }
 
   // r[impl kiln.web.runs_table] Service filters, cursor paging and URL selection stay authoritative;
@@ -364,6 +405,10 @@
   function runTableHead() {
     const head = element("thead");
     const row = element("tr");
+    const selectHead = element("th", undefined, "run-col-select");
+    selectHead.scope = "col";
+    selectHead.append(element("span", "Select", "sr-only"));
+    row.append(selectHead);
     for (const key of RUN_COLUMNS) {
       const cell = element("th", undefined, `run-col-${key}${key === "duration" ? " num" : ""}`);
       cell.scope = "col";
@@ -395,6 +440,21 @@
     if (run.id === state.selected) row.setAttribute("aria-current", "true");
     const label = text(projectLabel(run.project_id));
     const cell = (key, content, className = "") => { const node = element("td", undefined, `run-col-${key} ${className}`.trim()); node.dataset.label = RUN_SORTS[key]?.label || "Actions"; node.append(...content); row.append(node); return node; };
+    const selectCell = element("td", undefined, "run-col-select");
+    selectCell.dataset.label = "Select";
+    const checkbox = element("input");
+    checkbox.type = "checkbox";
+    checkbox.dataset.runSelect = run.id;
+    checkbox.checked = state.selectedRuns.has(run.id);
+    checkbox.setAttribute("aria-label", `Select run ${shortIdentity(run.id)} for bulk actions`);
+    checkbox.addEventListener("click", (event) => event.stopPropagation());
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) state.selectedRuns.add(run.id);
+      else state.selectedRuns.delete(run.id);
+      renderRunsBulkToolbar();
+    });
+    selectCell.append(checkbox);
+    row.append(selectCell);
     const status = [livePill(run.outcome, run.phase)];
     const retry = retryBadge(run);
     if (retry) status.push(retry);
@@ -430,6 +490,13 @@
     row.addEventListener("click", (event) => { if (!(event.target instanceof Element && event.target.closest("a, button"))) selectRunRow(run.id); });
     row.addEventListener("keydown", (event) => {
       if (event.target !== row) return;
+      if (event.key.toLowerCase() === "x") {
+        event.preventDefault();
+        if (state.selectedRuns.has(run.id)) state.selectedRuns.delete(run.id);
+        else state.selectedRuns.add(run.id);
+        renderRunList();
+        return;
+      }
       if (event.key === "Enter" || event.key === " ") { event.preventDefault(); selectRunRow(run.id); return; }
       if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
       const rows = [...document.querySelectorAll("#run-list tr.run-row")];
@@ -437,6 +504,82 @@
       if (next) { event.preventDefault(); next.focus(); }
     });
     return row;
+  }
+  function renderRunsBulkToolbar() {
+    let bar = $("runs-bulk-toolbar");
+    const runBrowser = $("run-list")?.parentElement;
+    if (!runBrowser) return;
+    if (!bar) {
+      bar = element("div", undefined, "bulk-toolbar");
+      bar.id = "runs-bulk-toolbar";
+      bar.setAttribute("role", "region");
+      bar.setAttribute("aria-label", "Selected runs bulk actions");
+      if (typeof $("run-list").before === "function") $("run-list").before(bar);
+      else runBrowser.append(bar);
+    }
+    const ids = [...state.selectedRuns].filter((id) => state.runs.some((r) => r.id === id));
+    if (!ids.length || !state.session) { bar.hidden = true; bar.replaceChildren(); return; }
+    bar.hidden = false;
+    const countLabel = element("strong", `${ids.length} run${ids.length === 1 ? "" : "s"} selected`);
+    const actions = element("div", undefined, "cluster");
+    if (canOperate()) {
+      const cancelBtn = element("button", "Cancel selected…", "danger");
+      cancelBtn.type = "button";
+      cancelBtn.addEventListener("click", async () => {
+        const choice = await confirmControl({
+          title: `Cancel ${ids.length} selected run(s)?`,
+          verb: `Cancel ${ids.length} run(s)`,
+          dismiss: "Keep runs",
+          danger: true,
+          warning: "Cancels each selected run sequentially with exact run identities. Partial failures leave remaining runs selected.",
+          facts: [["Selected runs", ids.join(", ")]],
+          reason: { label: "Bulk cancel reason", placeholder: "Why these runs are being cancelled", required: true },
+          cliCommand: ids.map((id) => `kiln runs control --run ${id} --action cancel`).join(" && "),
+          opener: cancelBtn,
+        });
+        if (!choice.confirmed) return;
+        for (const id of ids) {
+          const run = state.runs.find((r) => r.id === id);
+          const queuedCancel = WAITING_PHASES.has(run?.phase);
+          if (!run || (!queuedCancel && !exactIdentity(run)) || run.controls?.cancel === false) {
+            notice(`Skipped ${shortIdentity(id)}: exact execution identity or cancel capability is unavailable.`);
+            continue;
+          }
+          const payload = queuedCancel
+            ? { action: "cancel" }
+            : { action: "cancel", attempt_id: run.attempt_id, expected_revision: run.revision, expected_sequence: run.sequence, execution: run.execution };
+          const res = await mutate(`${pathFor(id)}/control`, payload, `Cancelled ${shortIdentity(id)}.`);
+          if (res) state.selectedRuns.delete(id);
+        }
+        void readAction(loadRuns)();
+      });
+      const rerunBtn = element("button", "Rerun selected…", "quiet");
+      rerunBtn.type = "button";
+      rerunBtn.addEventListener("click", async () => {
+        const choice = await confirmControl({
+          title: `Rerun ${ids.length} selected run(s) at exact revisions?`,
+          verb: `Rerun ${ids.length} run(s)`,
+          dismiss: "Cancel",
+          warning: "Starts a new candidate at each selected run's exact revision.",
+          facts: [["Selected runs", ids.join(", ")]],
+          reason: { label: "Bulk rerun reason", placeholder: "Why these runs are being rerun", required: true },
+          cliCommand: ids.map((id) => `kiln runs rerun --run ${id} --mode exact`).join(" && "),
+          opener: rerunBtn,
+        });
+        if (!choice.confirmed) return;
+        for (const id of ids) {
+          const res = await mutate(`${pathFor(id)}/rerun`, { mode: "exact" }, `Rerun requested for ${shortIdentity(id)}.`);
+          if (res) state.selectedRuns.delete(id);
+        }
+        void readAction(loadRuns)();
+      });
+      actions.append(cancelBtn, rerunBtn);
+    }
+    const clearBtn = element("button", "Clear", "quiet");
+    clearBtn.type = "button";
+    clearBtn.addEventListener("click", () => { state.selectedRuns.clear(); renderRunList(); });
+    actions.append(clearBtn);
+    bar.replaceChildren(countLabel, actions);
   }
   function renderRunList() {
     const focused = document.activeElement?.closest?.("#run-list tr.run-row")?.dataset.runId;
@@ -462,7 +605,7 @@
       const heading = element("tr", undefined, "run-day");
       const title = element("th", group.label);
       title.scope = "rowgroup";
-      title.colSpan = RUN_COLUMNS.length + 1;
+      title.colSpan = RUN_COLUMNS.length + 2;
       title.append(element("span", ` · ${group.runs.length} run${group.runs.length === 1 ? "" : "s"}`, "meta"));
       heading.append(title);
       body.append(heading);
@@ -471,6 +614,7 @@
     }
     wrap.append(table);
     $("run-list").append(wrap);
+    renderRunsBulkToolbar();
     if (focused) document.querySelector(`#run-list tr.run-row[data-run-id="${CSS.escape(focused)}"]`)?.focus({ preventScroll: true });
     else if (focusedSort) document.querySelector(`#run-list [data-sort="${focusedSort}"]`)?.focus({ preventScroll: true });
   }
@@ -613,7 +757,7 @@
   }
   function tickElapsed() {
     const run = state.run;
-    if (!state.session || !run || !isRunningRun(run) || state.route?.page !== "runs" || run.id !== state.selected) { stopLiveTicker(); return; }
+    if (!state.session || !run || !isRunningRun(run) || activeSubPageFor(state.route) !== "runs" || run.id !== state.selected) { stopLiveTicker(); return; }
     const ms = ui.elapsedSince(Number.isSafeInteger(run.started_at_ms) ? run.started_at_ms : null);
     $("run-elapsed").textContent = ui.formatDuration(ms);
     $("run-elapsed").classList.toggle("not-recorded", ms === null);
@@ -856,43 +1000,141 @@
     $("header-rerun").disabled = $("rerun-exact").disabled;
   }
 
+  function subscribeEvents(listener) {
+    if (typeof listener !== "function") return () => {};
+    state.eventSubscribers.add(listener);
+    return () => { state.eventSubscribers.delete(listener); };
+  }
+  function emitEvent(eventName, payload) {
+    for (const listener of state.eventSubscribers) {
+      try { listener(eventName, payload); } catch (_) {}
+    }
+  }
+  function parseSseBlock(block) {
+    if (!block || !block.trim()) return null;
+    let event = "message";
+    let comment = "";
+    const data = [];
+    for (const line of block.split("\n")) {
+      if (line.startsWith(":")) comment = line.slice(1).trim();
+      else if (line.startsWith("event:")) event = line.slice(6).trim();
+      else if (line.startsWith("data:")) data.push(line.slice(5).replace(/^ /, ""));
+    }
+    if (data.length) return { event, data: data.join("\n") };
+    if (comment) return { event: "heartbeat", data: "" };
+    return null;
+  }
+  function applySseFrame(frame) {
+    if (!frame) return false;
+    if (frame.event === "heartbeat") {
+      state.observedAt = Date.now();
+      connection("Live · authenticated", true);
+      emitEvent("heartbeat", {});
+      return true;
+    }
+    let payload = null;
+    try { payload = frame.data ? JSON.parse(frame.data) : {}; } catch { throw new Error("Invalid SSE event payload."); }
+    if (frame.event === "ready") {
+      state.events.ready = payload;
+      state.observedAt = Date.now();
+      connection("Live · authenticated", true);
+      emitEvent("ready", payload);
+      return true;
+    }
+    if (frame.event === "ci" || frame.event === "snapshot") {
+      if (!Number.isSafeInteger(payload.version) || payload.version < 0 || !Array.isArray(payload.runs)) {
+        throw new Error("Invalid live CI snapshot identity; the previous view may be stale.");
+      }
+      if (BigInt(payload.version) < BigInt(state.liveVersion)) {
+        throw new Error("The live version moved backwards. Refresh to re-establish service state.");
+      }
+      const versionChanged = String(payload.version) !== state.liveVersion;
+      state.liveVersion = String(payload.version);
+      state.liveRunning = ui.liveActivity(payload.runs).running;
+      state.events.ci = payload;
+      state.observedAt = Date.now();
+      connection("Live · authenticated", true);
+      const incoming = new Map(payload.runs.map((run) => [run.id, run]));
+      const activeSubPage = state.route?.tab || state.route?.page;
+      if (!versionChanged) renderRunList();
+      else if (activeSubPage === "runs") void readAction(loadRuns)();
+      else if (["overview", "workers", "operations", "activity", "project"].includes(activeSubPage)) void readAction(loadPage)();
+      if (state.selected && incoming.has(state.selected)) adoptRun(incoming.get(state.selected));
+      emitEvent("ci", payload);
+      return true;
+    }
+    if (frame.event === "fleet") {
+      state.events.fleet = payload;
+      state.events.fleetObservedAt = Date.now();
+      updateGlobalLiveStrip();
+      emitEvent("fleet", payload);
+      if (state.route?.page === "overview" && !payload?.unavailable) void refreshFactoryFromSse("fleet");
+      return true;
+    }
+    if (frame.event === "cairn") {
+      state.events.cairn = payload;
+      emitEvent("cairn", payload);
+      if (state.route?.page === "overview") void refreshFactoryFromSse("cairn");
+      else if ((state.route?.tab || state.route?.page) === "cairn") void readAction(loadPage)();
+      return true;
+    }
+    if (frame.event === "attention") {
+      state.events.attention = payload;
+      updateGlobalLiveStrip();
+      emitEvent("attention", payload);
+      if (state.route?.page === "overview" || (state.route?.page === "inbox" && (state.route?.tab || "attention") === "attention")) {
+        void refreshFactoryFromSse("attention");
+      }
+      return true;
+    }
+    return false;
+  }
   function scheduleLive(delay, generation) {
     clearTimeout(state.liveTimer);
     state.liveTimer = setTimeout(() => live(generation), delay);
   }
+  // r[impl kiln.web.multiplexed_sse_events] Single shared /api/events SSE stream per browser tab.
   async function live(generation) {
     if (!state.session || generation !== state.liveGeneration) return;
     const controller = new AbortController();
     state.liveController = controller;
     try {
-      const source = await api(`/api/live?after=${encodeURIComponent(state.liveVersion)}`, { kind: "sse", controller });
-      if (generation !== state.liveGeneration) return;
+      const body = await apiStream("/api/events", { controller });
+      if (generation !== state.liveGeneration) { await body.cancel?.().catch(() => {}); return; }
+      const reader = body.getReader();
+      const decoder = new TextDecoder("utf-8", { fatal: false });
+      let buffer = "";
       let recognized = false;
-      for (const frame of source.replace(/\r\n/g, "\n").split(/\n\n/)) {
-        let event = "message";
-        const data = [];
-        for (const line of frame.split("\n")) {
-          if (line.startsWith("event:")) event = line.slice(6).trim();
-          if (line.startsWith("data:")) data.push(line.slice(5).replace(/^ /, ""));
-          if (line.startsWith(":")) recognized = true;
+      try {
+        while (true) {
+          const part = await reader.read();
+          if (generation !== state.liveGeneration || !state.session) return;
+          if (part.done) break;
+          buffer += decoder.decode(part.value, { stream: true });
+          buffer = buffer.replace(/\r\n/g, "\n");
+          let split;
+          while ((split = buffer.indexOf("\n\n")) >= 0) {
+            const block = buffer.slice(0, split);
+            buffer = buffer.slice(split + 2);
+            const parsed = parseSseBlock(block);
+            if (applySseFrame(parsed)) {
+              recognized = true;
+              state.liveFailures = 0;
+            }
+          }
         }
-        if (event === "heartbeat") recognized = true;
-        if (event !== "snapshot") continue;
-        const snapshot = JSON.parse(data.join("\n"));
-        if (!Number.isSafeInteger(snapshot.version) || snapshot.version < 0 || !Array.isArray(snapshot.runs)) throw new Error("Invalid live snapshot identity; the previous view may be stale.");
-        if (BigInt(snapshot.version) < BigInt(state.liveVersion)) throw new Error("The live version moved backwards. Refresh to re-establish service state.");
-        const versionChanged = String(snapshot.version) !== state.liveVersion;
-        state.liveVersion = String(snapshot.version);
-        state.liveRunning = ui.liveActivity(snapshot.runs).running;
-        connection("Live · authenticated", true);
-        const incoming = new Map(snapshot.runs.map((run) => [run.id, run]));
-        if (!versionChanged) renderRunList();
-        else if (state.route.page === "runs") void readAction(loadRuns)();
-        else if (["overview", "workers", "operations", "activity", "project"].includes(state.route.page)) void readAction(loadPage)();
-        if (state.selected && incoming.has(state.selected)) adoptRun(incoming.get(state.selected));
-        recognized = true;
+        buffer += decoder.decode();
+        buffer = buffer.replace(/\r\n/g, "\n");
+        if (buffer.trim()) {
+          for (const block of buffer.split(/\n\n/)) {
+            const parsed = parseSseBlock(block);
+            if (applySseFrame(parsed)) recognized = true;
+          }
+        }
+      } finally {
+        reader.releaseLock();
       }
-      if (!recognized) throw new Error("The live endpoint returned no snapshot or heartbeat.");
+      if (!recognized) throw new Error("The live endpoint returned no event or heartbeat.");
       state.liveFailures = 0;
       connection("Live · authenticated", true);
       scheduleLive(LIVE_DELAY_MS, generation);
@@ -933,7 +1175,7 @@
   }
   async function mutate(target, payload, success) {
     if (state.mutation || !canOperate()) { if (!canOperate()) notice("This principal has read-only access. Nothing was sent."); return null; }
-    const requestId = crypto.randomUUID();
+    const requestId = payload?.request_id || crypto.randomUUID();
     const epoch = state.epoch;
     setMutation(true);
     notice("");
@@ -954,6 +1196,9 @@
     if ($("confirm-reason-field")) $("confirm-reason-field").hidden = true;
     if ($("confirm-reason")) { $("confirm-reason").value = ""; $("confirm-reason").required = false; }
     if ($("confirm-reason-error")) { $("confirm-reason-error").textContent = ""; $("confirm-reason-error").hidden = true; }
+    if ($("confirm-cli-parity")) $("confirm-cli-parity").hidden = true;
+    if ($("confirm-cli-cmd")) $("confirm-cli-cmd").textContent = "";
+    if ($("confirm-cli-status")) $("confirm-cli-status").textContent = "";
     if ($("confirm-warning")) $("confirm-warning").textContent = DEFAULT_CONFIRM_WARNING;
   }
   function dismissControl(resolved = false) {
@@ -962,7 +1207,7 @@
     if ($("control-dialog").open) $("control-dialog").close();
     $("confirm-facts").replaceChildren();
     resetConfirmReason();
-    if (!resolved && pending?.resolve) pending.resolve({ confirmed: false, reason: "" });
+    if (!resolved && pending?.resolve) pending.resolve({ confirmed: false, reason: "", requestId: pending.requestId || "" });
     if (!resolved) pending?.opener?.focus?.();
   }
   // r[impl kiln.web.design_system] Confirmation copy names the run and the verb: the title asks the decision, the
@@ -974,7 +1219,7 @@
     $("confirm-control").className = danger ? "danger" : "primary";
     $("dismiss-control").textContent = dismiss;
   }
-  function confirmControl({ title, verb, dismiss = "Cancel", danger = false, warning = DEFAULT_CONFIRM_WARNING, facts = [], reason = null, opener = null }) {
+  function confirmControl({ title, verb, dismiss = "Cancel", danger = false, warning = DEFAULT_CONFIRM_WARNING, facts = [], reason = null, cliCommand = "", requestId = crypto.randomUUID(), opener = null }) {
     dismissControl();
     return new Promise((resolve) => {
       const maxReason = reason?.maxLength || 1024;
@@ -983,10 +1228,13 @@
         opener: opener || document.activeElement,
         requireReason: Boolean(reason?.required),
         maxReason,
+        requestId,
       };
       confirmWording(title, verb, dismiss, danger);
       if ($("confirm-warning")) $("confirm-warning").textContent = warning || DEFAULT_CONFIRM_WARNING;
-      addFacts($("confirm-facts"), facts);
+      const renderedFacts = [...facts];
+      if (requestId && !renderedFacts.some(([k]) => k === "Request ID")) renderedFacts.push(["Request ID", requestId]);
+      addFacts($("confirm-facts"), renderedFacts);
       if (reason && $("confirm-reason-field") && $("confirm-reason")) {
         $("confirm-reason-field").hidden = false;
         if ($("confirm-reason-label")) $("confirm-reason-label").textContent = reason.label || "Reason";
@@ -994,6 +1242,10 @@
         $("confirm-reason").maxLength = maxReason;
         $("confirm-reason").required = Boolean(reason.required);
         $("confirm-reason").value = reason.initial || "";
+      }
+      if (cliCommand && $("confirm-cli-parity") && $("confirm-cli-cmd")) {
+        $("confirm-cli-parity").hidden = false;
+        $("confirm-cli-cmd").textContent = cliCommand;
       }
       $("control-dialog").showModal();
       (reason?.required && $("confirm-reason") ? $("confirm-reason") : $("dismiss-control")).focus();
@@ -1013,6 +1265,10 @@
       const wording = { cancel: [`Cancel run ${subject}?`, "Cancel run", queuedCancel ? (run.phase === "awaiting_approval" ? "Keep awaiting approval" : "Keep queued") : "Keep running"], pause: [`Pause run ${subject}?`, "Pause run", "Keep running"], resume: [`Resume run ${subject}?`, "Resume run", "Keep paused"] }[action];
       confirmWording(...wording, action === "cancel");
       addFacts($("confirm-facts"), [["Run", id], ["Source", run.source_revision], ["Attempt", identity.attempt_id], ["Revision", identity.expected_revision], ["Sequence", identity.expected_sequence], ["Execution", identity.execution]]);
+      if (action === "cancel" && $("confirm-cli-parity") && $("confirm-cli-cmd")) {
+        $("confirm-cli-parity").hidden = false;
+        $("confirm-cli-cmd").textContent = `kiln runs control --run ${id} --action cancel`;
+      }
       $("control-dialog").showModal();
       $("dismiss-control").focus();
     } catch (error) { if (!isAborted(error)) notice(explain(error)); }
@@ -1280,11 +1536,21 @@
     $("project-content").replaceChildren();
     stopFeedsTimer();
     stopLiveTicker();
+    stopPanePolling();
+    if ($("slide-over-inspector")) $("slide-over-inspector").hidden = true;
+    if ($("slide-over-backdrop")) $("slide-over-backdrop").hidden = true;
+    if ($("slide-over-body")) $("slide-over-body").replaceChildren();
+    state.inspector = { open: false, kind: "", id: "", items: [], paneTimer: null, paneController: null, paneLines: 200, returnFocus: null };
+    state.events = { status: "disconnected", ready: null, ci: null, fleet: null, fleetObservedAt: 0, cairn: null, attention: null };
+    state.factory = { attention: null, machines: null, claims: null, dispatch: null, cairn: null, codeReview: null, showAllClaims: false };
+    state.selectedRuns.clear();
+    clearTimeout(state.chordTimer); state.chordPrefix = ""; state.chordTimer = null;
+    if ($("global-live-strip")) $("global-live-strip").hidden = true;
     state.runSort = null; state.failureFirst = null; state.reconcileStatus = null; state.followDeclined = ""; state.startProject = "";
     $("run-progress").hidden = true;
     for (const id of ["run-supersession", "run-reconcile"]) { $(id).hidden = true; $(id).replaceChildren(); }
     for (const id of ["header-approve", "header-cancel", "header-rerun"]) $(id).hidden = true;
-    for (const id of ["work-content", "planning-content", "inbox-content", "triage-content", "workviews-content"]) $(id).replaceChildren();
+    for (const id of ["work-content", "planning-content", "inbox-content", "inbox-attention-content", "triage-content", "workviews-content"]) if ($(id)) $(id).replaceChildren();
     window.dispatchEvent(new Event("kiln-session-changed"));
     for (const controller of state.requests) controller.abort();
     state.requests.clear();
@@ -1341,6 +1607,7 @@
     for (const id of ["overview-content", "project-cards", "reports-content", "compare-content", "activity-content", "run-activity-content", "evidence-content", "run-evidence-content", "automation-content", "operations-content", "principal-facts", "node-facts", "pipeline-graph", "source-status", "page-primary-action"]) $(id).replaceChildren();
     for (const id of ["workflow-title", "workflow-caption", "workflow-summary"]) $(id).replaceChildren();
     state.graphRun = null; state.graphZoom = 1;
+    state.routeLoaded = false;
     $("operator-token").value = "";
     $("workspace").hidden = true;
     $("run-detail").hidden = true;
@@ -1389,6 +1656,8 @@
     if (state.principal?.agent) principalFacts.push(["Agent", `${text(state.principal.agent.harness)}${state.principal.agent.model ? ` · ${text(state.principal.agent.model)}` : ""} (declared)`]);
     addFacts($("principal-facts"), principalFacts);
     notice("");
+    if ($("global-live-strip")) $("global-live-strip").hidden = false;
+    updateGlobalLiveStrip();
     projectDescriptions();
     startLive();
     await restoreRoute();
@@ -1406,8 +1675,81 @@
       if (!isAborted(error) && epoch === state.epoch) notice(`Network access unavailable: ${explain(error)}`);
     }
   }
-  // r[impl kiln.web.wayfinding] The admitted pages are exactly the register's destinations.
+  // r[impl kiln.web.wayfinding] r[impl kiln.web.console_inventory_seven_destinations]
+  // The admitted pages are the 7 consolidated destinations + footer + legacy deep-link aliases.
   const pages = ui.destinations.map((place) => place.page);
+  const LEGACY_PAGE_ALIASES = Object.freeze({
+    triage: Object.freeze({ page: "inbox", tab: "triage" }),
+    work: Object.freeze({ page: "cairn", tab: "work" }),
+    planning: Object.freeze({ page: "cairn", tab: "planning" }),
+    workviews: Object.freeze({ page: "cairn", tab: "workviews" }),
+    projects: Object.freeze({ page: "runs", tab: "projects" }),
+    project: Object.freeze({ page: "runs", tab: "project" }),
+    runbooks: Object.freeze({ page: "runs", tab: "runbooks" }),
+    reviews: Object.freeze({ page: "runs", tab: "reviews" }),
+    evidence: Object.freeze({ page: "runs", tab: "evidence" }),
+    workers: Object.freeze({ page: "fleet", tab: "workers" }),
+    activity: Object.freeze({ page: "source", tab: "activity" }),
+    feeds: Object.freeze({ page: "source", tab: "feeds" }),
+    automation: Object.freeze({ page: "source", tab: "automation" }),
+    operations: Object.freeze({ page: "source", tab: "operations" }),
+    cobs: Object.freeze({ page: "source", tab: "cobs" }),
+  });
+  const DESTINATION_TABS = Object.freeze({
+    inbox: Object.freeze([
+      Object.freeze({ id: "attention", label: "Escalations", panel: "inbox-attention" }),
+      Object.freeze({ id: "inbox", label: "My inbox", panel: "inbox" }),
+      Object.freeze({ id: "triage", label: "Requests & triage", panel: "triage" }),
+    ]),
+    cairn: Object.freeze([
+      Object.freeze({ id: "cairn", label: "Cairn changes", panel: "cairn" }),
+      Object.freeze({ id: "work", label: "Issues", panel: "work" }),
+      Object.freeze({ id: "planning", label: "Planning", panel: "planning" }),
+      Object.freeze({ id: "workviews", label: "Saved views", panel: "workviews" }),
+    ]),
+    runs: Object.freeze([
+      Object.freeze({ id: "runs", label: "Retained runs", panel: "runs" }),
+      Object.freeze({ id: "projects", label: "CI projects", panel: "projects" }),
+      Object.freeze({ id: "runbooks", label: "Runbooks", panel: "runbooks" }),
+      Object.freeze({ id: "reviews", label: "Patchgate receipts", panel: "reviews" }),
+      Object.freeze({ id: "evidence", label: "Evidence", panel: "evidence" }),
+    ]),
+    fleet: Object.freeze([
+      Object.freeze({ id: "fleet", label: "Fleet coordinator", panel: "fleet" }),
+      Object.freeze({ id: "workers", label: "Worker targets", panel: "workers" }),
+    ]),
+    source: Object.freeze([
+      Object.freeze({ id: "source", label: "Source browser", panel: "source" }),
+      Object.freeze({ id: "activity", label: "Activity", panel: "activity" }),
+      Object.freeze({ id: "feeds", label: "Feeds", panel: "feeds" }),
+      Object.freeze({ id: "automation", label: "Automation", panel: "automation" }),
+      Object.freeze({ id: "operations", label: "Operations", panel: "operations" }),
+      Object.freeze({ id: "cobs", label: "Collaboration history", panel: "cobs" }),
+    ]),
+  });
+  const ALLOWED_TABS = Object.freeze({
+    inbox: new Set(["attention", "inbox", "triage"]),
+    cairn: new Set(["cairn", "work", "planning", "workviews"]),
+    runs: new Set(["runs", "projects", "project", "runbooks", "reviews", "evidence"]),
+    fleet: new Set(["fleet", "workers"]),
+    source: new Set(["source", "activity", "feeds", "automation", "operations", "cobs"]),
+  });
+  const INSPECT_KINDS = new Set(["attempt", "claim", "decision", "attention", "run", "cairn", "review"]);
+  function parseInspectParam(raw) {
+    if (typeof raw !== "string" || !raw) return "";
+    const idx = raw.indexOf(":");
+    if (idx <= 0) return "";
+    const kind = raw.slice(0, idx);
+    const id = raw.slice(idx + 1);
+    if (!INSPECT_KINDS.has(kind)) return "";
+    if (!id || id.length > 512 || /[\u0000-\u001f\u007f\s]/.test(id) || id.includes("..")) return "";
+    return `${kind}:${id}`;
+  }
+  const activeSubPageFor = (route) => route?.tab || route?.page || "overview";
+  const activePanelFor = (route) => {
+    const sub = activeSubPageFor(route);
+    return route?.page === "inbox" && sub === "attention" ? "inbox-attention" : sub;
+  };
   const views = ["pipeline", "logs", "artifacts", "tests", "reviews", "compare", "activity", "evidence"];
   // r[impl kiln.web.live_activity] The running count opens the pending-run list with no other filter or selection,
   // where each row states whether it is running, queued or awaiting approval.
@@ -1466,8 +1808,17 @@
     const params = new URLSearchParams(location.search);
     // Accept catalog-style fragment links as well, but never read credentials from either location.
     if (location.hash.startsWith("#page=")) for (const [key, value] of new URLSearchParams(location.hash.slice(1))) if (!params.has(key)) params.set(key, value);
+    const requestedPage = pages.includes(params.get("page")) ? params.get("page") : "overview";
+    const alias = Object.hasOwn(LEGACY_PAGE_ALIASES, requestedPage) ? LEGACY_PAGE_ALIASES[requestedPage] : null;
+    const page = alias ? alias.page : requestedPage;
+    const rawTab = params.get("tab") || "";
+    const allowedTabs = ALLOWED_TABS[page];
+    const defaultTab = alias ? alias.tab : (page === "inbox" ? (params.get("work_id") ? "inbox" : "attention") : allowedTabs ? page : "");
+    const tab = allowedTabs ? (allowedTabs.has(rawTab) ? rawTab : defaultTab) : "";
     return {
-      page: pages.includes(params.get("page")) ? params.get("page") : "overview",
+      page,
+      tab,
+      inspect: parseInspectParam(params.get("inspect") || ""),
       view: views.includes(params.get("view")) ? params.get("view") : "pipeline",
       run: params.get("run") || "", node: params.get("node") || "",
       // An absent stream stays empty so failure-first defaults can apply; a URL-named stream always wins.
@@ -1493,6 +1844,7 @@
       work_status: (params.get("work_status") || "").slice(0, 128), work_assignee: (params.get("work_assignee") || "").slice(0, 128), work_project: (params.get("work_project") || "").slice(0, 16_384),
       work_ci_project: (params.get("work_ci_project") || "").slice(0, 16_384), work_ci_repository: (params.get("work_ci_repository") || "").slice(0, 16_384),
       work_view: (params.get("work_view") || "").slice(0, 128), work_layout: ["board", "list"].includes(params.get("work_layout")) ? params.get("work_layout") : "", work_group: (params.get("work_group") || "").slice(0, 32), work_sort: (params.get("work_sort") || "").slice(0, 32),
+      review_tab: ["changes", "queue"].includes(params.get("review_tab")) ? params.get("review_tab") : "",
       review_change: (params.get("review_change") || "").slice(0, 128), review_revision: (params.get("review_revision") || "").slice(0, 128), review_base: (params.get("review_base") || "").slice(0, 128),
       review_file: (params.get("review_file") || "").slice(0, 1024), review_side: ["base", "revision"].includes(params.get("review_side")) ? params.get("review_side") : "", review_line: (params.get("review_line") || "").slice(0, 16),
       review_whitespace: ["exact", "ignore_all", "ignore_change", "ignore_eol"].includes(params.get("review_whitespace")) ? params.get("review_whitespace") : "",
@@ -1517,42 +1869,93 @@
       theme: ["system", "light", "dark"].includes(params.get("theme")) ? params.get("theme") : "system", density: params.get("density") === "compact" ? "compact" : "comfortable"
     };
   }
+  function sameRouteExceptInspect(a, b) {
+    if (!a || !b) return false;
+    const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+    for (const key of keys) {
+      if (key === "inspect") continue;
+      if (a[key] !== b[key]) return false;
+    }
+    return true;
+  }
   function navigate(patch) {
-    const route = { ...state.route, ...patch };
-    if (Object.hasOwn(patch, "run") && patch.run !== state.route.run && !Object.hasOwn(patch, "activity_cursor")) route.activity_cursor = "";
-    if ((Object.hasOwn(patch, "fanout") && patch.fanout !== state.route.fanout || Object.hasOwn(patch, "dispatch") && patch.dispatch !== state.route.dispatch) && !Object.hasOwn(patch, "rollup_cursor")) route.rollup_cursor = "";
+    const normalized = { ...patch };
+    if (Object.hasOwn(normalized, "page") && Object.hasOwn(LEGACY_PAGE_ALIASES, normalized.page)) {
+      const alias = LEGACY_PAGE_ALIASES[normalized.page];
+      normalized.page = alias.page;
+      if (!Object.hasOwn(normalized, "tab")) normalized.tab = alias.tab;
+    } else if (Object.hasOwn(normalized, "page") && normalized.page !== state.route?.page && !Object.hasOwn(normalized, "tab")) {
+      normalized.tab = "";
+    }
+    const route = { ...state.route, ...normalized };
+    if (Object.hasOwn(normalized, "run") && normalized.run !== state.route?.run && !Object.hasOwn(normalized, "activity_cursor")) route.activity_cursor = "";
+    if ((Object.hasOwn(normalized, "fanout") && normalized.fanout !== state.route?.fanout || Object.hasOwn(normalized, "dispatch") && normalized.dispatch !== state.route?.dispatch) && !Object.hasOwn(normalized, "rollup_cursor")) route.rollup_cursor = "";
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(route)) if (value) params.set(key, value);
     history.pushState(null, "", `${location.pathname}?${params}`);
     void readAction(restoreRoute)();
   }
+  function renderDestinationTabs(route, routeHref) {
+    const bar = $("destination-tabs");
+    if (!bar) return;
+    const tabs = DESTINATION_TABS[route.page];
+    if (!tabs || !tabs.length) { bar.hidden = true; bar.replaceChildren(); return; }
+    const activeTab = activeSubPageFor(route) === "project" ? "projects" : activeSubPageFor(route);
+    bar.hidden = false;
+    bar.replaceChildren();
+    for (const tab of tabs) {
+      const link = element("a", tab.label);
+      link.dataset.tab = tab.id;
+      link.href = routeHref({ page: route.page, tab: tab.id });
+      if (tab.id === activeTab) link.setAttribute("aria-current", "page");
+      link.addEventListener("click", (event) => {
+        if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+          event.preventDefault();
+          navigate({ page: route.page, tab: tab.id });
+        }
+      });
+      bar.append(link);
+    }
+  }
   async function restoreRoute() {
     const previous = state.route;
     state.route = readRoute();
-    if (previous?.page === "code-review" && state.route.page !== "code-review") window.KilnCodeReview?.clear();
-    if (previous?.page === "project" && state.route.page !== "project") window.KilnProject?.clear();
-    if (previous?.page === "source" && state.route.page !== "source") window.KilnSource?.clear();
-    if (previous?.page === "reviews" && state.route.page !== "reviews") window.KilnReceipts?.clear();
-    if (previous?.page === "cairn" && state.route.page !== "cairn") window.KilnCairn?.clear();
-    if (previous?.page === "fleet" && state.route.page !== "fleet") window.KilnFleet?.clear();
-    if (previous?.page === "runbooks" && state.route.page !== "runbooks") window.KilnRunbooks?.clear();
-    // r[impl kiln.web.live_progress] Leaving the run (or the runs page) stops its elapsed ticker.
-    if (previous && (state.route.page !== "runs" || previous.run !== state.route.run)) stopLiveTicker();
     const route = state.route;
+    const prevSub = previous ? activeSubPageFor(previous) : "";
+    const nextSub = activeSubPageFor(route);
+    const routeHref = (patch) => `?${new URLSearchParams(Object.entries({ ...route, ...patch }).filter(([, value]) => value))}`;
+    if (previous && state.session && state.routeLoaded && previous.inspect !== route.inspect && sameRouteExceptInspect(previous, route)) {
+      for (const node of document.querySelectorAll("a[data-page]")) node.href = routeHref({ page: node.dataset.page, tab: "" });
+      for (const node of document.querySelectorAll("a[data-view]")) node.href = routeHref({ view: node.dataset.view });
+      renderDestinationTabs(route, routeHref);
+      if (state.session) syncInspectorFromRoute(route);
+      return;
+    }
+    if (prevSub === "code-review" && nextSub !== "code-review") window.KilnCodeReview?.clear();
+    if (prevSub === "project" && nextSub !== "project") window.KilnProject?.clear();
+    if (prevSub === "source" && nextSub !== "source") window.KilnSource?.clear();
+    if (prevSub === "reviews" && nextSub !== "reviews") window.KilnReceipts?.clear();
+    if (prevSub === "cairn" && nextSub !== "cairn") window.KilnCairn?.clear();
+    if (prevSub === "fleet" && nextSub !== "fleet") window.KilnFleet?.clear();
+    if (prevSub === "runbooks" && nextSub !== "runbooks") window.KilnRunbooks?.clear();
+    // r[impl kiln.web.live_progress] Leaving the run (or the runs page) stops its elapsed ticker.
+    if (previous && (nextSub !== "runs" || previous.run !== route.run)) stopLiveTicker();
     document.documentElement.dataset.theme = route.theme;
     document.documentElement.dataset.density = route.density;
     $("app-theme").value = route.theme;
     for (const node of $("theme-switch").children) node.setAttribute("aria-pressed", String(node.dataset.themeChoice === route.theme));
     $("app-density").value = route.density;
-    for (const node of document.querySelectorAll("[data-panel]")) node.hidden = node.dataset.panel !== route.page;
-    // The project history page belongs to the CI projects destination in the rail (its register parent).
+    const activePanel = activePanelFor(route);
+    for (const node of document.querySelectorAll("[data-panel]")) node.hidden = node.dataset.panel !== activePanel;
     const navPage = ui.destination(route.page).parent || route.page;
-    // Link targets mirror navigate(patch), so a new tab opens the same destination a plain click does.
-    const routeHref = (patch) => `?${new URLSearchParams(Object.entries({ ...route, ...patch }).filter(([, value]) => value))}`;
-    for (const node of document.querySelectorAll("a[data-page]")) node.href = routeHref({ page: node.dataset.page });
+    for (const node of document.querySelectorAll("a[data-page]")) node.href = routeHref({ page: node.dataset.page, tab: "" });
     for (const node of document.querySelectorAll("a[data-view]")) node.href = routeHref({ view: node.dataset.view });
     $("live-activity").href = routeHref(PENDING_RUNS);
     $("brand-home").href = routeHref(HOME);
+    if ($("global-firing-pill")) $("global-firing-pill").href = routeHref(PENDING_RUNS);
+    if ($("global-escalations-pill")) $("global-escalations-pill").href = routeHref({ page: "inbox", tab: "attention" });
+    if ($("global-expiring-claims-pill")) $("global-expiring-claims-pill").href = routeHref({ page: "fleet", tab: "fleet" });
+    renderDestinationTabs(route, routeHref);
     for (const node of document.querySelectorAll("[data-page]")) { if (node.dataset.page === navPage) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
     for (const group of document.querySelectorAll(".app-navigation details")) {
       if (group.querySelector('[aria-current="page"]')) group.open = true;
@@ -1567,18 +1970,19 @@
       if (box.top < frame.top) rail.scrollTop -= frame.top - box.top;
       else if (box.bottom > frame.bottom) rail.scrollTop += box.bottom - frame.bottom;
     }
-    $("workspace").classList.toggle("page-frame-wide", route.page === "runs");
+    $("workspace").classList.toggle("page-frame-wide", ["overview", "runs", "code-review"].includes(route.page));
     $("run-split").classList.toggle("has-run", Boolean(route.run));
     applyRunPanels();
     for (const node of document.querySelectorAll("[data-view]")) { if (node.dataset.view === route.view) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
     // r[impl kiln.web.wayfinding] The title block reads the destination register: section number and group, title, purpose.
     const place = ui.destination(route.page);
+    const subPlace = nextSub !== route.page ? ui.destination(nextSub) : null;
     $("workspace-title").textContent = place.title;
-    $("app-breadcrumb").textContent = `${place.number} ${place.title}`;
+    $("app-breadcrumb").textContent = subPlace ? `${place.number} ${place.title} / ${subPlace.title}` : `${place.number} ${place.title}`;
     document.title = `Kiln · ${place.title}`;
     $("workspace-eyebrow").replaceChildren(element("span", place.number, "page-number"), document.createTextNode(ui.destinationGroup(place.group).name));
-    $("observation-note").textContent = place.purpose;
-    if (previous?.page !== route.page) {
+    $("observation-note").textContent = subPlace ? subPlace.purpose : place.purpose;
+    if (previous?.page !== route.page || prevSub !== nextSub) {
       notice("");
       $("page-primary-action").replaceChildren();
       $("workspace-title").tabIndex = -1;
@@ -1595,9 +1999,10 @@
     }
     setMenu(false);
     if (!state.session) return;
-    if (previous && (previous.page !== route.page || previous.run !== route.run || previous.node !== route.node || (previous.view !== route.view && !bothPrimaryPanels()) || previous.stream !== route.stream)) resetLogs();
+    state.routeLoaded = true;
+    if (previous && (prevSub !== nextSub || previous.run !== route.run || previous.node !== route.node || (previous.view !== route.view && !bothPrimaryPanels()) || previous.stream !== route.stream)) resetLogs();
     state.pageGeneration++;
-    if (route.page === "runs") {
+    if (nextSub === "runs") {
       if (state.selected !== route.run) {
         state.selected = route.run || null; state.run = null; state.observedAt = 0;
         state.detailGeneration++; state.artifactsGeneration++;
@@ -1612,12 +2017,13 @@
       else { state.selected = null; state.run = null; $("run-detail").hidden = true; $("empty-run").hidden = false; $("empty-run-title").textContent = "Select a run"; $("empty-run-message").textContent = "Choose a retained run. No run is selected automatically."; }
     } else await loadPage();
     if (state.route !== route || !state.session) return;
-    if (route.page === "runs" && route.run && previous?.run !== route.run && state.run) {
+    syncInspectorFromRoute(route);
+    if (nextSub === "runs" && route.run && previous?.run !== route.run && state.run) {
       $("run-title").tabIndex = -1;
       $("run-title").focus({ preventScroll: true });
       // A failed run already revealed its first error line; keep that view instead of jumping back to the title.
       if (!(state.failureFirst?.run === route.run && state.failureFirst.revealed)) $("run-title").scrollIntoView({ block: "start" });
-    } else if (route.page === "runs" && route.run && previous?.view !== route.view) {
+    } else if (nextSub === "runs" && route.run && previous?.view !== route.view) {
       const heading = document.querySelector(`[data-run-panel="${route.view}"] h2`);
       heading.tabIndex = -1;
       heading.focus({ preventScroll: true });
@@ -1731,9 +2137,12 @@
       for (const key of combo) term.append(element("kbd", key));
       list.append(term, element("dd", meaning));
     };
-    keyRow(reference, ["Ctrl", "K"], "Search and commands: jump to any numbered destination, issue, project or run (⌘ K on macOS).");
-    keyRow(reference, ["Esc"], "Close a menu, dialog, the command palette or the expanded navigation.");
-    keyRow(reference, ["↑", "↓", "Enter"], "Run list: move between rows and open the focused run.");
+    keyRow(reference, ["Ctrl", "K"], "Search and commands: jump to any destination, Fleet claim, attempt, Cairn change, campaign, worker, review or run, or run > verbs (⌘ K on macOS).");
+    keyRow(reference, ["g", "f / a / d / r / c / m"], "Navigation chords: Factory (f), Attention (a), Delivery & Cairn (d), Runs (r), Code Review (c), Fleet & Machines (m).");
+    keyRow(reference, ["[", "]"], "Slide-Over Inspector: step to the previous or next item.");
+    keyRow(reference, ["Esc"], "Close the Slide-Over Inspector, menu, dialog, command palette or expanded navigation.");
+    keyRow(reference, ["↑", "↓", "Enter", "x"], "Run list: move between rows, open the focused run, or select rows for bulk controls.");
+    keyRow(reference, ["a", "r", "p", "Shift+X"], "Attention triage: approve/accept (a), renew/reconcile (r), peek/prompt (p), cancel/reject (Shift+X).");
     keyRow(reference, ["j", "k", "Enter", "Space", "x"], "Work lists: move, open, peek and select rows; Shift F10 opens a row's actions.");
     keys.append(reference);
     // The review table is the one the review page binds; it is listed only when that module has loaded.
@@ -2077,8 +2486,9 @@
   }
   async function loadPage() {
     const route = state.route;
-    if (route.page !== "feeds") stopFeedsTimer();
-    if (route.page === "code-review") {
+    const subPage = activeSubPageFor(route);
+    if (subPage !== "feeds") stopFeedsTimer();
+    if (subPage === "code-review") {
       await window.KilnCodeReview.load($("code-review-content"), {
         api,
         navigate: (patch) => navigate({ ...patch, page: "code-review" }),
@@ -2089,28 +2499,32 @@
       });
       return;
     }
-    if (["work", "planning", "inbox", "triage", "workviews"].includes(route.page)) {
-      const parent = $(route.page + "-content");
-      if (!window.KilnWorkUI) { parent.replaceChildren(element("p", "Work interface is loading.", "small")); return; }
-      await window.KilnWorkUI.render(parent, route);
+    if (route.page === "inbox" && subPage === "attention") {
+      await loadAttentionPage();
       return;
     }
-    if (route.page === "overview") await loadOverview();
-    if (route.page === "guide") renderGuide($("guide-content"));
+    if (["work", "planning", "inbox", "triage", "workviews"].includes(subPage)) {
+      const parent = $(subPage + "-content");
+      if (!window.KilnWorkUI) { parent.replaceChildren(element("p", "Work interface is loading.", "small")); return; }
+      await window.KilnWorkUI.render(parent, { ...route, page: subPage });
+      return;
+    }
+    if (subPage === "overview") await loadOverview();
+    if (subPage === "guide") renderGuide($("guide-content"));
     // r[impl kiln.web.project_page] Project history renders through project.js; Run latest reuses the existing start form.
-    if (route.page === "project") {
+    if (subPage === "project") {
       if (!window.KilnProject) { $("project-content").replaceChildren(element("p", "Project history is loading.", "small")); return; }
       await window.KilnProject.load($("project-content"), { api, navigate, project: route.project, canOperate: canOperate(), startRun });
       return;
     }
-    if (route.page === "projects") {
+    if (subPage === "projects") {
       renderProjects();
       if (state.startProject) { selectProjectForRun(state.startProject); state.startProject = ""; }
       await Promise.all([loadRefs(), loadProjectHealth()]);
     }
     // r[impl kiln.dashboard.workers.view] The Workers module owns its register, local filters and exact detail.
-    if (route.page === "workers") await window.KilnWorkers.load($("workers-content"), { api, navigate, route, isCurrent: () => state.route === route && !!state.session, runLink, projectLink });
-    if (route.page === "runbooks") {
+    if (subPage === "workers") await window.KilnWorkers.load($("workers-content"), { api, navigate, route, isCurrent: () => state.route === route && !!state.session, runLink, projectLink });
+    if (subPage === "runbooks") {
       if (!window.KilnRunbooks) { $("runbooks-content").replaceChildren(element("p", "Runbooks are loading.", "small")); return; }
       await window.KilnRunbooks.load($("runbooks-content"), {
         api,
@@ -2125,38 +2539,49 @@
       });
       return;
     }
-    if (route.page === "activity") await renderEndpoint(`/api/activity?${activityQuery()}`, "activity-content", renderActivity);
-    if (route.page === "evidence") {
+    if (subPage === "activity") await renderEndpoint(`/api/activity?${activityQuery()}`, "activity-content", renderActivity);
+    if (subPage === "evidence") {
       void loadRunChoices();
       if (route.run) await renderEndpoint(`${pathFor(route.run)}/evidence`, "evidence-content", renderEvidence);
       else $("evidence-content").replaceChildren(element("p", "Enter a retained run ID. No evidence from another attempt is substituted.", "small"));
     }
-    if (route.page === "feeds") await loadFeeds();
-    if (route.page === "automation") await renderEndpoint("/api/automation", "automation-content", renderAutomation);
-    if (route.page === "operations") await renderEndpoint("/api/operations", "operations-content", renderOperations);
-    if (route.page === "cobs") await loadCobs();
+    if (subPage === "feeds") await loadFeeds();
+    if (subPage === "automation") await renderEndpoint("/api/automation", "automation-content", renderAutomation);
+    if (subPage === "operations") await renderEndpoint("/api/operations", "operations-content", renderOperations);
+    if (subPage === "cobs") await loadCobs();
     // r[impl kiln.dashboard.source.navigation] The Source page renders through source.js.
-    if (route.page === "source") {
+    if (subPage === "source") {
       if (!window.KilnSource) { $("source-content").replaceChildren(element("p", "Source browser is loading.", "small")); return; }
       await window.KilnSource.load($("source-content"), { api, navigate, route });
     }
     // r[impl kiln.dashboard.reviews.view] The Patchgate receipts page renders through receipts.js.
-    if (route.page === "reviews") {
+    if (subPage === "reviews") {
       if (!window.KilnReceipts) { $("receipts-content").replaceChildren(element("p", "Patchgate receipts are loading.", "small")); return; }
       await window.KilnReceipts.load($("receipts-content"), { api, navigate, route });
     }
     // r[impl kiln.cairn.workspace] The Cairn changes page renders through cairn.js.
-    if (route.page === "cairn") {
+    if (subPage === "cairn") {
       if (!window.KilnCairn) { $("cairn-content").replaceChildren(element("p", "Cairn changes are loading.", "small")); return; }
       await window.KilnCairn.load($("cairn-content"), { api, navigate, route, runLink });
     }
     // The Fleet page owns its bounded reads and coordinator commands; leaving the
     // page aborts its refresh cycle.
-    if (route.page === "fleet") {
+    if (subPage === "fleet") {
       if (!window.KilnFleet) { $("fleet-content").replaceChildren(element("p", "Fleet coordination is loading.", "small")); return; }
-      await window.KilnFleet.load($("fleet-content"), { api, stream: apiStream, navigate, runLink, canOperate, confirmControl, route, isCurrent: () => state.route === route && !!state.session });
+      await window.KilnFleet.load($("fleet-content"), {
+        api,
+        stream: apiStream,
+        subscribeEvents,
+        openInspector,
+        navigate,
+        runLink,
+        canOperate,
+        confirmControl,
+        route,
+        isCurrent: () => state.route === route && !!state.session,
+      });
     }
-    if (route.page === "runs") await loadRunView();
+    if (subPage === "runs") await loadRunView();
   }
   async function loadRunView() {
     const route = state.route;
@@ -2450,22 +2875,42 @@
     return node;
   }
   function buildOverview(parent) {
-    const grid = element("div", undefined, "dashboard-grid");
-    const main = element("div", undefined, "dashboard-main");
-    const side = element("div", undefined, "dashboard-side");
-    dashboardSection(main, "overview-attention", "Needs attention", "dashboard-section");
-    dashboardSection(main, "overview-passed", "Recently passed", "card dashboard-section");
-    dashboardSection(main, "overview-other", "In progress & unresolved", "card dashboard-section");
-    dashboardSection(main, "overview-health", "Project health", "card health-hero");
+    const cockpit = element("div", undefined, "factory-cockpit");
+    const ribbon = element("dl", undefined, "factory-telemetry-ribbon");
+    ribbon.id = "factory-ribbon";
+    const grid = element("div", undefined, "factory-grid");
+    const main = element("div", undefined, "factory-main");
+    const side = element("div", undefined, "factory-side");
+    dashboardSection(main, "factory-attention", "Attention & escalations", "card dashboard-section", workspaceLink({ page: "inbox", tab: "attention" }, "Open full Attention"));
+    const deliverySection = dashboardSection(main, "factory-delivery", "Live delivery spine & merge train", "card dashboard-section", workspaceLink({ page: "cairn" }, "Open full Delivery"));
+    const mergeTrainStrip = element("div", undefined, "factory-merge-train-strip");
+    mergeTrainStrip.id = "factory-merge-train";
+    const spineList = element("div", undefined, "delivery-spine-list");
+    spineList.id = "factory-spine";
+    const deliveryBody = deliverySection.querySelector(".dashboard-section-body");
+    deliveryBody?.append(mergeTrainStrip, spineList);
+    const ciDetails = element("details", undefined, "panel overview-timing");
+    const ciSummary = element("summary", "CI project health & retained runs");
+    const ciStack = element("div", undefined, "view-stack");
+    dashboardSection(ciStack, "overview-health", "Project health", "card health-hero");
+    dashboardSection(ciStack, "overview-attention", "Failing CI projects", "dashboard-section");
+    dashboardSection(ciStack, "overview-passed", "Recently passed", "card dashboard-section");
+    dashboardSection(ciStack, "overview-other", "In progress & unresolved", "card dashboard-section");
     const trend = element("details", undefined, "panel overview-timing");
     const trendBody = element("div", undefined, "stack stack-sm");
     trendBody.id = "overview-trend";
     trend.append(element("summary", "Recorded duration trend"), trendBody);
-    main.append(trend);
+    ciStack.append(trend);
+    ciDetails.append(ciSummary, ciStack);
+    main.append(ciDetails);
+
+    dashboardSection(side, "factory-machines", "Machine & slot census", "card side-card", workspaceLink({ page: "fleet", tab: "fleet" }, "Open Fleet"));
+    dashboardSection(side, "factory-claims", "Claims & budget", "card side-card", workspaceLink({ page: "fleet", tab: "fleet" }, "All claims"));
     dashboardSection(side, "overview-workers", "Workers", "card side-card", workspaceLink({ page: "workers", worker_q: "", worker_status: "", worker: "" }, "All workers"));
     dashboardSection(side, "overview-activity", "Recent activity", "card side-card", workspaceLink({ page: "activity", activity_cursor: "" }, "All activity"));
     grid.append(main, side);
-    parent.replaceChildren(grid);
+    cockpit.append(ribbon, grid);
+    parent.replaceChildren(cockpit);
   }
   function setSectionCount(id, value) { const node = $(`${id}-count`); if (node) node.textContent = value; }
   // r[impl kiln.web.console_layout.scenario.unavailable]
@@ -2494,13 +2939,547 @@
       }
     }
   }
+  function safeCall(path) {
+    return api(path, { quiet: true }).then((value) => ({ ok: true, value }), (error) => ({ ok: false, error }));
+  }
+  function renderFactoryRibbon() {
+    const ribbon = $("factory-ribbon");
+    if (!ribbon) return;
+    const dispatch = state.factory.dispatch;
+    const claims = state.factory.claims;
+    const machines = state.factory.machines?.machines || [];
+    const attention = state.factory.attention;
+    const now = Date.now();
+    const openClaims = claims?.claims || [];
+    const expiringCount = openClaims.filter((c) => Number.isSafeInteger(c.expires_ms) && c.expires_ms - now <= LEASE_EXPIRING_MS).length;
+    const foreignCount = (claims?.foreign_claims || []).length;
+    let usedSlots = 0;
+    let capSlots = 0;
+    let offlineMachines = 0;
+    for (const m of machines) {
+      if (m.health === "unavailable") { offlineMachines++; continue; }
+      if (m.slots && typeof m.slots === "object") {
+        for (const s of Object.values(m.slots)) {
+          if (Number.isSafeInteger(s?.used)) usedSlots += s.used;
+          if (Number.isSafeInteger(s?.capacity)) capSlots += s.capacity;
+        }
+      }
+    }
+    const dispatchState = dispatch?.state === "paused" ? "PAUSED" : dispatch?.state === "running" ? "RUNNING" : "UNAVAILABLE";
+    const deferred = dispatch?.last_tick?.deferred_count ?? 0;
+    const mirror = claims?.foreign_mirror?.status || "unconfigured";
+    const escalations = attention?.total ?? 0;
+
+    ribbon.replaceChildren();
+    const addCell = (term, buildValue) => {
+      const box = element("div", undefined, "factory-telemetry-cell");
+      const dt = element("dt", term);
+      const dd = element("dd");
+      buildValue(dd);
+      box.append(dt, dd);
+      ribbon.append(box);
+    };
+    addCell("Dispatch", (dd) => {
+      dd.append(statePill(dispatchState === "RUNNING" ? "success" : dispatchState === "PAUSED" ? "warning" : "unknown", dispatchState));
+      if (deferred > 0) dd.append(element("span", `${deferred} deferred`, "small"));
+      if (canOperate() && (dispatchState === "RUNNING" || dispatchState === "PAUSED")) {
+        const paused = dispatchState === "PAUSED";
+        const btn = element("button", paused ? "Resume" : "Pause", "quiet");
+        btn.type = "button";
+        btn.addEventListener("click", async () => {
+          const action = paused ? "resume" : "pause";
+          const choice = await confirmControl({
+            title: paused ? "Resume Fleet dispatch?" : "Pause Fleet dispatch?",
+            verb: paused ? "Resume dispatch" : "Pause dispatch",
+            dismiss: paused ? "Keep paused" : "Keep running",
+            warning: paused ? "Allows new work claims to be dispatched by the coordinator." : "Stops dispatching new work claims; running attempts continue.",
+            facts: [["Current state", dispatchState], ["Deferred", String(deferred)]],
+            reason: paused ? null : { label: "Pause reason", placeholder: "Why dispatch is being paused", required: false },
+            cliCommand: `kiln-fleet dispatch ${action}`,
+            opener: btn,
+          });
+          if (!choice.confirmed) return;
+          const res = await mutate(`/api/fleet/dispatch/${action}`, { reason: choice.reason || undefined, request_id: choice.requestId }, `Dispatch ${action}d.`);
+          if (res) void loadOverview();
+        });
+        dd.append(btn);
+      }
+    });
+    addCell("Swarm mirror", (dd) => {
+      dd.append(statePill(mirror === "ok" ? "success" : mirror === "unavailable" ? "failure" : "unknown", mirror.toUpperCase()));
+    });
+    addCell("Escalations", (dd) => {
+      dd.append(element("span", String(escalations)), workspaceLink({ page: "inbox", tab: "attention" }, "View ->", "row-link"));
+    });
+    addCell("Claims <15m / foreign", (dd) => {
+      dd.append(element("span", `${expiringCount} expiring · ${foreignCount} foreign`));
+    });
+    addCell("Host slot occupancy", (dd) => {
+      dd.append(element("span", `${usedSlots} / ${capSlots}${offlineMachines ? ` (${offlineMachines} offline)` : ""}`));
+    });
+  }
+  function attentionKindLabel(kind) {
+    return {
+      UntrustedRunApproval: "Untrusted PR",
+      FleetSessionDecision: "Fleet decision",
+      CampaignDecision: "Campaign decision",
+      PlanReviewGate: "Plan review gate",
+      UnknownTerminationOrDispatch: "Unknown termination",
+      ExpiringOrConflictClaim: "Claim attention",
+    }[kind] || String(kind || "Attention");
+  }
+  function attentionInspectTarget(item) {
+    const t = item?.target || {};
+    if (item?.kind === "PlanReviewGate" || item?.kind === "UnknownTerminationOrDispatch" || item?.kind === "CampaignDecision" || item?.kind === "UntrustedRunApproval" || item?.kind === "FleetSessionDecision") {
+      return { kind: "attention", id: item.id };
+    }
+    if (item?.kind === "ExpiringOrConflictClaim" && t.claim_id) return { kind: "claim", id: t.claim_id };
+    if (t.attempt_id) return { kind: "attempt", id: t.attempt_id };
+    if (t.run_id) return { kind: "run", id: t.run_id };
+    return { kind: "attention", id: item.id };
+  }
+  async function executeAttentionAction(item, actionName, opener) {
+    const t = item?.target || {};
+    if (actionName === "wake" && t.campaign_id) {
+      await mutate(`/api/implementation/campaigns/${encodeURIComponent(t.campaign_id)}/wake`, { kind: "operator", reason: "Operator woke from Factory/Attention" }, "Campaign wake admitted.");
+    } else if (actionName === "accept_plan" && t.work_id && t.plan_id) {
+      await mutate("/api/implementation/plan-review", { work_id: t.work_id, plan_id: t.plan_id, verdict: "accepted" }, "Plan accepted.");
+    } else if (actionName === "request_changes" && t.work_id && t.plan_id) {
+      await mutate("/api/implementation/plan-review", { work_id: t.work_id, plan_id: t.plan_id, verdict: "changes_requested" }, "Requested plan changes.");
+    } else if (actionName === "renew" && t.claim_id) {
+      const claim = (state.factory.claims?.claims || []).find((c) => c.identity === t.claim_id);
+      if (claim) await mutate(`/api/fleet/claims/${claim.identity}/renew`, { fence: claim.fence, lease_minutes: 30 }, "Claim renewed +30m.");
+      else openInspector("claim", t.claim_id, []);
+    } else if (actionName === "approve" && t.run_id && t.source_commit) {
+      const choice = await confirmControl({
+        title: `Approve untrusted run ${shortIdentity(t.run_id)}?`,
+        verb: "Approve and run",
+        dismiss: "Keep blocked",
+        facts: [["Run", t.run_id], ["Exact commit", t.source_commit]],
+        cliCommand: `kiln runs approve --run ${t.run_id} --commit ${t.source_commit}`,
+        opener,
+      });
+      if (choice.confirmed) await mutate(`${pathFor(t.run_id)}/approve`, { source_commit: t.source_commit, request_id: choice.requestId }, "Untrusted run approved.");
+    } else if (actionName === "reconcile" && t.work_id && t.attempt_id && Number.isSafeInteger(t.fence)) {
+      await mutate("/api/implementation/reconcile-termination", { campaign_id: t.campaign_id || undefined, work_id: t.work_id, attempt_id: t.attempt_id, fence: t.fence }, "Termination reconciled.");
+    } else if (actionName === "reconcile_run" && t.run_id) {
+      await mutate(`${pathFor(t.run_id)}/reconcile`, {}, "Provider reconciliation probed.");
+    } else {
+      const target = attentionInspectTarget(item);
+      openInspector(target.kind, target.id, [item]);
+      return;
+    }
+    if (state.route?.page === "overview") void loadOverview();
+    else if (state.route?.page === "inbox") void loadAttentionPage();
+  }
+  function renderAttentionList(container, items, { compactHealthy = false, emptyTitle = "All clear", emptyMsg = "0 items need operator attention." } = {}) {
+    container.replaceChildren();
+    if (!items.length) {
+      if (compactHealthy) {
+        const bar = element("div", undefined, "factory-attention-healthy");
+        bar.append(element("strong", "All clear · 0 items need operator attention"), element("span", "All monitored escalations, approvals, and claims are clear.", "small"));
+        container.append(bar);
+      } else {
+        container.append(emptyState(emptyTitle, emptyMsg));
+      }
+      return;
+    }
+    const list = element("div", undefined, "factory-attention-list");
+    const inspectorList = items.map((item) => attentionInspectTarget(item));
+    for (const item of items) {
+      const card = element("article", undefined, "factory-attention-item");
+      card.tabIndex = 0;
+      card.dataset.attentionId = item.id;
+      card.dataset.severity = item.severity || "medium";
+      const target = attentionInspectTarget(item);
+      if (state.inspector.open && state.inspector.kind === target.kind && state.inspector.id === target.id) card.dataset.active = "true";
+      const head = element("div", undefined, "factory-attention-head");
+      head.append(
+        statePill(item.severity === "critical" ? "failure" : item.severity === "high" ? "warning" : "queued", attentionKindLabel(item.kind), item.kind),
+        element("span", item.ttl_remaining_ms != null ? `TTL ${ui.formatDuration(item.ttl_remaining_ms)}` : item.age_ms != null ? `Age ${ui.formatDuration(item.age_ms)}` : "", "small mono"),
+      );
+      const title = element("h3", item.title || item.id, "factory-attention-title");
+      const summary = element("p", item.context_preview?.summary || "", "small");
+      const actions = element("div", undefined, "factory-attention-actions");
+      const inspectBtn = element("button", "Inspect", "primary");
+      inspectBtn.type = "button";
+      inspectBtn.addEventListener("click", () => openInspector(target.kind, target.id, inspectorList, inspectBtn));
+      actions.append(inspectBtn);
+      if (canOperate()) {
+        if (item.kind === "PlanReviewGate" && item.target?.work_id && item.target?.plan_id) {
+          const accept = element("button", "Accept plan", "quiet");
+          accept.type = "button";
+          accept.addEventListener("click", () => { void executeAttentionAction(item, "accept_plan", accept); });
+          actions.append(accept);
+        } else if (item.kind === "UntrustedRunApproval" && item.target?.run_id && item.target?.source_commit) {
+          const approve = element("button", "Approve…", "quiet");
+          approve.type = "button";
+          approve.addEventListener("click", () => { void executeAttentionAction(item, "approve", approve); });
+          actions.append(approve);
+        } else if (item.kind === "UnknownTerminationOrDispatch" && item.target?.attempt_id) {
+          const rec = element("button", "Reconcile", "quiet");
+          rec.type = "button";
+          rec.addEventListener("click", () => { void executeAttentionAction(item, "reconcile", rec); });
+          actions.append(rec);
+        } else if (item.kind === "ExpiringOrConflictClaim" && item.target?.claim_id) {
+          const renew = element("button", "Renew +30m", "quiet");
+          renew.type = "button";
+          renew.addEventListener("click", () => { void executeAttentionAction(item, "renew", renew); });
+          actions.append(renew);
+        } else if (item.target?.campaign_id) {
+          const wake = element("button", "Wake", "quiet");
+          wake.type = "button";
+          wake.addEventListener("click", () => { void executeAttentionAction(item, "wake", wake); });
+          actions.append(wake);
+        }
+      }
+      card.addEventListener("keydown", (event) => {
+        if (event.target !== card && !card.contains(document.activeElement)) return;
+        if (event.ctrlKey || event.metaKey || event.altKey) return;
+        if (event.key === "p") { event.preventDefault(); openInspector(target.kind, target.id, inspectorList, card); }
+        else if (event.key === "a" && canOperate()) {
+          event.preventDefault();
+          const act = item.kind === "PlanReviewGate" ? "accept_plan" : item.kind === "UntrustedRunApproval" ? "approve" : item.target?.campaign_id ? "wake" : "inspect";
+          void executeAttentionAction(item, act, card);
+        } else if (event.key === "r" && canOperate()) {
+          event.preventDefault();
+          const act = item.kind === "ExpiringOrConflictClaim" ? "renew" : item.kind === "UnknownTerminationOrDispatch" ? "reconcile" : "inspect";
+          void executeAttentionAction(item, act, card);
+        } else if (event.key === "X" && event.shiftKey && canOperate()) {
+          event.preventDefault();
+          if (item.kind === "PlanReviewGate") void executeAttentionAction(item, "request_changes", card);
+          else openInspector(target.kind, target.id, inspectorList, card);
+        }
+      });
+      card.append(head, title, ...(summary.textContent ? [summary] : []), actions);
+      list.append(card);
+    }
+    container.append(list);
+  }
+  function renderFactoryAttention(result) {
+    state.factory.attention = result;
+    const container = $("factory-attention");
+    if (!container) return;
+    const items = Array.isArray(result?.items) ? result.items : [];
+    setSectionCount("factory-attention", items.length ? String(items.length) : "0");
+    renderAttentionList(container, items, { compactHealthy: true });
+    updateGlobalLiveStrip();
+    renderFactoryRibbon();
+  }
+  function renderFactoryMergeTrains(codeReviewSnapshot) {
+    const strip = $("factory-merge-train");
+    if (!strip) return;
+    strip.replaceChildren();
+    const trains = typeof window.KilnCodeReview?.summarizeMergeTrains === "function"
+      ? window.KilnCodeReview.summarizeMergeTrains(codeReviewSnapshot)
+      : [];
+    if (!trains.length) {
+      strip.append(element("p", "No active speculative merge trains.", "small"));
+      return;
+    }
+    for (const train of trains) {
+      const row = element("div", undefined, "factory-merge-train-line");
+      const link = workspaceLink({ page: "code-review", review_tab: "queue" }, train.target_ref || "Merge queue", "row-link");
+      const meta = element("span", train.summary_text || `${train.mode || "queue"} · ${train.active_count ?? 0} active`, "mono small");
+      row.append(link, statePill(train.uncertain_count > 0 ? "warning" : train.blocked_count > 0 ? "failure" : "running", train.status || train.mode || "active"), meta);
+      strip.append(row);
+    }
+  }
+  function renderFactoryDeliverySpine() {
+    const spine = $("factory-spine");
+    if (!spine) return;
+    spine.replaceChildren();
+    const changes = Array.isArray(state.factory.cairn?.changes) ? state.factory.cairn.changes : [];
+    const attempts = Array.isArray(state.factory.attempts) ? state.factory.attempts : [];
+    const claims = Array.isArray(state.factory.claims?.claims) ? state.factory.claims.claims : [];
+    const reviews = Array.isArray(state.factory.codeReview?.changes) ? state.factory.codeReview.changes : [];
+    const spineItems = [];
+    for (const ch of changes.slice(0, 8)) {
+      const changeId = ch.change || ch.id || "";
+      const matchingClaim = claims.find((c) => JSON.stringify(c.scope || "").includes(changeId));
+      const matchingAttempt = attempts.find((a) => (a.title || "").includes(changeId) || (a.work || "").includes(changeId));
+      const matchingReview = reviews.find((r) => (r.title || "").includes(changeId) || (r.jj_change_id && r.jj_change_id === ch.jj_change_id));
+      const inspectTarget = matchingAttempt ? { kind: "attempt", id: matchingAttempt.attempt } : { kind: "cairn", id: `${ch.repository || ""}/${changeId}` };
+      spineItems.push({ ch, changeId, matchingClaim, matchingAttempt, matchingReview, inspectTarget });
+    }
+    setSectionCount("factory-delivery", String(changes.length));
+    if (!spineItems.length) {
+      spine.append(element("p", "No Cairn changes listed in the active delivery spine.", "small"));
+      return;
+    }
+    const navList = spineItems.map((row) => row.inspectTarget);
+    for (const item of spineItems) {
+      const row = element("article", undefined, "delivery-spine-row");
+      row.tabIndex = 0;
+      const head = element("div", undefined, "delivery-spine-head");
+      head.append(element("strong", item.changeId || "Unnamed change"), element("span", item.ch.lane || "unknown", "chip"));
+      const stages = element("div", undefined, "delivery-spine-stages");
+      const stage = (name, tone) => {
+        const chip = element("span", name, "delivery-stage-chip");
+        if (tone) chip.dataset.stage = tone;
+        return chip;
+      };
+      stages.append(
+        stage("Spec", item.ch.blockers > 0 ? "warning" : "good"),
+        stage("Claim", item.matchingClaim ? "good" : undefined),
+        stage("Attempt", item.matchingAttempt ? (item.matchingAttempt.state === "executing" ? "running" : "good") : undefined),
+        stage("Candidate", item.matchingAttempt?.state === "candidate_produced" || item.matchingAttempt?.state === "verifying" ? "good" : undefined),
+        stage("CI", item.matchingReview?.ci_summary === "pass" ? "good" : item.matchingReview?.ci_summary === "fail" ? "failure" : item.matchingReview?.ci_summary === "unknown" ? "warning" : undefined),
+        stage("Review/Queue", item.matchingReview?.queue_position ? `running` : item.matchingReview ? "good" : undefined),
+        stage("Land", item.ch.lane === "integrated" || item.ch.lane === "recorded" ? "good" : undefined),
+      );
+      row.append(head, stages);
+      const openRow = () => openInspector(item.inspectTarget.kind, item.inspectTarget.id, navList, row);
+      row.addEventListener("click", openRow);
+      row.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openRow(); } });
+      spine.append(row);
+    }
+  }
+  function renderFactoryMachines(result) {
+    state.factory.machines = result;
+    const container = $("factory-machines");
+    if (!container) return;
+    container.replaceChildren();
+    const machines = Array.isArray(result?.machines) ? result.machines : [];
+    setSectionCount("factory-machines", String(machines.length));
+    if (!machines.length) {
+      container.append(emptyState("No machines configured", "No herdr machines returned by the Fleet coordinator."));
+      return;
+    }
+    const list = element("div", undefined, "factory-machine-list");
+    for (const m of machines) {
+      const card = element("article", undefined, "factory-machine-card");
+      card.dataset.health = m.health || (m.state === "reporting" ? "available" : "unavailable");
+      const head = element("div", undefined, "factory-attention-head");
+      const statusTone = m.health === "unavailable" ? "failure" : m.draining ? "warning" : "success";
+      const statusText = m.health === "unavailable" ? "OFFLINE · Unavailable" : m.draining ? "Draining" : "Available";
+      head.append(element("code", m.machine), statePill(statusTone, statusText));
+      card.append(head);
+      if (m.health === "unavailable") {
+        card.append(element("p", m.error?.detail || "Host unreachable (HerdrFailure); slot capacity unknown.", "small warning"));
+      } else if (m.slots && typeof m.slots === "object") {
+        for (const [kind, counts] of Object.entries(m.slots)) {
+          const row = element("div", undefined, "factory-slot-row");
+          const meter = element("meter");
+          meter.min = 0;
+          meter.max = Math.max(1, counts.capacity || 1);
+          meter.value = counts.used || 0;
+          row.append(element("span", kind, "mono"), meter, element("span", `${counts.used ?? 0}/${counts.capacity ?? 0}`, "mono"));
+          card.append(row);
+        }
+      } else {
+        card.append(element("p", `Sessions: ${m.sessions ?? "Not observed"}`, "small"));
+      }
+      if (canOperate()) {
+        const btn = element("button", m.draining ? "Undrain" : "Drain…", "quiet");
+        btn.type = "button";
+        btn.addEventListener("click", async () => {
+          const nextDrain = !m.draining;
+          const choice = await confirmControl({
+            title: `${nextDrain ? "Drain" : "Undrain"} machine ${m.machine}?`,
+            verb: nextDrain ? "Drain machine" : "Undrain machine",
+            dismiss: nextDrain ? "Keep active" : "Keep draining",
+            danger: nextDrain,
+            warning: nextDrain ? "Prevents new attempts from placing onto this machine." : "Re-enables placement on this machine.",
+            facts: [["Machine", m.machine], ["Current state", statusText]],
+            reason: { label: "Drain reason", placeholder: "Why placement is changing", required: nextDrain },
+            cliCommand: `kiln-fleet machines ${nextDrain ? "drain" : "undrain"} ${m.machine}`,
+            opener: btn,
+          });
+          if (!choice.confirmed) return;
+          const res = await mutate(`/api/fleet/machines/${encodeURIComponent(m.machine)}/drain`, { draining: nextDrain, reason: choice.reason || undefined, request_id: choice.requestId }, `Machine ${m.machine} ${nextDrain ? "drained" : "undrained"}.`);
+          if (res) void loadOverview();
+        });
+        card.append(btn);
+      }
+      list.append(card);
+    }
+    container.append(list);
+    renderFactoryRibbon();
+  }
+  function renderFactoryClaims(result) {
+    state.factory.claims = result;
+    const container = $("factory-claims");
+    if (!container) return;
+    container.replaceChildren();
+    const now = Date.now();
+    const claims = Array.isArray(result?.claims) ? result.claims : [];
+    const foreign = Array.isArray(result?.foreign_claims) ? result.foreign_claims : [];
+    const expired = Array.isArray(result?.expired_claims) ? result.expired_claims : [];
+    const expiring = claims.filter((c) => Number.isSafeInteger(c.expires_ms) && c.expires_ms - now <= LEASE_EXPIRING_MS);
+    const healthy = claims.filter((c) => !(Number.isSafeInteger(c.expires_ms) && c.expires_ms - now <= LEASE_EXPIRING_MS));
+    setSectionCount("factory-claims", `${claims.length}${foreign.length ? ` + ${foreign.length} foreign` : ""}`);
+
+    const list = element("div", undefined, "factory-claim-list");
+    for (const fc of foreign) {
+      const card = element("article", undefined, "factory-claim-card");
+      card.dataset.kind = "foreign";
+      card.append(
+        element("strong", `Foreign conflict · ${fc.scope_text || fc.author || "unknown"}`),
+        element("p", `Holder: ${fc.holder || fc.author || "unknown"} · Mirror: ${fc.mirror_status || "foreign"}`, "small"),
+      );
+      list.append(card);
+    }
+    const renderClaimCard = (c, kind) => {
+      const card = element("article", undefined, "factory-claim-card");
+      card.dataset.kind = kind;
+      const scopeLabel = typeof c.scope?.target === "string" ? `${c.scope.target}${c.scope.path && c.scope.path !== "whole" ? ` ${c.scope.path}` : ""}` : c.identity.slice(0, 12);
+      const head = element("div", undefined, "factory-attention-head");
+      head.append(element("strong", scopeLabel), when(c.expires_ms));
+      const actions = element("div", undefined, "factory-attention-actions");
+      const inspectBtn = element("button", "Inspect", "quiet");
+      inspectBtn.type = "button";
+      inspectBtn.addEventListener("click", () => openInspector("claim", c.identity, claims.map((x) => ({ kind: "claim", id: x.identity })), inspectBtn));
+      actions.append(inspectBtn);
+      if (canOperate() && kind !== "expired") {
+        for (const mins of [30, 60]) {
+          const renew = element("button", `+${mins}m`, "quiet");
+          renew.type = "button";
+          renew.addEventListener("click", async () => {
+            const res = await mutate(`/api/fleet/claims/${c.identity}/renew`, { fence: c.fence, lease_minutes: mins }, `Claim renewed +${mins}m.`);
+            if (res) void loadOverview();
+          });
+          actions.append(renew);
+        }
+        const release = element("button", "Force-Release…", "quiet danger");
+        release.type = "button";
+        release.addEventListener("click", async () => {
+          const choice = await confirmControl({
+            title: `Force-release claim ${c.identity.slice(0, 12)}?`,
+            verb: "Force-release claim",
+            dismiss: "Keep claim",
+            danger: true,
+            warning: "Releases this coordination claim for the exact fence shown.",
+            facts: [["Claim", c.identity], ["Scope", scopeLabel], ["Fence", String(c.fence)]],
+            reason: { label: "Release reason", placeholder: "Why this claim is being released", required: true },
+            cliCommand: `kiln-fleet release --claim ${c.identity} --fence ${c.fence}`,
+            opener: release,
+          });
+          if (!choice.confirmed) return;
+          const res = await mutate(`/api/fleet/claims/${c.identity}/release`, { fence: c.fence, note: choice.reason, request_id: choice.requestId }, "Claim released.");
+          if (res) void loadOverview();
+        });
+        actions.append(release);
+      }
+      card.append(head, element("p", `${c.holder?.tool || ""} on ${c.holder?.host || ""} · ${c.purpose || ""}`, "small"), actions);
+      return card;
+    };
+    for (const c of expiring) list.append(renderClaimCard(c, "expiring"));
+    for (const c of expired.slice(0, 5)) list.append(renderClaimCard(c, "expired"));
+    if (healthy.length) {
+      if (state.factory.showAllClaims) {
+        for (const c of healthy) list.append(renderClaimCard(c, "healthy"));
+      }
+      const toggle = element("button", state.factory.showAllClaims ? "Collapse healthy claims" : `View All ${healthy.length} Healthy ->`, "quiet");
+      toggle.type = "button";
+      toggle.addEventListener("click", () => { state.factory.showAllClaims = !state.factory.showAllClaims; renderFactoryClaims(result); });
+      list.append(toggle);
+    }
+    if (!foreign.length && !expiring.length && !expired.length && !healthy.length) {
+      list.append(element("p", "No active or recently expired claims.", "small"));
+    }
+    container.append(list);
+    updateGlobalLiveStrip();
+    renderFactoryRibbon();
+  }
+  async function refreshFactoryFromSse(channel) {
+    if (!state.session) return;
+    if (channel === "attention" || state.route?.page === "inbox") {
+      const att = await safeCall("/api/implementation/attention");
+      if (att.ok) {
+        state.factory.attention = att.value;
+        if (state.route?.page === "overview") renderFactoryAttention(att.value);
+        if (state.route?.page === "inbox" && activeSubPageFor(state.route) === "attention") {
+          renderAttentionPage(att.value);
+        }
+        updateGlobalLiveStrip();
+      }
+    }
+    if (state.route?.page === "overview") {
+      if (channel === "fleet") {
+        const [machines, claims, dispatch] = await Promise.all([
+          safeCall("/api/fleet/machines"),
+          safeCall("/api/fleet/claims?include=foreign,expired"),
+          safeCall("/api/fleet/dispatch/status"),
+        ]);
+        if (machines.ok) renderFactoryMachines(machines.value);
+        if (claims.ok) renderFactoryClaims(claims.value);
+        if (dispatch.ok) { state.factory.dispatch = dispatch.value; renderFactoryRibbon(); }
+      } else if (channel === "cairn") {
+        const cairn = await safeCall("/api/implementation/cairn");
+        if (cairn.ok) { state.factory.cairn = cairn.value; renderFactoryDeliverySpine(); }
+      }
+    }
+  }
   async function loadOverview() {
-    if (!$("overview-health")) buildOverview($("overview-content"));
-    await Promise.all([
-      overviewRead("/api/overview", "overview", renderOverviewHealth),
-      overviewRead("/api/workers", "workers", renderOverviewWorkers),
-      overviewRead(`/api/activity?${new URLSearchParams({ limit: String(OVERVIEW_ACTIVITY_LIMIT) })}`, "activity", renderOverviewActivity),
+    if (!$("overview-content")?.querySelector?.(".factory-cockpit")) buildOverview($("overview-content"));
+    const [overviewRes, workersRes, activityRes, attentionRes, machinesRes, claimsRes, dispatchRes, cairnRes, attemptsRes, reviewRes] = await Promise.all([
+      safeCall("/api/overview"),
+      safeCall("/api/workers"),
+      safeCall(`/api/activity?${new URLSearchParams({ limit: String(OVERVIEW_ACTIVITY_LIMIT) })}`),
+      safeCall("/api/implementation/attention"),
+      safeCall("/api/fleet/machines"),
+      safeCall("/api/fleet/claims?include=foreign,expired"),
+      safeCall("/api/fleet/dispatch/status"),
+      safeCall("/api/implementation/cairn"),
+      safeCall("/api/fleet/attempts"),
+      safeCall("/api/code-review"),
     ]);
+    if (state.route?.page !== "overview") return;
+    if (overviewRes.ok && overviewRes.value?.totals) renderOverviewHealth(overviewRes.value);
+    else if (overviewRes.ok) $("overview-health")?.replaceChildren(emptyState("Overview unavailable", "Project overview payload is incomplete."));
+    else $("overview-health")?.replaceChildren(errorState(`${OVERVIEW_UNAVAILABLE.overview}: ${explain(overviewRes.error)}`));
+    if (workersRes.ok && workersRes.value?.summary) renderOverviewWorkers(workersRes.value);
+    else if (workersRes.ok) $("overview-workers")?.replaceChildren(emptyState("Workers unavailable", "Worker snapshot is unavailable."));
+    else $("overview-workers")?.replaceChildren(errorState(`${OVERVIEW_UNAVAILABLE.workers}: ${explain(workersRes.error)}`));
+    if (activityRes.ok && Array.isArray(activityRes.value?.events)) renderOverviewActivity(activityRes.value);
+    else if (activityRes.ok) $("overview-activity")?.replaceChildren(emptyState("Activity unavailable", "Activity feed is unavailable."));
+    else $("overview-activity")?.replaceChildren(errorState(`${OVERVIEW_UNAVAILABLE.activity}: ${explain(activityRes.error)}`));
+
+    state.factory.dispatch = dispatchRes.ok ? dispatchRes.value : null;
+    state.factory.cairn = cairnRes.ok ? cairnRes.value : null;
+    state.factory.attempts = attemptsRes.ok ? (attemptsRes.value?.attempts || []) : [];
+    state.factory.codeReview = reviewRes.ok ? reviewRes.value : null;
+
+    if (attentionRes.ok) renderFactoryAttention(attentionRes.value);
+    else $("factory-attention")?.replaceChildren(errorState(`Attention inbox unavailable: ${explain(attentionRes.error)}`));
+
+    if (machinesRes.ok) renderFactoryMachines(machinesRes.value);
+    else $("factory-machines")?.replaceChildren(errorState(`Machine census unavailable: ${explain(machinesRes.error)}`));
+
+    if (claimsRes.ok) renderFactoryClaims(claimsRes.value);
+    else $("factory-claims")?.replaceChildren(errorState(`Claims unavailable: ${explain(claimsRes.error)}`));
+
+    renderFactoryMergeTrains(state.factory.codeReview);
+    renderFactoryDeliverySpine();
+    renderFactoryRibbon();
+  }
+  function renderAttentionPage(result) {
+    const root = $("inbox-attention-content");
+    if (!root) return;
+    state.factory.attention = result;
+    const items = Array.isArray(result?.items) ? result.items : [];
+    const header = element("div", undefined, "section-heading");
+    header.append(element("h2", `Attention & Escalations (${items.length})`), element("p", "Unified human-required approvals, blocked plans, ambiguous terminations, Fleet/Campaign decisions, and expiring or foreign claims.", "small"));
+    const listWrap = element("div", undefined, "view-stack");
+    renderAttentionList(listWrap, items, { compactHealthy: false, emptyTitle: "No open escalations", emptyMsg: "Zero items currently require operator action." });
+    root.replaceChildren(header, listWrap);
+    updateGlobalLiveStrip();
+  }
+  async function loadAttentionPage() {
+    const root = $("inbox-attention-content");
+    if (!root) return;
+    if (!root.childElementCount) root.replaceChildren(loadingState("Loading unified attention escalations…"));
+    try {
+      const [attention, claims] = await Promise.all([
+        api("/api/implementation/attention"),
+        safeCall("/api/fleet/claims?include=foreign,expired"),
+      ]);
+      if (claims.ok) state.factory.claims = claims.value;
+      renderAttentionPage(attention);
+    } catch (error) {
+      if (!isAborted(error)) root.replaceChildren(errorState(`Attention inbox unavailable: ${explain(error)}`));
+    }
   }
   function shortRevision(value) { return typeof value === "string" && value.length > 12 ? value.slice(0, 12) : text(value); }
   function finishedAt(ms) { return Number.isSafeInteger(ms) ? ms : -1; }
@@ -3365,7 +4344,7 @@
           }
           button.disabled = true;
           const updated = await mutate("/api/automation", payload, "Automation registration updated.");
-          if (updated && state.session && state.route.page === "automation") { parent.replaceChildren(); renderAutomation(parent, updated); }
+          if (updated && state.session && activeSubPageFor(state.route) === "automation") { parent.replaceChildren(); renderAutomation(parent, updated); }
           else button.disabled = !canOperate() || state.permissions.configure !== true;
         });
         group.append(form);
@@ -3578,10 +4557,10 @@
         $("confirm-reason")?.focus?.();
         return;
       }
-      const { resolve, opener } = pending;
+      const { resolve, opener, requestId } = pending;
       dismissControl(true);
       opener?.focus?.();
-      resolve({ confirmed: true, reason });
+      resolve({ confirmed: true, reason, requestId: requestId || "" });
       return;
     }
     if (state.mutation) return;
@@ -3607,6 +4586,411 @@
     if ($("follow-logs").checked) { $("log-output").scrollTop = $("log-output").scrollHeight; void readLog(state.logKey !== ""); }
   });
   $("clear-log").addEventListener("click", resetLogs);
+  function stopPanePolling() {
+    clearTimeout(state.inspector.paneTimer);
+    state.inspector.paneTimer = null;
+    state.inspector.paneController?.abort();
+    state.inspector.paneController = null;
+  }
+  async function loadAttemptPane(attemptId, panePre, paneStatus) {
+    if (!state.inspector.open || state.inspector.kind !== "attempt" || state.inspector.id !== attemptId) return;
+    if (document.visibilityState !== "visible") {
+      if (paneStatus) paneStatus.textContent = "Pane tail paused (tab hidden).";
+      return;
+    }
+    stopPanePolling();
+    const controller = new AbortController();
+    state.inspector.paneController = controller;
+    try {
+      const res = await api(`/api/fleet/attempts/${encodeURIComponent(attemptId)}/pane?lines=${state.inspector.paneLines || 200}`, { quiet: true, controller });
+      if (!state.inspector.open || state.inspector.kind !== "attempt" || state.inspector.id !== attemptId) return;
+      const output = typeof res?.text === "string" ? res.text : Array.isArray(res?.lines) ? res.lines.join("\n") : "";
+      if (panePre) panePre.textContent = output || "(empty pane)";
+      if (paneStatus) paneStatus.textContent = `Pane ${text(res?.pane_id)} · ${res?.line_count ?? 0} lines${res?.truncated ? " (truncated)" : ""} · ${text(res?.machine)} (${text(res?.session_state)})`;
+    } catch (error) {
+      if (isAborted(error) || !state.inspector.open || state.inspector.id !== attemptId) return;
+      if (paneStatus) paneStatus.textContent = `Pane unavailable: ${explain(error)}`;
+    } finally {
+      if (state.inspector.paneController === controller) state.inspector.paneController = null;
+      if (state.inspector.open && state.inspector.kind === "attempt" && state.inspector.id === attemptId && document.visibilityState === "visible") {
+        state.inspector.paneTimer = setTimeout(() => { void loadAttemptPane(attemptId, panePre, paneStatus); }, MAX_PANE_POLL_MS);
+      }
+    }
+  }
+  function openInspector(kind, id, items = [], opener = null) {
+    if (!INSPECT_KINDS.has(kind) || !id) return;
+    if (Array.isArray(items) && items.length) {
+      state.inspector.items = items.map((entry) => entry?.kind && entry?.id ? entry : attentionInspectTarget(entry));
+    }
+    state.inspector.returnFocus = opener || document.activeElement;
+    navigate({ inspect: `${kind}:${id}` });
+  }
+  function closeInspector(restoreFocus = true) {
+    stopPanePolling();
+    const returnTarget = state.inspector.returnFocus;
+    state.inspector.open = false;
+    state.inspector.kind = "";
+    state.inspector.id = "";
+    if ($("slide-over-inspector")) $("slide-over-inspector").hidden = true;
+    if ($("slide-over-backdrop")) $("slide-over-backdrop").hidden = true;
+    if ($("slide-over-body")) $("slide-over-body").replaceChildren();
+    if (state.route?.inspect) navigate({ inspect: "" });
+    if (restoreFocus && returnTarget?.isConnected && !returnTarget.closest?.("[hidden], [inert]")) {
+      returnTarget.focus({ preventScroll: true });
+    }
+  }
+  function stepInspector(delta) {
+    const items = state.inspector.items;
+    if (!items.length || !state.inspector.open) return;
+    const idx = items.findIndex((it) => it.kind === state.inspector.kind && it.id === state.inspector.id);
+    const nextIdx = idx < 0 ? 0 : (idx + delta + items.length) % items.length;
+    const next = items[nextIdx];
+    if (next) openInspector(next.kind, next.id, items);
+  }
+  async function renderSlideOver(kind, id) {
+    const body = $("slide-over-body");
+    const titleEl = $("slide-over-title");
+    const eyebrowEl = $("slide-over-eyebrow");
+    const openFull = $("slide-over-open-full");
+    if (!body || !titleEl) return;
+    stopPanePolling();
+    eyebrowEl.textContent = kind.toUpperCase();
+    titleEl.textContent = id;
+    body.replaceChildren(loadingState(`Loading ${kind}…`));
+    const items = state.inspector.items;
+    const idx = items.findIndex((it) => it.kind === kind && it.id === id);
+    if ($("slide-over-prev")) $("slide-over-prev").disabled = items.length < 2 || idx < 0;
+    if ($("slide-over-next")) $("slide-over-next").disabled = items.length < 2 || idx < 0;
+
+    const fullLinks = {
+      attempt: { page: "fleet", tab: "fleet" },
+      claim: { page: "fleet", tab: "fleet" },
+      decision: { page: "fleet", tab: "fleet" },
+      attention: { page: "inbox", tab: "attention" },
+      run: { page: "runs", tab: "runs", run: id },
+      cairn: { page: "cairn", tab: "cairn", cairn_change: id.includes("/") ? id.split("/").slice(1).join("/") : id, cairn_repository: id.includes("/") ? id.split("/")[0] : "" },
+      review: { page: "code-review", review_change: id },
+    };
+    if (openFull && fullLinks[kind]) {
+      openFull.hidden = false;
+      openFull.href = `?${new URLSearchParams(Object.entries(fullLinks[kind]).filter(([, v]) => v))}`;
+      openFull.onclick = (e) => { if (plainClick(e)) { e.preventDefault(); closeInspector(false); navigate(fullLinks[kind]); } };
+    } else if (openFull) openFull.hidden = true;
+
+    try {
+      if (kind === "attempt") {
+        const attemptsRes = await safeCall("/api/fleet/attempts");
+        if (!state.inspector.open || state.inspector.id !== id) return;
+        const attempt = (attemptsRes.value?.attempts || []).find((a) => a.attempt === id);
+        if (!attempt) { body.replaceChildren(errorState(`Attempt ${id} not found in live Fleet snapshot.`)); return; }
+        titleEl.textContent = attempt.title || shortIdentity(id);
+        const facts = element("dl", undefined, "facts");
+        addFacts(facts, [
+          ["Attempt", attempt.attempt],
+          ["State", `${text(attempt.state)} · ${text(attempt.phase)}`],
+          ["Work", attempt.work || attempt.title],
+          ["Fence", attempt.fence],
+          ["Machine", attempt.session?.machine || "Not observed"],
+          ["Session", `${text(attempt.session?.agent_name)} · ${text(attempt.session?.state)}`],
+        ]);
+        const paneBox = element("div", undefined, "slide-over-pane-viewer");
+        const paneStatus = element("p", "Reading live herdr pane…", "small");
+        paneStatus.id = "slide-over-pane-status";
+        const panePre = element("pre", "Loading pane output…", "slide-over-pane-output");
+        panePre.id = "slide-over-pane-output";
+        paneBox.append(panePre);
+        const controls = element("div", undefined, "view-stack");
+        if (canOperate()) {
+          const promptForm = element("form", undefined, "inline-form");
+          const promptLabel = element("label", "Steer / Prompt agent");
+          promptLabel.htmlFor = "slide-over-prompt-input";
+          const promptInput = element("input");
+          promptInput.id = "slide-over-prompt-input";
+          promptInput.type = "text";
+          promptInput.maxLength = 4096;
+          promptInput.required = true;
+          promptInput.placeholder = "Send answer or prompt to live herdr pane…";
+          const promptBtn = element("button", "Send prompt", "primary");
+          promptBtn.type = "submit";
+          promptForm.append(promptLabel, promptInput, promptBtn);
+          promptForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const txt = promptInput.value.trim();
+            if (!txt) return;
+            const res = await mutate(`/api/fleet/attempts/${encodeURIComponent(id)}/prompt`, { text: txt }, "Prompt sent to agent pane.");
+            if (res) { promptInput.value = ""; void loadAttemptPane(id, panePre, paneStatus); }
+          });
+          const btnRow = element("div", undefined, "cluster");
+          const interruptBtn = element("button", "Interrupt (Ctrl-C)", "quiet");
+          interruptBtn.type = "button";
+          interruptBtn.addEventListener("click", async () => {
+            const res = await mutate(`/api/fleet/attempts/${encodeURIComponent(id)}/interrupt`, { reason: "Operator interrupt from Slide-Over" }, "Interrupt sent to agent pane.");
+            if (res) void loadAttemptPane(id, panePre, paneStatus);
+          });
+          const cancelBtn = element("button", "Cancel Attempt…", "danger");
+          cancelBtn.type = "button";
+          cancelBtn.addEventListener("click", async () => {
+            const choice = await confirmControl({
+              title: `Cancel attempt ${shortIdentity(id)}?`,
+              verb: "Cancel attempt",
+              dismiss: "Keep running",
+              danger: true,
+              facts: [["Attempt", id], ["Work", attempt.title || attempt.work]],
+              reason: { label: "Cancel reason", placeholder: "Why this attempt is being cancelled", required: true },
+              cliCommand: `kiln-fleet cancel ${id}`,
+              opener: cancelBtn,
+            });
+            if (!choice.confirmed) return;
+            await mutate(`/api/fleet/attempts/${encodeURIComponent(id)}/cancel`, { reason: choice.reason, request_id: choice.requestId }, "Attempt cancelled.");
+            closeInspector();
+          });
+          btnRow.append(interruptBtn, cancelBtn);
+          controls.append(promptForm, btnRow);
+        }
+        body.replaceChildren(facts, element("h3", "Live agent pane"), paneStatus, paneBox, controls);
+        void loadAttemptPane(id, panePre, paneStatus);
+        return;
+      }
+      if (kind === "attention") {
+        const attRes = state.factory.attention || (await api("/api/implementation/attention", { quiet: true }));
+        if (!state.inspector.open || state.inspector.id !== id) return;
+        const item = (attRes?.items || []).find((x) => x.id === id);
+        if (!item) { body.replaceChildren(errorState(`Attention item ${id} is no longer active.`)); return; }
+        titleEl.textContent = item.title || id;
+        const facts = element("dl", undefined, "facts");
+        addFacts(facts, [
+          ["Kind", attentionKindLabel(item.kind)],
+          ["Severity", item.severity],
+          ["Summary", item.context_preview?.summary],
+          ["Run", item.target?.run_id],
+          ["Campaign", item.target?.campaign_id],
+          ["Work ID", item.target?.work_id],
+          ["Attempt", item.target?.attempt_id],
+          ["Commit", item.target?.source_commit],
+        ]);
+        const nodes = [facts];
+        if (item.kind === "PlanReviewGate" && Array.isArray(item.context_preview?.steps)) {
+          nodes.push(element("h3", "Proposed plan steps"));
+          const ol = element("ol", undefined, "slide-over-plan-steps");
+          for (const step of item.context_preview.steps) ol.append(element("li", step.text || step.id || String(step)));
+          nodes.push(ol);
+          if (canOperate() && item.target?.work_id && item.target?.plan_id) {
+            const row = element("div", undefined, "cluster");
+            const accept = element("button", "Accept plan", "primary");
+            accept.type = "button";
+            accept.addEventListener("click", async () => { await executeAttentionAction(item, "accept_plan", accept); closeInspector(); });
+            const changes = element("button", "Request changes", "quiet");
+            changes.type = "button";
+            changes.addEventListener("click", async () => { await executeAttentionAction(item, "request_changes", changes); closeInspector(); });
+            row.append(accept, changes);
+            nodes.push(row);
+          }
+        } else if (item.kind === "UnknownTerminationOrDispatch" && canOperate()) {
+          const recBtn = element("button", "Reconcile ambiguous termination", "primary");
+          recBtn.type = "button";
+          recBtn.addEventListener("click", async () => { await executeAttentionAction(item, "reconcile", recBtn); closeInspector(); });
+          nodes.push(recBtn);
+        } else if (item.kind === "UntrustedRunApproval" && canOperate()) {
+          const appBtn = element("button", "Approve untrusted run…", "primary");
+          appBtn.type = "button";
+          appBtn.addEventListener("click", async () => { await executeAttentionAction(item, "approve", appBtn); closeInspector(); });
+          nodes.push(appBtn);
+        } else if (item.target?.campaign_id && canOperate()) {
+          const wakeBtn = element("button", "Wake campaign", "primary");
+          wakeBtn.type = "button";
+          wakeBtn.addEventListener("click", async () => { await executeAttentionAction(item, "wake", wakeBtn); closeInspector(); });
+          nodes.push(wakeBtn);
+        }
+        body.replaceChildren(...nodes);
+        return;
+      }
+      if (kind === "claim") {
+        const claimsRes = await api("/api/fleet/claims?include=foreign,expired", { quiet: true });
+        if (!state.inspector.open || state.inspector.id !== id) return;
+        const claim = (claimsRes?.claims || []).find((c) => c.identity === id) || (claimsRes?.expired_claims || []).find((c) => c.identity === id);
+        if (!claim) { body.replaceChildren(errorState(`Claim ${id} not found.`)); return; }
+        titleEl.textContent = typeof claim.scope?.target === "string" ? claim.scope.target : shortIdentity(id);
+        const facts = element("dl", undefined, "facts");
+        const claimState = typeof claim.state === "string" ? claim.state : claim.state && typeof claim.state === "object" ? Object.keys(claim.state)[0] || "unknown" : "unknown";
+        addFacts(facts, [["Identity", claim.identity], ["Fence", claim.fence], ["State", claimState], ["Holder", `${claim.holder?.tool || ""} on ${claim.holder?.host || ""}`], ["Purpose", claim.purpose], ["Expires", timestamp(claim.expires_ms)]]);
+        const nodes = [facts];
+        if (canOperate()) {
+          const row = element("div", undefined, "cluster");
+          for (const mins of [30, 60]) {
+            const btn = element("button", `Renew +${mins}m`, "quiet");
+            btn.type = "button";
+            btn.addEventListener("click", async () => { await mutate(`/api/fleet/claims/${claim.identity}/renew`, { fence: claim.fence, lease_minutes: mins }, `Claim renewed +${mins}m.`); void renderSlideOver("claim", id); });
+            row.append(btn);
+          }
+          const rel = element("button", "Force-Release…", "danger");
+          rel.type = "button";
+          rel.addEventListener("click", async () => {
+            const choice = await confirmControl({
+              title: `Force-release claim ${claim.identity.slice(0, 12)}?`,
+              verb: "Force-release claim",
+              danger: true,
+              facts: [["Claim", claim.identity], ["Fence", String(claim.fence)]],
+              reason: { label: "Release reason", placeholder: "Why this claim is being released", required: true },
+              cliCommand: `kiln-fleet release --claim ${claim.identity} --fence ${claim.fence}`,
+              opener: rel,
+            });
+            if (!choice.confirmed) return;
+            await mutate(`/api/fleet/claims/${claim.identity}/release`, { fence: claim.fence, note: choice.reason, request_id: choice.requestId }, "Claim released.");
+            closeInspector();
+          });
+          row.append(rel);
+          nodes.push(row);
+        }
+        body.replaceChildren(...nodes);
+        return;
+      }
+      if (kind === "run") {
+        const run = await api(pathFor(id), { quiet: true });
+        if (!state.inspector.open || state.inspector.id !== id) return;
+        titleEl.textContent = projectLabel(run.project_id);
+        const facts = element("dl", undefined, "facts");
+        addFacts(facts, [["Run", run.id], ["Outcome", run.outcome], ["Phase", run.phase], ["Revision", run.source_revision], ["Created", timestamp(run.created_at_ms)]]);
+        const nodes = [facts];
+        if ((run.outcome === "Unknown" || String(run.phase || "").toLowerCase() === "unknown") && canOperate()) {
+          const rec = element("button", "Reconcile / Probe Provider", "primary");
+          rec.type = "button";
+          rec.addEventListener("click", async () => { await reconcileRun(run.id); void renderSlideOver("run", id); });
+          nodes.push(rec);
+        }
+        body.replaceChildren(...nodes);
+        return;
+      }
+      if (kind === "cairn") {
+        const [repo, ...rest] = id.split("/");
+        const change = rest.join("/") || id;
+        const q = new URLSearchParams({ repository: repo, change });
+        const detail = await api(`/api/implementation/cairn/detail?${q}`, { quiet: true });
+        if (!state.inspector.open || state.inspector.id !== id) return;
+        titleEl.textContent = detail?.change || change;
+        const facts = element("dl", undefined, "facts");
+        addFacts(facts, [["Repository", detail?.repository || repo], ["Lane", detail?.lane], ["Units", Array.isArray(detail?.units) ? detail.units.length : 0]]);
+        body.replaceChildren(facts);
+        return;
+      }
+      if (kind === "review") {
+        const detail = await api(`/api/code-review/changes/${encodeURIComponent(id)}`, { quiet: true });
+        if (!state.inspector.open || state.inspector.id !== id) return;
+        titleEl.textContent = detail?.change?.title || id;
+        const facts = element("dl", undefined, "facts");
+        addFacts(facts, [["Change", id], ["Status", detail?.change?.status], ["Target", detail?.change?.target_ref]]);
+        body.replaceChildren(facts);
+        return;
+      }
+      if (kind === "decision") {
+        const decRes = await api("/api/fleet/decisions", { quiet: true });
+        if (!state.inspector.open || state.inspector.id !== id) return;
+        const dec = (decRes?.decisions || []).find((d) => d.identity === id);
+        if (!dec) { body.replaceChildren(errorState(`Decision ${id} not found.`)); return; }
+        titleEl.textContent = dec.question || id;
+        const facts = element("dl", undefined, "facts");
+        addFacts(facts, [["Decision", dec.identity], ["Question", dec.question], ["Raised", timestamp(dec.raised_ms)], ["Answer", dec.answer]]);
+        body.replaceChildren(facts);
+      }
+    } catch (error) {
+      if (state.inspector.open && state.inspector.id === id && !isAborted(error)) {
+        body.replaceChildren(errorState(`Unavailable: ${explain(error)}`));
+      }
+    }
+  }
+  function syncInspectorFromRoute(route) {
+    const raw = route?.inspect || "";
+    const panel = $("slide-over-inspector");
+    const backdrop = $("slide-over-backdrop");
+    if (!panel || !backdrop) return;
+    if (!raw) {
+      stopPanePolling();
+      state.inspector.open = false;
+      state.inspector.kind = "";
+      state.inspector.id = "";
+      panel.hidden = true;
+      backdrop.hidden = true;
+      $("slide-over-body")?.replaceChildren();
+      return;
+    }
+    const idx = raw.indexOf(":");
+    const kind = raw.slice(0, idx);
+    const id = raw.slice(idx + 1);
+    if (state.inspector.open && state.inspector.kind === kind && state.inspector.id === id) return;
+    state.inspector.open = true;
+    state.inspector.kind = kind;
+    state.inspector.id = id;
+    panel.hidden = false;
+    backdrop.hidden = false;
+    void renderSlideOver(kind, id);
+  }
+  $("slide-over-close")?.addEventListener("click", () => closeInspector());
+  $("slide-over-backdrop")?.addEventListener("click", () => closeInspector());
+  $("slide-over-prev")?.addEventListener("click", () => stepInspector(-1));
+  $("slide-over-next")?.addEventListener("click", () => stepInspector(1));
+  $("confirm-cli-copy")?.addEventListener("click", () => {
+    const cmd = $("confirm-cli-cmd")?.textContent || "";
+    if (cmd && $("confirm-cli-status")) ui.copyText(cmd, $("confirm-cli-status"), "CLI command copied.");
+  });
+  $("global-command-trigger")?.addEventListener("click", () => { $("work-command-open")?.click(); });
+  document.addEventListener("visibilitychange", () => {
+    if (!state.inspector.open || state.inspector.kind !== "attempt" || !state.inspector.id) return;
+    if (document.visibilityState === "visible") {
+      const pre = $("slide-over-pane-output");
+      const status = $("slide-over-pane-status");
+      if (pre && status) void loadAttemptPane(state.inspector.id, pre, status);
+    } else {
+      stopPanePolling();
+      if ($("slide-over-pane-status")) $("slide-over-pane-status").textContent = "Pane tail paused (tab hidden).";
+    }
+  });
+  const CHORD_ROUTES = Object.freeze({
+    f: { page: "overview", tab: "" },
+    a: { page: "inbox", tab: "attention" },
+    d: { page: "cairn", tab: "cairn" },
+    r: { page: "runs", tab: "runs" },
+    c: { page: "code-review", tab: "" },
+    m: { page: "fleet", tab: "fleet" },
+  });
+  document.addEventListener("keydown", (event) => {
+    if (!state.session || event.isComposing || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (document.querySelector("dialog[open]")) return;
+    const target = event.target;
+    const isEditable = target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable]:not([contenteditable='false']), [role='textbox']"));
+    if (state.inspector.open) {
+      if (event.key === "Escape") { event.preventDefault(); closeInspector(); return; }
+      if (!isEditable && event.key === "[") { event.preventDefault(); stepInspector(-1); return; }
+      if (!isEditable && event.key === "]") { event.preventDefault(); stepInspector(1); return; }
+    }
+    if (isEditable) return;
+    if (state.chordPrefix === "g") {
+      clearTimeout(state.chordTimer);
+      state.chordPrefix = "";
+      state.chordTimer = null;
+      const dest = CHORD_ROUTES[event.key.toLowerCase()];
+      if (dest) { event.preventDefault(); navigate(dest); }
+      return;
+    }
+    if (event.key === "g" && !event.shiftKey) {
+      state.chordPrefix = "g";
+      clearTimeout(state.chordTimer);
+      state.chordTimer = setTimeout(() => { state.chordPrefix = ""; state.chordTimer = null; }, CHORD_TIMEOUT_MS);
+    }
+  });
+  window.KilnFactory = Object.freeze({
+    openInspector,
+    closeInspector,
+    stepInspector,
+    confirmControl,
+    mutate,
+    api,
+    subscribeEvents,
+    eventsState: () => state.events,
+    factoryState: () => state.factory,
+    canOperate,
+    navigate,
+    route: () => state.route,
+    refreshOverview: () => (state.route?.page === "overview" ? loadOverview() : Promise.resolve()),
+  });
   // r[impl kiln.work.authority] r[impl kiln.work.change]
   window.KilnWork = Object.freeze({
     navigate, element, notice, runLink,
@@ -3632,7 +5016,7 @@
     },
   });
   window.addEventListener("kiln-work-ready", () => {
-    if (state.session && ["work", "planning", "inbox", "triage", "workviews"].includes(state.route?.page)) void readAction(loadPage)();
+    if (state.session && ["work", "planning", "inbox", "triage", "workviews"].includes(activeSubPageFor(state.route))) void readAction(loadPage)();
   });
   // Restoration rechecks network authorization when signed out; pagehide preserves active sessions across sleep/navigation.
   window.addEventListener("pageshow", (event) => {

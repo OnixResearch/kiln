@@ -2167,3 +2167,117 @@ fn agent_thread_outcome_window_is_read_only_and_bounded() -> Result<()> {
     );
     Ok(())
 }
+
+// r[verify kiln.review.workbench_three_pane]
+#[test]
+fn list_projection_includes_ci_summary_variants_and_approval_summary() -> Result<()> {
+    let fixture = Fixture::new()?;
+    let workspace = fixture.workspace()?;
+    let change = create(&workspace, &fixture, "req-list-ci-1")?;
+    let list_ci = |ci: &[CiFact]| -> Result<Value> {
+        let listed = accepted(get(&workspace, "/api/code-review", ALICE, ci))?;
+        Ok(field(&listed, "/changes/0")?.clone())
+    };
+
+    // 1. No CI facts -> "none", approval_summary = 0/1, queue_position = null.
+    let item = list_ci(&[])?;
+    assert_eq!(text(&item, "/ci_summary")?, "none");
+    assert_eq!(field(&item, "/approval_summary/approvals")?.as_u64(), Some(0));
+    assert_eq!(field(&item, "/approval_summary/required")?.as_u64(), Some(1));
+    assert_eq!(field(&item, "/approval_summary/vetoed")?.as_bool(), Some(false));
+    assert!(field(&item, "/queue_position")?.is_null());
+    assert!(field(&item, "/queue_status")?.is_null());
+    assert!(field(&item, "/jj_stack")?.is_null());
+
+    // 2. Partial or dirty runs never count as passing -> still "none".
+    let mut partial = fixture.ci(&fixture.first, 1, true);
+    partial.full_run = false;
+    let mut dirty = fixture.ci(&fixture.first, 2, true);
+    dirty.clean = false;
+    assert_eq!(text(&list_ci(&[partial, dirty])?, "/ci_summary")?, "none");
+
+    // 3. Non-terminal run -> "unknown".
+    let mut pending = fixture.ci(&fixture.first, 3, false);
+    pending.terminal = false;
+    assert_eq!(text(&list_ci(&[pending])?, "/ci_summary")?, "unknown");
+
+    // 4. Untrusted run awaiting approval -> "awaiting_approval".
+    let mut awaiting = fixture.ci(&fixture.first, 4, false);
+    awaiting.terminal = false;
+    awaiting.untrusted = Some(kiln_core::untrusted::UntrustedSummary {
+        state: kiln_core::untrusted::UntrustedState::AwaitingApproval,
+        reason: kiln_core::untrusted::UntrustedReason::Fork,
+        pull_request: 17,
+        head_repository: "fork/kiln".into(),
+        source_commit: fixture.first.clone(),
+        approved_by: None,
+        approved_by_id: None,
+        approved_commit: None,
+        approved_at_ms: None,
+        counts_for_required_ci: false,
+        superseded_by: None,
+    });
+    assert_eq!(text(&list_ci(&[awaiting])?, "/ci_summary")?, "awaiting_approval");
+
+    // 5. Untrusted run approved without counts_for_required_ci -> "unknown".
+    let mut uncounted = fixture.ci(&fixture.first, 5, true);
+    uncounted.untrusted = Some(kiln_core::untrusted::UntrustedSummary {
+        state: kiln_core::untrusted::UntrustedState::Approved,
+        reason: kiln_core::untrusted::UntrustedReason::Fork,
+        pull_request: 17,
+        head_repository: "fork/kiln".into(),
+        source_commit: fixture.first.clone(),
+        approved_by: Some("Operator".into()),
+        approved_by_id: Some("local:operator".into()),
+        approved_commit: Some(fixture.first.clone()),
+        approved_at_ms: Some(900),
+        counts_for_required_ci: false,
+        superseded_by: None,
+    });
+    assert_eq!(text(&list_ci(&[uncounted])?, "/ci_summary")?, "unknown");
+
+    // 6. Clean passing run -> "pass"; newer failing run supersedes -> "fail".
+    let pass = fixture.ci(&fixture.first, 6, true);
+    assert_eq!(text(&list_ci(&[pass.clone()])?, "/ci_summary")?, "pass");
+    let fail = fixture.ci(&fixture.first, 7, false);
+    assert_eq!(text(&list_ci(&[pass, fail])?, "/ci_summary")?, "fail");
+
+    // 7. Approval summary tracks eligible reviewer approval and veto.
+    let change = change_after(
+        &workspace,
+        "req-list-ci-rev",
+        &change,
+        json!({"type":"set_reviewer","principal":BOB,"role":"reviewer"}),
+        ALICE,
+        &[],
+    )?;
+    let item = list_ci(&[])?;
+    assert_eq!(field(&item, "/approval_summary/approvals")?.as_u64(), Some(0));
+    let approved = accepted(post(
+        &workspace,
+        &update(
+            "req-list-ci-bob-approve",
+            &change,
+            json!({"type":"vote","value":"approve"}),
+        )?,
+        BOB,
+        &[],
+    )?)?;
+    let item = list_ci(&[])?;
+    assert_eq!(field(&item, "/approval_summary/approvals")?.as_u64(), Some(1));
+    assert_eq!(field(&item, "/approval_summary/vetoed")?.as_bool(), Some(false));
+    let _veto = accepted(post(
+        &workspace,
+        &update(
+            "req-list-ci-bob-veto",
+            field(&approved, "/change")?,
+            json!({"type":"vote","value":"veto"}),
+        )?,
+        BOB,
+        &[],
+    )?)?;
+    let item = list_ci(&[])?;
+    assert_eq!(field(&item, "/approval_summary/approvals")?.as_u64(), Some(0));
+    assert_eq!(field(&item, "/approval_summary/vetoed")?.as_bool(), Some(true));
+    Ok(())
+}

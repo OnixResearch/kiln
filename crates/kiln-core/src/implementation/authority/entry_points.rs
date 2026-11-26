@@ -351,6 +351,8 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     observe(CLI, "plan-review-receipt"),
     // ── Fleet API ──
     observe(FLEET_API, "GET /v1/health"),
+    observe(FLEET_API, "GET /v1/machines"),
+    operator(FLEET_API, "POST /v1/machines/{name}/drain"),
     observe(FLEET_API, "GET /v1/version"),
     observe(FLEET_API, "GET /v1/claims"),
     operator(FLEET_API, "POST /v1/claims"),
@@ -358,6 +360,9 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     operator(FLEET_API, "POST /v1/claims/{id}/release"),
     observe(FLEET_API, "GET /v1/work"),
     observe(FLEET_API, "GET /v1/attempts"),
+    observe(FLEET_API, "GET /v1/attempts/{id}/pane"),
+    operator(FLEET_API, "POST /v1/attempts/{id}/prompt"),
+    operator(FLEET_API, "POST /v1/attempts/{id}/interrupt"),
     reconcile(FLEET_API, "POST /v1/attempts/{id}/handoff", Op::Dispatch),
     protected(
         FLEET_API,
@@ -367,6 +372,9 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     observe(FLEET_API, "GET /v1/decisions"),
     observe(FLEET_API, "GET /v1/metrics"),
     operator(FLEET_API, "POST /v1/decisions/{id}/answer"),
+    observe(FLEET_API, "GET /v1/dispatch/status"),
+    operator(FLEET_API, "POST /v1/dispatch/pause"),
+    operator(FLEET_API, "POST /v1/dispatch/resume"),
     observe(FLEET_API, "GET /v1/swarms"),
     operator(FLEET_API, "POST /v1/swarms"),
     observe(FLEET_API, "GET /v1/swarms/{id}"),

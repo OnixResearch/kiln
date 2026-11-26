@@ -8,7 +8,7 @@
 //! are unknown are reconciled by listing before any retry.
 
 use std::cell::RefCell;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::OsString;
 use std::sync::Arc;
 use std::time::Duration;
@@ -37,6 +37,7 @@ use serde_json::json;
 use crate::api::Service;
 use crate::capture::{Capturer, HandoffSource, Placeholders};
 use crate::config::read_bounded;
+use crate::controls::{DeferredItem, filter_draining_occupancy, summarize_tick};
 use crate::log;
 use crate::swarm::{learned_message_ids, mirror_status};
 
@@ -130,7 +131,7 @@ impl Dispatcher {
         };
         let store = service.store.open_coordinator()?;
         if let Some(client) = &herdr {
-            service.configure_machine_observations(client.inventory());
+            service.set_herdr(client.clone());
         }
         Ok(Self {
             store,
@@ -202,23 +203,84 @@ impl Dispatcher {
         }
         self.mirror(window.as_deref())?;
         let Some(herdr) = self.herdr.clone() else {
+            self.service.record_tick_summary(summarize_tick(
+                now_ms,
+                0,
+                0,
+                0,
+                Vec::new(),
+            ));
             return Ok(TickReport::default());
         };
         self.observe_sessions(&herdr, now_ms)?;
+        let mut session_counts = BTreeMap::new();
         let occupancy = herdr.occupancy_with_session_counts(|machine, sessions| {
-            self.service.record_machine_observation(machine, sessions);
+            session_counts.insert(machine.to_owned(), sessions);
         });
-        let free_slots = free_slots(herdr.inventory(), &occupancy, &config.dispatch.kinds);
+        for (machine, load) in &occupancy.machines {
+            let sessions = session_counts.get(machine).copied().flatten();
+            self.service.record_machine_load(machine, sessions, load.clone());
+        }
+        let controls = self.service.controls_snapshot();
+        let dispatch_paused = controls.dispatch_pause.paused;
+        let dispatch_occupancy = filter_draining_occupancy(&occupancy, &controls);
+        let raw_free_slots = free_slots(
+            herdr.inventory(),
+            &dispatch_occupancy,
+            &config.dispatch.kinds,
+        );
+        let total_unfiltered_slots =
+            free_slots(herdr.inventory(), &occupancy, &config.dispatch.kinds);
+        let free_slots = if dispatch_paused { 0 } else { raw_free_slots };
         let policy = config.policy.fleet();
         let planned = self.store.fleet_plan(now_ms, free_slots, &policy)?;
+        let mut deferred_items = Vec::new();
+        if dispatch_paused {
+            let reason = controls
+                .dispatch_pause
+                .reason
+                .as_deref()
+                .map_or_else(
+                    || "dispatch is paused".to_owned(),
+                    |reason| format!("dispatch is paused: {reason}"),
+                );
+            deferred_items.push(DeferredItem { work: None, reason });
+        } else if raw_free_slots == 0 && total_unfiltered_slots > 0 {
+            deferred_items.push(DeferredItem {
+                work: None,
+                reason: "all available machines are draining".to_owned(),
+            });
+        }
         let mut performed = Vec::new();
         for effect in &planned {
-            if self.perform(&herdr, effect, now_ms, &occupancy, foreign.as_deref()) {
+            if dispatch_paused
+                && matches!(
+                    effect,
+                    FleetEffect::ClaimNext | FleetEffect::Place { .. }
+                )
+            {
+                continue;
+            }
+            if self.perform(
+                &herdr,
+                effect,
+                now_ms,
+                &dispatch_occupancy,
+                foreign.as_deref(),
+                &mut deferred_items,
+            ) {
                 performed.push(effect.clone());
             }
         }
         self.store
             .fleet_record_issued_with_policy(now_ms, free_slots, &performed, &policy)?;
+        self.service.record_tick_summary(summarize_tick(
+            now_ms,
+            free_slots,
+            planned.len(),
+            performed.len(),
+            deferred_items,
+        ));
         Ok(TickReport {
             free_slots,
             planned,
@@ -395,11 +457,12 @@ impl Dispatcher {
         now_ms: u64,
         occupancy: &Occupancy,
         foreign: Option<&[ForeignClaim]>,
+        deferred: &mut Vec<DeferredItem>,
     ) -> bool {
         let outcome = match effect {
-            FleetEffect::ClaimNext => self.claim_next(herdr, now_ms, occupancy, foreign),
+            FleetEffect::ClaimNext => self.claim_next(herdr, now_ms, occupancy, foreign, deferred),
             FleetEffect::Place { attempt, fence } => {
-                self.place(herdr, attempt, *fence, now_ms, occupancy)
+                self.place(herdr, attempt, *fence, now_ms, occupancy, deferred)
             }
             FleetEffect::Prompt { session, text } => self.prompt(herdr, session, text, now_ms),
             FleetEffect::Renew { attempt, fence } => self.renew(attempt, *fence, now_ms),
@@ -435,9 +498,14 @@ impl Dispatcher {
         now_ms: u64,
         occupancy: &Occupancy,
         foreign: Option<&[ForeignClaim]>,
+        deferred: &mut Vec<DeferredItem>,
     ) -> Result<bool, String> {
         let Some(foreign) = foreign else {
             // Foreign claims could not be read: take no new work blind.
+            deferred.push(DeferredItem {
+                work: None,
+                reason: "foreign swarm claims unavailable".to_owned(),
+            });
             return Ok(false);
         };
         let config = Arc::clone(&self.service.config);
@@ -487,6 +555,12 @@ impl Dispatcher {
                 "dispatch.deferred",
                 json!({ "deferred": selection.deferred }),
             );
+            for (work, reason) in &selection.deferred {
+                deferred.push(DeferredItem {
+                    work: Some(work.clone()),
+                    reason: reason.clone(),
+                });
+            }
         }
         let Some(attempt) = selection.attempt else {
             return Ok(true);
@@ -586,31 +660,51 @@ impl Dispatcher {
         fence: u64,
         now_ms: u64,
         occupancy: &Occupancy,
+        deferred: &mut Vec<DeferredItem>,
     ) -> Result<bool, String> {
         let config = Arc::clone(&self.service.config);
-        let unplaced = |store: &mut Implementer, reason: &str| -> Result<bool, String> {
+        let unplaced = |store: &mut Implementer,
+                        deferred: &mut Vec<DeferredItem>,
+                        work_id: Option<String>,
+                        reason: &str|
+         -> Result<bool, String> {
             log::info(
                 "dispatch.place_deferred",
                 json!({ "attempt": attempt, "reason": reason }),
             );
+            deferred.push(DeferredItem {
+                work: work_id,
+                reason: reason.to_owned(),
+            });
             store.fleet_clear_placing(attempt)?;
             Ok(false)
         };
         let Some(plan) = self.store.dispatch_plan(attempt)? else {
-            return unplaced(&mut self.store, "attempt has no dispatch plan");
+            return unplaced(&mut self.store, deferred, None, "attempt has no dispatch plan");
         };
         let record = self
             .store
             .attempt(attempt)?
             .ok_or("attempt is not retained")?;
+        let work_id = Some(record.work_identity.as_str().to_owned());
         let work = self.store.active_work(attempt, fence, now_ms)?;
         let inventory = herdr.inventory();
         let Some(machine) = planned_machine(inventory, &plan, &record, &work) else {
             return unplaced(
                 &mut self.store,
+                deferred,
+                work_id,
                 "no inventory machine matches the planned workspace",
             );
         };
+        if self.service.is_machine_draining(&machine.label) {
+            return unplaced(
+                &mut self.store,
+                deferred,
+                work_id,
+                &format!("planned machine {} is draining", machine.label),
+            );
+        }
         let only: Occupancy = Occupancy {
             machines: occupancy
                 .machines
@@ -620,7 +714,12 @@ impl Dispatcher {
                 .collect(),
         };
         let Some(chosen) = place(inventory, &only, &config.dispatch.kinds) else {
-            return unplaced(&mut self.store, "the planned machine has no free slot");
+            return unplaced(
+                &mut self.store,
+                deferred,
+                work_id,
+                "the planned machine has no free slot",
+            );
         };
         let session = match self.store.fleet_bind_session(
             Placement {
@@ -634,7 +733,7 @@ impl Dispatcher {
             now_ms,
         ) {
             Ok(session) => session,
-            Err(error) => return unplaced(&mut self.store, &error),
+            Err(error) => return unplaced(&mut self.store, deferred, work_id, &error),
         };
         log::info(
             "dispatch.placed",

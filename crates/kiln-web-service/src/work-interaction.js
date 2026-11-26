@@ -201,22 +201,36 @@
     Promise.resolve().then(() => { if (epoch === authGeneration && identity()) return result.run(); }).catch(notify);
   }
 
+  const factory = () => window.KilnFactory;
   function builtins(query) {
-    // r[impl kiln.web.wayfinding] Every destination of the numbered register is one "Go to" command; typing its number
-    // or its name finds it. The project history page needs a project and is reached through CI projects.
+    // r[impl kiln.web.wayfinding] r[impl kiln.web.factory_command_palette_and_bulk]
+    // Every destination of the numbered register is one "Go to" command; typing its number
+    // or its name finds it.
     const kiln = window.KilnUi;
+    const raw = query.startsWith(">") ? query.slice(1).trim() : query;
     const entries = (kiln?.destinations || []).filter((place) => !place.parent).map((place) => ({
       label: `Go to ${place.number} ${place.title}`, group: "Go to", detail: kiln.destinationGroup(place.group).name, run: () => bridge().navigate({ page: place.page }),
     }));
     if (writable() && typeof ui()?.create === "function") {
       for (const kind of KINDS) entries.push({ label: `New ${kind === "view" ? "saved view" : kind === "personal" ? "attention preferences" : kind}…`, group: "Create", detail: "Open creation form", run: () => ui().create(kind) });
     }
-    const filtered = entries.filter((entry) => matches(query, entry.label));
-    if (query) {
-      filtered.unshift({ label: `Search all work for “${query}”`, group: "Search", detail: "Open filtered work list", run: () => bridge().navigate({ page: "work", work_q: query, work_id: "" }) });
-      filtered.push({ label: `Search CI runs for “${query}”`, group: "Search", detail: "Open server-filtered run browser", run: () => bridge().navigate({ page: "runs", q: query, cursor: "", run: "" }) });
+    const filtered = query.startsWith(">") ? [] : entries.filter((entry) => matches(raw, entry.label));
+    if (raw && !query.startsWith(">")) {
+      filtered.unshift({ label: `Search all work for “${raw}”`, group: "Search", detail: "Open filtered work list", run: () => bridge().navigate({ page: "work", work_q: raw, work_id: "" }) });
+      filtered.push({ label: `Search CI runs for “${raw}”`, group: "Search", detail: "Open server-filtered run browser", run: () => bridge().navigate({ page: "runs", q: raw, cursor: "", run: "" }) });
     }
     return filtered;
+  }
+
+  function verbEntries(query) {
+    const isVerbQuery = query.startsWith(">");
+    const parsed = isVerbQuery ? /^>\s*(\S*)\s*(.*)$/.exec(query) : null;
+    const verbFilter = parsed ? parsed[1].toLowerCase() : "";
+    const targetFilter = parsed ? parsed[2].trim() : query;
+    const allowVerb = (name) => !isVerbQuery || !verbFilter || name.startsWith(verbFilter);
+    const fac = factory();
+    const canOp = fac?.canOperate?.() !== false;
+    return { isVerbQuery, targetFilter, allowVerb, fac, canOp };
   }
 
   function matches(query, ...values) {
@@ -241,11 +255,17 @@
   async function search(query, token, who) {
     const current = () => token === generation && who && who === identity() && palette?.shell.open;
     if (!current()) return;
-    const sources = [
+    const { isVerbQuery, targetFilter, allowVerb, fac, canOp } = verbEntries(query);
+    const searchTerm = isVerbQuery ? targetFilter : query;
+    const claimScope = (c) => typeof c.scope?.target === "string" ? `${c.scope.target}${c.scope.path && c.scope.path !== "whole" ? ` ${c.scope.path}` : ""}` : c.identity;
+    const safeFetch = async (path) => {
+      try { return await bridge().api(path); } catch { return null; }
+    };
+    const coreSources = isVerbQuery ? [] : [
       ["Work", "/api/work", (data) => {
         if (!Array.isArray(data.objects)) throw new Error("Invalid work inventory");
         const favorites = new Set(data.objects.filter((record) => record.kind === "personal" && record.fields?.owner === who).flatMap((record) => record.fields?.personal?.favorites || []));
-        return data.objects.filter((record) => matches(query, record.id, record.kind, record.fields?.title, record.fields?.description, ...(record.fields?.labels || []))).map((record) => ({
+        return data.objects.filter((record) => matches(searchTerm, record.id, record.kind, record.fields?.title, record.fields?.description, ...(record.fields?.labels || []))).map((record) => ({
           label: record.fields?.title || record.id,
           detail: [favorites.has(record.id) ? "Favorite" : "", kindName(record.kind), humanize(record.fields?.status)].filter(Boolean).join(" · "),
           exact: record.id,
@@ -256,27 +276,198 @@
       ["CI projects", "/api/projects", (data) => {
         if (!Array.isArray(data.available) || !Array.isArray(data.enrolled)) throw new Error("Invalid project inventory");
         const projects = new Map([...data.available, ...data.enrolled].map((project) => [project.id, project]));
-        return [...projects.values()].filter((project) => matches(query, project.id, project.label, project.reference)).map((project) => ({ label: project.label || project.id, detail: "CI project", exact: project.id, run: () => bridge().navigate({ page: "runs", project: project.id, q: "", cursor: "", run: "" }) }));
+        return [...projects.values()].filter((project) => matches(searchTerm, project.id, project.label, project.reference)).map((project) => ({ label: project.label || project.id, detail: "CI project", exact: project.id, run: () => bridge().navigate({ page: "runs", project: project.id, q: "", cursor: "", run: "" }) }));
       }],
       // r[impl kiln.web.readable_observations]
-      ["CI runs", `/api/runs?${new URLSearchParams({ limit: "25", order: "desc", ...(query ? { q: query } : {}) })}`, (data) => {
+      ["CI runs", `/api/runs?${new URLSearchParams({ limit: "25", order: "desc", ...(searchTerm ? { q: searchTerm } : {}) })}`, (data) => {
         if (!Array.isArray(data.runs)) throw new Error("Invalid run inventory");
         const readable = typeof window.KilnUi?.statusPill === "function";
         return data.runs.map((run) => ({ label: readable ? run.project_id : `${run.project_id} · ${run.outcome}`, outcome: run.outcome ?? null, phase: run.phase, at: run.created_at_ms, detail: "CI run", exact: [run.id, run.source_revision].filter(Boolean).join(" · "), run: () => bridge().navigate({ page: "runs", run: run.id, node: "" }) }));
       }],
       ["Retained reviews", "/api/reviews", (data) => {
         if (!Array.isArray(data.receipts)) throw new Error("Invalid review inventory");
-        return data.receipts.filter((receipt) => matches(query, receipt.name, receipt.provider_profile, ...Object.keys(receipt.decision_counts || {}))).map((receipt) => ({ label: receipt.name, detail: `Retained review · ${receipt.provider_profile || "profile unavailable"}`, run: () => bridge().navigate({ page: "reviews", receipt: receipt.name }) }));
+        return data.receipts.filter((receipt) => matches(searchTerm, receipt.name, receipt.provider_profile, ...Object.keys(receipt.decision_counts || {}))).map((receipt) => ({ label: receipt.name, detail: `Retained review · ${receipt.provider_profile || "profile unavailable"}`, run: () => bridge().navigate({ page: "reviews", receipt: receipt.name }) }));
       }],
     ];
-    const results = await Promise.allSettled(sources.map(async ([, target, project]) => project(await bridge().api(target))));
+    const [coreResults, claimsData, attemptsData, decisionsData, machinesData, cairnData, campaignsData, workersData, reviewData, attentionData] = await Promise.all([
+      Promise.allSettled(coreSources.map(async ([, target, project]) => project(await bridge().api(target)))),
+      safeFetch("/api/fleet/claims?include=foreign,expired"),
+      safeFetch("/api/fleet/attempts"),
+      safeFetch("/api/fleet/decisions"),
+      safeFetch("/api/fleet/machines"),
+      safeFetch("/api/implementation/cairn"),
+      safeFetch("/api/implementation/campaigns"),
+      safeFetch("/api/workers"),
+      safeFetch("/api/code-review"),
+      safeFetch("/api/implementation/attention"),
+    ]);
     if (!current()) return;
     const errors = [];
     const entries = builtins(query);
-    results.forEach((result, index) => {
-      if (result.status === "fulfilled") entries.push(...result.value.map((entry) => ({ ...entry, group: sources[index][0] })));
-      else errors.push(`${sources[index][0]} unavailable: ${errorText(result.reason)}`);
+    coreResults.forEach((result, index) => {
+      if (result.status === "fulfilled") entries.push(...result.value.map((entry) => ({ ...entry, group: coreSources[index][0] })));
+      else errors.push(`${coreSources[index][0]} unavailable: ${errorText(result.reason)}`);
     });
+
+    // Operational verbs (> renew, > release, > approve, > reconcile, > wake, > drain, > cancel) routed through Tier 1-3 safety rails.
+    if (isVerbQuery || (searchTerm && canOp)) {
+      const claims = Array.isArray(claimsData?.claims) ? claimsData.claims : [];
+      if (allowVerb("renew")) {
+        for (const c of claims.filter((x) => matches(targetFilter, x.identity, claimScope(x), x.purpose))) {
+          const scope = claimScope(c);
+          entries.push({
+            group: "Commands",
+            label: `> renew ${scope}`,
+            detail: "Tier 1 · Renew claim lease +30m",
+            exact: c.identity,
+            run: () => fac?.mutate ? fac.mutate(`/api/fleet/claims/${c.identity}/renew`, { fence: c.fence, lease_minutes: 30 }, `Renewed claim ${scope} +30m.`) : bridge().navigate({ page: "fleet" }),
+          });
+        }
+      }
+      if (allowVerb("release")) {
+        for (const c of claims.filter((x) => matches(targetFilter, x.identity, claimScope(x), x.purpose))) {
+          const scope = claimScope(c);
+          entries.push({
+            group: "Commands",
+            label: `> release ${scope}`,
+            detail: "Tier 3 · Force-release claim (requires reason & confirmation)",
+            exact: c.identity,
+            run: async () => {
+              if (!fac?.confirmControl) return bridge().navigate({ page: "fleet" });
+              const choice = await fac.confirmControl({
+                title: `Force-release claim ${c.identity.slice(0, 12)}?`,
+                verb: "Force-release claim",
+                danger: true,
+                facts: [["Claim", c.identity], ["Scope", scope], ["Fence", String(c.fence)]],
+                reason: { label: "Release reason", placeholder: "Why this claim is being released", required: true },
+                cliCommand: `kiln-fleet release --claim ${c.identity} --fence ${c.fence}`,
+              });
+              if (choice.confirmed) await fac.mutate(`/api/fleet/claims/${c.identity}/release`, { fence: c.fence, note: choice.reason, request_id: choice.requestId }, "Claim released.");
+            },
+          });
+        }
+      }
+      const attempts = Array.isArray(attemptsData?.attempts) ? attemptsData.attempts : [];
+      if (allowVerb("cancel")) {
+        for (const a of attempts.filter((x) => matches(targetFilter, x.attempt, x.title, x.work, x.repository))) {
+          entries.push({
+            group: "Commands",
+            label: `> cancel ${a.title || a.attempt.slice(0, 12)}`,
+            detail: "Tier 3 · Cancel Fleet attempt",
+            exact: a.attempt,
+            run: async () => {
+              if (!fac?.confirmControl) return bridge().navigate({ page: "fleet" });
+              const choice = await fac.confirmControl({
+                title: `Cancel attempt ${a.attempt.slice(0, 12)}?`,
+                verb: "Cancel attempt",
+                danger: true,
+                facts: [["Attempt", a.attempt], ["Work", a.title || a.work]],
+                reason: { label: "Cancel reason", placeholder: "Why this attempt is being cancelled", required: true },
+                cliCommand: `kiln-fleet cancel ${a.attempt}`,
+              });
+              if (choice.confirmed) await fac.mutate(`/api/fleet/attempts/${a.attempt}/cancel`, { reason: choice.reason, request_id: choice.requestId }, "Attempt cancelled.");
+            },
+          });
+        }
+      }
+      const machines = Array.isArray(machinesData?.machines) ? machinesData.machines : [];
+      if (allowVerb("drain")) {
+        for (const m of machines.filter((x) => matches(targetFilter, x.machine))) {
+          const nextDrain = !m.draining;
+          entries.push({
+            group: "Commands",
+            label: `> drain ${m.machine}`,
+            detail: nextDrain ? "Tier 3 · Drain machine" : "Tier 3 · Undrain machine",
+            exact: m.health || m.state,
+            run: async () => {
+              if (!fac?.confirmControl) return bridge().navigate({ page: "fleet" });
+              const choice = await fac.confirmControl({
+                title: `${nextDrain ? "Drain" : "Undrain"} machine ${m.machine}?`,
+                verb: nextDrain ? "Drain machine" : "Undrain machine",
+                danger: nextDrain,
+                facts: [["Machine", m.machine]],
+                reason: { label: "Drain reason", placeholder: "Why placement is changing", required: nextDrain },
+                cliCommand: `kiln-fleet machines ${nextDrain ? "drain" : "undrain"} ${m.machine}`,
+              });
+              if (choice.confirmed) await fac.mutate(`/api/fleet/machines/${encodeURIComponent(m.machine)}/drain`, { draining: nextDrain, reason: choice.reason || undefined, request_id: choice.requestId }, `Machine ${m.machine} ${nextDrain ? "drained" : "undrained"}.`);
+            },
+          });
+        }
+      }
+      const campaigns = Array.isArray(campaignsData?.campaigns) ? campaignsData.campaigns : [];
+      if (allowVerb("wake")) {
+        for (const camp of campaigns.filter((x) => matches(targetFilter, x.campaign_id, x.repository, x.status))) {
+          entries.push({
+            group: "Commands",
+            label: `> wake ${camp.campaign_id}`,
+            detail: "Tier 1 · Wake implementation campaign",
+            exact: `${camp.status} · ${camp.repository || ""}`,
+            run: () => fac?.mutate ? fac.mutate(`/api/implementation/campaigns/${encodeURIComponent(camp.campaign_id)}/wake`, { kind: "operator", reason: "Woken from Command Palette" }, `Campaign ${camp.campaign_id} woken.`) : bridge().navigate({ page: "fleet", worker_campaign: camp.campaign_id }),
+          });
+        }
+      }
+      const attentionItems = Array.isArray(attentionData?.items) ? attentionData.items : [];
+      if (allowVerb("approve")) {
+        for (const att of attentionItems.filter((x) => x.kind === "UntrustedRunApproval" && matches(targetFilter, x.title, x.target?.run_id, x.target?.source_commit))) {
+          entries.push({
+            group: "Commands",
+            label: `> approve ${att.title}`,
+            detail: "Tier 2 · Approve untrusted run at exact commit",
+            exact: att.target?.run_id || "",
+            run: async () => {
+              if (!fac?.confirmControl || !att.target?.run_id || !att.target?.source_commit) return fac?.openInspector?.("attention", att.id);
+              const choice = await fac.confirmControl({
+                title: `Approve untrusted run ${att.target.run_id}?`,
+                verb: "Approve and run",
+                facts: [["Run", att.target.run_id], ["Commit", att.target.source_commit]],
+                cliCommand: `kiln runs approve --run ${att.target.run_id} --commit ${att.target.source_commit}`,
+              });
+              if (choice.confirmed) await fac.mutate(`/api/runs/${encodeURIComponent(att.target.run_id)}/approve`, { source_commit: att.target.source_commit, request_id: choice.requestId }, "Run approved.");
+            },
+          });
+        }
+      }
+      if (allowVerb("reconcile")) {
+        for (const att of attentionItems.filter((x) => x.kind === "UnknownTerminationOrDispatch" && matches(targetFilter, x.title, x.target?.attempt_id, x.target?.run_id))) {
+          entries.push({
+            group: "Commands",
+            label: `> reconcile ${att.title}`,
+            detail: "Tier 1 · Reconcile unknown termination",
+            exact: att.target?.attempt_id || att.target?.run_id || "",
+            run: () => fac?.mutate && att.target?.work_id && att.target?.attempt_id
+              ? fac.mutate("/api/implementation/reconcile-termination", { campaign_id: att.target.campaign_id || undefined, work_id: att.target.work_id, attempt_id: att.target.attempt_id, fence: att.target.fence }, "Termination reconciled.")
+              : fac?.openInspector?.("attention", att.id),
+          });
+        }
+      }
+    }
+
+    if (!isVerbQuery) {
+      for (const c of (Array.isArray(claimsData?.claims) ? claimsData.claims : []).filter((x) => matches(searchTerm, x.identity, claimScope(x), x.purpose))) {
+        entries.push({ group: "Fleet claims", label: claimScope(c), detail: `Claim · ${c.holder?.host || ""}`, exact: c.identity, run: () => fac?.openInspector ? fac.openInspector("claim", c.identity) : bridge().navigate({ page: "fleet" }) });
+      }
+      for (const a of (Array.isArray(attemptsData?.attempts) ? attemptsData.attempts : []).filter((x) => matches(searchTerm, x.attempt, x.title, x.work, x.session?.machine))) {
+        entries.push({ group: "Fleet attempts", label: a.title || a.attempt.slice(0, 12), detail: `Attempt · ${a.session?.machine || "unassigned"}`, exact: a.attempt, run: () => fac?.openInspector ? fac.openInspector("attempt", a.attempt) : bridge().navigate({ page: "fleet" }) });
+      }
+      for (const d of (Array.isArray(decisionsData?.decisions) ? decisionsData.decisions : []).filter((x) => x.answer == null && matches(searchTerm, x.identity, x.question))) {
+        entries.push({ group: "Open decisions", label: d.question || d.identity, detail: "Fleet decision", exact: d.identity, run: () => fac?.openInspector ? fac.openInspector("decision", d.identity) : bridge().navigate({ page: "fleet" }) });
+      }
+      for (const m of (Array.isArray(machinesData?.machines) ? machinesData.machines : []).filter((x) => matches(searchTerm, x.machine))) {
+        entries.push({ group: "Machines", label: m.machine, detail: `Machine · ${m.health || m.state}`, exact: m.draining ? "draining" : "active", run: () => bridge().navigate({ page: "fleet", tab: "fleet" }) });
+      }
+      for (const ch of (Array.isArray(cairnData?.changes) ? cairnData.changes : []).filter((x) => matches(searchTerm, x.change, x.repository, x.lane))) {
+        entries.push({ group: "Cairn changes", label: ch.change, detail: `Cairn · ${ch.lane}`, exact: ch.repository, run: () => bridge().navigate({ page: "cairn", tab: "cairn", cairn_repository: ch.repository, cairn_change: ch.change }) });
+      }
+      for (const camp of (Array.isArray(campaignsData?.campaigns) ? campaignsData.campaigns : []).filter((x) => matches(searchTerm, x.campaign_id, x.repository, x.status))) {
+        entries.push({ group: "Campaigns", label: camp.campaign_id, detail: `Campaign · ${camp.status}`, exact: camp.repository, run: () => bridge().navigate({ page: "fleet", tab: "workers", worker_campaign: camp.campaign_id }) });
+      }
+      for (const w of (Array.isArray(workersData?.workers) ? workersData.workers : []).filter((x) => matches(searchTerm, x.id, x.provider_profile_id, x.platform))) {
+        entries.push({ group: "Workers", label: w.provider_profile_id || w.id, detail: `Worker target · ${w.status}`, exact: w.id, run: () => bridge().navigate({ page: "fleet", tab: "workers", worker: w.id }) });
+      }
+      for (const cr of (Array.isArray(reviewData?.changes) ? reviewData.changes : []).filter((x) => matches(searchTerm, x.id, x.title, x.target_ref))) {
+        entries.push({ group: "Code reviews", label: cr.title || cr.id, detail: `Review · ${cr.ci_summary || cr.status || ""}`, exact: cr.id, run: () => bridge().navigate({ page: "code-review", review_change: cr.id }) });
+      }
+    }
     // r[impl kiln.web.console_layout]
     // Results are grouped under visible headings in first-appearance order; keyboard order follows the visual order.
     const groups = new Map();
