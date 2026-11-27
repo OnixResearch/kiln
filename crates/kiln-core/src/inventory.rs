@@ -401,6 +401,10 @@ pub struct PolicyFact {
     pub campaign_limit_remaining: Option<u64>,
     pub parent_budget_remaining: Option<u64>,
     pub admission_explanation: Option<crate::fair_admission::AdmissionExplanation>,
+    /// Redacted grant-issuance and authority denial/lineage status (`#60`, `#70`).
+    /// Omitted when absent, so earlier snapshots keep their identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grant_authority: Option<crate::implementation::grant::RedactedGrantExplanation>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -610,6 +614,10 @@ pub struct ReadinessExplanation {
     /// omitted otherwise, so earlier explanations keep their encoding.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub task_family_qualification: Option<TaskFamilyQualification>,
+    /// Redacted grant-issuance and authority denial/lineage status (`#60`, `#70`).
+    /// Omitted when absent, so earlier explanations keep their encoding.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grant_authority: Option<crate::implementation::grant::RedactedGrantExplanation>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -1105,6 +1113,34 @@ pub fn admit_snapshot(
                 token(key.as_str())?;
                 exact(&[*amount])?;
             }
+            if let Some(lineage) = &admission.lineage {
+                token(lineage.root.as_str())?;
+                token(lineage.account.as_str())?;
+                exact(&[u64::from(lineage.depth)])?;
+            }
+        }
+        if let Some(grant) = &policy.grant_authority {
+            grant
+                .validate()
+                .map_err(|_| "inventory_grant_authority_invalid")?;
+            if grant.work_version.as_str() != policy.work_version {
+                return Err("inventory_admission_binding_mismatch");
+            }
+            if let Some(digest) = &grant.grant_ref_digest {
+                token(digest)?;
+            }
+            if let Some(reason) = &grant.denial_reason {
+                token(reason)?;
+            }
+            exact_options([grant.fence])?;
+            exact(&[
+                grant.authority_generation,
+                grant.revocation_generation,
+                u64::from(grant.active_children),
+                u64::from(grant.pending_children),
+                u64::from(grant.unknown_children),
+                u64::from(grant.max_concurrent_children),
+            ])?;
         }
     }
     for slots in &snapshot.workflow_revisions {
@@ -1401,6 +1437,7 @@ fn explain_admitted_readiness(
         truncated: false,
         dispatch_authorized: false,
         task_family_qualification: None,
+        grant_authority: None,
     };
     // Workflow revision slots are display-only: no readiness decision reads
     // them, so their source state never blocks an explanation.
@@ -1594,6 +1631,54 @@ fn explain_admitted_readiness(
                     "bounded_wait",
                     Some(&policy.meta.reference),
                     reason,
+                ));
+            }
+            if let Some(lineage_blocker) = admission
+                .lineage
+                .as_ref()
+                .and_then(|lineage| lineage.blocker.as_ref())
+            {
+                result.blockers.push(blocker(
+                    "fair_admission_lineage_blocked",
+                    Some(&policy.meta.reference),
+                    admission_reason_code(lineage_blocker),
+                ));
+            }
+        }
+        if let Some(grant) = &policy.grant_authority {
+            result.grant_authority = Some(grant.clone());
+            if grant.phase.is_blocking() {
+                result.blockers.push(blocker(
+                    "grant_authority_blocked",
+                    Some(&policy.meta.reference),
+                    grant
+                        .denial_reason
+                        .as_deref()
+                        .unwrap_or(grant.phase.as_str()),
+                ));
+            } else if let Some(denial) = &grant.denial_reason {
+                result.blockers.push(blocker(
+                    "grant_authority_denied",
+                    Some(&policy.meta.reference),
+                    denial,
+                ));
+            }
+            if grant.unknown_children > 0 {
+                result.blockers.push(blocker(
+                    "grant_unknown_termination_pending",
+                    Some(&policy.meta.reference),
+                    "unknown_termination_reconciliation_required",
+                ));
+            }
+            let held = grant
+                .active_children
+                .saturating_add(grant.pending_children)
+                .saturating_add(grant.unknown_children);
+            if grant.max_concurrent_children > 0 && held >= grant.max_concurrent_children {
+                result.blockers.push(blocker(
+                    "grant_child_concurrency_full",
+                    Some(&policy.meta.reference),
+                    "concurrency_full",
                 ));
             }
         }
@@ -1899,7 +1984,7 @@ pub fn project_inventory(
     admit_snapshot(profile, snapshot)?;
     exact(&[now])?;
     let sources = source_status(profile, snapshot, now);
-    let explanation = if let Some(needs) = needs {
+    let mut explanation = if let Some(needs) = needs {
         admit_work_needs(needs)?;
         Some(explain_admitted_readiness(
             profile, snapshot, needs, now, &sources,
@@ -1974,6 +2059,20 @@ pub fn project_inventory(
                 .artifact_verification_evidence
                 .as_ref()
                 .map(|_| "redacted".into());
+        }
+        for policy in &mut snapshot.policies {
+            if let Some(grant) = &mut policy.grant_authority {
+                grant.grant_ref_digest = None;
+                grant.intent = None;
+                grant.parent_binding = None;
+            }
+        }
+        if let Some(explained) = &mut explanation
+            && let Some(grant) = &mut explained.grant_authority
+        {
+            grant.grant_ref_digest = None;
+            grant.intent = None;
+            grant.parent_binding = None;
         }
     }
     let mut facts: Vec<_> = metas(&snapshot)
@@ -2142,3 +2241,112 @@ pub use workflow::{
 #[cfg(test)]
 #[path = "inventory_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+mod grant_authority_tests {
+    use super::*;
+    use crate::implementation::authority::AUTHORITY_DIGEST_BYTES;
+    use crate::implementation::grant::{
+        GRANT_ISSUANCE_EXPLANATION_SCHEMA, GrantLifecyclePhase, GrantRole, RedactedGrantExplanation,
+        format_grant_ref_digest,
+    };
+
+    fn test_id(ch: char) -> crate::types::ContentId {
+        crate::types::ContentId::from_blake3_hex(ch.to_string().repeat(64))
+            .unwrap_or_else(|_| unreachable!())
+    }
+
+    #[test]
+    fn grant_authority_and_lineage_blockers_surface_redacted_without_leaks() {
+        #[derive(Deserialize)]
+        struct Fixture {
+            profile: InventoryProfile,
+            snapshot: InventorySnapshot,
+        }
+        let mut fixture: Fixture = serde_json::from_str(include_str!(
+            "../../../fixtures/inventory/synthetic-v2.json"
+        ))
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+        let mut needs: WorkNeeds = serde_json::from_str(include_str!(
+            "../../../fixtures/inventory/synthetic-work-needs-v2.json"
+        ))
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+        fixture.snapshot.synthetic = false;
+
+        let work = test_id('a');
+        let policy_id = test_id('b');
+        needs.work_version = work.as_str().into();
+        needs.policy_ref = policy_id.as_str().into();
+        let policy_fact = fixture
+            .snapshot
+            .policies
+            .first_mut()
+            .unwrap_or_else(|| unreachable!());
+        policy_fact.work_version = needs.work_version.clone();
+        policy_fact.policy_ref = needs.policy_ref.clone();
+        policy_fact.grant_authority = Some(RedactedGrantExplanation {
+            schema: GRANT_ISSUANCE_EXPLANATION_SCHEMA.into(),
+            work_version: work,
+            attempt: Some(test_id('c')),
+            fence: Some(2),
+            intent: Some(test_id('d')),
+            parent_binding: Some(test_id('e')),
+            grant_ref_digest: Some(format_grant_ref_digest(&[0x5a; AUTHORITY_DIGEST_BYTES])),
+            depth: Some(1),
+            role: Some(GrantRole::Coding),
+            authority_generation: 7,
+            revocation_generation: 3,
+            phase: GrantLifecyclePhase::UnknownFenced,
+            denial_reason: Some("stale_generation".into()),
+            active_children: 1,
+            pending_children: 0,
+            unknown_children: 1,
+            max_concurrent_children: 2,
+        });
+
+        let explained = explain_readiness(&fixture.profile, &fixture.snapshot, &needs, 2000)
+            .unwrap_or_else(|e| unreachable!("{e:?}"));
+        assert!(explained.blockers.iter().any(|b| {
+            b.code == "grant_authority_blocked" && b.constraint == "stale_generation"
+        }));
+        assert!(explained
+            .blockers
+            .iter()
+            .any(|b| b.code == "grant_unknown_termination_pending"));
+        assert!(explained
+            .blockers
+            .iter()
+            .any(|b| b.code == "grant_child_concurrency_full"));
+
+        // When include_evidence is false, digests/intent/parent_binding are redacted out.
+        let mut redacted_profile = fixture.profile.clone();
+        redacted_profile.include_evidence = false;
+        let projected =
+            project_inventory(&redacted_profile, &fixture.snapshot, Some(&needs), 2000)
+                .unwrap_or_else(|e| unreachable!("{e:?}"));
+        let projected_grant = projected
+            .explanation
+            .as_ref()
+            .and_then(|e| e.grant_authority.as_ref())
+            .unwrap_or_else(|| unreachable!());
+        assert_eq!(projected_grant.grant_ref_digest, None);
+        assert_eq!(projected_grant.intent, None);
+        assert_eq!(projected_grant.parent_binding, None);
+        assert_eq!(projected_grant.denial_reason.as_deref(), Some("stale_generation"));
+
+        // Secret/path-like denial reason is rejected at snapshot admission.
+        let mut bad_snapshot = fixture.snapshot.clone();
+        bad_snapshot
+            .policies
+            .first_mut()
+            .unwrap_or_else(|| unreachable!())
+            .grant_authority
+            .as_mut()
+            .unwrap_or_else(|| unreachable!())
+            .denial_reason = Some("/home/brittonr/secret.seed".into());
+        assert_eq!(
+            admit_snapshot(&fixture.profile, &bad_snapshot),
+            Err("inventory_grant_authority_invalid")
+        );
+    }
+}

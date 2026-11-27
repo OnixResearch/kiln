@@ -34,12 +34,20 @@ use crate::types::{ContentId, CoreResult, Diagnostic};
 
 /// Contract schema of an attempt authority binding.
 pub const ATTEMPT_AUTHORITY_BINDING_SCHEMA: &str = "kiln.attempt-authority-binding.v1";
+/// Contract schema of a redacted grant-issuance explanation (`#60`, `#70`).
+pub const GRANT_ISSUANCE_EXPLANATION_SCHEMA: &str = "kiln.grant-issuance-explanation.v1";
 /// Maximum lineage depth below a root binding. Bounds every chain walk.
 pub const MAX_GRANT_DEPTH: u8 = 8;
 /// Maximum bindings in one lineage chain, root included.
 pub const MAX_GRANT_LINEAGE: usize = MAX_GRANT_DEPTH as usize + 1;
 /// Maximum disclosure routes one ceiling may name.
 pub const MAX_DISCLOSURE_ROUTES: usize = 32;
+/// Maximum concurrent child grants permitted under a single parent binding.
+pub const MAX_CONCURRENT_CHILDREN_PER_PARENT: u32 = 64;
+/// Maximum bytes in a redacted denial reason token.
+pub const MAX_REDACTED_DENIAL_BYTES: usize = 128;
+/// Hex characters in a redacted 32-byte proof reference digest.
+pub const GRANT_REF_HEX_CHARS: usize = AUTHORITY_DIGEST_BYTES * 2;
 
 const CEILING_DOMAIN: &[u8] = b"kiln.authority-ceiling.v1";
 const BINDING_DOMAIN: &[u8] = b"kiln.attempt-authority-binding.v1";
@@ -1146,6 +1154,592 @@ fn put_optional_id(hasher: &mut blake3::Hasher, value: Option<&ContentId>) {
     }
 }
 
+/// Bounded concurrent child grant limit for a single parent binding (#61, #70).
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ChildConcurrencyLimit {
+    /// Maximum simultaneous pending, active, and unresolved-unknown children.
+    pub max_concurrent_children: u32,
+}
+
+impl ChildConcurrencyLimit {
+    /// Construct and validate a concurrent child limit.
+    ///
+    /// # Errors
+    /// Returns a diagnostic if zero or above [`MAX_CONCURRENT_CHILDREN_PER_PARENT`].
+    pub fn new(max_concurrent_children: u32) -> CoreResult<Self> {
+        let limit = Self {
+            max_concurrent_children,
+        };
+        limit.validate()?;
+        Ok(limit)
+    }
+
+    /// Validate that the limit is positive and within [`MAX_CONCURRENT_CHILDREN_PER_PARENT`].
+    ///
+    /// # Errors
+    /// Returns a diagnostic if the limit is out of bounds.
+    pub fn validate(&self) -> CoreResult<()> {
+        if self.max_concurrent_children == 0
+            || self.max_concurrent_children > MAX_CONCURRENT_CHILDREN_PER_PARENT
+        {
+            return Err(Diagnostic::new(
+                "grant_child_concurrency_bound",
+                "limit.max_concurrent_children",
+                "child concurrency limit must be positive and bounded",
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Observed child grant slots held under one parent binding.
+///
+/// Unresolved `unknown_children` count toward held capacity so an unknown
+/// termination cannot silently free a slot for duplicate child capacity.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ChildConcurrencyState {
+    pub active_children: u32,
+    pub pending_children: u32,
+    pub unknown_children: u32,
+}
+
+impl ChildConcurrencyState {
+    /// Total child slots currently held (active + pending + unresolved unknown).
+    #[must_use]
+    pub const fn total_held(&self) -> Option<u32> {
+        match self.active_children.checked_add(self.pending_children) {
+            Some(sum) => sum.checked_add(self.unknown_children),
+            None => None,
+        }
+    }
+
+    /// Check whether one additional child slot fits within `limit`.
+    ///
+    /// # Errors
+    /// Returns `grant_child_concurrency_bound` for an invalid limit, or
+    /// `grant_child_concurrency_full` when held capacity equals or exceeds it.
+    pub fn check_available(&self, limit: ChildConcurrencyLimit) -> CoreResult<()> {
+        limit.validate()?;
+        let held = self.total_held().ok_or_else(|| {
+            Diagnostic::new(
+                "grant_child_concurrency_full",
+                "concurrency.held",
+                "child grant concurrency count overflowed",
+            )
+        })?;
+        if held >= limit.max_concurrent_children {
+            return Err(Diagnostic::new(
+                "grant_child_concurrency_full",
+                "concurrency.held",
+                "parent grant concurrent child budget exhausted",
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Refusal returned when admitting a child grant with concurrency enforcement.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ChildGrantError {
+    /// Lineage, attenuation, currentness, or #61 budget check failed.
+    Lineage(LineageError),
+    /// Parent grant concurrent child cap (including unknown-held slots) is full.
+    ConcurrencyFull,
+    /// Parent binding is revoked, released, or fenced by an unknown termination.
+    ParentFenced,
+}
+
+impl From<LineageError> for ChildGrantError {
+    fn from(error: LineageError) -> Self {
+        Self::Lineage(error)
+    }
+}
+
+impl From<LineageRefusal> for ChildGrantError {
+    fn from(refusal: LineageRefusal) -> Self {
+        Self::Lineage(LineageError::Refused(refusal))
+    }
+}
+
+impl From<Diagnostic> for ChildGrantError {
+    fn from(diagnostic: Diagnostic) -> Self {
+        Self::Lineage(LineageError::Invalid(diagnostic))
+    }
+}
+
+impl ChildGrantError {
+    /// Closed redacted code for logs and `#60` explanations.
+    #[must_use]
+    pub fn redacted_code(&self) -> &str {
+        match self {
+            Self::Lineage(LineageError::Invalid(diagnostic)) => &diagnostic.code,
+            Self::Lineage(LineageError::Refused(refusal)) => refusal.as_str(),
+            Self::ConcurrencyFull => "concurrency_full",
+            Self::ParentFenced => "parent_fenced",
+        }
+    }
+
+    /// Convert to a bounded diagnostic.
+    #[must_use]
+    pub fn into_diagnostic(self) -> Diagnostic {
+        match self {
+            Self::Lineage(LineageError::Invalid(diagnostic)) => diagnostic,
+            Self::Lineage(LineageError::Refused(refusal)) => Diagnostic::new(
+                refusal.as_str(),
+                "grant.lineage",
+                "child grant refused by lineage policy",
+            ),
+            Self::ConcurrencyFull => Diagnostic::new(
+                "grant_child_concurrency_full",
+                "grant.concurrency",
+                "parent grant concurrent child budget exhausted",
+            ),
+            Self::ParentFenced => Diagnostic::new(
+                "grant_parent_fenced",
+                "grant.parent",
+                "parent grant is revoked or fenced",
+            ),
+        }
+    }
+}
+
+/// Admit a child grant while enforcing parent-child attenuation, #61 budget
+/// binding, and concurrent child slot availability.
+///
+/// # Errors
+/// Returns [`ChildGrantError`] if the limit is invalid, the lineage/budget
+/// checks fail, or concurrent held slots (active + pending + unknown) are full.
+pub fn admit_child_with_concurrency(
+    parent: &AttemptAuthorityBinding,
+    request: ChildGrantRequest,
+    facts: &DelegationFacts<'_>,
+    concurrency: ChildConcurrencyState,
+    limit: ChildConcurrencyLimit,
+) -> Result<AdmittedGrant, ChildGrantError> {
+    limit.validate()?;
+    let grant = admit_child(parent, request, facts)?;
+    if concurrency.check_available(limit).is_err() {
+        return Err(ChildGrantError::ConcurrencyFull);
+    }
+    Ok(grant)
+}
+
+/// Durable lifecycle phase of a grant issuance record for `#60` projections.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GrantLifecyclePhase {
+    /// No grant intent exists for this work yet.
+    None,
+    /// Admitted grant intent persisted prior to token minting.
+    Intended,
+    /// Token minted and proof reference persisted.
+    Issued,
+    /// Proof reference durably revoked (directly or via ancestor).
+    Revoked,
+    /// Terminated in `Unknown`: grant fenced/revoked, slot held until resolved.
+    UnknownFenced,
+    /// Unknown termination independently observed; grant remains revoked, slot freed.
+    UnknownResolved,
+    /// Cleanly completed/settled and released.
+    Released,
+    /// Unissued intent abandoned before minting.
+    Abandoned,
+}
+
+impl GrantLifecyclePhase {
+    /// Stable redacted label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Intended => "intended",
+            Self::Issued => "issued",
+            Self::Revoked => "revoked",
+            Self::UnknownFenced => "unknown_fenced",
+            Self::UnknownResolved => "unknown_resolved",
+            Self::Released => "released",
+            Self::Abandoned => "abandoned",
+        }
+    }
+
+    /// Whether this phase blocks new dispatch or issuance.
+    #[must_use]
+    pub const fn is_blocking(self) -> bool {
+        matches!(
+            self,
+            Self::Revoked | Self::UnknownFenced | Self::UnknownResolved | Self::Abandoned
+        )
+    }
+}
+
+/// Redacted, non-credential grant-issuance and authority status (`#60`, `#70`).
+///
+/// Carries only content identities, proof reference digests (never tokens),
+/// bounded enum/count fields, and strictly validated closed denial tokens.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RedactedGrantExplanation {
+    pub schema: String,
+    pub work_version: ContentId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attempt: Option<ContentId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fence: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub intent: Option<ContentId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_binding: Option<ContentId>,
+    /// 64-char lowercase hex BLAKE3 digest of the proof reference, never token bytes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grant_ref_digest: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub depth: Option<u8>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub role: Option<GrantRole>,
+    pub authority_generation: u64,
+    pub revocation_generation: u64,
+    pub phase: GrantLifecyclePhase,
+    /// Closed redacted denial token, never free text, paths, or secret material.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub denial_reason: Option<String>,
+    pub active_children: u32,
+    pub pending_children: u32,
+    pub unknown_children: u32,
+    pub max_concurrent_children: u32,
+}
+
+impl RedactedGrantExplanation {
+    /// Validate that all identifiers, digests, and denial tokens are strictly redacted.
+    ///
+    /// # Errors
+    /// Returns a diagnostic if the schema, identities, hex digest, depth, or
+    /// denial token contain non-redacted, oversized, path-like, or secret-like content.
+    pub fn validate(&self) -> CoreResult<()> {
+        if self.schema != GRANT_ISSUANCE_EXPLANATION_SCHEMA {
+            return Err(Diagnostic::new(
+                "grant_explanation_schema",
+                "explanation.schema",
+                "unsupported grant explanation schema",
+            ));
+        }
+        self.work_version.validate()?;
+        for id in [&self.attempt, &self.intent, &self.parent_binding]
+            .into_iter()
+            .flatten()
+        {
+            id.validate()?;
+        }
+        if let Some(digest) = &self.grant_ref_digest
+            && (digest.len() != GRANT_REF_HEX_CHARS
+                || !digest
+                    .bytes()
+                    .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)))
+        {
+            return Err(Diagnostic::new(
+                "grant_explanation_digest",
+                "explanation.grant_ref_digest",
+                "grant reference digest must be 64 lowercase hex chars",
+            ));
+        }
+        if let Some(depth) = self.depth
+            && depth > MAX_GRANT_DEPTH
+        {
+            return Err(Diagnostic::new(
+                "grant_explanation_depth",
+                "explanation.depth",
+                "grant depth exceeds lineage bound",
+            ));
+        }
+        if let Some(reason) = &self.denial_reason
+            && !is_redacted_token(reason)
+        {
+            return Err(Diagnostic::new(
+                "grant_explanation_redaction",
+                "explanation.denial_reason",
+                "denial reason must be a bounded redacted token without paths or secrets",
+            ));
+        }
+        if self.max_concurrent_children > MAX_CONCURRENT_CHILDREN_PER_PARENT {
+            return Err(Diagnostic::new(
+                "grant_explanation_bound",
+                "explanation.max_concurrent_children",
+                "max concurrent children exceeds bound",
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Whether `value` is a safe redacted identifier/reason token: bounded ASCII
+/// of `[a-zA-Z0-9_-.:]` with no `..`, whitespace, slashes, `=`, or token delimiters.
+#[must_use]
+pub fn is_redacted_token(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= MAX_REDACTED_DENIAL_BYTES
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || b"-_.:".contains(&byte))
+        && !value.contains("..")
+}
+
+/// Format a 32-byte proof reference digest into 64 lowercase hex characters.
+#[must_use]
+pub fn format_grant_ref_digest(grant_ref: &[u8; AUTHORITY_DIGEST_BYTES]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut out = String::with_capacity(GRANT_REF_HEX_CHARS);
+    for byte in grant_ref {
+        out.push(HEX[(byte >> 4) as usize] as char);
+        out.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    out
+}
+
+/// Map an internal error or diagnostic string into a safe redacted token.
+///
+/// Never echoes file paths, tokens, URLs, or free-form messages; extracts a
+/// closed/safe code prefix if present, otherwise returns `"denied"`.
+#[must_use]
+pub fn sanitize_redacted_denial_code(raw: &str) -> String {
+    let trimmed = raw.trim();
+    if let Some(rest) = trimmed.strip_prefix("authority:") {
+        let code = rest
+            .trim()
+            .split(|ch: char| ch.is_ascii_whitespace() || ch == '(')
+            .next()
+            .unwrap_or_default();
+        if is_redacted_token(code) {
+            return code.to_string();
+        }
+        return "authority_denied".to_string();
+    }
+    let prefix = trimmed
+        .split([':', ' '])
+        .next()
+        .unwrap_or_default()
+        .trim();
+    if is_redacted_token(prefix) {
+        prefix.to_string()
+    } else {
+        "denied".to_string()
+    }
+}
+
 #[cfg(test)]
 #[path = "grant_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+mod wiring_tests {
+    use super::*;
+    use crate::implementation::authority::ProtectedOperation as Op;
+    use crate::implementation::{
+        AcceptanceObligation, AttemptLedger, DEFAULT_LEASE_MS, IMPLEMENTATION_WORK_SCHEMA,
+        ImplementationWork, SourceRef, TerminalPolicy, WorkBudget, WorkSourceKind,
+    };
+    use crate::types::ExternalRef;
+    use alloc::vec;
+
+    fn test_id(ch: char) -> ContentId {
+        ContentId::from_blake3_hex(ch.to_string().repeat(64)).unwrap_or_else(|_| unreachable!())
+    }
+
+    fn test_lineage() -> AttemptLineage {
+        let mut attempts = AttemptLedger::default();
+        let work = ImplementationWork {
+            schema: IMPLEMENTATION_WORK_SCHEMA.to_string(),
+            revision: 1,
+            actor: "operator".to_string(),
+            repository: "onix/kiln".to_string(),
+            project: "kiln".to_string(),
+            base: None,
+            title: "Concurrency test".to_string(),
+            requested_outcome: "implement".to_string(),
+            acceptance: vec![AcceptanceObligation {
+                id: "ok".to_string(),
+                statement: "verified".to_string(),
+            }],
+            dependencies: vec![],
+            permitted_paths: vec!["crates".to_string()],
+            permitted_effects: BTreeSet::from(["write_source".to_string()]),
+            verification_profile: test_id('9'),
+            budget: WorkBudget {
+                attempts: 2,
+                minutes_per_attempt: 60,
+            },
+            terminal_policy: TerminalPolicy::VerifiedPullRequest,
+            priority: 1,
+            aliases: vec![SourceRef {
+                kind: WorkSourceKind::GitHubIssue,
+                source: ExternalRef::new("github", "issue", "onix/kiln#70")
+                    .unwrap_or_else(|_| unreachable!()),
+                native_id: "onix/kiln#70".to_string(),
+                version: test_id('1'),
+            }],
+        };
+        let attempt = attempts
+            .claim(&work, 0, DEFAULT_LEASE_MS)
+            .unwrap_or_else(|_| unreachable!());
+        AttemptLineage {
+            campaign_revision: None,
+            project: work.project,
+            work: attempt.work_identity,
+            work_version: attempt.work_revision,
+            attempt: attempt.identity,
+            fence: attempt.fence,
+        }
+    }
+
+    #[test]
+    fn child_concurrency_enforces_cap_including_unknown_slots() {
+        let attempt = test_lineage();
+        let revoked = BTreeSet::new();
+        let root_budget = GrantBudget {
+            parent_budget_identity: test_id('a'),
+            account: test_id('b'),
+        };
+        let root = admit_root(
+            RootGrantRequest {
+                ceiling: AuthorityCeiling::new(
+                    1,
+                    CeilingTerms {
+                        audience: "did:web:kiln".to_string(),
+                        project: "kiln".to_string(),
+                        work: Some(attempt.work.clone()),
+                        operations: BTreeSet::from([Op::Dispatch]),
+                        not_after_s: 1_000,
+                        max_depth: 2,
+                        disclosure_routes: BTreeSet::new(),
+                    },
+                )
+                .unwrap_or_else(|_| unreachable!()),
+                root_policy_ref: "policy:kiln".to_string(),
+                holder: "did:key:coordinator".to_string(),
+                incarnation: None,
+                budget: root_budget.clone(),
+            },
+            &RootFacts {
+                current: CurrentFacts {
+                    now_s: 100,
+                    authority_generation: 1,
+                    revocation_generation: 0,
+                    revoked: &revoked,
+                    attempt: &attempt,
+                },
+                budget: Some(&root_budget),
+            },
+        )
+        .unwrap_or_else(|_| unreachable!())
+        .issue([1; AUTHORITY_DIGEST_BYTES])
+        .unwrap_or_else(|_| unreachable!());
+
+        let child_budget = GrantBudget {
+            parent_budget_identity: test_id('b'),
+            account: test_id('c'),
+        };
+        let limit = ChildConcurrencyLimit::new(2).unwrap_or_else(|_| unreachable!());
+        let make_req = || ChildGrantRequest {
+            terms: CeilingTerms {
+                audience: "did:web:kiln".to_string(),
+                project: "kiln".to_string(),
+                work: Some(attempt.work.clone()),
+                operations: BTreeSet::from([Op::Dispatch]),
+                not_after_s: 900,
+                max_depth: 0,
+                disclosure_routes: BTreeSet::new(),
+            },
+            holder: "did:key:worker".to_string(),
+            incarnation: None,
+            budget: child_budget.clone(),
+        };
+        let facts = DelegationFacts {
+            current: CurrentFacts {
+                now_s: 100,
+                authority_generation: 1,
+                revocation_generation: 0,
+                revoked: &revoked,
+                attempt: &attempt,
+            },
+            delegator: "did:key:coordinator",
+            delegate_permitted: true,
+            ancestors: &[],
+            budget: Some(&child_budget),
+        };
+
+        // 1 active + 0 pending + 1 unknown == 2 == limit -> refused
+        let err = admit_child_with_concurrency(
+            &root,
+            make_req(),
+            &facts,
+            ChildConcurrencyState {
+                active_children: 1,
+                pending_children: 0,
+                unknown_children: 1,
+            },
+            limit,
+        )
+        .unwrap_err();
+        assert_eq!(err, ChildGrantError::ConcurrencyFull);
+
+        // Once unknown resolves (unknown_children: 0), slot is free.
+        assert!(
+            admit_child_with_concurrency(
+                &root,
+                make_req(),
+                &facts,
+                ChildConcurrencyState {
+                    active_children: 1,
+                    pending_children: 0,
+                    unknown_children: 0,
+                },
+                limit,
+            )
+            .is_ok()
+        );
+        assert!(ChildConcurrencyLimit::new(0).is_err());
+        assert!(ChildConcurrencyLimit::new(MAX_CONCURRENT_CHILDREN_PER_PARENT + 1).is_err());
+    }
+
+    #[test]
+    fn redacted_grant_explanation_rejects_paths_spaces_and_tokens() {
+        let valid = RedactedGrantExplanation {
+            schema: GRANT_ISSUANCE_EXPLANATION_SCHEMA.to_string(),
+            work_version: test_id('1'),
+            attempt: Some(test_id('2')),
+            fence: Some(1),
+            intent: Some(test_id('3')),
+            parent_binding: None,
+            grant_ref_digest: Some(format_grant_ref_digest(&[0xab; AUTHORITY_DIGEST_BYTES])),
+            depth: Some(1),
+            role: Some(GrantRole::Coding),
+            authority_generation: 1,
+            revocation_generation: 2,
+            phase: GrantLifecyclePhase::Revoked,
+            denial_reason: Some("stale_generation".to_string()),
+            active_children: 0,
+            pending_children: 0,
+            unknown_children: 1,
+            max_concurrent_children: 4,
+        };
+        assert!(valid.validate().is_ok());
+
+        for bad in [
+            "/home/brittonr/secrets/coordinator.seed",
+            "https://secret.example/token=xyz",
+            "bearer eyJhbGciOiJFZERTQSJ9.secret",
+            "../private/repo",
+            "space in reason",
+        ] {
+            let mut invalid = valid.clone();
+            invalid.denial_reason = Some(bad.to_string());
+            assert!(invalid.validate().is_err(), "must reject {bad}");
+        }
+
+        let sanitized =
+            sanitize_redacted_denial_code("authority: credential-denied (/tmp/secret.ucan)");
+        assert_eq!(sanitized, "credential-denied");
+        assert!(!sanitized.contains("/tmp"));
+        assert!(!sanitized.contains("secret.ucan"));
+    }
+}

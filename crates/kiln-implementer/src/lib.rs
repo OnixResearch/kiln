@@ -348,13 +348,34 @@ impl Implementer {
         now_ms: u64,
     ) -> Result<AdmissionDecision, String> {
         let enrollment = self.enrollment.clone();
-        self.with_ledgers(|ledger, attempts| {
+        let (decision, superseded) = self.with_ledgers(|ledger, attempts| {
             let decision = ledger.admit(work, mapping, &enrollment)?;
-            if matches!(decision, AdmissionDecision::Superseded { .. }) {
-                attempts.supersede(&work.canonical_key()?, work.revision, rule, now_ms)?;
-            }
-            Ok(decision)
-        })
+            let superseded = if matches!(decision, AdmissionDecision::Superseded { .. }) {
+                attempts
+                    .supersede(&work.canonical_key()?, work.revision, rule, now_ms)?
+                    .map(|attempt_id| {
+                        let is_unknown = attempts.get(&attempt_id).is_some_and(|attempt| {
+                            attempt.failure
+                                == Some(kiln_core::implementation::FailureClass::Unknown)
+                        });
+                        (attempt_id, is_unknown)
+                    })
+            } else {
+                None
+            };
+            Ok((decision, superseded))
+        })?;
+        if let Some((attempt_id, is_unknown)) = superseded
+            && (rule == kiln_core::implementation::SupersessionRule::AbortActive || is_unknown)
+        {
+            grant_issuance::fence_or_revoke_for_attempt(
+                &self.database,
+                &attempt_id,
+                is_unknown,
+                now_ms,
+            )?;
+        }
+        Ok(decision)
     }
 
     /// Transactional currentness observation, not a physical resource grant.
@@ -426,7 +447,8 @@ impl Implementer {
         fence: u64,
         termination: &kiln_core::types::ExternalRef,
     ) -> Result<(), String> {
-        self.with_ledgers(|_, attempts| attempts.reconcile_unknown(identity, fence, termination))
+        self.with_ledgers(|_, attempts| attempts.reconcile_unknown(identity, fence, termination))?;
+        grant_issuance::resolve_unknown_for_attempt(&self.database, identity, termination)
     }
 
     /// Retain immutable operator-admitted resource/profile requirements for an
@@ -1417,6 +1439,12 @@ impl Implementer {
         let result =
             self.with_ledgers(|_, attempts| attempts.fail(identity, fence, now_ms, class, cause));
         if result.is_ok() {
+            grant_issuance::fence_or_revoke_for_attempt(
+                &self.database,
+                identity,
+                class == kiln_core::implementation::FailureClass::Unknown,
+                now_ms,
+            )?;
             self.mirror_reconcile(now_ms);
         }
         result
@@ -1432,6 +1460,7 @@ impl Implementer {
         let result =
             self.with_ledgers(|_, attempts| attempts.block(identity, fence, now_ms, cause));
         if result.is_ok() {
+            grant_issuance::fence_or_revoke_for_attempt(&self.database, identity, false, now_ms)?;
             self.mirror_reconcile(now_ms);
         }
         result
@@ -1468,28 +1497,60 @@ impl Implementer {
         rule: kiln_core::implementation::SupersessionRule,
         now_ms: u64,
     ) -> Result<Option<ContentId>, String> {
-        let result = self.with_ledgers(|_, attempts| {
-            attempts.supersede(canonical_key, new_revision, rule, now_ms)
-        });
-        if result.is_ok() {
-            self.mirror_reconcile(now_ms);
+        let (superseded, is_unknown) = self.with_ledgers(|_, attempts| {
+            let superseded = attempts.supersede(canonical_key, new_revision, rule, now_ms)?;
+            let is_unknown = superseded.as_ref().is_some_and(|attempt_id| {
+                attempts
+                    .get(attempt_id)
+                    .is_some_and(|a| a.failure == Some(kiln_core::implementation::FailureClass::Unknown))
+            });
+            Ok((superseded, is_unknown))
+        })?;
+        if let Some(attempt_id) = superseded.as_ref()
+            && (rule == kiln_core::implementation::SupersessionRule::AbortActive || is_unknown)
+        {
+            grant_issuance::fence_or_revoke_for_attempt(
+                &self.database,
+                attempt_id,
+                is_unknown,
+                now_ms,
+            )?;
         }
-        result
+        self.mirror_reconcile(now_ms);
+        Ok(superseded)
     }
 
     /// Expire ended leases and return the active/reconciliation set.
     // r[impl kiln.implementation.recovery]
     pub fn recover(&mut self, now_ms: u64) -> Result<Recovery, String> {
-        self.with_ledgers(|_, attempts| {
+        let (recovery, expired_statuses) = self.with_ledgers(|_, attempts| {
             let expired = attempts.expire(now_ms)?;
+            let statuses: Vec<(ContentId, bool)> = expired
+                .iter()
+                .map(|id| {
+                    let is_unknown = attempts.get(id).is_some_and(|attempt| {
+                        attempt.failure == Some(kiln_core::implementation::FailureClass::Unknown)
+                    });
+                    (id.clone(), is_unknown)
+                })
+                .collect();
             let active = attempts
                 .attempts()
                 .filter(|attempt| attempt.phase.is_active())
                 .chain(attempts.unresolved())
                 .map(|attempt| attempt.identity.clone())
                 .collect();
-            Ok(Recovery { expired, active })
-        })
+            Ok((Recovery { expired, active }, statuses))
+        })?;
+        for (attempt_id, is_unknown) in expired_statuses {
+            grant_issuance::fence_or_revoke_for_attempt(
+                &self.database,
+                &attempt_id,
+                is_unknown,
+                now_ms,
+            )?;
+        }
+        Ok(recovery)
     }
 
     pub fn work(&mut self) -> Result<WorkLedger, String> {
