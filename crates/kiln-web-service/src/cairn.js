@@ -1363,6 +1363,7 @@
     };
 
     const stepsList = element("ol", undefined, "cairn-plan-steps");
+    const draftFeedback = new Map();
     const renderSteps = () => {
       stepsList.replaceChildren();
       if (!steps.length) {
@@ -1404,12 +1405,11 @@
         }
 
         if (canOp && workId && planId && typeof apiFn === "function") {
+          const draft = draftFeedback.get(stepId) || { kind: "comment", comment: "", blocking: false, open: false };
           const fbDetails = element("details", undefined, "cairn-plan-feedback-box");
+          fbDetails.open = Boolean(draft.open);
           fbDetails.append(element("summary", "Annotate step"));
           const form = element("form", undefined, "cairn-plan-feedback-form");
-          const input = element("input");
-          Object.assign(input, { type: "text", placeholder: `Feedback on ${stepId}`, maxLength: 2048, required: true, autocomplete: "off" });
-          input.setAttribute("aria-label", `Feedback on step ${stepId}`);
           const kindSelect = element("select");
           kindSelect.setAttribute("aria-label", `Feedback kind for ${stepId}`);
           for (const [val, lbl] of [["comment", "Comment"], ["replace", "Suggest replacement"], ["delete", "Request deletion"]]) {
@@ -1417,10 +1417,24 @@
             opt.value = val;
             kindSelect.append(opt);
           }
+          kindSelect.value = draft.kind || "comment";
+          const input = element("input");
+          Object.assign(input, { type: "text", placeholder: kindSelect.value === "delete" ? `Optional reason for deleting ${stepId}` : `Feedback on ${stepId}`, maxLength: 2048, required: kindSelect.value !== "delete", autocomplete: "off", value: draft.comment || "" });
+          input.setAttribute("aria-label", `Feedback on step ${stepId}`);
           const blockingLabel = element("label", undefined, "small");
           const blockingCheck = element("input");
           blockingCheck.type = "checkbox";
+          blockingCheck.checked = Boolean(draft.blocking);
           blockingLabel.append(blockingCheck, element("span", "Blocking"));
+          const syncDraft = () => {
+            input.required = kindSelect.value !== "delete";
+            input.placeholder = kindSelect.value === "delete" ? `Optional reason for deleting ${stepId}` : `Feedback on ${stepId}`;
+            draftFeedback.set(stepId, { kind: kindSelect.value, comment: input.value, blocking: blockingCheck.checked, open: fbDetails.open });
+          };
+          fbDetails.addEventListener("toggle", syncDraft);
+          kindSelect.addEventListener("change", syncDraft);
+          input.addEventListener("input", syncDraft);
+          blockingCheck.addEventListener("change", syncDraft);
           const submitBtn = element("button", "Add feedback", "quiet");
           submitBtn.type = "submit";
           form.append(kindSelect, input, blockingLabel, submitBtn);
@@ -1460,6 +1474,7 @@
                   drawHeader();
                 }
               }
+              draftFeedback.delete(stepId);
               input.value = "";
               blockingCheck.checked = false;
               setStatus(`Added step feedback on ${stepId}.`);
@@ -1598,11 +1613,13 @@
     }
 
     const row = element("div", undefined, "cluster cairn-lifecycle-buttons");
+    const actionButtons = [];
     for (const spec of RECOVERY_LIFECYCLE_ACTIONS) {
       const btn = element("button", spec.label, spec.danger ? "quiet danger" : "quiet");
       btn.type = "button";
       btn.dataset.lifecycleAction = spec.action;
       if (failClosedReason) btn.disabled = true;
+      actionButtons.push(btn);
       btn.addEventListener("click", async () => {
         if (failClosedReason || typeof context?.api !== "function") return;
         const cli = `kiln-implementer ${spec.action} --work ${workId} --attempt ${attemptId} --fence ${fence} --candidate ${candidateDisplay}`;
@@ -1635,7 +1652,7 @@
           errorNode.hidden = false;
           return;
         }
-        btn.disabled = true;
+        for (const sibling of actionButtons) sibling.disabled = true;
         errorNode.hidden = true;
         statusNode.textContent = `Sending ${spec.action}…`;
         statusNode.hidden = false;
@@ -1653,13 +1670,14 @@
           });
           const dig = str(res?.publication_digest || res?.receipt?.native_id || res?.receipt);
           statusNode.textContent = `${spec.label} ${res?.already_recorded ? "already recorded" : "recorded"}${dig ? ` · ${short(dig)}` : ""}.`;
+          if (mounted && context && !failClosedReason) void load(mounted, context, { force: true });
         } catch (error) {
           statusNode.hidden = true;
           const cliParity = str(error?.cli_parity || error?.payload?.cli_parity);
           errorNode.textContent = `${spec.label} refused (${error?.status || "error"}): ${explain(error)}${cliParity ? ` CLI parity: ${cliParity}` : ""}`;
           errorNode.hidden = false;
         } finally {
-          btn.disabled = Boolean(failClosedReason);
+          if (row.isConnected) for (const sibling of actionButtons) sibling.disabled = Boolean(failClosedReason);
         }
       });
       row.append(btn);
@@ -2093,6 +2111,17 @@
     let activeChapter = "";
     const graphHost = element("div", undefined, "cairn-atlas-host-inner");
     const inspectorHost = element("div", undefined, "cairn-atlas-inspector");
+    const chapterButtons = [];
+    const pinButtons = [];
+    let canvasObserver = null;
+    const pinLabel = (index) => {
+      let n = index, out = "";
+      do {
+        out = String.fromCharCode(65 + (n % 26)) + out;
+        n = Math.floor(n / 26) - 1;
+      } while (n >= 0);
+      return out;
+    };
 
     const isRevealed = (nodeId) => {
       if (!activeChapter || !atlas.chapters.length) return true;
@@ -2127,9 +2156,43 @@
       canvas.prepend(svg);
     };
 
+    const renderInspector = () => {
+      inspectorHost.replaceChildren();
+      if (!pinnedId) {
+        inspectorHost.append(element("p", "Select or pin a node to inspect its declared and observed routes.", "small"));
+        return;
+      }
+      const node = atlas.nodes.find((n) => n.id === pinnedId);
+      const headRow = element("div", undefined, "cairn-atlas-inspector-head");
+      headRow.append(element("strong", node ? `${node.label} (${node.role || node.id})` : pinnedId));
+      const clearBtn = element("button", "Clear pin", "quiet");
+      clearBtn.type = "button";
+      clearBtn.addEventListener("click", () => { pinnedId = ""; renderView(); });
+      headRow.append(clearBtn);
+      inspectorHost.append(headRow);
+      const related = atlas.routes.filter((r) => r.from === pinnedId || r.to === pinnedId);
+      if (!related.length) {
+        inspectorHost.append(element("p", "No routes connect to this node.", "small"));
+        return;
+      }
+      const routeList = element("ul", undefined, "cairn-bullets");
+      for (const r of related) {
+        const li = element("li");
+        const prov = element("span", r.provenance === "observed" ? "Observed" : "Declared", `state-badge cairn-atlas-provenance-${r.provenance}`);
+        li.append(prov, document.createTextNode(` ${r.from} → ${r.to} (${r.label}) · ${r.provenance === "observed" ? (r.digest || r.evidence_ref || "evidence unavailable") : ATLAS_DECLARED_QUALIFIER}`));
+        routeList.append(li);
+      }
+      inspectorHost.append(routeList);
+    };
+
     const renderView = () => {
       canvasBtn.setAttribute("aria-pressed", String(viewMode === "canvas"));
       flatBtn.setAttribute("aria-pressed", String(viewMode === "flat"));
+      for (const [chId, btn] of chapterButtons) btn.setAttribute("aria-pressed", String(activeChapter === chId));
+      for (const [nodeId, btn] of pinButtons) btn.setAttribute("aria-pressed", String(pinnedId === nodeId));
+      renderInspector();
+      canvasObserver?.disconnect();
+      canvasObserver = null;
       if (viewMode === "flat") {
         const tableWrap = element("div", undefined, "data-table-wrap");
         const tbl = element("table", undefined, "data-table data-table-stack cairn-atlas-flat-table");
@@ -2211,8 +2274,16 @@
       });
       scroller.append(canvas);
       graphHost.replaceChildren(scroller);
-      if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => drawAtlasEdges(canvas, buttons));
-      else drawAtlasEdges(canvas, buttons);
+      const redraw = () => drawAtlasEdges(canvas, buttons);
+      if (typeof requestAnimationFrame === "function") requestAnimationFrame(redraw);
+      else redraw();
+      if (typeof ResizeObserver === "function") {
+        canvasObserver = new ResizeObserver(() => {
+          if (!canvas.isConnected) { canvasObserver?.disconnect(); return; }
+          redraw();
+        });
+        canvasObserver.observe(canvas);
+      }
     };
 
     canvasBtn.addEventListener("click", () => { viewMode = "canvas"; renderView(); });
@@ -2221,12 +2292,16 @@
     if (atlas.chapters.length) {
       const chWrap = element("div", undefined, "cairn-chips cairn-atlas-chapters");
       const allCh = element("button", "All chapters", "chip"); allCh.type = "button";
+      allCh.setAttribute("aria-pressed", "true");
       allCh.addEventListener("click", () => { activeChapter = ""; renderView(); });
+      chapterButtons.push(["", allCh]);
       chWrap.append(allCh);
       for (const ch of atlas.chapters) {
         const chId = str(ch?.id || ch?.title);
         const btn = element("button", str(ch?.title || chId), "chip"); btn.type = "button";
+        btn.setAttribute("aria-pressed", "false");
         btn.addEventListener("click", () => { activeChapter = chId; renderView(); });
+        chapterButtons.push([chId, btn]);
         chWrap.append(btn);
       }
       panel.append(chWrap);
@@ -2236,9 +2311,11 @@
     const pinWrap = element("div", undefined, "cairn-atlas-pins");
     pinWrap.append(element("span", "Pin node: ", "small"));
     for (const [i, n] of atlas.nodes.entries()) {
-      const pinBtn = element("button", `${String.fromCharCode(65 + (i % 26))} · ${n.label}`, "quiet cairn-atlas-pin");
+      const pinBtn = element("button", `${pinLabel(i)} · ${n.label}`, "quiet cairn-atlas-pin");
       pinBtn.type = "button";
+      pinBtn.setAttribute("aria-pressed", "false");
       pinBtn.addEventListener("click", () => { pinnedId = pinnedId === n.id ? "" : n.id; renderView(); });
+      pinButtons.push([n.id, pinBtn]);
       pinWrap.append(pinBtn);
     }
     panel.append(pinWrap, graphHost, inspectorHost);
@@ -2371,6 +2448,13 @@
     scroller.append(canvas);
     const draw = () => drawEdges(canvas, graph, buttons);
     if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => requestAnimationFrame(draw));
+    if (typeof ResizeObserver === "function") {
+      const observer = new ResizeObserver(() => {
+        if (!canvas.isConnected) { observer.disconnect(); return; }
+        draw();
+      });
+      observer.observe(canvas);
+    }
     const legend = element("p", `Arrows point from a prerequisite to the work that depends on it. ${graph.cyclic ? "Some nodes sit in or after a dependency cycle and are drawn in the last column." : ""}`.trim(), "small");
     return section("Dependencies", "cairn-graph-title", legend, scroller, atlasToggle, atlasHost);
   }
@@ -2767,7 +2851,7 @@
     authoringPanel = { route, node: panel };
     const live = () => authoringPanel?.node === panel && panel.isConnected && context?.canOperate?.()
       && sameSelection(route, normalizeRoute(context?.route));
-    let enrolled, choice, refresh, snapshot, locked = false, readVersion = 0;
+    let enrolled, choice, refresh, snapshot, snapshotStale = false, locked = false, readVersion = 0;
     let editArtifacts = false;
     const field = (label, control) => { const node = element("label", label); node.append(control); return node; };
     const option = (value, label = value) => { const node = element("option", label); node.value = value; return node; };
@@ -2779,6 +2863,7 @@
       const version = ++readVersion;
       const repository = choice.value;
       snapshot = null;
+      snapshotStale = false;
       editor.replaceChildren();
       if (!repository) { status.textContent = "Choose an explicitly enrolled repository."; return; }
       status.textContent = "Reading the native change graph…";
@@ -2838,12 +2923,12 @@
                 facts: [["Change", selected], ["Artifact", artifact], ["Expected content", source.content_blake3]],
                 warning: "Writes only the selected artifact. Does not approve gates or publish." });
               if (!approval.confirmed || !current()) return;
-              submitted = true;
               const reply = await context.api(target, { method: "POST", quiet: true, body: {
                 repository, change: selected, artifact, expected_revision: view.revision, expected_content_blake3: source.content_blake3, content,
               } });
               if (!current()) return;
               if (reply?.repository !== repository || reply?.change !== selected || reply?.artifact !== artifact || !["applied", "reconciled"].includes(reply.outcome) || !HEX.test(reply.content_blake3)) throw new Error("Replacement was not confirmed by native readback");
+              submitted = true;
               report.textContent = `Cairn confirmed replacement: ${reply.content_blake3}. Refresh the graph before making other changes.`;
             } catch (error) {
               if (current()) report.textContent = `Artifact not confirmed: ${explain(error)}. Reopen it before writing again.`;
@@ -2886,22 +2971,65 @@
       change.value = snapshot.nodes.has(selected) ? selected : "";
       const prerequisite = element("input");
       prerequisite.maxLength = 128;
+      const prereqListId = `cairn-prereq-${crypto.randomUUID()}`;
+      const prereqList = element("datalist");
+      prereqList.id = prereqListId;
+      prerequisite.setAttribute("list", prereqListId);
+      const syncPrereqList = () => {
+        const names = [...new Set([...displayed.nodes.keys(), ...displayed.archived])].filter((n) => n !== change.value);
+        prereqList.replaceChildren(...names.map((n) => option(n)));
+      };
+      syncPrereqList();
+      change.addEventListener("change", syncPrereqList);
+      const validationHint = element("p", "", "small cairn-authoring-hint");
+      validationHint.setAttribute("role", "status");
+      const explainValidation = () => {
+        if (snapshotStale) return "Graph revision may be stale after an unconfirmed write. Refresh the native graph before sending another write.";
+        const hints = [];
+        const createVal = newName.value;
+        if (createVal) {
+          if (!authoringName(createVal)) hints.push(`Invalid new change name "${createVal}": use lowercase letters, digits, and single hyphens (max 128 chars; "archive" is reserved).`);
+          else if (!displayed.valid) hints.push("Native graph is invalid; creating changes is disabled.");
+          else if (displayed.nodes.has(createVal)) hints.push(`Change "${createVal}" already exists.`);
+          else if (displayed.archived.has(createVal)) hints.push(`Change "${createVal}" is already archived.`);
+        }
+        const depVal = prerequisite.value;
+        if (depVal) {
+          if (!authoringName(depVal)) hints.push(`Invalid prerequisite name "${depVal}": use lowercase letters, digits, and single hyphens (max 128 chars; "archive" is reserved).`);
+          else if (change.value) {
+            if (change.value === depVal) hints.push(`"${change.value}" cannot depend on itself.`);
+            else if (!displayed.nodes.has(depVal) && !displayed.archived.has(depVal)) hints.push(`Prerequisite "${depVal}" is not in active or archived changes.`);
+            else {
+              const cur = displayed.nodes.get(change.value) || [];
+              if (!cur.includes(depVal) && displayed.valid && !authoringRequest(repository, displayed, "add_dependency", change.value, depVal)) {
+                hints.push(`Adding "${depVal}" as a prerequisite of "${change.value}" would create a dependency cycle.`);
+              }
+            }
+          }
+        }
+        return hints.join(" ");
+      };
       const actions = [
         [button("Create change"), () => authoringRequest(repository, displayed, "create", newName.value)],
         [button("Add prerequisite"), () => authoringRequest(repository, displayed, "add_dependency", change.value, prerequisite.value)],
         [button("Remove prerequisite"), () => authoringRequest(repository, displayed, "remove_dependency", change.value, prerequisite.value)],
       ];
-      const enable = () => { for (const [control, request] of actions) control.disabled = locked || !request(); };
+      const enable = () => {
+        for (const [control, request] of actions) control.disabled = locked || snapshotStale || !request();
+        validationHint.textContent = explainValidation();
+      };
       for (const input of [newName, change, prerequisite]) input.addEventListener("input", enable);
+      change.addEventListener("change", enable);
       for (const [opener, request] of actions) opener.addEventListener("click", async () => {
         const body = request();
-        if (!body || snapshot !== displayed || locked || !live()) return;
+        if (!body || snapshot !== displayed || snapshotStale || locked || !live()) return;
         const { type, change: id, dependency } = body.action;
         const label = opener.textContent;
         locked = true;
         choice.disabled = refresh.disabled = true;
         enable();
         let sent = false;
+        let succeeded = false;
         try {
           const confirmation = await confirmCairnControl({ title: label, verb: label, opener,
             warning: "This changes the enrolled local Cairn worktree. It does not commit, publish, or start work.",
@@ -2916,19 +3044,21 @@
             || result.repository !== repository || result.action?.type !== type || result.action.change !== id
             || result.action.dependency !== dependency) throw new Error("Invalid authoring receipt");
           if (result.outcome === "unknown") {
-            snapshot = null;
+            snapshotStale = true;
             status.textContent = "Cairn's write outcome is unknown. Refresh the native graph and inspect the worktree before deciding what to do next.";
             return;
           }
           const observed = admitAuthoringSnapshot(result, repository);
           if (observed.change?.name !== id || observed.revision === body.expected_revision) throw new Error("Receipt does not match the selected change and new revision");
           snapshot = observed;
+          snapshotStale = false;
+          succeeded = true;
           status.textContent = result.outcome === "applied"
             ? `Cairn applied the change and confirmed it by native readback. Receipt: ${result.provider?.result?.receipt_hash || "not recorded"}.`
             : "Native readback confirmed the change; Cairn did not return a complete matching receipt.";
         } catch (error) {
           if (!live()) return;
-          if (sent) snapshot = null;
+          if (sent) snapshotStale = true;
           status.textContent = sent
             ? `No authoring success was confirmed: ${explain(error)} Refresh the native graph before any new write.`
             : `Authoring was not sent: ${explain(error)}`;
@@ -2936,12 +3066,12 @@
           locked = false;
           if (live()) {
             choice.disabled = refresh.disabled = false;
-            if (sent) renderControls(id); else enable();
+            if (succeeded) renderControls(id); else enable();
           }
         }
       });
       editor.append(field("New change name", newName), actions[0][0], field("Active change", change),
-        field("Prerequisite name", prerequisite), actions[1][0], actions[2][0]);
+        field("Prerequisite name", prerequisite), prereqList, actions[1][0], actions[2][0], validationHint);
       if (editArtifacts) editor.append(artifactControls(repository, change));
       enable();
     }

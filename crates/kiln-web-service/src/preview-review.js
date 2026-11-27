@@ -100,7 +100,14 @@ export function structuralReason(code) {
 // Evidence applies only to the comparison and the exact revisions it was computed for.
 export function acceptStructural(response) {
   const record = response?.structural, e = record?.evidence;
-  return !!e && OBSERVATION_IDENTITY.test(record.identity || "") && e.comparison === response?.comparison?.identity
+  if (!e || e.comparison !== response?.comparison?.identity) return false;
+  if (e.status === "incompatible") {
+    const idOk = !record.identity || OBSERVATION_IDENTITY.test(record.identity);
+    const baseOk = e.baseline_revision == null || e.baseline_revision === response?.baseline?.observation?.binding?.revision;
+    const candOk = e.candidate_revision == null || e.candidate_revision === response?.candidate?.observation?.binding?.revision;
+    return idOk && baseOk && candOk;
+  }
+  return OBSERVATION_IDENTITY.test(record.identity || "")
     && e.baseline_revision === response?.baseline?.observation?.binding?.revision
     && e.candidate_revision === response?.candidate?.observation?.binding?.revision;
 }
@@ -195,7 +202,7 @@ export function renderComparison(parent, observations, context) {
       const output = make("pre", String(row?.observation?.result?.output || "").slice(0, MAX_LANE_OUTPUT)); output.setAttribute("aria-label", `${label} program output`); lane.append(output);
       lane.append(make("p", note, "cr-muted")); lanes.append(lane);
     }
-    result.append(lanes); if (context.structural === true) renderStructural(result, response); title.focus();
+    result.append(lanes); if (context.structural === true) renderStructural(result, response);
   }).catch(error => {
     if (context.selected() !== pair || !context.isCurrent()) return;
     result.replaceChildren(make("p", `Comparison unavailable: ${String(error?.message || error).slice(0, 256)}. No substitute was selected; CI evidence is unchanged.`, "cr-notice"));

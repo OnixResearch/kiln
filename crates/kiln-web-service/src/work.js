@@ -9,7 +9,14 @@
   const LINK_KINDS = ["source", "revision", "patch", "review", "run", "artifact", "cairn"];
   const FILTERS = ["kind", "status", "assignee", "priority", "label", "team", "project", "cycle", "initiative", "ci_project", "ci_repository", "q"];
   const ROUTE_FILTERS = window.KilnWorkBoard.OVERRIDES;
-  const state = { parent: null, route: {}, records: [], ci: { projects: [], records: {} }, configured: false, canWrite: false, principal: "", generation: 0, load: 0, detail: 0, dialogs: new Set(), scroll: new Map(), pending: false, error: "", listCollapsed: false, board: null, boardRequest: 0, drag: null };
+  const state = { parent: null, route: {}, records: [], ci: { projects: [], records: {} }, configured: false, canWrite: false, principal: "", generation: 0, load: 0, detail: 0, detailAbort: null, dialogs: new Set(), scroll: new Map(), drafts: new Map(), pending: false, error: "", listCollapsed: false, board: null, boardRequest: 0, drag: null };
+  function overlayOrChordActive() {
+    if (document.documentElement?.dataset?.kilnChord) return true;
+    const inspector = document.getElementById("slide-over-inspector");
+    if (inspector && !inspector.hidden) return true;
+    try { if (document.querySelector("[popover]:popover-open")) return true; } catch {}
+    return false;
+  }
   const kit = () => window.KilnWorkBoard;
   const previewRequests = new WeakMap();
   const bridge = () => window.KilnWork;
@@ -134,12 +141,26 @@
     return { title: "", description: "", status: kind === "request" ? "triage" : "backlog", priority: 0, owner: ["personal", "view"].includes(kind) ? state.principal : "", assignees: [], labels: [], parent: null, blocked_by: [], team: null, project: null, milestone: null, cycle: null, initiative: null, start_at_ms: null, due_at_ms: null, customer: null, source_url: null, duplicate_of: null, links: [], workflow: [], view: kind === "view" ? { filters: {}, sort: "updated", group_by: "none", layout: "list", shared: false } : null, personal: kind === "personal" ? { watched: [], read: {}, favorites: [], reminders: {} } : null };
   }
   function scrollKey() { const { work_id, ...rest } = state.route; return JSON.stringify(rest); }
-  function saveScroll() { const list = state.parent?.querySelector(".work-list-scroll"); if (list) state.scroll.set(scrollKey(), { top: list.scrollTop, left: list.scrollLeft }); }
+  function saveScroll() {
+    const list = state.parent?.querySelector(".work-list-scroll");
+    const lanes = state.parent?.querySelector(".work-board-lanes");
+    if (list) {
+      const prev = state.scroll.get(scrollKey()) || {};
+      state.scroll.set(scrollKey(), {
+        top: list.scrollTop,
+        left: list.scrollLeft,
+        lanesLeft: lanes ? lanes.scrollLeft : (prev.lanesLeft || 0),
+        lanesTop: lanes ? lanes.scrollTop : (prev.lanesTop || 0),
+      });
+    }
+  }
   function clear() {
-    state.generation++; state.load++; state.detail++; saveScroll();
+    state.generation++; state.load++; state.detail++;
+    if (state.detailAbort) { state.detailAbort.abort(); state.detailAbort = null; }
+    saveScroll();
     for (const dialog of state.dialogs) { if (dialog.open) dialog.close(); dialog.remove(); }
     state.dialogs.clear(); state.records = []; state.ci = { projects: [], records: {} }; state.parent?.replaceChildren(); state.parent = null;
-    state.principal = ""; state.canWrite = false; state.configured = false; state.pending = false; state.error = ""; state.scroll.clear(); state.listCollapsed = false; state.board = null; state.boardRequest++; state.drag = null;
+    state.principal = ""; state.canWrite = false; state.configured = false; state.pending = false; state.error = ""; state.scroll.clear(); state.drafts.clear(); state.listCollapsed = false; state.board = null; state.boardRequest++; state.drag = null;
     headerActions(null, false);
   }
   function objects() { return identity() === state.principal ? clone(state.records) : []; }
@@ -184,7 +205,9 @@
           facts(item, pairs, "work-facts-mono");
         } else {
           if (pairs.length) facts(item, pairs, "work-facts-mono");
-          item.append(el("pre", JSON.stringify(action), "work-text"));
+          const pre = el("pre", JSON.stringify(action), "work-text");
+          pre.tabIndex = 0;
+          item.append(pre);
         }
         body.append(item);
       }
@@ -643,7 +666,7 @@
     node.append(recordLink(card.title || "Untitled", card.id, "work-row-title"), meta, move);
     node.draggable = writable() && p.lane_by !== "ci_project";
     node.addEventListener("keydown", event => {
-      if ((event.target !== node && event.target !== move) || event.key.toLowerCase() !== "m" || event.ctrlKey || event.metaKey || event.altKey || !writable()) return;
+      if (event.defaultPrevented || overlayOrChordActive() || (event.target !== node && event.target !== move) || event.key.toLowerCase() !== "m" || event.ctrlKey || event.metaKey || event.altKey || !writable()) return;
       event.preventDefault(); Promise.resolve().then(() => moveDialog(p, card)).catch(report);
     });
     node.addEventListener("dragstart", event => {
@@ -675,7 +698,7 @@
   // conflict is shown, reloaded and left to the user; nothing is overwritten or sent automatically.
   function moveDialog(p, card, preselect = "") {
     if (!writable()) throw new Error("Moving cards requires an admitted work writer and writable native store.");
-    const statusColumns = p.move_columns?.length ? p.move_columns : p.columns;
+    const statusColumns = () => (p.move_columns?.length ? p.move_columns : p.columns);
     const generation = state.generation, principal = identity();
     const { dialog, close } = modal(`Move ${quoted(card.title)}`, "work-move-dialog");
     const form = el("form", undefined, "work-dialog-form"), factsBox = el("div"), fieldset = el("fieldset", undefined, "work-move-targets");
@@ -683,12 +706,13 @@
     status.setAttribute("role", "status"); commit.type = "submit";
     form.append(factsBox, fieldset, el("p", "Changes only this issue's canonical status, checked against its exact head. Columns are planning status: no execution lease, CI or release completion is implied.", "small"), status, recovery);
     footer(form, commit, close); dialog.append(form);
-    let subject = card, attempt = null, stale = false;
+    let subject = card, attempt = null, stale = false, awaitingUnknown = false;
     const render = selected => {
+      const cols = statusColumns();
       factsBox.replaceChildren(); facts(factsBox, [["Issue", subject.id], ["Expected head", subject.head], ["Current column", title(subject.status)]], "work-facts-mono");
       fieldset.replaceChildren(el("legend", "Target column"));
-      const choice = selected || kit().defaultTarget(subject, statusColumns, Date.now());
-      for (const target of kit().moveTargets(subject, statusColumns, Date.now())) {
+      const choice = selected || kit().defaultTarget(subject, cols, Date.now());
+      for (const target of kit().moveTargets(subject, cols, Date.now())) {
         const option = el("label", undefined, "work-move-option"), input = el("input"), text = el("span", undefined, "work-move-option-text");
         input.type = "radio"; input.name = "target"; input.value = target.status; input.disabled = !target.allowed; input.checked = target.allowed && target.status === choice;
         text.append(el("span", title(target.status))); if (target.reason) text.append(el("span", target.reason, "meta"));
@@ -705,22 +729,23 @@
         const result = await bridge().command(command);
         if (!valid(generation, principal)) return;
         if (result?.object?.id !== subject.id || result.object.fields?.status !== target) throw new Error("No matching durable work record was returned.");
+        awaitingUnknown = false;
         close();
-        bridge().notice(result.replayed ? `The move of ${quoted(subject.title)} had already applied; its original result was returned and nothing moved twice.` : `Moved ${quoted(subject.title)} to ${title(target)}.`);
+        bridge().notice(result.replayed ? `The move of ${quoted(subject.title)} had already applied; its original result is returned and nothing moved twice.` : `Moved ${quoted(subject.title)} to ${title(target)}.`);
         state.pending = false; await refresh();
       } catch (error) {
         if (valid(generation, principal) && dialog.isConnected) failure(error);
       } finally {
         if (valid(generation, principal)) state.pending = false;
-        if (dialog.isConnected) commit.disabled = !writable() || stale;
+        if (dialog.isConnected) commit.disabled = !writable() || stale || awaitingUnknown;
       }
     }
     function failure(error) {
       const kind = kit().classify(error), message = errorText(error);
       if (kind === "aborted") { close(); return; }
-      if (kind === "conflict") { stale = true; commit.disabled = true; settle(`Conflict: ${quoted(subject.title)} changed after this board was read (${message}). Nothing was overwritten or moved. Reload the current state before moving again.`, [button("Reload current state", reload, "primary")]); }
-      else if (kind === "unknown") settle(`Outcome unknown: ${message}. Retry resends request ${attempt.command.request_id} unchanged; if it already applied, the original result is returned and nothing moves twice.`, [button("Retry same request", () => send(attempt.command, attempt.target)), button("Reload current state", reload, "quiet")]);
-      else settle(`${kind === "denied" ? "Not permitted" : kind === "missing" ? "Issue unavailable" : "Rejected"}: ${message}. Nothing changed.`);
+      if (kind === "conflict") { awaitingUnknown = false; stale = true; commit.disabled = true; settle(`Conflict: ${quoted(subject.title)} changed after this board was read (${message}). Nothing was overwritten or moved. Reload the current state before moving again.`, [button("Reload current state", reload, "primary")]); }
+      else if (kind === "unknown") { awaitingUnknown = true; commit.disabled = true; settle(`Outcome unknown: ${message}. Retry resends request ${attempt.command.request_id} unchanged; if it already applied, the original result is returned and nothing moves twice.`, [button("Retry same request", () => send(attempt.command, attempt.target)), button("Reload current state", reload, "quiet")]); }
+      else { awaitingUnknown = false; settle(`${kind === "denied" ? "Not permitted" : kind === "missing" ? "Issue unavailable" : "Rejected"}: ${message}. Nothing changed.`); }
     }
     async function reload() {
       settle("Reloading the current snapshot and board…");
@@ -732,14 +757,16 @@
       if (!projection) { settle(`Reload failed: ${state.board?.error || "board unavailable"}. Nothing was sent.`, [button("Reload current state", reload)]); return; }
       p = projection;
       const outcome = kit().resolve(attempt, kit().findCard(projection, subject.id));
-      if (outcome.kind === "missing") { commit.disabled = true; settle("This issue is no longer on this board (it may no longer match its filters or bounds). Nothing was sent."); return; }
+      if (outcome.kind === "missing") { awaitingUnknown = false; commit.disabled = true; settle("This issue is no longer on this board (it may no longer match its filters or bounds). Nothing was sent."); return; }
       subject = outcome.card;
-      if (outcome.kind === "applied") { render(); commit.disabled = true; settle(`${quoted(subject.title)} is already in ${title(attempt.target)} at head ${subject.head}. Nothing was sent.`); return; }
-      stale = false; commit.disabled = !writable(); render(attempt.target);
+      if (outcome.kind === "applied") { awaitingUnknown = false; render(); commit.disabled = true; settle(`${quoted(subject.title)} is already in ${title(attempt.target)} at head ${subject.head}. Nothing was sent.`); return; }
+      stale = false; awaitingUnknown = false; commit.disabled = !writable(); render(attempt.target);
       settle(outcome.kind === "changed" ? `Current state: ${title(subject.status)} at head ${subject.head}. Choose Move card to apply your move to this version with a new request, or Cancel to keep it.` : `Reloaded: the issue is unchanged at head ${subject.head}.`);
     }
     form.addEventListener("submit", event => {
-      event.preventDefault(); const target = fieldset.querySelector("input[name='target']:checked")?.value || "";
+      event.preventDefault();
+      if (awaitingUnknown) { status.textContent = `Outcome of request ${attempt?.command?.request_id || ""} is unknown. Choose Retry same request or Reload current state.`; return; }
+      const target = fieldset.querySelector("input[name='target']:checked")?.value || "";
       if (!target) { settle("Choose a target column."); return; }
       void send(kit().moveCommand(subject, target, crypto.randomUUID()), target);
     });
@@ -794,6 +821,8 @@
   function draw(preserveScroll = true) {
     if (!state.parent || identity() !== state.principal) return;
     if (preserveScroll) saveScroll();
+    state.drag = null;
+    clearDropMarks();
     const focused = document.activeElement?.closest("[data-work-id]")?.dataset.workId;
     const parent = state.parent; parent.replaceChildren(); parent.classList.add("work-workspace");
     if (state.error) {
@@ -818,13 +847,16 @@
     const listPane = el("section", undefined, `card work-list-card${split ? " split-list" : ""}`); const prefix = parent.id || "work"; listPane.id = `${prefix}-list-pane`;
     // r[impl kiln.work.kanban.columns] On the Work page the board is the Kanban projection of the same eligible issues.
     const kanbanBoard = board && state.route.page === "work", shown = kanbanBoard ? records.filter(record => record.kind === "issue") : records;
+    const boardProjection = kanbanBoard && state.board?.key === kit().boardPath(state.route.work_view || "", state.route) ? state.board.projection : null;
+    const boardCount = boardProjection ? boardProjection.matched_issues : shown.length;
+    const ciLanes = boardProjection?.lane_by === "ci_project" || (!boardProjection && activeView()?.board?.lane_by === "ci_project");
     const titles = { work: "Issues", inbox: "Inbox items", planning: "Planning items", triage: "Requests", workviews: "Saved views" };
     const listHead = el("div", undefined, "work-list-head"), listTitle = el("h2", kanbanBoard ? "Board" : titles[state.route.page] || "Results", "card-title"); listTitle.id = `${prefix}-list-title`; listPane.setAttribute("aria-labelledby", listTitle.id);
-    const count = el("span", String(shown.length), "work-count"); count.title = `${shown.length} ${kanbanBoard ? "matching issue(s)" : "record(s)"} in the current bounded snapshot`;
+    const count = el("span", String(kanbanBoard ? boardCount : shown.length), "work-count"); count.title = `${kanbanBoard ? boardCount : shown.length} ${kanbanBoard ? "matching issue(s)" : "record(s)"} in the current bounded snapshot`;
     // r[impl kiln.web.page_consistency]
     // Order is described in words, and only when there is something to order.
     listHead.append(listTitle, count);
-    if (shown.length) listHead.append(el("span", kanbanBoard ? `Status columns · sorted by ${SORT_LABELS[config.sort] || config.sort} within each column` : `Sorted by ${SORT_LABELS[config.sort] || config.sort}${config.group_by !== "none" ? ` · grouped by ${config.group_by}` : ""}`, "meta work-list-order"));
+    if (kanbanBoard ? boardCount : shown.length) listHead.append(el("span", kanbanBoard ? `${ciLanes ? "CI project lanes" : "Status columns"} · sorted by ${SORT_LABELS[config.sort] || config.sort} within each ${ciLanes ? "lane" : "column"}` : `Sorted by ${SORT_LABELS[config.sort] || config.sort}${config.group_by !== "none" ? ` · grouped by ${config.group_by}` : ""}`, "meta work-list-order"));
     const list = el("div", undefined, "work-list-scroll"); list.setAttribute("aria-label", kanbanBoard ? "Kanban board" : "Work records");
     if (kanbanBoard) kanban(list); else grouped(list, records, config);
     listPane.append(listHead, list);
@@ -840,7 +872,12 @@
       if (selectedId) { detail.append(body); layout.append(detail); }
     }
     parent.append(layout);
-    const position = state.scroll.get(scrollKey()); if (position) { list.scrollTop = position.top; list.scrollLeft = position.left; }
+    const position = state.scroll.get(scrollKey());
+    if (position) {
+      list.scrollTop = position.top; list.scrollLeft = position.left;
+      const lanes = list.querySelector(".work-board-lanes");
+      if (lanes) { lanes.scrollLeft = position.lanesLeft || 0; lanes.scrollTop = position.lanesTop || 0; }
+    }
     if (focused) Array.from(list.querySelectorAll("[data-work-id]")).find(row => row.dataset.workId === focused)?.focus({ preventScroll: true });
     if (selectedId) void loadDetail(selectedId, body).catch(report);
     window.dispatchEvent(new CustomEvent("kiln-work-updated"));
@@ -848,10 +885,14 @@
   async function loadDetail(id, parent, preview = false) {
     const generation = state.generation, principal = identity(), request = preview ? (previewRequests.get(parent) || 0) + 1 : ++state.detail;
     if (preview) previewRequests.set(parent, request);
-    const current = () => valid(generation, principal) && parent.isConnected && (preview ? request === previewRequests.get(parent) : request === state.detail && state.route.work_id === id);
+    else if (state.detailAbort) { state.detailAbort.abort(); state.detailAbort = null; }
+    const controller = typeof AbortController === "function" ? new AbortController() : null;
+    if (!preview && controller) state.detailAbort = controller;
+    const signal = controller?.signal;
+    const current = () => !signal?.aborted && valid(generation, principal) && parent.isConnected && (preview ? request === previewRequests.get(parent) : request === state.detail && state.route.work_id === id);
     parent.replaceChildren(...toggleBar(parent), loading("Reading exact signed record…", 2));
     try {
-      const record = await bridge().api(pathFor(id));
+      const record = await bridge().api(pathFor(id), signal ? { signal } : undefined);
       if (!current()) return;
       if (record?.id !== id || !record.head || !KINDS.includes(record.kind)) throw new Error("Exact record response is invalid.");
       parent.replaceChildren(); const linksSection = renderDetail(record, parent, preview);
@@ -865,10 +906,10 @@
       body.append(el("p", "Loading exact linked observations…", "small"));
       try {
         if (typeof bridge().changeEvidence !== "function") throw new Error("Exact evidence joining is unavailable in this configured shell.");
-        const joined = await bridge().changeEvidence(record); if (!current()) return;
+        const joined = await bridge().changeEvidence(record, signal ? { signal } : undefined); if (!current()) return;
         body.replaceChildren(); recorded(body, joined);
-      } catch (error) { if (current()) body.replaceChildren(el("p", `Linked evidence unavailable: ${errorText(error)}`, "warning")); }
-    } catch (error) { if (current()) parent.replaceChildren(...toggleBar(parent), el("p", `Selected object unavailable: ${errorText(error)}. No alternate record was selected.`, "warning")); }
+      } catch (error) { if (current() && error?.name !== "AbortError") body.replaceChildren(el("p", `Linked evidence unavailable: ${errorText(error)}`, "warning")); }
+    } catch (error) { if (current() && error?.name !== "AbortError") parent.replaceChildren(...toggleBar(parent), el("p", `Selected object unavailable: ${errorText(error)}. No alternate record was selected.`, "warning")); }
   }
   // r[impl kiln.web.readable_observations]
   // Linked CI observations: canonical outcomes, durations and instants become readable while title/datetime keep exact values.
@@ -882,7 +923,7 @@
   function recorded(parent, value, depth = 0) {
     if (value == null) { parent.append(el("span", "Unavailable (not recorded)", "meta")); return; }
     if (typeof value !== "object") { parent.append(el("span", value === "" ? "(empty)" : value, "work-text")); return; }
-    if (depth > 7) { parent.append(el("pre", JSON.stringify(value, null, 2), "work-text")); return; }
+    if (depth > 7) { const pre = el("pre", JSON.stringify(value, null, 2), "work-text"); pre.tabIndex = 0; parent.append(pre); return; }
     if (Array.isArray(value)) { if (!value.length) parent.append(el("p", "No linked observations in this category.", "meta")); for (const item of value) { const row = el("div", undefined, "work-observation"); recorded(row, item, depth + 1); parent.append(row); } return; }
     const dl = el("dl", undefined, "work-facts");
     for (const [key, item] of Object.entries(value)) {
@@ -1012,7 +1053,10 @@
     for (const link of f.links) addLink(link); linkSection.append(button("Add link", () => addLink(), "quiet"));
     const readView = kind === "view" ? viewEditor(form, f.view, !!record) : null;
     const readPersonal = kind === "personal" ? personalEditor(form, f.personal) : null;
-    const status = el("p", "Changes persist only after explicit confirmation.", "small work-dialog-status"); status.setAttribute("role", "status"); form.append(status);
+    let currentRecord = record;
+    const status = el("p", "Changes persist only after explicit confirmation.", "small work-dialog-status"); status.setAttribute("role", "status");
+    const recovery = el("div", undefined, "work-actions work-dialog-recovery");
+    form.append(status, recovery);
     const save = el("button", record ? "Save changes" : `Create ${kindLabel(kind)}`, "primary"); save.type = "submit"; footer(form, save, close);
     form.addEventListener("submit", async event => {
       event.preventDefault(); if (!valid(generation, principal)) { close(); return; }
@@ -1022,16 +1066,38 @@
       for (const key of ["parent", ...PLANNING, "duplicate_of"]) if (inputs[key]) fields[key] = inputs[key].value || null;
       if (inputs.blocked_by) fields.blocked_by = selected(inputs.blocked_by);
       fields.start_at_ms = timestamp(inputs.start_at_ms); fields.due_at_ms = timestamp(inputs.due_at_ms);
-      if (kind === "request" && !record) { fields.customer = inputs.customer.value.trim() || null; fields.source_url = inputs.source_url.value.trim() || null; }
+      if (kind === "request" && !currentRecord) { fields.customer = inputs.customer.value.trim() || null; fields.source_url = inputs.source_url.value.trim() || null; }
       if (inputs.workflow) fields.workflow = split(inputs.workflow.value);
       fields.links = Array.from(linkRows.children).map(row => row.readLink()).filter(link => link.id);
       if (readView) fields.view = readView(); if (readPersonal) fields.personal = readPersonal();
       save.disabled = true;
+      recovery.replaceChildren();
       try {
-        const wording = record ? { title: `Save changes to ${quoted(fields.title)}?`, commit: "Save changes", dismiss: "Keep editing" } : { title: `Create ${kindLabel(kind)} ${quoted(fields.title)}?`, commit: `Create ${kindLabel(kind)}`, dismiss: "Keep editing" };
-        const results = await submitCaptured([{ record, action: record ? { type: "edit", fields } : { type: "create", kind, fields } }], wording);
+        const wording = currentRecord ? { title: `Save changes to ${quoted(fields.title)}?`, commit: "Save changes", dismiss: "Keep editing" } : { title: `Create ${kindLabel(kind)} ${quoted(fields.title)}?`, commit: `Create ${kindLabel(kind)}`, dismiss: "Keep editing" };
+        const results = await submitCaptured([{ record: currentRecord, action: currentRecord ? { type: "edit", fields } : { type: "create", kind, fields } }], wording);
         if (results && valid(generation, principal)) { close(); open(results[0].id); }
-      } catch (error) { if (valid(generation, principal)) status.textContent = errorText(error); }
+      } catch (error) {
+        if (valid(generation, principal)) {
+          const msg = errorText(error);
+          status.textContent = msg;
+          status.setAttribute("role", "alert");
+          const isConflict = currentRecord && (kit().classify(error) === "conflict" || /\b409\b|conflict|stale/i.test(msg));
+          if (isConflict) {
+            recovery.append(button("Reload latest record", async () => {
+              status.textContent = "Reloading latest record…";
+              recovery.replaceChildren();
+              const fresh = await bridge().api(pathFor(currentRecord.id));
+              if (!valid(generation, principal) || !dialog.isConnected) return;
+              if (!fresh?.id || !fresh.head) throw new Error("Latest record response is invalid.");
+              currentRecord = fresh;
+              await refresh();
+              if (!valid(generation, principal) || !dialog.isConnected) return;
+              status.textContent = `Reloaded head ${fresh.head}. Review your edits and save again if ready.`;
+              status.setAttribute("role", "status");
+            }, "quiet"));
+          }
+        }
+      }
       finally { if (dialog.isConnected) save.disabled = !writable(); }
     });
     inputs.title.focus();
@@ -1109,8 +1175,14 @@
   }
   function reminder(id) {
     const { dialog, close } = modal(`Set reminder for ${quoted(nameFor(id))}`); const form = el("form", undefined, "work-dialog-form"); const when = field(form, "Remind at (local time)", "datetime-local", datetime(personal().reminders[id])); when.required = true;
+    const status = el("p", "", "small work-dialog-status"); status.setAttribute("role", "status"); form.append(status);
     const save = el("button", "Set reminder", "primary"); save.type = "submit"; footer(form, save, close); dialog.append(form);
-    form.addEventListener("submit", async event => { event.preventDefault(); save.disabled = true; try { if (await preference("reminder", [id], timestamp(when))) close(); } catch (error) { report(error); } finally { save.disabled = !writable(); } });
+    form.addEventListener("submit", async event => {
+      event.preventDefault(); save.disabled = true; status.textContent = "";
+      try { if (await preference("reminder", [id], timestamp(when))) close(); }
+      catch (error) { if (dialog.isConnected) { status.textContent = errorText(error); status.setAttribute("role", "alert"); } }
+      finally { if (dialog.isConnected) save.disabled = !writable(); }
+    });
   }
   function triage(record, parent) {
     const name = quoted(record.fields.title);
@@ -1122,8 +1194,14 @@
     const name = quoted(record.fields.title), snooze = type === "snooze";
     const { dialog, close } = modal(snooze ? `Snooze ${name}` : `Mark ${name} as duplicate`); const form = el("form", undefined, "work-dialog-form");
     const input = snooze ? field(form, "Snooze until (local time)", "datetime-local", datetime(record.fields.due_at_ms)) : relation(form, "Duplicate of", ["issue", "request"], record.fields.duplicate_of, false, record.id); input.required = true;
+    const status = el("p", "", "small work-dialog-status"); status.setAttribute("role", "status"); form.append(status);
     const commit = snooze ? "Snooze" : "Mark duplicate", save = el("button", commit, "primary"); save.type = "submit"; footer(form, save, close); dialog.append(form);
-    form.addEventListener("submit", async event => { event.preventDefault(); save.disabled = true; try { const fields = snooze ? { status: "snoozed", due_at_ms: timestamp(input) } : { status: "duplicate", duplicate_of: input.value }; if (await bulk({ type: "edit", fields }, [record.id], { title: snooze ? `Snooze ${name}?` : `Mark ${name} as duplicate?`, commit })) close(); } catch (error) { report(error); } finally { save.disabled = !writable(); } });
+    form.addEventListener("submit", async event => {
+      event.preventDefault(); save.disabled = true; status.textContent = "";
+      try { const fields = snooze ? { status: "snoozed", due_at_ms: timestamp(input) } : { status: "duplicate", duplicate_of: input.value }; if (await bulk({ type: "edit", fields }, [record.id], { title: snooze ? `Snooze ${name}?` : `Mark ${name} as duplicate?`, commit })) close(); }
+      catch (error) { if (dialog.isConnected) { status.textContent = errorText(error); status.setAttribute("role", "alert"); } }
+      finally { if (dialog.isConnected) save.disabled = !writable(); }
+    });
   }
   function discussion(record, parent, key, update) {
     const panel = section(parent, update ? "Project / team updates" : "Discussion");
@@ -1139,9 +1217,24 @@
       reactions.append(button("React…", () => reactionEditor(record, message), "quiet", true)); card.append(reactions); panel.append(card);
     }
     if (!record[key]?.length) panel.append(el("p", update ? "No updates recorded." : "No comments recorded.", "meta"));
-    const form = el("form", undefined, "work-discussion-form"), body = field(form, update ? "New update" : "New comment", "textarea"), mentionsInput = field(form, "Mention exact principal IDs (comma separated)", "text"); body.required = true;
-    const save = el("button", update ? "Post update" : "Post comment"); save.type = "submit"; save.disabled = !writable(); form.append(save); panel.append(form);
-    form.addEventListener("submit", async event => { event.preventDefault(); save.disabled = true; try { const verb = update ? "Post update" : "Post comment"; await messageAction(record, { type: update ? "update" : "comment", body: body.value.trim(), mentions: split(mentionsInput.value) }, { title: `${verb} on ${quoted(record.fields.title)}?`, commit: verb }); } catch (error) { report(error); } finally { save.disabled = !writable(); } });
+    const draftKey = `${record.id}:${key}`, savedDraft = state.drafts.get(draftKey);
+    const form = el("form", undefined, "work-discussion-form"), body = field(form, update ? "New update" : "New comment", "textarea", savedDraft?.body || ""), mentionsInput = field(form, "Mention exact principal IDs (comma separated)", "text", savedDraft?.mentions || ""); body.required = true;
+    const persistDraft = () => { if (!body.value && !mentionsInput.value) state.drafts.delete(draftKey); else state.drafts.set(draftKey, { body: body.value, mentions: mentionsInput.value }); };
+    body.addEventListener("input", persistDraft); mentionsInput.addEventListener("input", persistDraft);
+    const status = el("p", "", "small work-dialog-status"); status.setAttribute("role", "status");
+    const save = el("button", update ? "Post update" : "Post comment"); save.type = "submit"; save.disabled = !writable(); form.append(status, save); panel.append(form);
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      const text = body.value.trim();
+      if (!text) { status.textContent = update ? "Update text cannot be empty." : "Comment text cannot be empty."; status.setAttribute("role", "alert"); body.focus(); return; }
+      save.disabled = true; status.textContent = "";
+      try {
+        const verb = update ? "Post update" : "Post comment";
+        const result = await messageAction(record, { type: update ? "update" : "comment", body: text, mentions: split(mentionsInput.value) }, { title: `${verb} on ${quoted(record.fields.title)}?`, commit: verb });
+        if (result) { state.drafts.delete(draftKey); body.value = ""; mentionsInput.value = ""; }
+      } catch (error) { if (form.isConnected) { status.textContent = errorText(error); status.setAttribute("role", "alert"); } else report(error); }
+      finally { if (form.isConnected) save.disabled = !writable(); }
+    });
   }
   function messageAction(record, action, wording) { return submitCaptured([{ record, action }], wording); }
   function reactionWording(record, message, emoji, active) {
@@ -1151,13 +1244,32 @@
     const label = update ? "update" : "comment";
     const { dialog, close } = modal(`Edit your ${label}`), form = el("form", undefined, "work-dialog-form");
     const body = field(form, title(label), "textarea", message.body), mentionsInput = field(form, "Mention exact principal IDs (comma separated)", "text", message.mentions.join(", ")); body.required = true;
+    const status = el("p", "", "small work-dialog-status"); status.setAttribute("role", "status"); form.append(status);
     const save = el("button", `Save ${label}`, "primary"); save.type = "submit"; footer(form, save, close); dialog.append(form);
-    form.addEventListener("submit", async event => { event.preventDefault(); save.disabled = true; try { if (await messageAction(record, { type: "edit_comment", comment: message.id, body: body.value.trim(), mentions: split(mentionsInput.value) }, { title: `Save ${label} on ${quoted(record.fields.title)}?`, commit: `Save ${label}`, dismiss: "Keep editing" })) close(); } catch (error) { report(error); } finally { save.disabled = !writable(); } });
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      const text = body.value.trim();
+      if (!text) { status.textContent = `${title(label)} text cannot be empty.`; status.setAttribute("role", "alert"); body.focus(); return; }
+      save.disabled = true; status.textContent = "";
+      try { if (await messageAction(record, { type: "edit_comment", comment: message.id, body: text, mentions: split(mentionsInput.value) }, { title: `Save ${label} on ${quoted(record.fields.title)}?`, commit: `Save ${label}`, dismiss: "Keep editing" })) close(); }
+      catch (error) { if (dialog.isConnected) { status.textContent = errorText(error); status.setAttribute("role", "alert"); } }
+      finally { if (dialog.isConnected) save.disabled = !writable(); }
+    });
   }
   function reactionEditor(record, message) {
     const { dialog, close } = modal("React to message"), form = el("form", undefined, "work-dialog-form"), emoji = field(form, "Reaction emoji or short label", "text", "👍"); emoji.required = true; emoji.maxLength = 32;
-    const active = field(form, "Add my reaction (uncheck to remove)", "checkbox", true), save = el("button", "Save reaction", "primary"); save.type = "submit"; footer(form, save, close); dialog.append(form);
-    form.addEventListener("submit", async event => { event.preventDefault(); save.disabled = true; try { if (await messageAction(record, { type: "react", comment: message.id, emoji: emoji.value.trim(), active: active.checked }, reactionWording(record, message, emoji.value.trim(), active.checked))) close(); } catch (error) { report(error); } finally { save.disabled = !writable(); } });
+    const active = field(form, "Add my reaction (uncheck to remove)", "checkbox", true);
+    const status = el("p", "", "small work-dialog-status"); status.setAttribute("role", "status"); form.append(status);
+    const save = el("button", "Save reaction", "primary"); save.type = "submit"; footer(form, save, close); dialog.append(form);
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      const emojiText = emoji.value.trim();
+      if (!emojiText) { status.textContent = "Reaction emoji or label cannot be empty."; status.setAttribute("role", "alert"); emoji.focus(); return; }
+      save.disabled = true; status.textContent = "";
+      try { if (await messageAction(record, { type: "react", comment: message.id, emoji: emojiText, active: active.checked }, reactionWording(record, message, emojiText, active.checked))) close(); }
+      catch (error) { if (dialog.isConnected) { status.textContent = errorText(error); status.setAttribute("role", "alert"); } }
+      finally { if (dialog.isConnected) save.disabled = !writable(); }
+    });
   }
   async function bulk(action, ids, wording = null) {
     if (!writable()) throw new Error("Bulk writes require an admitted writable work store.");

@@ -205,7 +205,8 @@
 
   // Hrefs merge into the current URL exactly like the shell's navigate(patch); plain clicks use navigate.
   function routeHref(patch) {
-    const params = new URLSearchParams(location.search);
+    const search = typeof location !== "undefined" && location?.search ? location.search : "";
+    const params = new URLSearchParams(search);
     for (const [key, value] of Object.entries(patch)) { if (value) params.set(key, value); else params.delete(key); }
     return `?${params}`;
   }
@@ -360,7 +361,7 @@
       const index = entries.findIndex((row) => row.id === route.rev);
       const step = (label, svg, row) => {
         if (!row) { const node = withIcon(element("span", undefined, "src-step"), svg, label); node.setAttribute("aria-disabled", "true"); node.title = `No ${label.toLowerCase()} revision in the loaded history pages`; return node; }
-        const link = routeLink(ctx, { rev: row.id, spath: "", sfile: "", sline: "" }, undefined, "src-step", `step:${label}`);
+        const link = routeLink(ctx, { rev: row.id, sline: "" }, undefined, "src-step", `step:${label}`);
         link.title = `${label}: ${row.id}`;
         return withIcon(link, svg, label);
       };
@@ -452,11 +453,23 @@
       return visible;
     };
     apply(route.sq);
+    if (shown) shown.applyFilter = (nextSq) => {
+      if (document.activeElement !== input) input.value = nextSq;
+      apply(document.activeElement === input ? input.value : nextSq);
+    };
     input.addEventListener("input", () => {
       apply(input.value);
       clearTimeout(filterTimer);
       const value = input.value;
-      filterTimer = setTimeout(() => { if (input.isConnected) ctx.navigate({ sq: value }); }, FILTER_COMMIT_MS);
+      filterTimer = setTimeout(() => {
+        if (!input.isConnected) return;
+        if (shown?.route) shown.route = { ...shown.route, sq: value };
+        if (typeof history !== "undefined" && typeof history.replaceState === "function" && typeof location !== "undefined") {
+          history.replaceState(null, "", `${location.pathname || ""}${routeHref({ sq: value })}`);
+        } else {
+          ctx.navigate({ sq: value });
+        }
+      }, FILTER_COMMIT_MS);
     });
     pane.append(filter, count, list, noMatch);
     if (!entries.length) pane.append(element("p", "This directory is empty in the selected revision.", "small"));
@@ -897,7 +910,11 @@
       page.append(routeLink(ctx, { src: "", rev: "", spath: "", sfile: "", sq: "", sline: "", sview: "" }, "Clear source selection", "button", "clear"));
       return page;
     }
-    if (selected.status !== "available") { page.append(errorState(`Selected source unavailable: ${selected.reason || "reason not recorded"}. No repository was substituted.`)); return page; }
+    if (selected.status !== "available") {
+      page.append(errorState(`Selected source unavailable: ${selected.reason || "reason not recorded"}. No repository was substituted.`));
+      page.append(routeLink(ctx, { src: "", rev: "", spath: "", sfile: "", sq: "", sline: "", sview: "" }, "Clear source selection", "button", "clear"));
+      return page;
+    }
     header.append(revisionBar(ctx, route, selected, reads.log));
     if (!reads.log?.ok) header.append(element("p", `Revisions unavailable: ${explain(reads.log?.error)}`, "warning"));
     page.append(viewTabs(ctx, route));
@@ -936,7 +953,19 @@
     revealSelection = true;
   }
 
+  function sameExceptSq(a, b) {
+    if (!a || !b) return false;
+    return a.src === b.src && a.rev === b.rev && a.spath === b.spath && a.sfile === b.sfile && a.sview === b.sview && a.sline === b.sline;
+  }
+
   async function load(container, ctx) {
+    if (!container) return;
+    const route = normalizeRoute(ctx?.route);
+    if (mounted === container && shown?.route && sameExceptSq(shown.route, route) && typeof shown.applyFilter === "function" && container.querySelector("#src-filter")) {
+      shown.route = route;
+      shown.applyFilter(route.sq);
+      return;
+    }
     const current = ++generation;
     activeController?.abort();
     logMoreController?.abort();
@@ -945,10 +974,8 @@
     activeController = controller;
     const apiOpts = controller ? { controller } : undefined;
     clearTimeout(filterTimer);
-    if (!container) return;
     if (mounted !== container) { mounted?.replaceChildren(); shown = null; }
     mounted = container;
-    const route = normalizeRoute(ctx?.route);
     const live = () => current === generation && container.isConnected;
     // The same repository keeps its page on screen while the next selection is read.
     if (shown?.src !== route.src || !container.firstChild) container.replaceChildren(loadingState("Reading configured sources…"));
@@ -966,10 +993,15 @@
     const reads = selected && selected.status === "available" ? await readAll(ctx, route, selected, apiOpts) : { log: null, tree: null, file: null, diff: null, aborted: false };
     if (!live() || reads.aborted) return;
     const focus = focusState(container);
+    const activeFilter = document.activeElement?.id === "src-filter" ? document.activeElement.value : null;
     const list = container.querySelector(".src-entries");
     const before = { tree: list ? { key: list.dataset.treeKey, top: list.scrollTop } : null, file: container.querySelector(".src-file")?.dataset.fileKey || null };
+    shown = { src: route.src, route, applyFilter: null };
     container.replaceChildren(renderPage(ctx, route, inventory, sources, selected, reads));
-    shown = { src: route.src };
+    if (activeFilter !== null && typeof shown.applyFilter === "function") {
+      const nextInput = container.querySelector("#src-filter");
+      if (nextInput) { nextInput.value = activeFilter; shown.applyFilter(activeFilter); }
+    }
     restoreFocus(container, focus);
     settleScroll(container, before, route);
     const where = route.sview === "files" ? route.sfile || route.spath : route.sview === "history" ? "History" : route.rev ? `Changes ${shortId(route.rev)}` : "Changes";
@@ -1509,6 +1541,8 @@
         const attachEl = document.getElementById("repo-import-attach");
         const roleEl = document.getElementById("repo-import-role");
         const urlEl = document.getElementById("repo-import-url");
+        const errEl = document.getElementById("repo-import-error");
+        if (errEl) { errEl.textContent = ""; errEl.hidden = true; }
         if (attachEl) {
           attachEl.value = repo.identity;
           attachEl.dispatchEvent(typeof Event === "function" ? new Event("change") : { type: "change" });
@@ -1735,6 +1769,7 @@
     repoGeneration += 1;
     repoController?.abort();
     repoController = null;
+    repoFilterState = { status: "all", query: "" };
     repoMounted?.replaceChildren();
     repoMounted = null;
   }

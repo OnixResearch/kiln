@@ -35,6 +35,18 @@ async function readExact(url, size, sha, signal) {
   if (offset !== size || hex(await crypto.subtle.digest("SHA-256",bytes)) !== sha) throw new Error("preview_member_hash_mismatch");
   return bytes;
 }
+function withAbort(promise, signal) {
+  if (!signal) return promise;
+  if (signal.aborted) return Promise.reject(signal.reason || new Error("preview_resource_exhausted"));
+  return new Promise((resolve, reject) => {
+    const onAbort = () => reject(signal.reason || new Error("preview_resource_exhausted"));
+    signal.addEventListener("abort", onAbort, { once: true });
+    Promise.resolve(promise).then(
+      value => { signal.removeEventListener("abort", onAbort); resolve(value); },
+      error => { signal.removeEventListener("abort", onAbort); reject(error); },
+    );
+  });
+}
 async function launch() {
   const controller = new AbortController();
   let identity="", d=null;
@@ -78,7 +90,7 @@ async function launch() {
       return handle;
     });
     await phase("guest boot",async()=> {
-      await vm.run([d.root_path.slice("/nix/store/".length)]);
+      await withAbort(vm.run([d.root_path.slice("/nix/store/".length)]), controller.signal);
       if (!window.trynix?.transcript().includes("trynix: welcome to the multiverse")) throw new Error("preview_guest_readiness_unobserved");
     });
     let outputBytes=0, ended=false;

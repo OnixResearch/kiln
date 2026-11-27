@@ -6,11 +6,14 @@
   const MAX_RESULTS = 80;
   const WORK_ROOTS = "#work-content, #planning-content, #inbox-content, #triage-content, #workviews-content";
   const KINDS = ["issue", "project", "milestone", "cycle", "initiative", "team", "request", "view", "personal"];
+  const STATUSES = ["backlog", "triage", "started", "completed", "cancelled", "snoozed", "duplicate"];
   const PRIORITIES = ["No priority", "Urgent", "High", "Normal", "Low"];
   const selected = new Set();
   let generation = 0;
   let peekGeneration = 0;
   let timer = null;
+  let searchAbort = null;
+  let syncingRows = false;
   let palette = null;
   let peek = null;
   let menu = null;
@@ -161,6 +164,7 @@
     generation += 1;
     clearTimeout(timer);
     timer = null;
+    if (searchAbort) { searchAbort.abort(); searchAbort = null; }
   }
 
   function openPalette() {
@@ -255,11 +259,16 @@
   async function search(query, token, who) {
     const current = () => token === generation && who && who === identity() && palette?.shell.open;
     if (!current()) return;
+    if (searchAbort) searchAbort.abort();
+    const controller = typeof AbortController === "function" ? new AbortController() : null;
+    searchAbort = controller;
+    const signal = controller?.signal;
+    const apiOpts = signal ? { signal } : undefined;
     const { isVerbQuery, targetFilter, allowVerb, fac, canOp } = verbEntries(query);
     const searchTerm = isVerbQuery ? targetFilter : query;
     const claimScope = (c) => typeof c.scope?.target === "string" ? `${c.scope.target}${c.scope.path && c.scope.path !== "whole" ? ` ${c.scope.path}` : ""}` : c.identity;
     const safeFetch = async (path) => {
-      try { return await bridge().api(path); } catch { return null; }
+      try { return await bridge().api(path, apiOpts); } catch { return null; }
     };
     const coreSources = isVerbQuery ? [] : [
       ["Work", "/api/work", (data) => {
@@ -290,7 +299,7 @@
       }],
     ];
     const [coreResults, claimsData, attemptsData, decisionsData, machinesData, cairnData, campaignsData, workersData, reviewData, attentionData, reposData] = await Promise.all([
-      Promise.allSettled(coreSources.map(async ([, target, project]) => project(await bridge().api(target)))),
+      Promise.allSettled(coreSources.map(async ([, target, project]) => project(await bridge().api(target, apiOpts)))),
       safeFetch("/api/fleet/claims?include=foreign,expired"),
       safeFetch("/api/fleet/attempts"),
       safeFetch("/api/fleet/decisions"),
@@ -302,7 +311,7 @@
       safeFetch("/api/implementation/attention"),
       safeFetch("/api/repositories"),
     ]);
-    if (!current()) return;
+    if (signal?.aborted || !current()) return;
     const errors = [];
     const entries = builtins(query);
     coreResults.forEach((result, index) => {
@@ -602,8 +611,11 @@
     const statusLabel = node("label", "Status ");
     const status = node("input");
     status.type = "text";
+    status.setAttribute("list", "work-bulk-statuses");
     status.setAttribute("aria-label", "Bulk status (exact admitted workflow value)");
-    statusLabel.append(status);
+    const statusList = node("datalist");
+    statusList.id = "work-bulk-statuses";
+    statusLabel.append(status, statusList);
     const priorityLabel = node("label", "Priority ");
     const priority = node("select");
     priority.setAttribute("aria-label", "Bulk priority");
@@ -630,6 +642,15 @@
     toolbar.hidden = !selected.size || !identity();
     toolbar.querySelector("[data-selection-count]").textContent = `${selected.size} selected`;
     toolbar.querySelector("[data-mutation-controls]").hidden = !writable();
+    const statusList = toolbar.querySelector("#work-bulk-statuses");
+    if (statusList) {
+      const admitted = new Set(STATUSES);
+      for (const item of ui()?.objects?.() || []) {
+        if (item.kind === "team" && Array.isArray(item.fields?.workflow)) for (const s of item.fields.workflow) if (s) admitted.add(s);
+        if (item.fields?.status) admitted.add(item.fields.status);
+      }
+      statusList.replaceChildren(...[...admitted].map((s) => { const opt = node("option"); opt.value = s; return opt; }));
+    }
     for (const control of toolbar.querySelectorAll("[data-mutation-controls] button, [data-mutation-controls] input, [data-mutation-controls] select")) control.disabled = mutationBusy || !writable();
   }
 
@@ -708,41 +729,46 @@
   }
 
   function syncRows() {
-    if (!identity()) return;
-    const currentRows = rows();
-    const available = new Set((ui()?.objects() || []).map((item) => item.id));
-    for (const id of selected) if (!available.has(id)) selected.delete(id);
-    for (const row of currentRows) {
-      const id = row.dataset.workId;
-      row.tabIndex = activeRow === id ? 0 : -1;
-      if (!row.querySelector("[data-work-select]")) {
-        const checkbox = node("input", undefined, "work-row-select");
-        checkbox.type = "checkbox";
-        checkbox.dataset.workSelect = id;
-        checkbox.setAttribute("aria-label", `Select ${row.getAttribute("aria-label") || id} for bulk updates`);
-        checkbox.addEventListener("click", (event) => event.stopPropagation());
-        checkbox.addEventListener("change", () => toggleSelection(row, checkbox.checked));
-        // A 44px label carries the hit area on touch layouts while the box itself stays checkbox-sized.
-        const hit = node("label", undefined, "work-row-select-hit");
-        hit.addEventListener("click", (event) => event.stopPropagation());
-        hit.append(checkbox);
-        row.prepend(hit);
+    if (syncingRows || !identity()) return;
+    syncingRows = true;
+    try {
+      const currentRows = rows();
+      const available = new Set((ui()?.objects() || []).map((item) => item.id));
+      for (const id of selected) if (!available.has(id)) selected.delete(id);
+      for (const row of currentRows) {
+        const id = row.dataset.workId;
+        row.tabIndex = activeRow === id ? 0 : -1;
+        if (!row.querySelector("[data-work-select]")) {
+          const checkbox = node("input", undefined, "work-row-select");
+          checkbox.type = "checkbox";
+          checkbox.dataset.workSelect = id;
+          checkbox.setAttribute("aria-label", `Select ${row.getAttribute("aria-label") || id} for bulk updates`);
+          checkbox.addEventListener("click", (event) => event.stopPropagation());
+          checkbox.addEventListener("change", () => toggleSelection(row, checkbox.checked));
+          // A 44px label carries the hit area on touch layouts while the box itself stays checkbox-sized.
+          const hit = node("label", undefined, "work-row-select-hit");
+          hit.addEventListener("click", (event) => event.stopPropagation());
+          hit.append(checkbox);
+          row.prepend(hit);
+        }
+        const checkbox = row.querySelector("[data-work-select]");
+        checkbox.checked = selected.has(id);
+        row.classList.toggle("work-row-selected", selected.has(id));
+        if (!row.querySelector("[data-work-menu]")) {
+          const control = iconButton("Actions", "ellipsis", () => showMenu(row, control), "work-row-menu");
+          control.dataset.workMenu = id;
+          control.setAttribute("aria-haspopup", "menu");
+          control.setAttribute("aria-label", `Actions for ${row.getAttribute("aria-label") || id}`);
+          control.title = `Actions for ${row.getAttribute("aria-label") || id}`;
+          row.append(control);
+        }
       }
-      const checkbox = row.querySelector("[data-work-select]");
-      checkbox.checked = selected.has(id);
-      row.classList.toggle("work-row-selected", selected.has(id));
-      if (!row.querySelector("[data-work-menu]")) {
-        const control = iconButton("Actions", "ellipsis", () => showMenu(row, control), "work-row-menu");
-        control.dataset.workMenu = id;
-        control.setAttribute("aria-haspopup", "menu");
-        control.setAttribute("aria-label", `Actions for ${row.getAttribute("aria-label") || id}`);
-        control.title = `Actions for ${row.getAttribute("aria-label") || id}`;
-        row.append(control);
-      }
+      if (currentRows.length && !currentRows.some((row) => row.tabIndex === 0)) currentRows[0].tabIndex = 0;
+      if (selected.size) ensureToolbar();
+      updateToolbar();
+    } finally {
+      syncingRows = false;
     }
-    if (currentRows.length && !currentRows.some((row) => row.tabIndex === 0)) currentRows[0].tabIndex = 0;
-    if (selected.size) ensureToolbar();
-    updateToolbar();
   }
 
   function clear() {
@@ -793,9 +819,17 @@
     const row = event.target instanceof Element ? event.target.closest("[data-work-id]") : null;
     if (row?.closest(WORK_ROOTS) && !editable(event.target) && identity()) { event.preventDefault(); showMenu(row, { x: event.clientX, y: event.clientY }); }
   });
+  function overlayOrChordActive() {
+    if (document.documentElement?.dataset?.kilnChord) return true;
+    const inspector = document.getElementById("slide-over-inspector");
+    if (inspector && !inspector.hidden) return true;
+    try { if (document.querySelector("[popover]:popover-open")) return true; } catch {}
+    return false;
+  }
   document.addEventListener("keydown", (event) => {
+    if (event.defaultPrevented) return;
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k" && !event.altKey) { event.preventDefault(); openPalette(); return; }
-    if (!identity() || event.isComposing || document.querySelector("dialog[open]") || editable(event.target) || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (overlayOrChordActive() || !identity() || event.isComposing || document.querySelector("dialog[open]") || editable(event.target) || event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.key === "Escape" && selected.size) { event.preventDefault(); selected.clear(); syncRows(); return; }
     const currentRows = rows();
     if (!currentRows.length || !["work", "planning", "inbox", "triage", "workviews"].includes(bridge()?.route()?.page)) return;
@@ -825,7 +859,16 @@
   window.addEventListener("offline", clear);
   window.addEventListener("pagehide", clear);
   const rowObserver = new MutationObserver((records) => {
-    if (identity() && records.some((record) => record.target instanceof Element && record.target.closest(WORK_ROOTS))) syncRows();
+    if (syncingRows || !identity()) return;
+    const relevant = records.some((record) => {
+      if (!(record.target instanceof Element) || !record.target.closest(WORK_ROOTS)) return false;
+      for (const item of [...record.addedNodes, ...record.removedNodes]) {
+        if (item instanceof Element && (item.matches?.("[data-work-select], .work-row-select-hit, [data-work-menu]") || (item.querySelector?.("[data-work-select]") && !item.matches?.("[data-work-id]")))) continue;
+        return true;
+      }
+      return false;
+    });
+    if (relevant) syncRows();
   });
   rowObserver.observe(document.body, { childList: true, subtree: true });
   window.KilnWorkInteraction = { clear, refresh };

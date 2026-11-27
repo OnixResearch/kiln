@@ -104,7 +104,8 @@ button.work-chip-remove:hover:not(:disabled) { background: var(--accent); color:
 .work-list-order { margin-inline-start: auto; font-size: var(--text-xs); }
 .work-list-scroll { max-height: min(75dvh, 65rem); overflow: auto; min-width: 0; max-width: 100%; padding: 2px; scrollbar-gutter: stable; overscroll-behavior: contain; }
 .work-list-card .work-empty { border: 0; background: transparent; }
-.work-group { min-width: 0; display: grid; gap: 0; align-content: start; overflow: clip; }
+.work-group { min-width: 0; display: grid; gap: 0; align-content: start; overflow: visible; }
+.work-list-scroll .work-row:focus-visible { outline-offset: -3px; z-index: 1; }
 .work-group + .work-group { border-top: 1px solid var(--border); }
 .work-group > h3 { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); position: sticky; top: 0; z-index: 1; background: var(--muted); border-bottom: 1px solid var(--border); color: var(--muted-foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; }
 .work-count { min-width: 1.5rem; padding: 0 var(--space-2); border-radius: var(--radius-pill); background: var(--secondary); border: 1px solid var(--border-emphasis); color: var(--foreground); font: 600 var(--text-xs)/1.5 var(--mono); letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums; text-align: center; }
@@ -141,11 +142,11 @@ button.work-chip-remove:hover:not(:disabled) { background: var(--accent); color:
 .work-list-scroll[data-layout="board"] > .work-empty { flex: 1 1 100%; }
 /* r[impl kiln.work.kanban.interaction] */
 /* Kanban: status columns scroll sideways inside the card; narrow screens stack them. Drop targets show in border and fill. */
-.work-list-scroll[data-layout="kanban"] { display: grid; gap: var(--space-3); align-content: start; padding: var(--space-4); }
+.work-list-scroll[data-layout="kanban"] { display: grid; gap: var(--space-3); align-content: start; max-height: none; overflow: visible; padding: var(--space-4); }
 .work-board-summary { display: grid; gap: var(--space-1); min-width: 0; }
 .work-board-summary > p { margin: 0; overflow-wrap: anywhere; }
 .work-board-total { font-weight: 600; color: var(--foreground); }
-.work-board-lanes { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(16rem, 20rem); gap: var(--space-3); align-items: start; min-width: 0; overflow-x: auto; padding-bottom: var(--space-2); }
+.work-board-lanes { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(16rem, 20rem); gap: var(--space-3); align-items: start; min-width: 0; max-height: min(72dvh, 60rem); overflow: auto; overscroll-behavior: contain; padding-bottom: var(--space-2); }
 .work-board-column { display: grid; gap: var(--space-2); align-content: start; min-width: 0; padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--muted); }
 .work-board-heading { display: flex; align-items: center; gap: var(--space-2); margin: 0; padding: var(--space-1); font-size: var(--text-sm); }
 .work-board-note { margin: 0; padding-inline: var(--space-1); font-size: var(--text-xs); overflow-wrap: anywhere; }
@@ -169,7 +170,7 @@ button.work-chip-remove:hover:not(:disabled) { background: var(--accent); color:
 .work-move-recovery:empty { display: none; }
 @media (max-width: 640px) {
   .work-list-scroll[data-layout="kanban"] { padding: var(--space-2); }
-  .work-board-lanes { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: minmax(0, 1fr); overflow-x: visible; }
+  .work-board-lanes { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: minmax(0, 1fr); max-height: none; overflow: visible; }
 }
 
 /* Detail */
@@ -247,6 +248,7 @@ pre.work-text { overflow: auto; max-height: 28rem; font-family: var(--mono); fon
 .work-link-editor, .work-reminder-editor { display: grid; gap: var(--space-3); }
 .work-link-row { display: grid; grid-template-columns: minmax(6rem, 1fr) minmax(10rem, 2fr) auto; gap: var(--space-3); align-items: end; border-top: 1px solid var(--border); padding-top: var(--space-3); }
 .work-dialog-status { margin: 0; }
+.work-dialog-status[role="alert"] { color: var(--danger); }
 /* r[impl kiln.web.design_system] */
 /* Confirmation is a short decision: narrower than forms, exact facts scroll inside, commit last in the footer. */
 .work-dialog.work-confirm { width: min(38rem, calc(100vw - 2rem)); }

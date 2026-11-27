@@ -33,7 +33,35 @@
     snapshot: null, detail: null, diff: null, error: "", diffError: "", pending: false,
     pinnedRevision: "", forms: new Map(), dialogs: new Set(), mode: "unified",
     asideTab: "checklist", railManual: null, stackExpanded: false,
+    pendingRouteSync: "", lastLoadPromise: null,
   };
+  const VIEW_ONLY_ROUTE_KEYS = new Set(["review_file", "review_side", "review_line", "review_preview_compare", "review_preview_structural"]);
+  function normalizeRoute(rawRoute) {
+    const raw = rawRoute instanceof URLSearchParams ? Object.fromEntries(rawRoute) : (rawRoute && typeof rawRoute === "object" ? rawRoute : {});
+    const out = {};
+    for (const key of Object.keys(raw).sort()) {
+      const value = raw[key];
+      if (value != null && value !== "") out[key] = String(value);
+    }
+    return out;
+  }
+  function effectiveRouteValue(route, key) {
+    const raw = route?.[key] || "";
+    if (raw) return raw;
+    if (key === "review_revision") return state.pinnedRevision || current()?.id || "";
+    if (key === "review_base") return (route?.review_interdiff || route?.review_commits) ? "" : "base";
+    if (key === "review_whitespace") return "exact";
+    if (key === "review_mode") return "line";
+    return "";
+  }
+  function routeDiffersOutsideView(a, b) {
+    const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+    for (const key of keys) {
+      if (VIEW_ONLY_ROUTE_KEYS.has(key)) continue;
+      if (effectiveRouteValue(a, key) !== effectiveRouteValue(b, key)) return true;
+    }
+    return false;
+  }
   const node = (tag, text, cls) => { const n = document.createElement(tag); if (text !== undefined && text !== null) n.textContent = String(text); if (cls) n.className = cls; return n; };
   const arr = value => Array.isArray(value) ? value : [];
   const label = value => String(value ?? "").replaceAll("_", " ");
@@ -97,9 +125,9 @@
   ]);
   const SHORTCUT_COMMANDS = Object.freeze(SHORTCUTS.map(s => Object.freeze({ id: s.id, keys: s.keys.join(" / "), description: s.description })));
   // r[impl kiln.review.keyboard] Keys are inert while typing, in a dialog, during IME composition and with a command modifier held.
-  function resolveShortcut(event, { editable = false, dialogOpen = false } = {}) {
+  function resolveShortcut(event, { editable = false, dialogOpen = false, chordActive = false } = {}) {
     if (!event || typeof event.key !== "string" || !event.key) return null;
-    if (editable || dialogOpen || event.isComposing || event.ctrlKey || event.metaKey || event.altKey) return null;
+    if (editable || dialogOpen || chordActive || event.defaultPrevented || event.isComposing || event.ctrlKey || event.metaKey || event.altKey) return null;
     const shifted = event.shiftKey === true;
     for (const shortcut of SHORTCUTS) {
       for (const key of shortcut.keys) {
@@ -545,7 +573,17 @@
   function report(error) {
     state.error = message(error); if (state.container?.isConnected) drawNotice();
     const dialog = Array.from(state.dialogs).at(-1);
-    if (dialog?.isConnected) { let notice = dialog.querySelector(".cr-dialog-error"); if (!notice) { notice = node("p", null, "cr-notice cr-dialog-error"); notice.setAttribute("role", "alert"); dialog.append(notice); } notice.dataset.kind = "error"; notice.textContent = state.error; notice.scrollIntoView({ block: "nearest" }); }
+    if (dialog?.isConnected) {
+      let notice = dialog.querySelector(".cr-dialog-error");
+      if (!notice) {
+        notice = node("p", null, "cr-notice cr-dialog-error");
+        notice.setAttribute("role", "alert");
+        const actions = dialog.querySelector(".cr-dialog-actions");
+        if (actions) dialog.insertBefore(notice, actions);
+        else dialog.append(notice);
+      }
+      notice.dataset.kind = "error"; notice.textContent = state.error; notice.scrollIntoView({ block: "nearest" });
+    }
   }
   function button(text, action, cls, write = false) {
     const b = node("button", text, cls); b.type = "button"; b.disabled = write && !writable();
@@ -584,10 +622,14 @@
     // Choosing a revision or base leaves any interdiff or commit-range view unless the patch names one.
     if (["review_change", "review_revision", "review_base"].some(key => Object.hasOwn(patch, key)) && !Object.hasOwn(patch, "review_interdiff")) patch = { review_interdiff: "", review_interdiff_change: "", review_commits: "", ...patch };
     if (Object.hasOwn(patch, "review_revision")) state.pinnedRevision = patch.review_revision || "";
+    const next = normalizeRoute({ ...state.route, ...patch });
+    const sig = JSON.stringify(next);
+    const same = sig === JSON.stringify(state.route);
+    state.pendingRouteSync = sig;
+    if (typeof setTimeout === "function") setTimeout(() => { if (state.pendingRouteSync === sig) state.pendingRouteSync = ""; }, 100);
     state.context.navigate(patch);
-    // Also support hosts that update history without remounting this component.
-    const next = { ...state.route, ...patch };
-    if (JSON.stringify(next) !== JSON.stringify(state.route)) load(state.container, { ...state.context, route: next });
+    // Also support hosts that update history without remounting this component synchronously.
+    if (!same && sig !== JSON.stringify(state.route)) load(state.container, { ...state.context, route: next, _crInternalRoute: true });
   }
   function href(patch) {
     const search = typeof window !== "undefined" && window.location?.search ? window.location.search : "";
@@ -769,6 +811,10 @@
   }
   function draw() {
     const focused = document.activeElement; const key = focused?.dataset?.crKey; const start = focused?.selectionStart, end = focused?.selectionEnd;
+    const prevDiffScroll = state.container?.querySelector(".cr-diff-scroll");
+    const prevFileList = state.container?.querySelector(".cr-file-rail .cr-file-list");
+    const diffScroll = prevDiffScroll ? { top: prevDiffScroll.scrollTop, left: prevDiffScroll.scrollLeft, change: selected(), file: state.route.review_file || "" } : null;
+    const fileListScroll = prevFileList ? prevFileList.scrollTop : null;
     const detailsKey = d => d.dataset.crSection || d.querySelector("summary")?.textContent;
     // Data-driven panel defaults apply until the operator toggles that panel; other disclosures keep their prior state.
     const opened = new Map(Array.from(state.container?.querySelectorAll("details") || []).filter(d => !d.dataset.crSection || d.dataset.crTouched === "true").map(d => [detailsKey(d), d.open]));
@@ -791,6 +837,14 @@
     else if (!state.error) { headerActions(null); begin(detailNav()); root.append(loading("Loading change…")); }
     else { headerActions(null); begin(detailNav()); const box = stateBox("Selected change is unavailable", "Retry, or return to the change list. A missing change is never replaced by another."); box.append(button("Retry", refresh, "quiet")); root.append(box); }
     for (const d of root.querySelectorAll("details")) { const k = detailsKey(d); if (opened.has(k) && d.dataset.crForceOpen !== "true") { d.open = opened.get(k); if (d.dataset.crSection) d.dataset.crTouched = "true"; } }
+    if (diffScroll && diffScroll.change === selected() && diffScroll.file === (state.route.review_file || "")) {
+      const nextDiffScroll = root.querySelector(".cr-diff-scroll");
+      if (nextDiffScroll) { nextDiffScroll.scrollTop = diffScroll.top; nextDiffScroll.scrollLeft = diffScroll.left; }
+    }
+    if (typeof fileListScroll === "number") {
+      const nextFileList = root.querySelector(".cr-file-rail .cr-file-list");
+      if (nextFileList) nextFileList.scrollTop = fileListScroll;
+    }
     if (key) { const next = Array.from(root.querySelectorAll("[data-cr-key]")).find(n => n.dataset.crKey === key); if (next) { next.focus({ preventScroll: true }); if (typeof start === "number" && next.setSelectionRange && next.type !== "checkbox" && next.tagName !== "SELECT") { try { next.setSelectionRange(start, end); } catch {} } } }
   }
   function layout(root, name, cls = "") {
@@ -1489,7 +1543,7 @@
     card.append(summary);
     if (c.submission) {
       const receipt = section(card, "Observed submission receipt"), outcome = c.submission;
-      facts(receipt, [["Submitted by", outcome.submitted_by], ...(outcome.agent ? [["Agent", `${text(outcome.agent.harness)}${outcome.agent.model ? ` · ${text(outcome.agent.model)}` : ""} (declared)`]] : []), ["Submitted at", when(outcome.submitted_ms)], ["Candidate", outcome.candidate?.id], ["Exact source revision", outcome.candidate?.revision], ["Exact source commit", outcome.candidate?.commit], ["Target ref", outcome.candidate?.target_ref], ["Expected target commit", outcome.candidate?.target], ["Result commit", outcome.result_commit], ["CI run", outcome.candidate?.ci_run], ["Exact dependencies", JSON.stringify(outcome.candidate?.dependencies || [])]]);
+      facts(receipt, [["Submitted by", outcome.submitted_by], ...(outcome.agent ? [["Agent", `${String(outcome.agent.harness ?? "")}${outcome.agent.model ? ` · ${String(outcome.agent.model)}` : ""} (declared)`]] : []), ["Submitted at", when(outcome.submitted_ms)], ["Candidate", outcome.candidate?.id], ["Exact source revision", outcome.candidate?.revision], ["Exact source commit", outcome.candidate?.commit], ["Target ref", outcome.candidate?.target_ref], ["Expected target commit", outcome.candidate?.target], ["Result commit", outcome.result_commit], ["CI run", outcome.candidate?.ci_run], ["Exact dependencies", JSON.stringify(outcome.candidate?.dependencies || [])]]);
     }
     card.append(requirements(items));
     if (arr(checklist?.advisory).length) card.append(advisoryRequirements(checklist.advisory));
@@ -1688,6 +1742,7 @@
     const entry = hunkEntry(file); if (!state.diff?.review_hunks?.exact_base || !entry || entry.hunks.length !== arr(file.hunks).length) return null;
     const hunk = entry.hunks[index], tools = node("span", null, "cr-hunk-tools"); if (!hunk) return null;
     const mark = writeButton("Viewed", () => { requireCurrent(); return command({ type: "mark_hunk", file: filePath(file), hunk_digest: hunk.digest, reviewed: !hunk.viewed }); }, "quiet cr-hunk-mark");
+    mark.dataset.crKey = `hunk-mark:${filePath(file)}:${hunk.digest}`;
     mark.dataset.hunkDigest = hunk.digest; mark.dataset.file = filePath(file); mark.dataset.viewed = String(!!hunk.viewed); mark.setAttribute("aria-pressed", String(!!hunk.viewed)); mark.setAttribute("aria-label", `Viewed: hunk ${index + 1} of ${filePath(file)}`); mark.prepend(icon("circle-check"));
     const blocked = hunkBlocked(file); if (blocked) { mark.disabled = true; mark.dataset.crBlocked = "true"; mark.title = blocked; }
     tools.append(mark); if (hunk.new_since_viewed) tools.append(chip(`New since revision ${state.diff.review_hunks.last_viewed?.number ?? "?"}`, "cr-new-hunk"));
@@ -1811,6 +1866,7 @@
     }
   }
   function filePath(file) { return file.new_path || file.old_path || ""; }
+  function fileMatchesRoute(file, target) { return Boolean(target) && (filePath(file) === target || file.old_path === target || file.new_path === target); }
   // r[impl kiln.review.noise.display] Display-only: the service names the first matching noise rule per displayed path.
   // The pre-viewed state is derived here at display time and never stored or sent as a marker.
   function noiseRule(file) { const id = state.diff?.noise?.files?.[filePath(file)]; return id ? arr(state.diff.noise.rules).find(rule => rule.id === id) || { id, reason: "" } : null; }
@@ -1821,7 +1877,7 @@
     if (!hidden.length) return;
     const ids = [...new Set(hidden.map(item => item.rule.id))], key = `${comparison.old_commit}..${comparison.new_commit}`;
     const group = node("details", null, "cr-noise"), noiseList = node("ul", null, "cr-file-list cr-noise-list"); noiseList.setAttribute("aria-label", "Noise files");
-    group.open = state.noiseOpen === key || hidden.some(item => filePath(item.file) === state.route.review_file);
+    group.open = state.noiseOpen === key || hidden.some(item => fileMatchesRoute(item.file, state.route.review_file));
     group.addEventListener("toggle", () => { state.noiseOpen = group.open ? key : ""; });
     group.append(ui().disclosureSummary(`${hidden.length} noise file${hidden.length === 1 ? "" : "s"} hidden · ${ids.join(", ")}`, "eye"));
     for (const { row, rule } of hidden) { const tag = chip(rule.id, "cr-noise-rule"); tag.title = rule.reason ? `Noise rule ${rule.id}: ${rule.reason}` : `Noise rule ${rule.id}`; row.dataset.noise = rule.id; row.insertBefore(tag, row.children[1] || null); noiseList.append(row); }
@@ -1854,6 +1910,15 @@
     const rail = state.container?.querySelector("#cr-file-rail");
     if (!rail) return;
     rail.replaceChildren();
+    const bar = node("div", null, "cr-file-rail-bar");
+    bar.append(node("h3", "Changed files"));
+    const closeBtn = iconOnly(button("Close files", () => {
+      state.railManual = false;
+      syncWorkbenchRail();
+      state.container?.querySelector("#cr-file-rail-toggle")?.focus({ preventScroll: true });
+    }, "quiet cr-file-rail-close"), icon("x"));
+    bar.append(closeBtn);
+    rail.append(bar);
     if (!comparison) {
       rail.append(node("p", state.diffError ? "File tree unavailable." : "Loading changed files…", "cr-muted"));
       return;
@@ -1867,10 +1932,12 @@
     for (const file of comparison.files) {
       const name = filePath(file), row = node("li", null, "cr-file-row");
       const a = link(`${file.renamed ? `${file.old_path} → ` : ""}${name}${file.binary ? " · binary" : ""}${file.truncated ? " · truncated" : ""}`, { review_file: name, review_side: "", review_line: "" });
-      if (name === shownFile) a.setAttribute("aria-current", "true");
+      a.dataset.crKey = `file-link:${name}`;
+      if (fileMatchesRoute(file, shownFile)) a.setAttribute("aria-current", "true");
       // r[impl kiln.web.design_system] A toggle: constant label, persistent pressed state, file named in its accessible name.
       // r[impl kiln.review.hunks] "Mark all" writes one private marker per hunk; the count is this principal's progress.
       const entry = progress(file), marked = fullyViewed(file), mark = writeButton("Viewed", () => { requireCurrent(); return command({ type: "mark_reviewed", file: name, reviewed: !marked }); }, "quiet cr-mark");
+      mark.dataset.crKey = `file-mark:${name}`;
       mark.dataset.reviewed = String(marked); mark.dataset.hunksTotal = String(entry?.total ?? 0); mark.dataset.hunksViewed = String(entry?.viewed ?? 0); mark.setAttribute("aria-pressed", String(marked)); mark.setAttribute("aria-label", `Viewed, all hunks: ${name}`); mark.prepend(icon("circle-check"));
       const blocked = hunkBlocked(file); if (blocked) { mark.disabled = true; mark.dataset.crBlocked = "true"; mark.title = blocked; }
       const badges = node("span", null, "cr-file-badges");
@@ -2060,12 +2127,16 @@
     for (const dialog of state.dialogs) { dialog.close(); dialog.remove(); } state.dialogs.clear();
     state.container?.replaceChildren(); state.container = null; state.context = null; state.snapshot = null; state.detail = null; state.diff = null; state.forms.clear(); state.pending = false; state.pinnedRevision = "";
     state.error = ""; state.diffError = ""; state.route = {}; state.asideTab = "checklist"; state.railManual = null; state.stackExpanded = false; state.inlineThreadIds = new Set();
+    state.pendingRouteSync = ""; state.lastLoadPromise = null;
     headerActions(null, null, false);
   }
   // r[impl kiln.review.keyboard] Keyboard actions locate the existing control and invoke it, so confirmation,
   // request identity, disabled reasons and refresh behaviour stay single-sourced with pointer use.
   const focusControl = element => { if (!element) return false; element.focus({ preventScroll: true }); element.scrollIntoView?.({ block: "nearest", inline: "nearest" }); return true; };
-  const fileLinks = () => [...(state.container?.querySelectorAll(".cr-file-list .cr-file-row > a") || [])];
+  const fileLinks = () => [...(state.container?.querySelectorAll(".cr-file-list .cr-file-row > a") || [])].filter(a => {
+    const noise = a.closest?.(".cr-noise");
+    return !noise || noise.open;
+  });
   const hunkMarks = () => [...(state.container?.querySelectorAll(".cr-hunk-mark") || [])];
   const displayedFileLink = () => fileLinks().find(a => a.getAttribute("aria-current") === "true") || fileLinks()[0] || null;
   const moveWithin = (list, from, delta) => list.length ? list[Math.max(0, Math.min(list.length - 1, from < 0 ? (delta > 0 ? 0 : list.length - 1) : from + delta))] : null;
@@ -2137,9 +2208,27 @@
       default: return false;
     }
   }
+  function overlayOrChordActive() {
+    if (document.documentElement?.dataset?.kilnChord) return true;
+    const inspector = document.getElementById("slide-over-inspector");
+    if (inspector && !inspector.hidden) return true;
+    try { if (document.querySelector("[popover]:popover-open")) return true; } catch {}
+    return false;
+  }
   function onKeydown(event) {
-    if (!state.container?.isConnected) return;
-    const id = resolveShortcut(event, { editable: editableTarget(event.target), dialogOpen: Boolean(document.querySelector("dialog[open]")) });
+    if (!state.container?.isConnected || event.defaultPrevented) return;
+    const dialogOpen = Boolean(document.querySelector("dialog[open]"));
+    if (event.key === "Escape" && !dialogOpen && !overlayOrChordActive()) {
+      const openDrawer = state.container.querySelector(".cr-workbench.is-rail-drawer-open");
+      if (openDrawer) {
+        event.preventDefault();
+        state.railManual = false;
+        syncWorkbenchRail();
+        state.container.querySelector("#cr-file-rail-toggle")?.focus({ preventScroll: true });
+        return;
+      }
+    }
+    const id = resolveShortcut(event, { editable: editableTarget(event.target), dialogOpen, chordActive: overlayOrChordActive() });
     if (!id) return;
     event.preventDefault();
     keyboardAction(id);
@@ -2160,15 +2249,29 @@
   function load(container, context) {
     listen();
     if (!container || typeof context?.api !== "function" || typeof context?.navigate !== "function") throw new Error("Code review requires a container and authenticated api/navigate callbacks.");
-    const nextRoute = context.route instanceof URLSearchParams ? Object.fromEntries(context.route) : { ...(context.route || {}) };
-    const changed = state.container !== container || state.context?.principal !== context.principal || JSON.stringify(state.route) !== JSON.stringify(nextRoute);
+    const nextRoute = normalizeRoute(context.route);
+    const sameContext = state.container === container && state.context?.principal === context.principal;
+    const sig = JSON.stringify(nextRoute);
+    if (!context._crInternalRoute && sameContext && sig === JSON.stringify(state.route) && state.pendingRouteSync === sig) {
+      state.pendingRouteSync = "";
+      return state.lastLoadPromise || Promise.resolve();
+    }
+    const routeChanged = !sameContext || sig !== JSON.stringify(state.route);
+    const viewOnly = sameContext && routeChanged && (context._crInternalRoute || state.context?.api === context.api) && state.snapshot && !state.error && !state.diffError && !routeDiffersOutsideView(state.route, nextRoute) && (!nextRoute.review_change || (state.detail?.change?.id === nextRoute.review_change && state.diff));
     if (state.context?.principal !== context.principal) clear();
     if (selected() !== nextRoute.review_change || state.route.review_revision !== nextRoute.review_revision) state.pinnedRevision = nextRoute.review_revision || "";
-    if (changed) { state.epoch++; state.request++; state.diffRequest++; for (const dialog of state.dialogs) { dialog.close(); dialog.remove(); } state.dialogs.clear(); state.diff = null; state.diffError = ""; if (selected() !== nextRoute.review_change) { state.detail = null; state.asideTab = "checklist"; state.railManual = null; state.stackExpanded = false; } }
+    if (routeChanged && !viewOnly) {
+      state.epoch++; state.request++; state.diffRequest++;
+      for (const dialog of state.dialogs) { dialog.close(); dialog.remove(); }
+      state.dialogs.clear(); state.diff = null; state.diffError = "";
+      if (selected() !== nextRoute.review_change) { state.detail = null; state.asideTab = "checklist"; state.railManual = null; state.stackExpanded = false; }
+    }
     state.container = container; state.context = context; state.route = nextRoute;
-    if (changed) clearFields("draft-file", "draft-side", "draft-start", "draft-end");
+    if (routeChanged) clearFields("draft-file", "draft-side", "draft-start", "draft-end");
     draw();
-    return refresh();
+    if (viewOnly) { state.lastLoadPromise = Promise.resolve(); return state.lastLoadPromise; }
+    state.lastLoadPromise = refresh();
+    return state.lastLoadPromise;
   }
   window.KilnCodeReview = Object.freeze({ load, refresh, clear, summarizeMergeTrains, keys: Object.freeze({ resolve: resolveShortcut, commands: SHORTCUT_COMMANDS }), hunks: hunkApi, comparison: Object.freeze({ anchorFor, anchorBaseFor, diffMatches }), authorship: Object.freeze({ payload: authorshipPayload, label: authorshipLabel, classLabel: authorshipClassLabel, limit: AUTHORSHIP_TEXT_BYTES }), sessionTraces: Object.freeze({ render: sessionTraceContext }), savedQuery: savedQueryForRoute, savedView: savedViewRoute });
 })();

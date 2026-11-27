@@ -32,11 +32,11 @@
 .cairn-register-body { display: grid; min-width: 0; }
 
 /* The list: a ruled table led by the change name, with a lane accent on its first cell. */
-.cairn-table { table-layout: fixed; }
-.cairn-table th:nth-child(1) { width: 26%; }
-.cairn-table th:nth-child(2) { width: 24%; }
-.cairn-table th:nth-child(3) { width: 28%; }
-.cairn-table th:nth-child(4) { width: 12%; }
+.cairn-table { table-layout: auto; }
+.cairn-table th:nth-child(1) { min-width: 12rem; }
+.cairn-table th:nth-child(2) { min-width: 10rem; }
+.cairn-table th:nth-child(3) { min-width: 11rem; }
+.cairn-table th:nth-child(4), .cairn-table th:nth-child(5) { min-width: 7.5rem; }
 .cairn-table td { vertical-align: top; }
 .cairn-table td:first-child { box-shadow: inset 4px 0 0 var(--cairn-lane, transparent); padding-left: calc(.75rem + 4px); }
 .cairn-table td > * + * { margin-top: .35rem; }
@@ -248,6 +248,15 @@ button.cairn-subject { min-height: 0; padding: 0; color: var(--foreground); text
 .cairn-plan-head { display: grid; gap: var(--space-1); }
 .cairn-plan-head h4 { margin: 0; }
 .cairn-plan-steps { display: grid; gap: var(--space-2); margin: 0; padding-left: 1.25rem; }
+.cairn-atlas-inspector { display: grid; gap: var(--space-2); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); background: var(--group-box); }
+.cairn-atlas-inspector-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.cairn-authoring { display: grid; gap: var(--space-3); padding: var(--space-3) var(--space-4); border: 1px solid var(--frame); background: var(--group-box); min-width: 0; }
+.cairn-authoring > summary { min-height: 2.75rem; font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; cursor: pointer; }
+.cairn-authoring > div { display: grid; gap: var(--space-3); min-width: 0; }
+.cairn-authoring label { display: grid; gap: var(--space-1); font-size: var(--text-sm); font-weight: 600; min-width: 0; }
+.cairn-authoring textarea { width: 100%; font: var(--text-xs)/1.6 var(--mono); }
+.cairn-authoring-hint { color: var(--warning); min-height: 1.25rem; margin: 0; }
+.cairn-authoring-hint:empty { display: none; }
 .cairn-plan-step { display: grid; gap: var(--space-1); padding: var(--space-2); border: 1px solid var(--border); background: var(--secondary); }
 .cairn-plan-step-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); }
 .cairn-plan-annotations { display: grid; gap: var(--space-1); margin: 0; padding-left: 1rem; }
