@@ -3644,6 +3644,106 @@ test("Fleet operator inspector refuses crossed recovery evidence and links the e
   } finally { page.window.KilnFleet.clear(); }
 });
 
+// r[verify kiln.fleet.operator_plane.scenario.stuck]
+test("Fleet execution artifacts panel shows observed graph and bounded logs, explicit unavailable/unsupported states, and refuses crossed execution", async () => {
+  const page = cairnPage();
+  Object.assign(page.document, { addEventListener() {}, removeEventListener() {}, visibilityState: "visible" });
+  Object.assign(page, { Node: CairnNode, AbortController, setTimeout() {}, clearTimeout() {} });
+  page.window.KilnUi = { timeElement: () => new CairnNode("time") };
+  vm.runInNewContext(asset("fleet.js"), page);
+  const root = page.document.createElement("div");
+  const index = cairnIndex("stuck");
+  const detail = cairnDetail("stuck");
+  const identity = "a".repeat(64), work = "b".repeat(64);
+  const workflow = { provider_namespace: "lattice", native_kind: "workflow", native_id: "exec-42" };
+  detail.units[0].attempts = [{ identity, work_identity: work, fence: 7, ordinal: 1, phase: "failed", workflow, dispatch: "transport_started" }];
+  let mode = "crossed";
+  const settle = () => new Promise((resolve) => setImmediate(resolve));
+  const button = (title) => root.querySelectorAll("button").find((node) => node.textContent.trim() === title);
+  try {
+    page.window.KilnFleet.load(root, { isCurrent: () => true, canOperate: () => true, stream: () => new Promise(() => {}),
+      async api(path) {
+        if (path === "/api/implementation/cairn") return index;
+        if (path === `/api/implementation/cairn/detail?repository=${CAIRN_REPOSITORY}&change=stuck`) return detail;
+        if (path === `/api/implementation/execution-artifacts?attempt=${identity}&fence=7&work=${work}`) {
+          if (mode === "crossed") {
+            return { schema: "kiln.execution-artifacts-observation.v1", status: "available", attempt: identity, fence: 7, work_identity: work,
+              execution: { provider_namespace: "lattice", native_kind: "workflow", native_id: "exec-wrong" },
+              freshness: "fresh", graph: { status: "available", nodes: [], edges: [] }, logs: { status: "available", entries: [] } };
+          }
+          if (mode === "unsupported") {
+            return { schema: "kiln.execution-artifacts-observation.v1", status: "unsupported", reason: "artifact_route_not_admitted",
+              attempt: identity, fence: 7, work_identity: work, execution: workflow, freshness: "unknown",
+              graph: { status: "unsupported", reason: "artifact_route_not_admitted", nodes: [], edges: [] },
+              logs: { status: "unsupported", reason: "artifact_route_not_admitted", entries: [] } };
+          }
+          if (mode === "unavailable") {
+            return { schema: "kiln.execution-artifacts-observation.v1", status: "unavailable", reason: "artifact_absent",
+              attempt: identity, fence: 7, work_identity: work, execution: workflow, freshness: "unknown",
+              graph: { status: "unavailable", reason: "artifact_absent", nodes: [], edges: [] },
+              logs: { status: "unavailable", reason: "artifact_absent", entries: [] } };
+          }
+          return {
+            schema: "kiln.execution-artifacts-observation.v1", status: "available", reason: null,
+            attempt: identity, fence: 7, work_identity: work, execution: workflow, execution_state: "failed",
+            observed_at_ms: 1_700_000_000_000, evaluated_at_ms: 1_700_000_001_000, freshness: "fresh", age_ms: 1000, freshness_window_ms: 300_000,
+            graph: {
+              status: "available",
+              nodes: [
+                { id: "build", kind: "agent", state: "completed", terminal: true, successful: true },
+                { id: "check", kind: "test", state: "failed", terminal: true, successful: false },
+              ],
+              edges: [{ source: "build", target: "check" }],
+            },
+            logs: {
+              status: "available", redacted: true, truncated: true, retained_entries: 1, omitted_entries: 2, retained_bytes: 18, total_bytes: 120,
+              entries: [{ node_id: "check", stream: "stderr", cursor: 0, text: "Bearer [REDACTED]", redacted: true, truncated: true }],
+            },
+          };
+        }
+        throw new Error(`Unexpected read ${path}`);
+      },
+    });
+    await settle();
+    button("Inspect attempts").listeners.get("click")[0]();
+    await settle();
+    await button("Read execution artifacts").listeners.get("click")[0]();
+    assert.match(root.textContent, /Crossed execution artifacts refused/);
+
+    mode = "unsupported";
+    await button("Read execution artifacts").listeners.get("click")[0]();
+    assert.match(root.textContent, /Execution artifact route unsupported \(artifact_route_not_admitted\)/);
+
+    mode = "unavailable";
+    await button("Read execution artifacts").listeners.get("click")[0]();
+    assert.match(root.textContent, /Execution artifacts unavailable \(artifact_absent\)/);
+
+    mode = "available";
+    await button("Read execution artifacts").listeners.get("click")[0]();
+    assert.match(root.textContent, /Freshness Fresh/);
+    assert.match(root.textContent, /Observed provider graph/);
+    assert.match(root.textContent, /check · Test · Failed · depends on build/);
+    assert.match(root.textContent, /Observed provider logs · Redacted · Truncated · 2 entries omitted/);
+    assert.match(root.textContent, /Bearer \[REDACTED\]/);
+  } finally { page.window.KilnFleet.clear(); }
+
+  // Restricted/viewer cannot access execution artifacts button.
+  const viewerRoot = page.document.createElement("div");
+  try {
+    page.window.KilnFleet.load(viewerRoot, { isCurrent: () => true, canOperate: () => false, stream: () => new Promise(() => {}),
+      async api(path) {
+        if (path === "/api/implementation/cairn") return index;
+        if (path === `/api/implementation/cairn/detail?repository=${CAIRN_REPOSITORY}&change=stuck`) return detail;
+        throw new Error(`Unexpected read ${path}`);
+      },
+    });
+    await settle();
+    viewerRoot.querySelectorAll("button").find((node) => node.textContent.trim() === "Inspect attempts").listeners.get("click")[0]();
+    await settle();
+    assert.equal(viewerRoot.querySelectorAll("button").some((node) => node.textContent.trim() === "Read execution artifacts"), false);
+  } finally { page.window.KilnFleet.clear(); }
+});
+
 test("Fleet runtime does not attribute a crossed fence, expired device, or synthetic worker", () => {
   const page = cairnPage();
   vm.runInNewContext(asset("fleet-runtime.js"), page);

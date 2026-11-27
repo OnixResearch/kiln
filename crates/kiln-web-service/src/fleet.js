@@ -2065,6 +2065,135 @@
     return panel;
   }
 
+  // r[impl kiln.fleet.operator_plane.scenario.stuck]
+  function executionArtifactsReadout(state, attempt) {
+    const panel = element("div", undefined, "fleet-execution-artifacts");
+    const button = element("button", "Read execution artifacts", "quiet");
+    button.type = "button";
+    const result = element("div", undefined, "small");
+    result.setAttribute("role", "status");
+    const matchesExecution = (observed) => {
+      if (!attempt.workflow) return !observed;
+      return record(observed)
+        && observed.provider_namespace === attempt.workflow.provider_namespace
+        && observed.native_kind === attempt.workflow.native_kind
+        && observed.native_id === attempt.workflow.native_id;
+    };
+    const renderGraph = (graph) => {
+      if (graph?.status === "available" && Array.isArray(graph.nodes) && Array.isArray(graph.edges)) {
+        const details = element("details");
+        details.append(element("summary", "Observed provider graph"));
+        const dependencies = new Map();
+        for (const edge of graph.edges) {
+          if (!text(edge?.source) || !text(edge?.target)) continue;
+          const parents = dependencies.get(edge.target) || [];
+          parents.push(edge.source);
+          dependencies.set(edge.target, parents);
+        }
+        const list = element("ul");
+        for (const node of graph.nodes) {
+          if (!text(node?.id)) continue;
+          const parents = dependencies.get(node.id);
+          const parts = [node.id, label(node.kind), label(node.state)];
+          if (parents?.length) parts.push(`depends on ${parents.join(", ")}`);
+          list.append(element("li", parts.join(" · ")));
+        }
+        if (!graph.nodes.length) details.append(element("p", "Observed provider graph has no nodes."));
+        else details.append(list);
+        return details;
+      }
+      if (graph?.status === "unsupported") {
+        return element("p", `Observed provider graph unsupported (${text(graph.reason) || "route does not support graph"}).`);
+      }
+      return element("p", `Observed provider graph unavailable (${text(graph?.reason) || "not observed"}).`);
+    };
+    const renderLogs = (logs) => {
+      if (logs?.status === "available" && Array.isArray(logs.entries)) {
+        const details = element("details");
+        const markers = [
+          logs.redacted ? "Redacted" : null,
+          logs.truncated ? `Truncated · ${logs.omitted_entries ?? 0} entries omitted` : null,
+        ].filter(Boolean);
+        details.append(element("summary", ["Observed provider logs", ...markers].join(" · ")));
+        if (logs.redacted) details.append(element("p", "Provider log output includes redacted entries."));
+        if (logs.truncated) details.append(element("p", `Provider logs truncated to ${logs.retained_bytes ?? 0} bytes (${logs.omitted_entries ?? 0} omitted).`));
+        if (!logs.entries.length) {
+          details.append(element("p", "No provider log entries retained."));
+        } else {
+          const list = element("ul");
+          for (const entry of logs.entries) {
+            const item = element("li");
+            const meta = [`${text(entry?.node_id) || "unknown"} · ${label(entry?.stream)} · cursor ${count(entry?.cursor) ?? 0}`];
+            if (entry?.redacted) meta.push("Redacted");
+            if (entry?.truncated) meta.push("Truncated");
+            item.append(element("div", meta.join(" · ")));
+            item.append(element("pre", typeof entry?.text === "string" ? entry.text : ""));
+            list.append(item);
+          }
+          details.append(list);
+        }
+        return details;
+      }
+      if (logs?.status === "unsupported") {
+        return element("p", `Observed provider logs unsupported (${text(logs.reason) || "route does not support logs"}).`);
+      }
+      return element("p", `Observed provider logs unavailable (${text(logs?.reason) || "not observed"}).`);
+    };
+    button.addEventListener("click", async () => {
+      const controller = state.inspectorController;
+      if (!controller || button.disabled || !state.context.isCurrent()) return;
+      const current = () => state.inspectorController === controller && state.context.isCurrent();
+      const query = new URLSearchParams({ attempt: attempt.identity, fence: String(attempt.fence), work: attempt.work_identity });
+      button.disabled = true;
+      result.textContent = "Reading exact execution artifacts…";
+      try {
+        const value = await state.context.api(`/api/implementation/execution-artifacts?${query}`, { quiet: true, controller });
+        if (!current()) return;
+        if (value?.schema !== "kiln.execution-artifacts-observation.v1"
+          || value.attempt !== attempt.identity || value.fence !== attempt.fence
+          || value.work_identity !== attempt.work_identity
+          || !matchesExecution(value.execution)) {
+          throw new Error("Crossed execution artifacts refused.");
+        }
+        if (value.status === "unsupported") {
+          result.replaceChildren(
+            element("p", `Execution artifact route unsupported (${text(value.reason) || "not admitted"}).`),
+            renderGraph(value.graph),
+            renderLogs(value.logs),
+          );
+          return;
+        }
+        if (value.status !== "available") {
+          result.replaceChildren(
+            element("p", `Execution artifacts unavailable (${text(value.reason) || "not recorded"}).`),
+            renderGraph(value.graph),
+            renderLogs(value.logs),
+          );
+          return;
+        }
+        const summary = [
+          `Execution ${externalRef(value.execution)}`,
+          value.execution_state ? `State ${label(value.execution_state)}` : null,
+          `Freshness ${label(value.freshness)}`,
+        ].filter(Boolean).join(" · ");
+        const lines = [element("p", summary)];
+        if (count(value.observed_at_ms) !== null) {
+          const seen = element("p");
+          seen.append("Observed ", when(value.observed_at_ms));
+          lines.push(seen);
+        }
+        lines.push(renderGraph(value.graph), renderLogs(value.logs), element("p", "Observed provider artifacts do not establish verification or completion authority."));
+        result.replaceChildren(...lines);
+      } catch (error) {
+        if (current() && !controller.signal.aborted) result.textContent = `Execution artifacts unavailable: ${error?.message || "read failed"}`;
+      } finally {
+        if (current()) button.disabled = false;
+      }
+    });
+    panel.append(button, result);
+    return panel;
+  }
+
   // r[impl kiln.fleet.operator_plane]
   function attemptInspection(state, unit, attempt) {
     const entry = element("details", undefined, "fleet-attempt-inspection");
@@ -2099,9 +2228,12 @@
       for (const check of verification.checks) checks.append(element("li", `${text(check?.name) || "Unnamed check"} · ${label(check?.outcome)}`));
       entry.append(element("h4", "Verification checks"), checks);
     }
-    entry.append(element("p", "The CI links are for independent verification. The implementation execution reference does not establish a retained log route.", "small"));
+    entry.append(element("p", "The CI links are for independent verification. Provider graph and logs require an explicitly admitted execution artifact route.", "small"));
     if (attempt.unknown_outcome === "unreconciled" || ["reserved", "transport_started"].includes(attempt.dispatch) || attempt.workflow?.provider_namespace === "lattice") entry.append(recoveryReadout(state, attempt));
-    if (state.context.canOperate?.() !== false) entry.append(nativeRuntimeReadout(state, attempt));
+    if (state.context.canOperate?.() !== false) {
+      entry.append(nativeRuntimeReadout(state, attempt));
+      entry.append(executionArtifactsReadout(state, attempt));
+    }
     return entry;
   }
 

@@ -49,6 +49,8 @@ pub struct Options {
     pub dispatch_recovery: Option<PathBuf>,
     /// Optional immutable native inspection profile for one frozen Lattice attempt.
     pub native_runtime_evidence: Option<PathBuf>,
+    /// Optional admitted route profile for observed execution graphs and logs.
+    pub execution_artifacts: Option<PathBuf>,
     /// Runtime-only loopback fleet coordinator endpoint.
     pub fleet: Option<PathBuf>,
     /// Explicit bounded export from the deployment owner.
@@ -153,6 +155,20 @@ impl Options {
         }
         Ok(Some(profile))
     }
+    fn execution_artifacts_config(
+        &self,
+    ) -> Result<Option<crate::execution_artifacts::ExecutionArtifactsProfile>, String> {
+        let Some(path) = self.execution_artifacts.as_deref() else {
+            return Ok(None);
+        };
+        let profile = crate::execution_artifacts::ExecutionArtifactsProfile::load(path)?;
+        if self.implementation_work.as_deref() != Some(profile.implementation_database.as_path()) {
+            return Err(
+                "execution artifacts requires the same implementation database".to_owned(),
+            );
+        }
+        Ok(Some(profile))
+    }
 }
 
 #[path = "server/admission.rs"]
@@ -177,6 +193,7 @@ pub fn check_with_options(path: &Path, options: &Options) -> Result<(), String> 
     let _controls = options.campaign_controls()?;
     let _recovery = options.recovery_config()?;
     let _native_runtime = options.native_runtime_config()?;
+    let _execution_artifacts = options.execution_artifacts_config()?;
     let access = options.access_profile()?;
     let access_agents = access.agent_bindings();
     let _credentials = Credentials::load(&profile, access)?;
@@ -276,6 +293,7 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
     let campaign_controls = options.campaign_controls()?;
     let dispatch_recovery = options.recovery_config()?;
     let native_runtime = options.native_runtime_config()?;
+    let execution_artifacts = options.execution_artifacts_config()?;
     let lattice_sources = options.lattice_sources()?;
     let lattice_drafts = options.lattice_draft_owner()?;
     let cairn_authoring = options.cairn_authoring()?;
@@ -413,6 +431,7 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
         campaign_controls: campaign_controls.as_ref(),
         dispatch_recovery: dispatch_recovery.as_ref(),
         native_runtime_evidence: native_runtime.as_ref(),
+        execution_artifacts: execution_artifacts.as_ref(),
         fleet: fleet.as_ref(),
         lattice_sources: lattice_sources.as_ref(),
         lattice_drafts: lattice_drafts.as_ref(),
@@ -678,6 +697,7 @@ struct Context<'a> {
     campaign_controls: Option<&'a crate::campaign_controls::Controls>,
     dispatch_recovery: Option<&'a crate::dispatch_recovery::RecoveryConfig>,
     native_runtime_evidence: Option<&'a crate::runtime_evidence::RuntimeEvidenceProfile>,
+    execution_artifacts: Option<&'a crate::execution_artifacts::ExecutionArtifactsProfile>,
     fleet: Option<&'a crate::fleet::Client>,
     lattice_sources: Option<&'a crate::lattice_authoring::SourceCatalog>,
     lattice_drafts: Option<&'a crate::lattice_drafts::DraftOwner>,
@@ -1256,6 +1276,17 @@ fn route(
         }
         if path == "/api/implementation/runtime-evidence" {
             return native_runtime_response(&request, context.native_runtime_evidence, &principal);
+        }
+        if path == crate::execution_artifacts::ROUTE {
+            return crate::execution_artifacts::response(
+                context.implementation_work,
+                context.execution_artifacts,
+                &request.method,
+                &request.target,
+                principal.role,
+                context.profile.restricted_projection,
+                &request.body,
+            );
         }
         if crate::campaign_controls::ROUTES.contains(&path) {
             return campaign_control_response(&request, context, &principal);

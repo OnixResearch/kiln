@@ -13,6 +13,7 @@ pub mod developer;
 pub mod dispatch_recovery;
 pub mod engine;
 pub mod execution;
+pub mod execution_artifacts;
 pub mod fanouts;
 pub mod feeds;
 pub mod fleet;

@@ -5,7 +5,7 @@
 - [x] [parallel] Inspect exact work and attempts with stage and evidence details, including linked verification logs. r[kiln.fleet.operator_plane]
 - [x] [parallel] Explain attention and show retained original dispatch intent. r[kiln.fleet.operator_plane.scenario.stuck]
 - [x] [parallel] Admit opt-in web recovery bound to the original owner route, request bytes and operator authority; display the sealed planned graph. r[kiln.fleet.operator_plane.scenario.stuck]
-- [ ] [parallel] Expose observed implementation-provider graph and logs from an admitted exact-execution artifact route. r[kiln.fleet.operator_plane.scenario.stuck]
+- [x] [parallel] Expose observed implementation-provider graph and logs from an admitted exact-execution artifact route. r[kiln.fleet.operator_plane.scenario.stuck]
 - [x] [parallel] Separate queue and capacity observations from grants. r[kiln.fleet.operator_plane]
 - [x] [parallel] Bind observed worker incarnation, machine and admitted model-service evidence where current facts match. r[kiln.fleet.operator_plane]
 - [x] [parallel] Read retained native Lattice worker lifecycle and incarnation through the sealed request and read-only native inspector. r[kiln.fleet.operator_plane]

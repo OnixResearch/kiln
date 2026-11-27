@@ -4455,6 +4455,7 @@ pub(crate) mod tests {
             campaign_controls: None,
             dispatch_recovery: None,
             native_runtime_evidence: None,
+            execution_artifacts: None,
             fleet: None,
             lattice_sources: None,
             lattice_drafts: None,
