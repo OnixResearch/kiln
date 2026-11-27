@@ -41,6 +41,7 @@ members = [
   "crates/kiln-onixos-worker",
   "crates/kiln-radicle-ci",
   "crates/kiln-adapter-remote",
+  "crates/kiln-adapter-slurm",
   "crates/kiln-adapter-cdevents",
   "crates/kiln-adapter-opentelemetry",
   "crates/kiln-adapter-valence",
@@ -177,6 +178,7 @@ nix-narinfo = "=0.4.0"
 kiln-onixos-pilot = { path = "crates/kiln-onixos-pilot" }
 kiln-radicle-ci = { path = "crates/kiln-radicle-ci" }
 kiln-adapter-remote = { path = "crates/kiln-adapter-remote" }
+kiln-adapter-slurm = { path = "crates/kiln-adapter-slurm" }
 kiln-adapter-aspen = { path = "crates/kiln-adapter-aspen" }
 kiln-adapter-sqlite = { path = "crates/kiln-adapter-sqlite" }
 kiln-adapter-webhook = { path = "crates/kiln-adapter-webhook" }

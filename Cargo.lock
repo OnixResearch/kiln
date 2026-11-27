@@ -3328,6 +3328,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-adapter-slurm"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "bounded-exec",
+ "kiln-adapter-remote",
+ "kiln-provider-api",
+ "onix-kiln-core",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "kiln-adapter-sqlite"
 version = "0.1.0"
 dependencies = [
