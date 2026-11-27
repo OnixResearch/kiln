@@ -2045,6 +2045,7 @@ pub fn verify_manifest(
 pub mod authority;
 pub mod build_inputs;
 pub mod disclosure;
+pub mod manifest_store;
 pub mod materialization;
 pub mod sharing;
 pub mod writeback;
