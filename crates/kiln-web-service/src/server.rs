@@ -3106,6 +3106,29 @@ fn fleet_stream<S: Read + Write>(
 }
 
 fn fleet_response(request: &Request, context: &Context<'_>, principal: &Principal) -> ApiResponse {
+    match fleet_bridge_call(
+        request,
+        context.profile.restricted_projection,
+        context.fleet,
+        principal,
+    ) {
+        Ok(response) => response,
+        Err((status, code)) => denied(request, context, Some(principal), status, code),
+    }
+}
+
+fn fleet_bridge_call(
+    request: &Request,
+    restricted_projection: bool,
+    fleet: Option<&crate::fleet::Client>,
+    principal: &Principal,
+) -> Result<ApiResponse, (u16, &'static str)> {
+    if crate::guest_move::is_guest_move_route(&request.target) {
+        crate::guest_move::authorize_guest_move(
+            restricted_projection,
+            principal.role == crate::engine::Role::Operator,
+        )?;
+    }
     let placement = request.target.starts_with("/api/fleet/placement/");
     let windows = request
         .target
@@ -3114,29 +3137,23 @@ fn fleet_response(request: &Request, context: &Context<'_>, principal: &Principa
             let mut segments = rest.split('?').next().unwrap_or_default().split('/');
             segments.next().is_some() && segments.next() == Some("windows")
         });
-    if context.profile.restricted_projection && (placement || windows) {
-        return denied(
-            request,
-            context,
-            Some(principal),
-            403,
-            "fleet_projection_forbidden",
-        );
+    if restricted_projection && (placement || windows) {
+        return Err((403, "fleet_projection_forbidden"));
     }
     if (request.method == "POST" || placement) && principal.role != crate::engine::Role::Operator {
-        return denied(request, context, Some(principal), 403, "fleet_operator");
+        return Err((403, "fleet_operator"));
     }
-    let Some(client) = context.fleet else {
-        return error_response(503, "fleet_unavailable");
+    let Some(client) = fleet else {
+        return Ok(error_response(503, "fleet_unavailable"));
     };
     let Some(path) = crate::fleet::upstream_path(&request.method, &request.target) else {
-        return error_response(404, "fleet_route_denied");
+        return Ok(error_response(404, "fleet_route_denied"));
     };
     if request.body.len() > crate::fleet::MAX_FLEET_REQUEST_BYTES {
-        return error_response(413, "fleet_request_too_large");
+        return Ok(error_response(413, "fleet_request_too_large"));
     }
     let body = (!request.body.is_empty()).then_some(request.body.as_slice());
-    match client.call(&request.method, &path, body) {
+    Ok(match client.call(&request.method, &path, body) {
         Ok(reply) => ApiResponse {
             status: reply.status,
             content_type: reply.content_type,
@@ -3145,7 +3162,7 @@ fn fleet_response(request: &Request, context: &Context<'_>, principal: &Principa
             headers: vec![("Cache-Control", "no-store".to_owned())],
         },
         Err(()) => error_response(503, "fleet_unavailable"),
-    }
+    })
 }
 
 // r[impl kiln.fleet.swarm.console]
@@ -4104,5 +4121,68 @@ mod tests {
         fleet_stop.store(true, Ordering::Release);
         let _ = mock_handle.join();
         Ok(())
+    }
+
+    // r[verify kiln.sdlc.guest_move]
+    #[test]
+    fn guest_move_bridge_enforces_operator_role_and_refuses_restricted_projection() {
+        let viewer = Principal {
+            id: "viewer:reader".into(),
+            label: "Reader".into(),
+            role: crate::engine::Role::Viewer,
+            agent: None,
+        };
+        let worker = Principal {
+            id: "worker:w".into(),
+            label: "Worker".into(),
+            role: crate::engine::Role::Worker,
+            agent: None,
+        };
+        let operator = Principal {
+            id: "local:operator".into(),
+            label: "Operator".into(),
+            role: crate::engine::Role::Operator,
+            agent: None,
+        };
+        let get_req =
+            parse(b"GET /api/fleet/placement/guest-move HTTP/1.1\r\nHost: localhost\r\n\r\n")
+                .unwrap_or_else(|_| unreachable!());
+        let post_req = parse(
+            b"POST /api/fleet/placement/guest-move/plan HTTP/1.1\r\nHost: localhost\r\nOrigin: https://localhost:9443\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n{}",
+        )
+        .unwrap_or_else(|_| unreachable!());
+
+        assert_eq!(
+            fleet_bridge_call(&get_req, false, None, &viewer).err(),
+            Some((403, "fleet_operator"))
+        );
+        assert_eq!(
+            fleet_bridge_call(&post_req, false, None, &viewer).err(),
+            Some((403, "fleet_operator"))
+        );
+        assert_eq!(
+            fleet_bridge_call(&get_req, false, None, &worker).err(),
+            Some((403, "fleet_operator"))
+        );
+        // Operator passes auth gate and hits fleet_unavailable (503) when fleet is None.
+        assert_eq!(
+            fleet_bridge_call(&get_req, false, None, &operator)
+                .map(|r| r.status),
+            Ok(503)
+        );
+        assert_eq!(
+            fleet_bridge_call(&post_req, false, None, &operator)
+                .map(|r| r.status),
+            Ok(503)
+        );
+        // Restricted projection refuses even the operator.
+        assert_eq!(
+            fleet_bridge_call(&get_req, true, None, &operator).err(),
+            Some((403, "fleet_projection_forbidden"))
+        );
+        assert_eq!(
+            fleet_bridge_call(&post_req, true, None, &operator).err(),
+            Some((403, "fleet_projection_forbidden"))
+        );
     }
 }

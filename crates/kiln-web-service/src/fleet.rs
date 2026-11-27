@@ -385,6 +385,9 @@ pub fn upstream_path(method: &str, target: &str) -> Option<String> {
         ("GET", ["placement", "move", id]) if query.is_none() && identity(id) => {
             Some(format!("/v1/placement/move/{id}"))
         }
+        ("GET" | "POST", ["placement", "guest-move", ..]) => {
+            crate::guest_move::upstream_path(method, target)
+        }
         ("GET", ["swarms"]) if query.is_none() => Some("/v1/swarms".into()),
         ("GET", ["swarms", id]) if query.is_none() && identity(id) => {
             Some(format!("/v1/swarms/{id}"))

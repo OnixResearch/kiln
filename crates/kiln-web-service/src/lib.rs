@@ -17,6 +17,7 @@ pub mod execution_artifacts;
 pub mod fanouts;
 pub mod feeds;
 pub mod fleet;
+pub mod guest_move;
 pub mod implementation_campaign;
 pub mod inventory;
 pub mod inventory_collection;

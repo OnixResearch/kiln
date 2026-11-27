@@ -17,6 +17,7 @@ pub mod controls;
 mod core_observer;
 pub mod dispatch;
 pub mod exec;
+pub mod guest_move;
 pub mod hold;
 pub mod http;
 pub mod identity;

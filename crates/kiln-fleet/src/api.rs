@@ -488,6 +488,16 @@ impl Service {
             ("GET", ["placement", "move", id]) if *id != "plan" => {
                 self.move_status(machine, request, id, now_ms)
             }
+            ("GET", ["placement", "guest-move"]) => self.guest_move_overview(machine, request),
+            ("POST", ["placement", "guest-move", "plan"]) => {
+                self.guest_move_preview(machine, request, now_ms)
+            }
+            ("POST", ["placement", "guest-move"]) => {
+                self.guest_move_submit(machine, request, now_ms)
+            }
+            ("GET", ["placement", "guest-move", id]) if *id != "plan" => {
+                self.guest_move_status(machine, request, id)
+            }
             ("GET", ["swarms"]) => self.list_swarms(),
             ("POST", ["swarms"]) => self.create_swarm(machine, &request.body, now_ms),
             ("GET", ["swarms", id]) => self.get_swarm(id),
@@ -518,8 +528,8 @@ impl Service {
                 | ["machines", _, "windows"]
                 | ["machines", _, "windows", _, "capture"]
                 | ["dispatch", "status" | "pause" | "resume"]
-                | ["placement", "capabilities" | "split" | "move"]
-                | ["placement", "split" | "move", _]
+                | ["placement", "capabilities" | "split" | "move" | "guest-move"]
+                | ["placement", "split" | "move" | "guest-move", _]
                 | ["swarms", _]
                 | [
                     "swarms",
@@ -2085,6 +2095,50 @@ impl Service {
         )
         .map_err(|error| store_error(&error))?;
         Ok(Response::new(200, json!({"placement": placement})))
+    }
+
+    // r[impl kiln.sdlc.guest_move]
+    fn guest_move_overview(&self, machine: &str, request: &Request) -> Handled {
+        self.placement_admission(machine, request)?;
+        let _store = self.open("GET /v1/placement/guest-move")?;
+        let overview =
+            crate::guest_move::guest_move_overview(self).map_err(|error| store_error(&error))?;
+        Ok(Response::new(200, json!(overview)))
+    }
+
+    fn guest_move_preview(&self, machine: &str, request: &Request, now_ms: u64) -> Handled {
+        self.placement_admission(machine, request)?;
+        let body = parse_body(&request.body)?;
+        let plan = crate::guest_move::preview_guest_move(
+            self,
+            &mut self.open("POST /v1/placement/guest-move/plan")?,
+            body,
+            now_ms,
+        )
+        .map_err(|error| store_error(&error))?;
+        Ok(Response::new(200, json!({ "plan": plan })))
+    }
+
+    fn guest_move_submit(&self, machine: &str, request: &Request, now_ms: u64) -> Handled {
+        self.placement_admission(machine, request)?;
+        let body = parse_body(&request.body)?;
+        let guest_move = crate::guest_move::submit_guest_move(
+            self,
+            &mut self.open("POST /v1/placement/guest-move")?,
+            body,
+            now_ms,
+        )
+        .map_err(|error| store_error(&error))?;
+        Ok(Response::new(202, json!({ "guest_move": guest_move })))
+    }
+
+    fn guest_move_status(&self, machine: &str, request: &Request, id: &str) -> Handled {
+        self.placement_admission(machine, request)?;
+        let id = path_identity(id)?;
+        let _store = self.open("GET /v1/placement/guest-move/{id}")?;
+        let guest_move = crate::guest_move::guest_move_status(self, &id)
+            .map_err(|error| store_error(&error))?;
+        Ok(Response::new(200, json!({ "guest_move": guest_move })))
     }
 
     // r[impl kiln.fleet.swarm.surface]

@@ -2651,6 +2651,7 @@
     state.capacity = element("div");
     page.append(head, machinesPanel, decisionsPanel, cairnPanel, state.inspector, issuesPanel, attemptsPanel, state.runtime,
       claimsPanel, window.KilnFleetCapacity ? state.capacity : work, sourcesPanel, state.campaign, swarmsPanel);
+    if (state.context.canOperate?.() === true) page.append(guestMoveSection(state));
     root.replaceChildren(page);
     state.machine = machine;
     state.updated = updated;
@@ -2758,6 +2759,163 @@
     }
     document.removeEventListener("visibilitychange", onVisible);
     window.removeEventListener("kiln-session-changed", onSessionChanged);
+  }
+
+  // r[impl kiln.sdlc.guest_move]
+  function guestMoveSection(state) {
+    const section = element("section", undefined, "panel fleet-section fleet-guest-move");
+    section.id = "fleet-guest-move";
+    const status = element("p", "Checking running guest move prerequisites…", "small");
+    status.setAttribute("role", "status");
+    const controls = element("div", undefined, "fleet-guest-move-controls");
+    const detail = element("div", undefined, "fleet-guest-move-detail");
+    const refreshBtn = element("button", "Refresh guest move status", "quiet");
+    refreshBtn.type = "button";
+    section.append(
+      element("h2", "Move running guest workload"),
+      element("p", "Stopped-guest migration under exclusive Aspen placement and Lattice epoch reconnect: Pause -> Checkpoint -> Transfer -> Restore -> Reconnect -> RetireSource.", "small"),
+      status,
+      refreshBtn,
+      controls,
+      detail,
+    );
+    const base = "/api/fleet/placement/guest-move";
+    const current = () => active === state && state.context.isCurrent() && state.context.canOperate?.() === true && section.isConnected;
+    const renderMove = (move) => {
+      detail.replaceChildren();
+      if (!record(move) || !record(move.plan)) return;
+      const planId = text(move.plan.identity) || "unknown";
+      const outcome = text(move.outcome) || "unknown";
+      const currentStep = text(move.current_step) || "none";
+      const summary = element(
+        "p",
+        `Plan ${planId} · ${text(move.plan.source_host)} -> ${text(move.plan.request?.destination)} · current step: ${currentStep} · final outcome: ${outcome} · source retired: ${move.source_retired === true ? "yes" : "no"}`,
+      );
+      const list = element("ol", undefined, "fleet-guest-move-steps");
+      for (const step of Array.isArray(move.steps) ? move.steps : []) {
+        const line = `${text(step.kind)} [${text(step.status)}]${step.evidence ? ` · ${text(step.evidence).slice(0, 12)}` : ""}${step.diagnostic ? ` · ${text(step.diagnostic)}` : ""}`;
+        list.append(element("li", line));
+      }
+      detail.append(summary, list);
+      if (IDENTITY.test(planId)) {
+        const readBtn = element("button", "Read guest move status", "quiet");
+        readBtn.type = "button";
+        readBtn.addEventListener("click", async () => {
+          readBtn.disabled = true;
+          try {
+            const reply = await state.context.api(`${base}/${planId}`, { quiet: true });
+            if (current() && reply?.guest_move) renderMove(reply.guest_move);
+          } catch (error) {
+            if (current()) status.textContent = `Guest move status unavailable: ${error?.message || "read failed"}.`;
+          } finally {
+            readBtn.disabled = false;
+          }
+        });
+        detail.append(readBtn);
+      }
+    };
+    const renderOverview = (overview) => {
+      if (!current()) return;
+      const available = overview?.available === true;
+      const ordered = Array.isArray(overview?.ordered_steps) ? overview.ordered_steps.join(" -> ") : "pause -> checkpoint -> transfer -> restore -> reconnect -> retire_source";
+      if (!available) {
+        status.textContent = text(overview?.reason) || "Fail-closed: running guest move prerequisites (Aspen #15 placement fencing and Lattice epoch reconnect) are unavailable.";
+      } else {
+        status.textContent = `Running guest move ready · ordered steps: ${ordered}`;
+      }
+      controls.replaceChildren();
+      if (Array.isArray(overview?.prerequisites) && overview.prerequisites.length) {
+        const prereqList = element("ul", undefined, "small");
+        for (const req of overview.prerequisites) {
+          prereqList.append(element("li", `${text(req.owner)} · ${text(req.id)}: ${req.satisfied === true ? "satisfied" : "unavailable"} (${text(req.detail)})`));
+        }
+        controls.append(prereqList);
+      }
+      if (!available) {
+        if (Array.isArray(overview?.moves) && overview.moves.length) renderMove(overview.moves[0]);
+        return;
+      }
+      const attemptInput = element("input");
+      attemptInput.placeholder = "Attempt ID (64 hex)";
+      attemptInput.setAttribute("aria-label", "Guest attempt ID");
+      const sessionInput = element("input");
+      sessionInput.placeholder = "Session ID (64 hex)";
+      sessionInput.setAttribute("aria-label", "Guest session ID");
+      const fenceInput = element("input");
+      fenceInput.type = "number";
+      fenceInput.min = "1";
+      fenceInput.value = "1";
+      fenceInput.setAttribute("aria-label", "Guest attempt fence");
+      const versionInput = element("input");
+      versionInput.type = "number";
+      versionInput.min = "1";
+      versionInput.value = "1";
+      versionInput.setAttribute("aria-label", "Placement version");
+      const destInput = element("input");
+      destInput.placeholder = "Destination host";
+      destInput.setAttribute("aria-label", "Guest destination host");
+      const previewBtn = element("button", "Review guest move", "primary");
+      previewBtn.type = "button";
+      previewBtn.addEventListener("click", async () => {
+        if (!current() || previewBtn.disabled) return;
+        const request = {
+          attempt: text(attemptInput.value).trim(),
+          session: text(sessionInput.value).trim(),
+          fence: Number(fenceInput.value),
+          placement_version: Number(versionInput.value),
+          destination: text(destInput.value).trim(),
+        };
+        if (!IDENTITY.test(request.attempt) || !IDENTITY.test(request.session) || !request.destination || !(request.fence > 0) || !(request.placement_version > 0)) {
+          detail.replaceChildren(element("p", "Provide valid attempt/session 64-hex IDs, positive fence/placement version, and destination host."));
+          return;
+        }
+        previewBtn.disabled = true;
+        try {
+          const preview = await state.context.api(`${base}/plan`, { method: "POST", body: request, quiet: true });
+          const plan = preview?.plan;
+          if (!current() || !IDENTITY.test(plan?.identity)) throw new Error("Guest move plan response invalid.");
+          const stepNames = (plan.steps || []).map((s) => text(s.kind)).join(" -> ");
+          const approval = await openConfirmDialog(state, {
+            title: "Move running guest workload?",
+            verb: "Execute guest move",
+            opener: previewBtn,
+            facts: [
+              ["Plan", plan.identity],
+              ["Attempt", request.attempt],
+              ["Session", request.session],
+              ["From", text(plan.source_host)],
+              ["To", request.destination],
+              ["Steps", stepNames],
+            ],
+            warning: "Pauses, checkpoints, transfers, and restores the running guest under Aspen placement ownership; retires source only after fence and reconnect.",
+          });
+          if (!approval.confirmed || !current()) return;
+          const reply = await state.context.api(base, {
+            method: "POST",
+            body: { plan: plan.identity, ...request },
+            quiet: true,
+          });
+          if (current() && reply?.guest_move) renderMove(reply.guest_move);
+        } catch (error) {
+          if (current()) detail.replaceChildren(element("p", `Guest move refused: ${error?.message || "request failed"}.`));
+        } finally {
+          previewBtn.disabled = false;
+        }
+      });
+      controls.append(attemptInput, sessionInput, fenceInput, versionInput, destInput, previewBtn);
+      if (Array.isArray(overview?.moves) && overview.moves.length) renderMove(overview.moves[0]);
+    };
+    const refresh = async () => {
+      try {
+        const overview = await state.context.api(base, { quiet: true });
+        renderOverview(overview);
+      } catch (error) {
+        if (current()) status.textContent = `Running guest move unavailable: ${error?.message || "failed closed"}.`;
+      }
+    };
+    refreshBtn.addEventListener("click", () => { void refresh(); });
+    void refresh();
+    return section;
   }
 
   window.KilnFleet = Object.freeze({ load, clear });

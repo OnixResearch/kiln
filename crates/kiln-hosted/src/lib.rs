@@ -9,6 +9,7 @@ pub mod debug_hold;
 pub mod execution;
 pub mod finance;
 pub mod fleet;
+pub mod guest_move;
 pub mod lattice_execution;
 pub mod lattice_job;
 pub mod microvm;

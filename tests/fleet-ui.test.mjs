@@ -1217,3 +1217,122 @@ test("movePanel re-enables review on input change and refuses stale snapshot on 
     env.cleanup();
   }
 });
+
+test("Running guest move section renders fail-closed prerequisite state and full plan/steps/outcome when enabled", async () => {
+  const envUnavailable = setup({
+    apiHandler: async (path) => {
+      if (path === "/api/fleet/placement/guest-move") {
+        return {
+          schema: "kiln.fleet-guest-move-overview.v1",
+          available: false,
+          reason: "Fail-closed: Aspen #15 (fence-guest-placement-ownership) and Lattice reconnect unavailable.",
+          prerequisites: [
+            { id: "fence-guest-placement-ownership", owner: "Aspen (#15)", satisfied: false, detail: "unavailable" },
+          ],
+          ordered_steps: ["pause", "checkpoint", "transfer", "restore", "reconnect", "retire_source"],
+          moves: [],
+        };
+      }
+      if (path === "/api/fleet/machines") return { machines: [] };
+      if (path === "/api/work") return { schema: "kiln.work.v1", bounded: true, configured: true, principal: "local:operator", objects: [] };
+      if (path === "/api/fleet/dispatch/status") return { state: "running", deferred_count: 0 };
+      if (path === "/api/fleet/claims?include=foreign,expired") return { claims: [], foreign_claims: [], expired_claims: [] };
+      if (path === "/api/implementation/cairn") return { changes: [], snapshot: { work_recorded: true, attempts_recorded: true } };
+      if (path === "/api/fleet/swarms") return { swarms: [] };
+      return {};
+    },
+  });
+  try {
+    envUnavailable.fleet.load(envUnavailable.root, envUnavailable.loadCtx);
+    await new Promise((r) => setTimeout(r, 25));
+    const txt = allText(envUnavailable.root);
+    assert.match(txt, /Move running guest workload/);
+    assert.match(txt, /Fail-closed: Aspen #15/);
+    assert.match(txt, /fence-guest-placement-ownership: unavailable/);
+  } finally {
+    envUnavailable.cleanup();
+  }
+
+  const PLAN_ID = "d".repeat(64);
+  const envAvailable = setup({
+    apiHandler: async (path, opts = {}) => {
+      if (path === "/api/fleet/placement/guest-move" && (opts.method || "GET") === "GET") {
+        return {
+          schema: "kiln.fleet-guest-move-overview.v1",
+          available: true,
+          reason: "ready",
+          prerequisites: [],
+          ordered_steps: ["pause", "checkpoint", "transfer", "restore", "reconnect", "retire_source"],
+          moves: [],
+        };
+      }
+      if (path === "/api/fleet/placement/guest-move/plan" && opts.method === "POST") {
+        return {
+          plan: {
+            identity: PLAN_ID,
+            source_host: "host-a",
+            request: opts.body,
+            steps: [
+              { kind: "pause", status: "pending" },
+              { kind: "checkpoint", status: "pending" },
+              { kind: "transfer", status: "pending" },
+              { kind: "restore", status: "pending" },
+              { kind: "reconnect", status: "pending" },
+              { kind: "retire_source", status: "pending" },
+            ],
+          },
+        };
+      }
+      if (path === "/api/fleet/placement/guest-move" && opts.method === "POST") {
+        return {
+          guest_move: {
+            plan: { identity: PLAN_ID, source_host: "host-a", request: opts.body },
+            steps: [
+              { kind: "pause", status: "observed", evidence: HASH_A },
+              { kind: "checkpoint", status: "observed", evidence: HASH_B },
+              { kind: "transfer", status: "observed", evidence: HASH_C },
+              { kind: "restore", status: "observed", evidence: HASH_A },
+              { kind: "reconnect", status: "observed", evidence: HASH_B },
+              { kind: "retire_source", status: "observed", evidence: HASH_C },
+            ],
+            current_step: null,
+            outcome: "completed",
+            source_retired: true,
+          },
+        };
+      }
+      if (path === "/api/fleet/machines") return { machines: [] };
+      if (path === "/api/work") return { schema: "kiln.work.v1", bounded: true, configured: true, principal: "local:operator", objects: [] };
+      if (path === "/api/fleet/dispatch/status") return { state: "running", deferred_count: 0 };
+      if (path === "/api/fleet/claims?include=foreign,expired") return { claims: [], foreign_claims: [], expired_claims: [] };
+      if (path === "/api/implementation/cairn") return { changes: [], snapshot: { work_recorded: true, attempts_recorded: true } };
+      if (path === "/api/fleet/swarms") return { swarms: [] };
+      return {};
+    },
+  });
+  try {
+    envAvailable.fleet.load(envAvailable.root, envAvailable.loadCtx);
+    await new Promise((r) => setTimeout(r, 25));
+    const section = descendants(envAvailable.root).find((n) => n.id === "fleet-guest-move");
+    assert.ok(section);
+    const inputs = descendants(section).filter((n) => n.localName === "input");
+    inputs[0].value = HASH_A;
+    inputs[1].value = HASH_B;
+    inputs[2].value = "2";
+    inputs[3].value = "1";
+    inputs[4].value = "host-b";
+    const reviewBtn = descendants(section).find((n) => n.localName === "button" && n.textContent === "Review guest move");
+    reviewBtn.click();
+    await new Promise((r) => setTimeout(r, 20));
+    assert.equal(envAvailable.elementsById.get("control-dialog").open, true);
+    envAvailable.elementsById.get("control-form").dispatchEvent({ type: "submit", preventDefault() {} });
+    await new Promise((r) => setTimeout(r, 25));
+    const txt = allText(section);
+    assert.match(txt, new RegExp(`Plan ${PLAN_ID}`));
+    assert.match(txt, /final outcome: completed/);
+    assert.match(txt, /source retired: yes/);
+    assert.match(txt, /retire_source \[observed\]/);
+  } finally {
+    envAvailable.cleanup();
+  }
+});
