@@ -48,7 +48,7 @@
     failureFirst: null,
     reconcileStatus: null,
     liveTicker: null, logAutoFollow: false, followDeclined: "", startProject: "",
-    events: { status: "disconnected", ready: null, ci: null, fleet: null, fleetObservedAt: 0, cairn: null, attention: null },
+    events: { status: "disconnected", ready: null, ci: null, fleet: null, fleetObservedAt: 0, cairn: null, attention: null, repositories: null },
     eventSubscribers: new Set(),
     factory: { attention: null, machines: null, claims: null, dispatch: null, cairn: null, codeReview: null, repositories: null, showAllClaims: false },
     inspector: { open: false, kind: "", id: "", items: [], paneTimer: null, paneController: null, paneLines: 200, returnFocus: null },
@@ -58,7 +58,35 @@
     logDigestCache: new Map(),
     logDigestProbed: new Set(),
     digestJump: null,
+    projectHealth: new Map(),
+    preserveNextNotice: false,
+    suppressNextInitialCi: false,
   };
+  document.documentElement.dataset.kilnChord = "";
+  function setChordPrefix(prefix) {
+    clearTimeout(state.chordTimer);
+    state.chordTimer = null;
+    state.chordPrefix = prefix || "";
+    document.documentElement.dataset.kilnChord = state.chordPrefix;
+    if (state.chordPrefix) {
+      state.chordTimer = setTimeout(() => setChordPrefix(""), CHORD_TIMEOUT_MS);
+    }
+  }
+  function syncShellInert() {
+    const signedOut = !state.session;
+    const mobile = window.matchMedia("(max-width: 60rem)").matches;
+    const menuOpen = $("app-menu-toggle")?.getAttribute("aria-expanded") === "true";
+    const inspectorOpen = state.inspector.open;
+    if ($("app-sidebar")) $("app-sidebar").inert = signedOut || inspectorOpen || (mobile && !menuOpen);
+    if ($("work-command-open")) $("work-command-open").inert = signedOut;
+    if ($("global-live-strip")) $("global-live-strip").inert = signedOut || inspectorOpen || menuOpen;
+    const topbar = document.querySelector(".app-topbar");
+    if (topbar) topbar.inert = inspectorOpen;
+    for (const node of document.querySelectorAll(".session-tools, .topbar-search")) {
+      node.inert = inspectorOpen || menuOpen;
+    }
+    if ($("main")) $("main").inert = inspectorOpen || menuOpen;
+  }
 
   function text(value) {
     if (value === null || value === undefined || value === "") return "Unavailable";
@@ -184,7 +212,7 @@
   function projectLabel(id) { return state.projects.enrolled.find((project) => project.id === id)?.label || id; }
   function workspaceLink(patch, label, className) {
     const link = element("a", label, className);
-    link.href = `?${new URLSearchParams(Object.entries({ ...state.route, ...patch }).filter(([, value]) => value))}`;
+    link.href = routeHrefFor(state.route, patch);
     link.addEventListener("click", (event) => {
       if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
         event.preventDefault(); navigate(patch);
@@ -349,6 +377,7 @@
     state.projects = result;
     const enrolledIds = new Set(result.enrolled.map((row) => row.id));
     const available = result.available.filter((row) => !enrolledIds.has(row.id));
+    const prevEnrolled = $("enrolled-project").value;
     options($("available-project"), available, available.length ? "Select an allowlisted repository" : "No unenrolled repositories available", $("available-project").value);
     options($("enrolled-project"), result.enrolled, result.enrolled.length ? "Select an enrolled project" : "No enrolled projects", $("enrolled-project").value);
     options($("run-filter"), result.enrolled, "All projects", state.route?.project || "");
@@ -356,6 +385,9 @@
     projectDescriptions();
     renderProjects();
     renderRunList();
+    if (result.enrolled.length === 1 && $("enrolled-project").value && $("enrolled-project").value !== prevEnrolled) {
+      void readAction(loadRefs)();
+    }
     if (activeSubPageFor(state.route) === "runbooks") window.KilnRunbooks?.refreshEnrolledProjects?.();
   }
 
@@ -925,7 +957,7 @@
   // r[impl kiln.web.run_supersession_and_reconcile] First-class Unknown Reconciliation Card calling POST /api/runs/{id}/reconcile without blind reruns.
   async function reconcileRun(runId) {
     const result = await mutate(`${pathFor(runId)}/reconcile`, {}, "Provider reconciliation probed.");
-    if (!result || !state.session) return;
+    if (!result || !state.session) return false;
     if (result.run && typeof result.run === "object") {
       state.runs = state.runs.map((item) => item.id === result.run.id ? result.run : item);
       renderRunList();
@@ -939,6 +971,7 @@
         if (result.still_unknown) notice(state.reconcileStatus.message, "warning");
       }
     }
+    return true;
   }
   function renderReconcile(run) {
     const target = $("run-reconcile");
@@ -973,7 +1006,7 @@
     for (const record of records) {
       const observation = record.observation || {};
       const step = observation.step || {};
-      const panel = element("article", undefined, "telemetry-step");
+      const panel = element("article", undefined, "record-card telemetry-step");
       panel.append(element("h4", `${text(observation.binding?.node_id)} · reviewed step ${text(step.step_index)} · sequence ${text(observation.sequence)}`));
       const facts = element("dl", undefined, "facts");
       addFacts(facts, [["Started", when(step.started_at_ms)], ["Completed", when(step.completed_at_ms)], ["Measured elapsed", elapsed(step.duration_ms)], ["Exit code", step.exit_code], ["Observed CPU", observed(step.cpu_time_us, "µs")], ["Observed peak memory", observed(step.peak_memory_bytes, "bytes")]]);
@@ -1003,6 +1036,7 @@
     $("header-cancel").disabled = $("control-cancel").disabled;
     $("header-rerun").hidden = !(operate && !["running", "queued"].includes(runStatus(run)));
     $("header-rerun").disabled = $("rerun-exact").disabled;
+    if ($("reconcile-run")) $("reconcile-run").disabled = !canOperate() || state.mutation;
   }
 
   function subscribeEvents(listener) {
@@ -1053,6 +1087,9 @@
       if (BigInt(payload.version) < BigInt(state.liveVersion)) {
         throw new Error("The live version moved backwards. Refresh to re-establish service state.");
       }
+      const wasInitial = state.liveVersion === "0";
+      const suppressInitial = wasInitial && state.suppressNextInitialCi;
+      state.suppressNextInitialCi = false;
       const versionChanged = String(payload.version) !== state.liveVersion;
       state.liveVersion = String(payload.version);
       state.liveRunning = ui.liveActivity(payload.runs).running;
@@ -1061,9 +1098,9 @@
       connection("Live · authenticated", true);
       const incoming = new Map(payload.runs.map((run) => [run.id, run]));
       const activeSubPage = state.route?.tab || state.route?.page;
-      if (!versionChanged) renderRunList();
+      if (!versionChanged || suppressInitial) renderRunList();
       else if (activeSubPage === "runs") void readAction(loadRuns)();
-      else if (["overview", "workers", "operations", "activity", "project"].includes(activeSubPage)) void readAction(loadPage)();
+      else if (["overview", "workers", "operations", "activity", "project"].includes(activeSubPage)) void readAction(() => loadPage({ quiet: true }))();
       if (state.selected && incoming.has(state.selected)) adoptRun(incoming.get(state.selected));
       emitEvent("ci", payload);
       return true;
@@ -1080,7 +1117,15 @@
       state.events.cairn = payload;
       emitEvent("cairn", payload);
       if (state.route?.page === "overview") void refreshFactoryFromSse("cairn");
-      else if ((state.route?.tab || state.route?.page) === "cairn") void readAction(loadPage)();
+      else if ((state.route?.tab || state.route?.page) === "cairn") void readAction(() => loadPage({ quiet: true }))();
+      return true;
+    }
+    if (frame.event === "repositories") {
+      state.events.repositories = payload;
+      emitEvent("repositories", payload);
+      if (state.route?.page === "overview" || activeSubPageFor(state.route) === "repositories") {
+        void refreshFactoryFromSse("repositories");
+      }
       return true;
     }
     if (frame.event === "attention") {
@@ -1168,6 +1213,7 @@
     notice("");
     state.liveVersion = "0";
     state.liveRunning = null;
+    state.suppressNextInitialCi = true;
     startLive();
     await Promise.all([loadProjects(), loadRuns(), state.selected ? loadDetail() : Promise.resolve(), loadPage()]);
   }
@@ -1178,14 +1224,15 @@
     updateControlButtons();
     $("confirm-control").disabled = busy;
   }
-  async function mutate(target, payload, success) {
+  async function mutate(target, payload, success, { includeRequestId = true } = {}) {
     if (state.mutation || !canOperate()) { if (!canOperate()) notice("This principal has read-only access. Nothing was sent."); return null; }
     const requestId = payload?.request_id || crypto.randomUUID();
     const epoch = state.epoch;
     setMutation(true);
     notice("");
     try {
-      const result = await api(target, { method: "POST", body: { ...payload, request_id: requestId } });
+      const body = includeRequestId ? { ...payload, request_id: requestId } : payload;
+      const result = await api(target, { method: "POST", body });
       if (epoch !== state.epoch) return null;
       notice(`${success} Request ${requestId}.`, "success");
       return result;
@@ -1259,13 +1306,14 @@
   async function prepareControl(action) {
     if (!canOperate()) return;
     const id = state.selected;
+    const opener = document.activeElement;
     try {
       const freshRun = await loadDetail();
       const run = state.run;
       const queuedCancel = action === "cancel" && WAITING_PHASES.has(run?.phase);
       if (!freshRun || state.selected !== id || (!queuedCancel && !exactIdentity(run)) || run.controls?.[action] !== true || !state.connected) throw new Error("This exact execution no longer advertises the requested control. Nothing was sent.");
       const identity = queuedCancel ? { action } : structuredClone({ action, attempt_id: run.attempt_id, expected_revision: run.revision, expected_sequence: run.sequence, execution: run.execution });
-      state.confirm = { id, identity };
+      state.confirm = { id, identity, opener };
       const subject = `"${text(projectLabel(run.project_id))}"`;
       const wording = { cancel: [`Cancel run ${subject}?`, "Cancel run", queuedCancel ? (run.phase === "awaiting_approval" ? "Keep awaiting approval" : "Keep queued") : "Keep running"], pause: [`Pause run ${subject}?`, "Pause run", "Keep running"], resume: [`Resume run ${subject}?`, "Resume run", "Keep paused"] }[action];
       confirmWording(...wording, action === "cancel");
@@ -1283,12 +1331,13 @@
   async function prepareApprove() {
     if (!canOperate()) return;
     const id = state.selected;
+    const opener = document.activeElement;
     try {
       const freshRun = await loadDetail();
       const run = state.run;
       const gate = ui.untrustedSummary(run?.untrusted);
       if (!freshRun || state.selected !== id || !gate?.awaitingApproval || !gate.sourceCommit || !state.connected) throw new Error("This run no longer awaits approval of an exact commit. Nothing was sent.");
-      state.confirm = { id, approve: { source_commit: gate.sourceCommit } };
+      state.confirm = { id, approve: { source_commit: gate.sourceCommit }, opener };
       confirmWording(`Approve untrusted run "${text(projectLabel(run.project_id))}"?`, "Approve and run", "Keep blocked", false);
       addFacts($("confirm-facts"), [["Run", id], ["Pull request", gate.pullRequest === null ? null : `#${gate.pullRequest}`], ["Head repository", gate.headRepository], ["Exact commit", gate.sourceCommit], ["Why untrusted", gate.reasonText], ["Execution", "Untrusted-capable runner only, without secrets, workload token or cache, including retries"], ["Review effect", "None. This is not a code-review approval"]]);
       $("control-dialog").showModal();
@@ -1319,25 +1368,42 @@
   }
   // r[impl kiln.web.failure_first_run] Error lines are wrapped in inert <mark> elements built from text nodes;
   // the displayed text (textContent) stays byte-for-byte the retained text.
-  function renderLogText(view, output) {
+  function buildLogNodes(output) {
     const matches = ui.errorLines(output);
-    if (!matches.length) { view.textContent = output; return; }
-    const fragment = document.createDocumentFragment();
+    if (!matches.length) return [document.createTextNode(output)];
+    const nodes = [];
     const lines = output.split("\n");
     let pending = "";
     let match = 0;
     lines.forEach((line, index) => {
       const separator = index === lines.length - 1 ? "" : "\n";
       if (matches[match] !== index) { pending += line + separator; return; }
-      if (pending) fragment.append(pending);
+      if (pending) nodes.push(document.createTextNode(pending));
       const mark = element("mark", line, "log-error-line");
       mark.tabIndex = -1;
-      fragment.append(mark);
+      nodes.push(mark);
       pending = separator;
       match++;
     });
-    if (pending) fragment.append(pending);
-    view.replaceChildren(fragment);
+    if (pending) nodes.push(document.createTextNode(pending));
+    return nodes;
+  }
+  function appendLogNodes(view, nodes, replace) {
+    if (typeof document.createDocumentFragment === "function") {
+      const fragment = document.createDocumentFragment();
+      fragment.append(...nodes);
+      if (replace) view.replaceChildren(fragment);
+      else view.append(fragment);
+    } else if (replace) {
+      view.replaceChildren(...nodes);
+    } else {
+      view.append(...nodes);
+    }
+  }
+  function renderLogText(view, output) {
+    const matches = ui.errorLines(output);
+    if (!matches.length) { view.textContent = output; return; }
+    appendLogNodes(view, buildLogNodes(output), true);
   }
   const ERROR_LINE_CAP = 1000;
   function updateErrorBar() {
@@ -1409,12 +1475,22 @@
       const scrollTop = view.scrollTop;
       const followTail = $("follow-logs").checked && view.scrollHeight - view.clientHeight - scrollTop <= LOG_TAIL_SLOP_PX;
       const previousOutput = view.textContent;
-      let output = (append ? previousOutput : "") + result.text;
-      if (output.length > MAX_DISPLAYED_LOG_CHARS) {
-        output = output.slice(-MAX_DISPLAYED_LOG_CHARS);
+      const combined = (append ? previousOutput : "") + result.text;
+      const truncatedToWindow = combined.length > MAX_DISPLAYED_LOG_CHARS;
+      const output = truncatedToWindow ? combined.slice(-MAX_DISPLAYED_LOG_CHARS) : combined;
+      if (truncatedToWindow) {
         gaps.push("Older displayed log text was removed at this page’s memory bound. Re-read an earlier stream cursor to inspect retained bytes.");
       }
-      if (output !== previousOutput) renderLogText(view, output);
+      if (output !== previousOutput) {
+        const lastPartialLine = previousOutput.endsWith("\n") ? "" : previousOutput.slice(previousOutput.lastIndexOf("\n") + 1);
+        const firstChunkLine = result.text.split("\n")[0];
+        const splitsBoundaryError = Boolean(lastPartialLine) && ui.errorLines(lastPartialLine + firstChunkLine).length > 0;
+        if (append && !truncatedToWindow && previousOutput.length > 0 && !splitsBoundaryError) {
+          appendLogNodes(view, buildLogNodes(result.text), false);
+        } else {
+          renderLogText(view, output);
+        }
+      }
       updateErrorBar();
       if (!append) { $("log-gap").textContent = ""; $("log-gap").hidden = true; }
       if (gaps.length) {
@@ -1563,11 +1639,17 @@
     if ($("slide-over-backdrop")) $("slide-over-backdrop").hidden = true;
     if ($("slide-over-body")) $("slide-over-body").replaceChildren();
     state.inspector = { open: false, kind: "", id: "", items: [], paneTimer: null, paneController: null, paneLines: 200, returnFocus: null };
-    state.events = { status: "disconnected", ready: null, ci: null, fleet: null, fleetObservedAt: 0, cairn: null, attention: null };
-    state.factory = { attention: null, machines: null, claims: null, dispatch: null, cairn: null, codeReview: null, showAllClaims: false };
+    state.events = { status: "disconnected", ready: null, ci: null, fleet: null, fleetObservedAt: 0, cairn: null, attention: null, repositories: null };
+    state.factory = { attention: null, machines: null, claims: null, dispatch: null, cairn: null, codeReview: null, repositories: null, showAllClaims: false };
     state.selectedRuns.clear();
-    clearTimeout(state.chordTimer); state.chordPrefix = ""; state.chordTimer = null;
+    setChordPrefix("");
+    state.projectHealth.clear();
+    state.preserveNextNotice = false;
+    state.suppressNextInitialCi = false;
     if ($("global-live-strip")) $("global-live-strip").hidden = true;
+    if ($("app-sidebar")) $("app-sidebar").hidden = true;
+    if ($("work-command-open")) $("work-command-open").hidden = true;
+    syncShellInert();
     state.runSort = null; state.failureFirst = null; state.reconcileStatus = null; state.followDeclined = ""; state.startProject = "";
     $("run-progress").hidden = true;
     for (const id of ["run-supersession", "run-reconcile"]) { $(id).hidden = true; $(id).replaceChildren(); }
@@ -1667,6 +1749,9 @@
     if (epoch !== state.epoch || !state.session) return;
     $("login-panel").hidden = true;
     $("workspace").hidden = false;
+    if ($("app-sidebar")) $("app-sidebar").hidden = false;
+    if ($("work-command-open")) $("work-command-open").hidden = false;
+    syncShellInert();
     $("logout").hidden = false;
     $("account-settings").hidden = false;
     const principalLabel = text(state.principal?.label);
@@ -1906,15 +1991,23 @@
     }
     return true;
   }
-  function navigate(patch) {
+  function normalizeRoutePatch(patch) {
     const normalized = { ...patch };
     if (Object.hasOwn(normalized, "page") && Object.hasOwn(LEGACY_PAGE_ALIASES, normalized.page)) {
       const alias = LEGACY_PAGE_ALIASES[normalized.page];
       normalized.page = alias.page;
       if (!Object.hasOwn(normalized, "tab")) normalized.tab = alias.tab;
-    } else if (Object.hasOwn(normalized, "page") && normalized.page !== state.route?.page && !Object.hasOwn(normalized, "tab")) {
+    } else if (Object.hasOwn(normalized, "page") && !Object.hasOwn(normalized, "tab")) {
       normalized.tab = "";
     }
+    return normalized;
+  }
+  function routeHrefFor(baseRoute, patch) {
+    const merged = { ...(baseRoute || {}), ...normalizeRoutePatch(patch) };
+    return `?${new URLSearchParams(Object.entries(merged).filter(([, value]) => value))}`;
+  }
+  function navigate(patch) {
+    const normalized = normalizeRoutePatch(patch);
     const route = { ...state.route, ...normalized };
     if (Object.hasOwn(normalized, "run") && normalized.run !== state.route?.run && !Object.hasOwn(normalized, "activity_cursor")) route.activity_cursor = "";
     if ((Object.hasOwn(normalized, "fanout") && normalized.fanout !== state.route?.fanout || Object.hasOwn(normalized, "dispatch") && normalized.dispatch !== state.route?.dispatch) && !Object.hasOwn(normalized, "rollup_cursor")) route.rollup_cursor = "";
@@ -1951,7 +2044,7 @@
     const route = state.route;
     const prevSub = previous ? activeSubPageFor(previous) : "";
     const nextSub = activeSubPageFor(route);
-    const routeHref = (patch) => `?${new URLSearchParams(Object.entries({ ...route, ...patch }).filter(([, value]) => value))}`;
+    const routeHref = (patch) => routeHrefFor(route, patch);
     if (previous && state.session && state.routeLoaded && previous.inspect !== route.inspect && sameRouteExceptInspect(previous, route)) {
       for (const node of document.querySelectorAll("a[data-page]")) node.href = routeHref({ page: node.dataset.page, tab: "" });
       for (const node of document.querySelectorAll("a[data-view]")) node.href = routeHref({ view: node.dataset.view });
@@ -2013,7 +2106,8 @@
     $("workspace-eyebrow").replaceChildren(element("span", place.number, "page-number"), document.createTextNode(ui.destinationGroup(place.group).name));
     $("observation-note").textContent = (subPlace || subMeta) ? (subPlace || subMeta).purpose : place.purpose;
     if (previous?.page !== route.page || prevSub !== nextSub) {
-      notice("");
+      if (state.preserveNextNotice) state.preserveNextNotice = false;
+      else notice("");
       $("page-primary-action").replaceChildren();
       $("workspace-title").tabIndex = -1;
       $("workspace-title").focus({ preventScroll: true });
@@ -2036,6 +2130,8 @@
       if (state.selected !== route.run) {
         state.selected = route.run || null; state.run = null; state.observedAt = 0;
         state.detailGeneration++; state.artifactsGeneration++;
+        $("artifact-list").replaceChildren();
+        $("artifact-status").textContent = "";
         $("run-detail").hidden = true; $("empty-run").hidden = false;
         $("empty-run-title").textContent = route.run ? "Loading selected run" : "Select a run";
         $("empty-run-message").textContent = route.run ? `Reading exact retained identity: ${route.run}` : "Choose a retained run. No run is selected automatically.";
@@ -2044,7 +2140,11 @@
       if (state.route !== route) return;
       if (route.run && (state.selected !== route.run || !state.run)) await selectRun(route.run);
       else if (route.run) { renderDetail(); await loadRunView(); }
-      else { state.selected = null; state.run = null; $("run-detail").hidden = true; $("empty-run").hidden = false; $("empty-run-title").textContent = "Select a run"; $("empty-run-message").textContent = "Choose a retained run. No run is selected automatically."; }
+      else {
+        state.selected = null; state.run = null;
+        $("artifact-list").replaceChildren(); $("artifact-status").textContent = "";
+        $("run-detail").hidden = true; $("empty-run").hidden = false; $("empty-run-title").textContent = "Select a run"; $("empty-run-message").textContent = "Choose a retained run. No run is selected automatically.";
+      }
     } else await loadPage();
     if (state.route !== route || !state.session) return;
     syncInspectorFromRoute(route);
@@ -2227,19 +2327,23 @@
       else cell.textContent = text(item);
     }
   }
-  async function renderEndpoint(target, id, render = renderRecorded) {
+  async function renderEndpoint(target, id, render = renderRecorded, { quiet = false } = {}) {
     const generation = state.pageGeneration;
     const requestGeneration = (state.endpointGeneration.get(id) || 0) + 1;
     state.endpointGeneration.set(id, requestGeneration);
     const run = state.route.run;
     const parent = $(id);
-    parent.replaceChildren(loadingState());
+    if (!quiet || !parent.childElementCount) parent.replaceChildren(loadingState());
     try {
-      const result = await api(target);
+      const result = await api(target, { quiet });
       if (generation !== state.pageGeneration || requestGeneration !== state.endpointGeneration.get(id) || run !== state.route.run) return;
       parent.replaceChildren(); render(parent, result); return true;
     } catch (error) {
-      if (!isAborted(error) && generation === state.pageGeneration && requestGeneration === state.endpointGeneration.get(id)) parent.replaceChildren(errorState(`Unavailable: ${explain(error)} No presence, absence or success is inferred.`));
+      if (!isAborted(error) && generation === state.pageGeneration && requestGeneration === state.endpointGeneration.get(id)) {
+        const msg = `Unavailable: ${explain(error)} No presence, absence or success is inferred.`;
+        if (!quiet || !parent.childElementCount) parent.replaceChildren(errorState(msg));
+        else notice(msg);
+      }
     }
   }
   function activityQuery() { const query = new URLSearchParams({ limit: "50" }); if (state.route.activity_cursor) query.set("cursor", state.route.activity_cursor); return query; }
@@ -2314,7 +2418,8 @@
       const list = element("div", undefined, "feed-grid");
       for (const repository of publication) {
         const card = element("article", undefined, "feed-card panel");
-        card.append(element("h3", text(repository.label)), element("p", `${repository.runs} retained runs · ${repository.key.slice(0, 12)}…`, "small"));
+        const keyPreview = typeof repository.key === "string" && repository.key ? `${repository.key.slice(0, 12)}…` : text(repository.key);
+        card.append(element("h3", text(repository.label)), element("p", `${text(repository.runs)} retained runs · ${keyPreview}`, "small"));
         const actions = element("div", undefined, "cluster");
         const subscribe = repository.subscribe_url;
         if (subscribe) {
@@ -2326,13 +2431,13 @@
             catch { notice("The browser did not allow clipboard access. Open the URL in a new tab and copy it from the address bar."); }
           });
           actions.append(copy);
-          const open = element("a", "Open feed", "button-link");
+          const open = element("a", "Open feed", "button button-link");
           open.href = subscribe;
           open.target = "_blank";
           open.rel = "noreferrer";
           actions.append(open);
           if (repository.rss_subscribe_url) {
-            const rss = element("a", "RSS", "button-link");
+            const rss = element("a", "RSS", "button button-link");
             rss.href = repository.rss_subscribe_url;
             rss.target = "_blank";
             rss.rel = "noreferrer";
@@ -2347,7 +2452,7 @@
       section.append(list);
       const opml = result.publication?.opml_subscribe_url;
       if (opml) {
-        const exportLink = element("a", "Export OPML for all repositories", "button-link");
+        const exportLink = element("a", "Export OPML for all repositories", "button button-link");
         exportLink.href = opml;
         exportLink.target = "_blank";
         exportLink.rel = "noreferrer";
@@ -2443,11 +2548,13 @@
       const card = element("section", undefined, "panel");
       const heading = element("div", undefined, "section-heading");
       heading.append(element("h2", text(subscription.label || subscription.title || "External feed")));
-      heading.append(element(
-        "span",
-        subscription.enabled === false ? "Paused" : subscription.error ? "Needs attention" : "Observed",
-        subscription.enabled === false ? "pill" : subscription.error ? "pill pill-failed" : "pill"
-      ));
+      heading.append(
+        subscription.enabled === false
+          ? statePill("queued", "Paused")
+          : subscription.error
+            ? statePill("failure", "Needs attention")
+            : statePill("success", "Observed")
+      );
       card.append(heading);
       const lastSuccess = subscription.last_success_ms ? ` · Last success ${timestamp(subscription.last_success_ms)}` : "";
       card.append(element("p", `${subscription.url || "URL hidden for viewers"} · ${subscription.fetched_at_ms ? `Last attempt ${timestamp(subscription.fetched_at_ms)}` : "Not fetched"}${lastSuccess}`, "small mono"));
@@ -2475,28 +2582,75 @@
         });
         const rename = element("button", "Rename", "quiet");
         rename.type = "button";
-        rename.addEventListener("click", async () => {
-          const next = window.prompt("Feed label", subscription.label);
-          if (next === null) return;
-          rename.disabled = true;
+        const renameForm = element("form", undefined, "inline-form");
+        renameForm.hidden = true;
+        const renameId = `feed-rename-${String(subscription.id || "").replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+        const renameLabel = element("label", "Feed label");
+        renameLabel.htmlFor = renameId;
+        const renameInput = element("input");
+        renameInput.id = renameId;
+        renameInput.type = "text";
+        renameInput.required = true;
+        renameInput.maxLength = 128;
+        renameInput.value = typeof subscription.label === "string" ? subscription.label : "";
+        const renameSave = element("button", "Save", "primary");
+        renameSave.type = "submit";
+        const renameCancel = element("button", "Cancel", "quiet");
+        renameCancel.type = "button";
+        renameForm.append(renameLabel, renameInput, renameSave, renameCancel);
+        const closeRename = (restoreFocus = false) => {
+          renameForm.hidden = true;
+          rename.setAttribute("aria-expanded", "false");
+          if (restoreFocus) rename.focus();
+        };
+        rename.setAttribute("aria-expanded", "false");
+        rename.addEventListener("click", () => {
+          if (!renameForm.hidden) { closeRename(true); return; }
+          renameInput.value = typeof subscription.label === "string" ? subscription.label : "";
+          renameForm.hidden = false;
+          rename.setAttribute("aria-expanded", "true");
+          renameInput.focus();
+        });
+        renameCancel.addEventListener("click", () => closeRename(true));
+        renameInput.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); closeRename(true); }
+        });
+        renameForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const next = renameInput.value.trim();
+          if (!next) { notice("Enter a feed label."); renameInput.focus(); return; }
+          renameSave.disabled = true;
+          renameCancel.disabled = true;
           try {
-            await api(`/api/feeds/${encodeURIComponent(subscription.id)}/label`, { method: "POST", body: { label: next.trim() } });
-            notice("Feed label updated.", "success");
-            await loadFeeds();
-          } catch (error) {
-            notice(explain(error));
-          } finally { rename.disabled = false; }
+            const res = await mutate(`/api/feeds/${encodeURIComponent(subscription.id)}/label`, { label: next }, "Feed label updated.", { includeRequestId: false });
+            if (res) await loadFeeds();
+          } finally {
+            renameSave.disabled = false;
+            renameCancel.disabled = false;
+          }
         });
         const remove = element("button", "Remove", "quiet danger");
         remove.type = "button";
         remove.addEventListener("click", async () => {
+          const labelText = text(subscription.label || subscription.title || subscription.url || subscription.id);
+          const choice = await confirmControl({
+            title: `Remove feed ${labelText}?`,
+            verb: "Remove feed",
+            dismiss: "Keep feed",
+            danger: true,
+            warning: "Removes this external repository feed subscription and its retained entries from this console.",
+            facts: [["Subscription", labelText], ["URL", subscription.url || "URL hidden for viewers"]],
+            opener: remove,
+          });
+          if (!choice.confirmed) return;
           remove.disabled = true;
-          try { await api(`/api/feeds/${encodeURIComponent(subscription.id)}/remove`, { method: "POST", body: {} }); await loadFeeds(); }
-          catch (error) { notice(explain(error)); }
-          finally { remove.disabled = false; }
+          try {
+            const res = await mutate(`/api/feeds/${encodeURIComponent(subscription.id)}/remove`, { request_id: choice.requestId }, "Feed subscription removed.");
+            if (res) await loadFeeds();
+          } finally { remove.disabled = false; }
         });
         actions.append(refresh, toggle, rename, remove);
-        card.append(actions);
+        card.append(actions, renameForm);
       }
       const entries = element("ul", undefined, "activity-feed");
       for (const entry of subscription.entries || []) {
@@ -2514,13 +2668,14 @@
     }
     scheduleRefresh();
   }
-  async function loadPage() {
+  async function loadPage({ quiet = false } = {}) {
     const route = state.route;
     const subPage = activeSubPageFor(route);
+    const pageApi = quiet ? (target, options = {}) => api(target, { quiet: true, ...options }) : api;
     if (subPage !== "feeds") stopFeedsTimer();
     if (subPage === "code-review") {
       await window.KilnCodeReview.load($("code-review-content"), {
-        api,
+        api: pageApi,
         navigate: (patch) => navigate({ ...patch, page: "code-review" }),
         toast: (message) => notice(message, "info"),
         principal: state.principal?.id || "",
@@ -2544,7 +2699,7 @@
     // r[impl kiln.web.project_page] Project history renders through project.js; Run latest reuses the existing start form.
     if (subPage === "project") {
       if (!window.KilnProject) { $("project-content").replaceChildren(element("p", "Project history is loading.", "small")); return; }
-      await window.KilnProject.load($("project-content"), { api, navigate, project: route.project, canOperate, startRun });
+      await window.KilnProject.load($("project-content"), { api: pageApi, navigate, project: route.project, canOperate, startRun });
       return;
     }
     if (subPage === "projects") {
@@ -2553,11 +2708,11 @@
       await Promise.all([loadRefs(), loadProjectHealth()]);
     }
     // r[impl kiln.dashboard.workers.view] The Workers module owns its register, local filters and exact detail.
-    if (subPage === "workers") await window.KilnWorkers.load($("workers-content"), { api, navigate, route, isCurrent: () => state.route === route && !!state.session, runLink, projectLink });
+    if (subPage === "workers") await window.KilnWorkers.load($("workers-content"), { api: pageApi, navigate, route, isCurrent: () => state.route === route && !!state.session, runLink, projectLink });
     if (subPage === "runbooks") {
       if (!window.KilnRunbooks) { $("runbooks-content").replaceChildren(element("p", "Runbooks are loading.", "small")); return; }
       await window.KilnRunbooks.load($("runbooks-content"), {
-        api,
+        api: pageApi,
         navigate,
         notice,
         confirmControl,
@@ -2570,34 +2725,34 @@
       });
       return;
     }
-    if (subPage === "activity") await renderEndpoint(`/api/activity?${activityQuery()}`, "activity-content", renderActivity);
+    if (subPage === "activity") await renderEndpoint(`/api/activity?${activityQuery()}`, "activity-content", renderActivity, { quiet });
     if (subPage === "evidence") {
       void loadRunChoices();
       if (route.run) await renderEndpoint(`${pathFor(route.run)}/evidence`, "evidence-content", renderEvidence);
       else $("evidence-content").replaceChildren(element("p", "Enter a retained run ID. No evidence from another attempt is substituted.", "small"));
     }
     if (subPage === "feeds") await loadFeeds();
-    if (subPage === "automation") await renderEndpoint("/api/automation", "automation-content", renderAutomation);
-    if (subPage === "operations") await renderEndpoint("/api/operations", "operations-content", renderOperations);
+    if (subPage === "automation") await renderEndpoint("/api/automation", "automation-content", renderAutomation, { quiet });
+    if (subPage === "operations") await renderEndpoint("/api/operations", "operations-content", renderOperations, { quiet });
     if (subPage === "cobs") await loadCobs();
     // r[impl kiln.dashboard.source.navigation] The Source page renders through source.js.
     if (subPage === "source") {
       if (!window.KilnSource) { $("source-content").replaceChildren(element("p", "Source browser is loading.", "small")); return; }
-      await window.KilnSource.load($("source-content"), { api, navigate, route });
+      await window.KilnSource.load($("source-content"), { api: pageApi, navigate, route });
     }
     if (subPage === "repositories") {
       if (!window.KilnSource?.loadRepositories) { $("repositories-content").replaceChildren(element("p", "Repositories workbench is loading.", "small")); return; }
-      await window.KilnSource.loadRepositories($("repositories-content"), { api, navigate, route, confirmControl, mutate, canOperate, openInspector, notice });
+      await window.KilnSource.loadRepositories($("repositories-content"), { api: pageApi, navigate, route, confirmControl, mutate, canOperate, openInspector, notice });
     }
     // r[impl kiln.dashboard.reviews.view] The Patchgate receipts page renders through receipts.js.
     if (subPage === "reviews") {
       if (!window.KilnReceipts) { $("receipts-content").replaceChildren(element("p", "Patchgate receipts are loading.", "small")); return; }
-      await window.KilnReceipts.load($("receipts-content"), { api, navigate, route });
+      await window.KilnReceipts.load($("receipts-content"), { api: pageApi, navigate, route });
     }
     // r[impl kiln.cairn.workspace] The Cairn changes page renders through cairn.js.
     if (subPage === "cairn") {
       if (!window.KilnCairn) { $("cairn-content").replaceChildren(element("p", "Cairn changes are loading.", "small")); return; }
-      await window.KilnCairn.load($("cairn-content"), { api, navigate, route, runLink, confirmControl, canOperate });
+      await window.KilnCairn.load($("cairn-content"), { api: pageApi, navigate, route, runLink, confirmControl, canOperate });
     }
     // The Fleet page owns its bounded reads and coordinator commands; leaving the
     // page aborts its refresh cycle.
@@ -3097,16 +3252,24 @@
   }
   async function executeAttentionAction(item, actionName, opener) {
     const t = item?.target || {};
+    const btn = opener && opener.localName === "button" ? opener : null;
+    if (btn?.disabled || state.mutation) return false;
+    const runMutate = async (...args) => {
+      if (btn) btn.disabled = true;
+      try { return await mutate(...args); }
+      finally { if (btn) btn.disabled = false; }
+    };
+    let res = null;
     if (actionName === "wake" && t.campaign_id) {
-      await mutate(`/api/implementation/campaigns/${encodeURIComponent(t.campaign_id)}/wake`, { kind: "operator", reason: "Operator woke from Factory/Attention" }, "Campaign wake admitted.");
+      res = await runMutate(`/api/implementation/campaigns/${encodeURIComponent(t.campaign_id)}/wake`, { kind: "operator", reason: "Operator woke from Factory/Attention" }, "Campaign wake admitted.");
     } else if (actionName === "accept_plan" && t.work_id && t.plan_id) {
-      await mutate("/api/implementation/plan-review", { work_id: t.work_id, plan_id: t.plan_id, verdict: "accepted" }, "Plan accepted.");
+      res = await runMutate("/api/implementation/plan-review", { work_id: t.work_id, plan_id: t.plan_id, verdict: "accepted" }, "Plan accepted.");
     } else if (actionName === "request_changes" && t.work_id && t.plan_id) {
-      await mutate("/api/implementation/plan-review", { work_id: t.work_id, plan_id: t.plan_id, verdict: "changes_requested" }, "Requested plan changes.");
+      res = await runMutate("/api/implementation/plan-review", { work_id: t.work_id, plan_id: t.plan_id, verdict: "changes_requested" }, "Requested plan changes.");
     } else if (actionName === "renew" && t.claim_id) {
       const claim = (state.factory.claims?.claims || []).find((c) => c.identity === t.claim_id);
-      if (claim) await mutate(`/api/fleet/claims/${claim.identity}/renew`, { fence: claim.fence, lease_minutes: 30 }, "Claim renewed +30m.");
-      else openInspector("claim", t.claim_id, []);
+      if (claim) res = await runMutate(`/api/fleet/claims/${claim.identity}/renew`, { fence: claim.fence, lease_minutes: 30 }, "Claim renewed +30m.");
+      else { openInspector("claim", t.claim_id, []); return false; }
     } else if (actionName === "approve" && t.run_id && t.source_commit) {
       const choice = await confirmControl({
         title: `Approve untrusted run ${shortIdentity(t.run_id)}?`,
@@ -3116,18 +3279,21 @@
         cliCommand: `kiln runs approve --run ${t.run_id} --commit ${t.source_commit}`,
         opener,
       });
-      if (choice.confirmed) await mutate(`${pathFor(t.run_id)}/approve`, { source_commit: t.source_commit, request_id: choice.requestId }, "Untrusted run approved.");
+      if (!choice.confirmed) return false;
+      res = await runMutate(`${pathFor(t.run_id)}/approve`, { source_commit: t.source_commit, request_id: choice.requestId }, "Untrusted run approved.");
     } else if (actionName === "reconcile" && t.work_id && t.attempt_id && Number.isSafeInteger(t.fence)) {
-      await mutate("/api/implementation/reconcile-termination", { campaign_id: t.campaign_id || undefined, work_id: t.work_id, attempt_id: t.attempt_id, fence: t.fence }, "Termination reconciled.");
+      res = await runMutate("/api/implementation/reconcile-termination", { campaign_id: t.campaign_id || undefined, work_id: t.work_id, attempt_id: t.attempt_id, fence: t.fence }, "Termination reconciled.");
     } else if (actionName === "reconcile_run" && t.run_id) {
-      await mutate(`${pathFor(t.run_id)}/reconcile`, {}, "Provider reconciliation probed.");
+      res = await runMutate(`${pathFor(t.run_id)}/reconcile`, {}, "Provider reconciliation probed.");
     } else {
       const target = attentionInspectTarget(item);
       openInspector(target.kind, target.id, [item]);
-      return;
+      return false;
     }
+    if (!res) return false;
     if (state.route?.page === "overview") void loadOverview();
     else if (state.route?.page === "inbox") void loadAttentionPage();
+    return true;
   }
   function renderAttentionList(container, items, { compactHealthy = false, emptyTitle = "All clear", emptyMsg = "0 items need operator attention." } = {}) {
     container.replaceChildren();
@@ -3192,18 +3358,18 @@
       }
       card.addEventListener("keydown", (event) => {
         if (event.target !== card && !card.contains(document.activeElement)) return;
-        if (event.ctrlKey || event.metaKey || event.altKey) return;
-        if (event.key === "p") { event.preventDefault(); openInspector(target.kind, target.id, inspectorList, card); }
+        if (event.ctrlKey || event.metaKey || event.altKey || state.chordPrefix) return;
+        if (event.key === "p") { event.preventDefault(); event.stopPropagation(); openInspector(target.kind, target.id, inspectorList, card); }
         else if (event.key === "a" && canOperate()) {
-          event.preventDefault();
+          event.preventDefault(); event.stopPropagation();
           const act = item.kind === "PlanReviewGate" ? "accept_plan" : item.kind === "UntrustedRunApproval" ? "approve" : item.target?.campaign_id ? "wake" : "inspect";
           void executeAttentionAction(item, act, card);
         } else if (event.key === "r" && canOperate()) {
-          event.preventDefault();
+          event.preventDefault(); event.stopPropagation();
           const act = item.kind === "ExpiringOrConflictClaim" ? "renew" : item.kind === "UnknownTerminationOrDispatch" ? "reconcile" : "inspect";
           void executeAttentionAction(item, act, card);
         } else if (event.key === "X" && event.shiftKey && canOperate()) {
-          event.preventDefault();
+          event.preventDefault(); event.stopPropagation();
           if (item.kind === "PlanReviewGate") void executeAttentionAction(item, "request_changes", card);
           else openInspector(target.kind, target.id, inspectorList, card);
         }
@@ -3380,7 +3546,7 @@
     const renderClaimCard = (c, kind) => {
       const card = element("article", undefined, "factory-claim-card");
       card.dataset.kind = kind;
-      const scopeLabel = typeof c.scope?.target === "string" ? `${c.scope.target}${c.scope.path && c.scope.path !== "whole" ? ` ${c.scope.path}` : ""}` : c.identity.slice(0, 12);
+      const scopeLabel = typeof c.scope?.target === "string" ? `${c.scope.target}${c.scope.path && c.scope.path !== "whole" ? ` ${c.scope.path}` : ""}` : shortIdentity(c.identity);
       const head = element("div", undefined, "factory-attention-head");
       head.append(element("strong", scopeLabel), when(c.expires_ms));
       const actions = element("div", undefined, "factory-attention-actions");
@@ -3393,8 +3559,12 @@
           const renew = element("button", `+${mins}m`, "quiet");
           renew.type = "button";
           renew.addEventListener("click", async () => {
-            const res = await mutate(`/api/fleet/claims/${c.identity}/renew`, { fence: c.fence, lease_minutes: mins }, `Claim renewed +${mins}m.`);
-            if (res) void loadOverview();
+            if (renew.disabled || state.mutation) return;
+            renew.disabled = true;
+            try {
+              const res = await mutate(`/api/fleet/claims/${c.identity}/renew`, { fence: c.fence, lease_minutes: mins }, `Claim renewed +${mins}m.`);
+              if (res) void loadOverview();
+            } finally { renew.disabled = false; }
           });
           actions.append(renew);
         }
@@ -3402,7 +3572,7 @@
         release.type = "button";
         release.addEventListener("click", async () => {
           const choice = await confirmControl({
-            title: `Force-release claim ${c.identity.slice(0, 12)}?`,
+            title: `Force-release claim ${shortIdentity(c.identity)}?`,
             verb: "Force-release claim",
             dismiss: "Keep claim",
             danger: true,
@@ -3453,7 +3623,7 @@
       }
     }
     if (activeSubPageFor(state.route) === "repositories" && (channel === "repositories" || channel === "fleet")) {
-      void readAction(loadPage)();
+      void readAction(() => loadPage({ quiet: true }))();
     }
     if (state.route?.page === "overview") {
       if (channel === "fleet" || channel === "repositories") {
@@ -3887,6 +4057,23 @@
     }
     addFacts(facts, entries);
     details.append(facts); card.append(details);
+    if (state.projectHealth.has(project.id)) applyProjectHealth(card, state.projectHealth.get(project.id));
+  }
+  function applyProjectHealth(card, project) {
+    const slot = card.querySelector(".project-card-health");
+    if (!slot) return;
+    slot.replaceChildren();
+    card.querySelector(".project-actions [data-project-logs]")?.remove();
+    if (!project) { slot.append(element("span", "Health not reported for this project in the bounded overview.", "meta")); return; }
+    card.dataset.health = project.health;
+    const latest = project.latest_run;
+    if (!latest) { slot.append(statePill("unknown", "No retained runs")); return; }
+    // r[impl kiln.web.page_consistency] Logs joins the card's shared action row instead of an inline 19px link.
+    const { logs } = projectRunLinks(project, latest);
+    logs.dataset.projectLogs = "";
+    if (project.health === "failing") logs.prepend(ui.icon("triangle-alert"));
+    card.querySelector(".project-actions")?.prepend(logs);
+    slot.append(ui.statusPill(latest.outcome, latest.phase), runMoment(project.health, latest));
   }
   // "Select for new run" and the project page's Run latest only preselect the start form; the
   // operator still submits it, so dispatch keeps its existing explicit action and admission.
@@ -3909,21 +4096,8 @@
       if (generation !== state.pageGeneration) return;
       if (!Array.isArray(result?.projects)) throw new Error("The overview response is invalid.");
       const byId = new Map(result.projects.map((project) => [project.id, project]));
-      for (const [card, slot] of slots()) {
-        const project = byId.get(card.dataset.projectId);
-        slot.replaceChildren();
-        card.querySelector(".project-actions [data-project-logs]")?.remove();
-        if (!project) { slot.append(element("span", "Health not reported for this project in the bounded overview.", "meta")); continue; }
-        card.dataset.health = project.health;
-        const latest = project.latest_run;
-        if (!latest) { slot.append(statePill("unknown", "No retained runs")); continue; }
-        // r[impl kiln.web.page_consistency] Logs joins the card's shared action row instead of an inline 19px link.
-        const { logs } = projectRunLinks(project, latest);
-        logs.dataset.projectLogs = "";
-        if (project.health === "failing") logs.prepend(ui.icon("triangle-alert"));
-        card.querySelector(".project-actions")?.prepend(logs);
-        slot.append(ui.statusPill(latest.outcome, latest.phase), runMoment(project.health, latest));
-      }
+      state.projectHealth = byId;
+      for (const [card] of slots()) applyProjectHealth(card, byId.get(card.dataset.projectId) || null);
     } catch (error) {
       if (isAborted(error) || generation !== state.pageGeneration) return;
       for (const [, slot] of slots()) slot.replaceChildren(element("span", `Health unavailable: ${explain(error)}`, "meta"));
@@ -3934,7 +4108,7 @@
     const generation = ++state.refsGeneration;
     if (!id) { options($("source-reference"), [], "Select a project first", ""); $("source-status").textContent = "Choose an enrolled project to inspect its admitted source references."; return; }
     $("source-status").textContent = "Reading admitted source references…";
-    try { const result = await api(`/api/projects/${encodeURIComponent(id)}/refs`); if (generation !== state.refsGeneration || id !== $("enrolled-project").value) return; options($("source-reference"), result.references.map((row) => ({ id: row.reference, label: `${row.reference} · ${text(row.source_revision)}` })), null, $("source-reference").value); $("source-status").textContent = "Latest resolves the admitted reference when the new run is dispatched; exact revision is reachability-checked by the service."; }
+    try { const result = await api(`/api/projects/${encodeURIComponent(id)}/refs`); if (generation !== state.refsGeneration || id !== $("enrolled-project").value) return; const refs = Array.isArray(result?.references) ? result.references : []; options($("source-reference"), refs.map((row) => ({ id: row.reference, label: `${row.reference} · ${text(row.source_revision)}` })), null, $("source-reference").value); $("source-status").textContent = "Latest resolves the admitted reference when the new run is dispatched; exact revision is reachability-checked by the service."; }
     catch (error) { if (!isAborted(error) && generation === state.refsGeneration) { options($("source-reference"), [], "References unavailable", ""); $("source-status").textContent = explain(error); } }
   }
   const workflowTones = { Pending: "pending", Running: "running", Paused: "paused", Completed: "completed", Failed: "failed", Cancelled: "cancelled", Skipped: "skipped", Unknown: "unknown" };
@@ -4103,7 +4277,8 @@
   async function prepareRerun(mode) {
     if (!canOperate()) return;
     const id = state.selected;
-    try { const run = await loadDetail(); if (!run || id !== state.selected) return; if (mode === "failed" && !run.nodes?.some((node) => /^(failed|error)$/i.test(node.state))) throw new Error("No known failed node set is available. Unknown states cannot be retried blindly."); state.confirm = { id, mode }; const subject = `"${text(projectLabel(run.project_id))}"`; confirmWording(...(mode === "latest" ? [`Run ${subject} on the latest admitted reference?`, "Run latest"] : mode === "failed" ? [`Retry failed nodes of ${subject}?`, "Retry failed nodes"] : [`Rerun ${subject} at the exact revision?`, "Rerun"]), "Cancel", false); addFacts($("confirm-facts"), [["Parent run", id], ["Project", run.project_id], ["Mode", mode], ["Source", mode === "latest" ? "Latest admitted reference (resolved by service)" : run.source_revision], ["Failed selection", mode === "failed" ? run.nodes.filter((node) => /^(failed|error)$/i.test(node.state)).map((node) => node.id) : "Not a node retry"], ["Boundary", "New candidate and attempt; queued durably if project is busy."]]); $("control-dialog").showModal(); $("dismiss-control").focus(); }
+    const opener = document.activeElement;
+    try { const run = await loadDetail(); if (!run || id !== state.selected) return; if (mode === "failed" && !run.nodes?.some((node) => /^(failed|error)$/i.test(node.state))) throw new Error("No known failed node set is available. Unknown states cannot be retried blindly."); state.confirm = { id, mode, opener }; const subject = `"${text(projectLabel(run.project_id))}"`; confirmWording(...(mode === "latest" ? [`Run ${subject} on the latest admitted reference?`, "Run latest"] : mode === "failed" ? [`Retry failed nodes of ${subject}?`, "Retry failed nodes"] : [`Rerun ${subject} at the exact revision?`, "Rerun"]), "Cancel", false); addFacts($("confirm-facts"), [["Parent run", id], ["Project", run.project_id], ["Mode", mode], ["Source", mode === "latest" ? "Latest admitted reference (resolved by service)" : run.source_revision], ["Failed selection", mode === "failed" ? run.nodes.filter((node) => /^(failed|error)$/i.test(node.state)).map((node) => node.id) : "Not a node retry"], ["Boundary", "New candidate and attempt; queued durably if project is busy."]]); $("control-dialog").showModal(); $("dismiss-control").focus(); }
     catch (error) { if (!isAborted(error)) notice(explain(error)); }
   }
   // r[impl kiln.dashboard.complete.reports]
@@ -4239,7 +4414,9 @@
       }
       if (report.coverage) {
         const coverage = report.coverage;
-        const summary = element("dl", undefined, "facts"); addFacts(summary, [["Format", coverage.format], ["Lines hit / found", coverage.lines_hit === null || coverage.lines_found === null ? null : `${coverage.lines_hit} / ${coverage.lines_found}`], ["Line rate", coverage.line_rate === null ? null : `${(coverage.line_rate * 100).toFixed(2)}%`], ["Branches hit / found", coverage.branches_hit === null || coverage.branches_found === null ? null : `${coverage.branches_hit} / ${coverage.branches_found}`], ["Branch rate", coverage.branch_rate === null ? null : `${(coverage.branch_rate * 100).toFixed(2)}%`]]); card.append(summary);
+        const fmtCountPair = (hit, found) => (Number.isFinite(hit) && Number.isFinite(found) ? `${hit} / ${found}` : null);
+        const fmtPct = (rate) => (Number.isFinite(rate) ? `${(rate * 100).toFixed(2)}%` : null);
+        const summary = element("dl", undefined, "facts"); addFacts(summary, [["Format", coverage.format], ["Lines hit / found", fmtCountPair(coverage.lines_hit, coverage.lines_found)], ["Line rate", fmtPct(coverage.line_rate)], ["Branches hit / found", fmtCountPair(coverage.branches_hit, coverage.branches_found)], ["Branch rate", fmtPct(coverage.branch_rate)]]); card.append(summary);
         for (const file of coverage.files || []) { const details = element("details"); details.append(element("summary", text(file.path))); renderRecorded(details, file); card.append(details); }
       }
       if (report.evidence) {
@@ -4910,12 +5087,10 @@
     open = open && mobile;
     if (open) setAccountMenu(false);
     $("app-sidebar").classList.toggle("is-open", open);
-    $("app-sidebar").inert = mobile && !open;
     $("app-menu-toggle").setAttribute("aria-expanded", String(open));
     $("app-menu-backdrop").hidden = !open;
     document.documentElement.classList.toggle("app-menu-open", open);
-    $("main").inert = open;
-    for (const node of document.querySelectorAll(".session-tools, .topbar-search")) node.inert = open;
+    syncShellInert();
     if (open) $("app-sidebar").querySelector('[aria-current="page"]')?.focus();
     else if (restoreFocus) $("app-menu-toggle").focus();
     else if (wasOpen && state.session) {
@@ -4995,6 +5170,11 @@
   window.addEventListener("popstate", () => { void readAction(restoreRoute)(); });
   window.addEventListener("hashchange", () => { void readAction(restoreRoute)(); });
   void restoreRoute();
+  if (!state.session) {
+    if ($("app-sidebar")) $("app-sidebar").hidden = true;
+    if ($("work-command-open")) $("work-command-open").hidden = true;
+    syncShellInert();
+  }
   $("login-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const token = $("operator-token").value.trim();
@@ -5030,7 +5210,7 @@
     if (!projectId) return;
     const result = await mutate("/api/projects", { project_id: projectId }, "Project enrollment admitted.");
     if (!result) return;
-    await readAction(async () => { await loadProjects(); $("enrolled-project").value = projectId; projectDescriptions(); })();
+    await readAction(async () => { await loadProjects(); $("enrolled-project").value = projectId; projectDescriptions(); await loadRefs(); })();
   });
   $("start-form").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -5043,7 +5223,10 @@
     const result = await mutate("/api/runs", payload, "Run request admitted. Inspect queue, phase and outcome for actual execution state.");
     if (!result) return;
     await readAction(loadRuns)();
-    if (result.id && state.session) navigate({ page: "runs", run: result.id, node: "", stream: "", view: "pipeline" });
+    if (result.id && state.session) {
+      state.preserveNextNotice = true;
+      navigate({ page: "runs", run: result.id, node: "", stream: "", view: "pipeline" });
+    }
   });
   for (const action of ["cancel", "pause", "resume"]) $("control-" + action).addEventListener("click", () => { void prepareControl(action); });
   // r[impl kiln.web.failure_first_run] Header Rerun/Cancel reuse the exact confirmation flows of the disclosure buttons.
@@ -5071,15 +5254,34 @@
       return;
     }
     if (state.mutation) return;
-    dismissControl();
-    if (pending.approve) await mutate(`${pathFor(pending.id)}/approve`, pending.approve, "Approval admitted for this exact commit. Observe the run for dispatch and its outcome; no success is inferred.");
-    else if (pending.mode) await mutate(`${pathFor(pending.id)}/rerun`, { mode: pending.mode }, "New source-bound candidate requested.").then((result) => { if (result?.id) navigate({ page: "runs", run: result.id, node: "", stream: "", view: "pipeline" }); });
-    else await mutate(`${pathFor(pending.id)}/control`, pending.identity, "Control response received. Observe admitted state for its result; no success is inferred.");
+    const { opener } = pending;
+    dismissControl(true);
+    let res = null;
+    if (pending.approve) res = await mutate(`${pathFor(pending.id)}/approve`, pending.approve, "Approval admitted for this exact commit. Observe the run for dispatch and its outcome; no success is inferred.");
+    else if (pending.mode) res = await mutate(`${pathFor(pending.id)}/rerun`, { mode: pending.mode }, "New source-bound candidate requested.").then((result) => { if (result?.id) navigate({ page: "runs", run: result.id, node: "", stream: "", view: "pipeline" }); return result; });
+    else res = await mutate(`${pathFor(pending.id)}/control`, pending.identity, "Control response received. Observe admitted state for its result; no success is inferred.");
     if (state.session && pending.id === state.selected) await readAction(loadDetail)();
+    if ((!pending.mode || !res?.id) && opener?.isConnected && !opener.closest?.("[hidden], [inert]")) {
+      opener.focus({ preventScroll: true });
+    }
   });
-  $("log-form").addEventListener("submit", (event) => { event.preventDefault(); stopLogFollow(); void readLog(false); });
+  $("log-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    stopLogFollow();
+    const stream = $("log-stream").value;
+    const search = stream === "diagnostic" ? "" : $("log-search").value.trim();
+    const key = `${state.selected || ""}\0${$("log-node").value}\0${stream}\0${search}`;
+    if (state.logKey && key !== state.logKey) $("log-cursor").value = "0";
+    void readLog(false);
+  });
   $("restart-log").addEventListener("click", () => { $("log-cursor").value = "0"; void readLog(false); });
   for (const id of ["log-node", "log-stream", "log-search"]) $(id).addEventListener("change", () => {
+    if (id === "log-search") {
+      const stream = $("log-stream").value;
+      const search = stream === "diagnostic" ? "" : $("log-search").value.trim();
+      const key = `${state.selected || ""}\0${$("log-node").value}\0${stream}\0${search}`;
+      if (key === state.logKey) return;
+    }
     resetLogs();
     if (id === "log-node") navigate({ node: $("log-node").value, view: "logs" });
     else if (id === "log-stream") navigate({ stream: $("log-stream").value });
@@ -5129,7 +5331,9 @@
     if (Array.isArray(items) && items.length) {
       state.inspector.items = items.map((entry) => entry?.kind && entry?.id ? entry : attentionInspectTarget(entry));
     }
-    state.inspector.returnFocus = opener || document.activeElement;
+    if (!state.inspector.open) {
+      state.inspector.returnFocus = opener || document.activeElement;
+    }
     navigate({ inspect: `${kind}:${id}` });
   }
   function closeInspector(restoreFocus = true) {
@@ -5138,9 +5342,11 @@
     state.inspector.open = false;
     state.inspector.kind = "";
     state.inspector.id = "";
+    state.inspector.returnFocus = null;
     if ($("slide-over-inspector")) $("slide-over-inspector").hidden = true;
     if ($("slide-over-backdrop")) $("slide-over-backdrop").hidden = true;
     if ($("slide-over-body")) $("slide-over-body").replaceChildren();
+    syncShellInert();
     if (state.route?.inspect) navigate({ inspect: "" });
     if (restoreFocus && returnTarget?.isConnected && !returnTarget.closest?.("[hidden], [inert]")) {
       returnTarget.focus({ preventScroll: true });
@@ -5223,21 +5429,30 @@
           promptForm.append(promptLabel, promptInput, promptBtn);
           promptForm.addEventListener("submit", async (e) => {
             e.preventDefault();
+            if (promptBtn.disabled || state.mutation) return;
             const txt = promptInput.value.trim();
             if (!txt) return;
-            const res = await mutate(`/api/fleet/attempts/${encodeURIComponent(id)}/prompt`, { text: txt }, "Prompt sent to agent pane.");
-            if (res) { promptInput.value = ""; void loadAttemptPane(id, panePre, paneStatus); }
+            promptBtn.disabled = true;
+            try {
+              const res = await mutate(`/api/fleet/attempts/${encodeURIComponent(id)}/prompt`, { text: txt }, "Prompt sent to agent pane.");
+              if (res) { promptInput.value = ""; void loadAttemptPane(id, panePre, paneStatus); }
+            } finally { promptBtn.disabled = false; }
           });
           const btnRow = element("div", undefined, "cluster");
           const interruptBtn = element("button", "Interrupt (Ctrl-C)", "quiet");
           interruptBtn.type = "button";
           interruptBtn.addEventListener("click", async () => {
-            const res = await mutate(`/api/fleet/attempts/${encodeURIComponent(id)}/interrupt`, { reason: "Operator interrupt from Slide-Over" }, "Interrupt sent to agent pane.");
-            if (res) void loadAttemptPane(id, panePre, paneStatus);
+            if (interruptBtn.disabled || state.mutation) return;
+            interruptBtn.disabled = true;
+            try {
+              const res = await mutate(`/api/fleet/attempts/${encodeURIComponent(id)}/interrupt`, { reason: "Operator interrupt from Slide-Over" }, "Interrupt sent to agent pane.");
+              if (res) void loadAttemptPane(id, panePre, paneStatus);
+            } finally { interruptBtn.disabled = false; }
           });
           const cancelBtn = element("button", "Cancel Attempt…", "danger");
           cancelBtn.type = "button";
           cancelBtn.addEventListener("click", async () => {
+            if (cancelBtn.disabled || state.mutation || state.confirm) return;
             const choice = await confirmControl({
               title: `Cancel attempt ${shortIdentity(id)}?`,
               verb: "Cancel attempt",
@@ -5249,8 +5464,11 @@
               opener: cancelBtn,
             });
             if (!choice.confirmed) return;
-            await mutate(`/api/fleet/attempts/${encodeURIComponent(id)}/cancel`, { reason: choice.reason, request_id: choice.requestId }, "Attempt cancelled.");
-            closeInspector();
+            cancelBtn.disabled = true;
+            try {
+              const res = await mutate(`/api/fleet/attempts/${encodeURIComponent(id)}/cancel`, { reason: choice.reason, request_id: choice.requestId }, "Attempt cancelled.");
+              if (res) closeInspector();
+            } finally { cancelBtn.disabled = false; }
           });
           btnRow.append(interruptBtn, cancelBtn);
           controls.append(promptForm, btnRow);
@@ -5298,16 +5516,19 @@
           } else {
             nodes.push(element("h3", "Proposed plan steps"));
             const ol = element("ol", undefined, "slide-over-plan-steps");
-            for (const step of item.context_preview.steps) ol.append(element("li", step.text || step.id || String(step)));
+            for (const step of item.context_preview.steps) {
+              const label = typeof step === "string" ? step : step && typeof step === "object" ? (step.text || step.title || step.summary || step.id || text(step)) : text(step);
+              ol.append(element("li", label));
+            }
             nodes.push(ol);
             if (canOperate() && item.target?.work_id && item.target?.plan_id) {
               const row = element("div", undefined, "cluster");
               const accept = element("button", "Accept plan", "primary");
               accept.type = "button";
-              accept.addEventListener("click", async () => { await executeAttentionAction(item, "accept_plan", accept); closeInspector(); });
+              accept.addEventListener("click", async () => { if (await executeAttentionAction(item, "accept_plan", accept)) closeInspector(); });
               const changes = element("button", "Request changes", "quiet");
               changes.type = "button";
-              changes.addEventListener("click", async () => { await executeAttentionAction(item, "request_changes", changes); closeInspector(); });
+              changes.addEventListener("click", async () => { if (await executeAttentionAction(item, "request_changes", changes)) closeInspector(); });
               row.append(accept, changes);
               nodes.push(row);
             }
@@ -5315,17 +5536,17 @@
         } else if (item.kind === "UnknownTerminationOrDispatch" && canOperate()) {
           const recBtn = element("button", "Reconcile ambiguous termination", "primary");
           recBtn.type = "button";
-          recBtn.addEventListener("click", async () => { await executeAttentionAction(item, "reconcile", recBtn); closeInspector(); });
+          recBtn.addEventListener("click", async () => { if (await executeAttentionAction(item, "reconcile", recBtn)) closeInspector(); });
           nodes.push(recBtn);
         } else if (item.kind === "UntrustedRunApproval" && canOperate()) {
           const appBtn = element("button", "Approve untrusted run…", "primary");
           appBtn.type = "button";
-          appBtn.addEventListener("click", async () => { await executeAttentionAction(item, "approve", appBtn); closeInspector(); });
+          appBtn.addEventListener("click", async () => { if (await executeAttentionAction(item, "approve", appBtn)) closeInspector(); });
           nodes.push(appBtn);
         } else if (item.target?.campaign_id && canOperate()) {
           const wakeBtn = element("button", "Wake campaign", "primary");
           wakeBtn.type = "button";
-          wakeBtn.addEventListener("click", async () => { await executeAttentionAction(item, "wake", wakeBtn); closeInspector(); });
+          wakeBtn.addEventListener("click", async () => { if (await executeAttentionAction(item, "wake", wakeBtn)) closeInspector(); });
           nodes.push(wakeBtn);
         }
         body.replaceChildren(...nodes);
@@ -5346,14 +5567,22 @@
           for (const mins of [30, 60]) {
             const btn = element("button", `Renew +${mins}m`, "quiet");
             btn.type = "button";
-            btn.addEventListener("click", async () => { await mutate(`/api/fleet/claims/${claim.identity}/renew`, { fence: claim.fence, lease_minutes: mins }, `Claim renewed +${mins}m.`); void renderSlideOver("claim", id); });
+            btn.addEventListener("click", async () => {
+              if (btn.disabled || state.mutation) return;
+              btn.disabled = true;
+              try {
+                const res = await mutate(`/api/fleet/claims/${claim.identity}/renew`, { fence: claim.fence, lease_minutes: mins }, `Claim renewed +${mins}m.`);
+                if (res) void renderSlideOver("claim", id);
+              } finally { btn.disabled = false; }
+            });
             row.append(btn);
           }
           const rel = element("button", "Force-Release…", "danger");
           rel.type = "button";
           rel.addEventListener("click", async () => {
+            if (rel.disabled || state.mutation || state.confirm) return;
             const choice = await confirmControl({
-              title: `Force-release claim ${claim.identity.slice(0, 12)}?`,
+              title: `Force-release claim ${shortIdentity(claim.identity)}?`,
               verb: "Force-release claim",
               danger: true,
               facts: [["Claim", claim.identity], ["Fence", String(claim.fence)]],
@@ -5362,8 +5591,11 @@
               opener: rel,
             });
             if (!choice.confirmed) return;
-            await mutate(`/api/fleet/claims/${claim.identity}/release`, { fence: claim.fence, note: choice.reason, request_id: choice.requestId }, "Claim released.");
-            closeInspector();
+            rel.disabled = true;
+            try {
+              const res = await mutate(`/api/fleet/claims/${claim.identity}/release`, { fence: claim.fence, note: choice.reason, request_id: choice.requestId }, "Claim released.");
+              if (res) closeInspector();
+            } finally { rel.disabled = false; }
           });
           row.append(rel);
           nodes.push(row);
@@ -5381,7 +5613,12 @@
         if ((run.outcome === "Unknown" || String(run.phase || "").toLowerCase() === "unknown") && canOperate()) {
           const rec = element("button", "Reconcile / Probe Provider", "primary");
           rec.type = "button";
-          rec.addEventListener("click", async () => { await reconcileRun(run.id); void renderSlideOver("run", id); });
+          rec.addEventListener("click", async () => {
+            if (rec.disabled || state.mutation) return;
+            rec.disabled = true;
+            try { if (await reconcileRun(run.id)) void renderSlideOver("run", id); }
+            finally { rec.disabled = false; }
+          });
           nodes.push(rec);
         }
         body.replaceChildren(...nodes);
@@ -5630,24 +5867,43 @@
     const backdrop = $("slide-over-backdrop");
     if (!panel || !backdrop) return;
     if (!raw) {
+      const wasOpen = state.inspector.open;
+      const returnTarget = state.inspector.returnFocus;
       stopPanePolling();
       state.inspector.open = false;
       state.inspector.kind = "";
       state.inspector.id = "";
+      state.inspector.returnFocus = null;
       panel.hidden = true;
       backdrop.hidden = true;
       $("slide-over-body")?.replaceChildren();
+      syncShellInert();
+      if (wasOpen && returnTarget?.isConnected && !returnTarget.closest?.("[hidden], [inert]")) {
+        returnTarget.focus({ preventScroll: true });
+      }
       return;
     }
     const idx = raw.indexOf(":");
     const kind = raw.slice(0, idx);
     const id = raw.slice(idx + 1);
     if (state.inspector.open && state.inspector.kind === kind && state.inspector.id === id) return;
+    const wasOpen = state.inspector.open;
+    if (!wasOpen && !state.inspector.returnFocus) {
+      state.inspector.returnFocus = document.activeElement;
+    }
+    if (!wasOpen) {
+      setAccountMenu(false);
+      setMenu(false);
+    }
     state.inspector.open = true;
     state.inspector.kind = kind;
     state.inspector.id = id;
     panel.hidden = false;
     backdrop.hidden = false;
+    syncShellInert();
+    if (!wasOpen) {
+      ($("slide-over-close") || panel).focus({ preventScroll: true });
+    }
     void renderSlideOver(kind, id);
   }
   $("slide-over-close")?.addEventListener("click", () => closeInspector());
@@ -5684,23 +5940,35 @@
     const target = event.target;
     const isEditable = target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable]:not([contenteditable='false']), [role='textbox']"));
     if (state.inspector.open) {
-      if (event.key === "Escape") { event.preventDefault(); closeInspector(); return; }
+      if (event.key === "Escape" && !event.defaultPrevented) { event.preventDefault(); closeInspector(); return; }
+      if (event.key === "Tab") {
+        const panel = $("slide-over-inspector");
+        if (!panel) return;
+        const focusables = [...panel.querySelectorAll('a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, [tabindex]:not([tabindex="-1"])')]
+          .filter((node) => !node.closest("[hidden]") && (typeof node.getClientRects !== "function" || node.getClientRects().length > 0));
+        if (!focusables.length) {
+          event.preventDefault();
+          panel.focus({ preventScroll: true });
+          return;
+        }
+        const idx = focusables.indexOf(document.activeElement);
+        event.preventDefault();
+        const nextIdx = idx < 0 ? (event.shiftKey ? focusables.length - 1 : 0) : (idx + (event.shiftKey ? -1 : 1) + focusables.length) % focusables.length;
+        focusables[nextIdx].focus();
+        return;
+      }
       if (!isEditable && event.key === "[") { event.preventDefault(); stepInspector(-1); return; }
       if (!isEditable && event.key === "]") { event.preventDefault(); stepInspector(1); return; }
     }
     if (isEditable) return;
     if (state.chordPrefix === "g") {
-      clearTimeout(state.chordTimer);
-      state.chordPrefix = "";
-      state.chordTimer = null;
+      setChordPrefix("");
       const dest = CHORD_ROUTES[event.key.toLowerCase()];
       if (dest) { event.preventDefault(); navigate(dest); }
       return;
     }
     if (event.key === "g" && !event.shiftKey) {
-      state.chordPrefix = "g";
-      clearTimeout(state.chordTimer);
-      state.chordTimer = setTimeout(() => { state.chordPrefix = ""; state.chordTimer = null; }, CHORD_TIMEOUT_MS);
+      setChordPrefix("g");
     }
   });
   window.KilnFactory = Object.freeze({

@@ -104,10 +104,22 @@
   }
 
   // ---------- Links ----------
+  const PROJECT_ALIASES = Object.freeze({
+    projects: Object.freeze({ page: "runs", tab: "projects" }),
+    project: Object.freeze({ page: "runs", tab: "project" }),
+  });
   // Hrefs merge into the current URL exactly like the shell's navigate(patch); plain clicks use navigate.
   function routeHref(patch) {
     const params = new URLSearchParams(location.search);
-    for (const [key, value] of Object.entries(patch)) { if (value) params.set(key, value); else params.delete(key); }
+    const normalized = { ...patch };
+    if (Object.hasOwn(normalized, "page") && Object.hasOwn(PROJECT_ALIASES, normalized.page)) {
+      const alias = PROJECT_ALIASES[normalized.page];
+      normalized.page = alias.page;
+      if (!Object.hasOwn(normalized, "tab")) normalized.tab = alias.tab;
+    } else if (Object.hasOwn(normalized, "page") && !Object.hasOwn(normalized, "tab")) {
+      normalized.tab = "";
+    }
+    for (const [key, value] of Object.entries(normalized)) { if (value) params.set(key, value); else params.delete(key); }
     return `?${params}`;
   }
   function routeLink(ctx, patch, label, className) {

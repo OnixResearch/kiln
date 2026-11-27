@@ -23,7 +23,7 @@
 <!-- r[impl kiln.web.console_layout] Compact icon rail: labels stay in the DOM (visually hidden while collapsed, always announced) and appear on hover, keyboard focus or pinning; below 60rem it is the navigation drawer. -->
 <!-- r[impl kiln.web.console_layout.scenario.navigation] -->
 <!-- r[impl kiln.web.wayfinding] Sections read in the register's order (KilnUi.destinations); web.js adds each destination's number. -->
-<aside id="app-sidebar" class="app-sidebar app-rail" aria-label="Workspace navigation">
+<aside id="app-sidebar" class="app-sidebar app-rail" aria-label="Workspace navigation" hidden>
   <a id="brand-home" class="brand" href="?page=overview"><span class="brand-mark" aria-hidden="true"></span><span class="nav-text brand-text">Kiln</span></a>
   <nav class="app-navigation" aria-label="Main">
     <section class="nav-group" aria-labelledby="nav-factory"><h2 id="nav-factory" class="nav-label">Factory operations</h2>
@@ -50,7 +50,7 @@
       <nav class="breadcrumb" aria-label="Breadcrumb"><span class="topbar-workspace">Kiln</span><span class="breadcrumb-divider" aria-hidden="true">/</span><span id="app-breadcrumb" aria-current="page">Overview</span></nav>
     </div>
     <div class="topbar-search">
-      <button id="work-command-open" class="command-trigger" type="button" aria-label="Open command and search palette" aria-keyshortcuts="Control+K"><span class="icon" data-icon="search" aria-hidden="true"></span><span class="command-label">Search &amp; commands</span><span class="command-label-short" aria-hidden="true">Search</span><kbd>Ctrl K</kbd></button>
+      <button id="work-command-open" class="command-trigger" type="button" aria-label="Open command and search palette" aria-keyshortcuts="Control+K" hidden><span class="icon" data-icon="search" aria-hidden="true"></span><span class="command-label">Search &amp; commands</span><span class="command-label-short" aria-hidden="true">Search</span><kbd>Ctrl K</kbd></button>
     </div>
     <div class="session-tools">
       <!-- r[impl kiln.web.live_activity] Shown by web.js only while the last admitted live snapshot reports running runs. -->
@@ -156,16 +156,16 @@
           </section>
           <section data-run-panel="logs" class="panel log-panel terminal-panel" hidden>
             <div class="section-heading"><h2>Execution logs</h2><label class="check log-follow"><input id="follow-logs" type="checkbox" aria-label="Follow live output">Follow</label></div>
-            <form id="log-form" class="log-tools" aria-describedby="log-read-help">
+            <form id="log-form" class="log-tools">
               <div class="log-field"><label for="log-node">Node</label><select id="log-node" required></select></div>
               <div class="log-field log-field-stream"><label for="log-stream">Stream</label><select id="log-stream"><option value="stdout">stdout</option><option value="stderr">stderr</option><option value="diagnostic">diagnostic</option></select></div>
               <div class="log-search"><label for="log-search">Search log</label><input id="log-search" type="search" maxlength="256" autocomplete="off" placeholder="Literal text" aria-describedby="log-search-help"></div>
               <details id="log-advanced" class="log-advanced"><summary>Advanced</summary><div class="log-advanced-body">
                 <div><label for="log-cursor">Stream cursor</label><input id="log-cursor" inputmode="numeric" value="0" pattern="[0-9]+" required autocomplete="off"></div>
                 <div class="log-read-actions"><button id="read-log" type="submit">Read from cursor</button><button id="restart-log" class="quiet" type="button">Read from start</button></div>
-                <p id="log-search-help" class="small">Search retained stdout/stderr from the beginning; changing the search loads matching output.</p>
               </div></details>
             </form>
+            <p id="log-search-help" class="small">Search retained stdout/stderr from the beginning; changing the search loads matching output.</p>
             <p id="log-gap" class="warning" role="status" hidden></p>
             <div id="log-error-bar" class="log-error-bar" hidden><span id="log-error-count" role="status"></span><button id="log-jump-error" class="quiet" type="button">Jump to first error</button></div>
             <div class="log-viewer"><pre id="log-output" class="log-output" tabindex="0" aria-label="Selected node log output"></pre>
@@ -206,7 +206,7 @@
   </main>
 </div>
 <div id="slide-over-backdrop" class="slide-over-backdrop" hidden></div>
-<aside id="slide-over-inspector" class="slide-over-inspector" hidden aria-label="Inspector" tabindex="-1">
+<aside id="slide-over-inspector" class="slide-over-inspector" hidden role="dialog" aria-modal="true" aria-labelledby="slide-over-title" tabindex="-1">
   <header class="slide-over-header">
     <div class="slide-over-heading">
       <p id="slide-over-eyebrow" class="eyebrow">Inspector</p>

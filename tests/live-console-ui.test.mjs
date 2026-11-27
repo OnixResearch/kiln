@@ -3782,7 +3782,7 @@ test("primary rail consolidates to 7 destinations + footer while preserving all 
     assert.ok(rail.includes(`data-page="${place.page}"`), `missing rail link for ${place.page}`);
   }
   const nested = [...ui.destinations].filter((place) => place.parent !== null);
-  assert.equal(nested.length, 15);
+  assert.equal(nested.length, 16);
   assert.equal(ui.destination("workers").parent, "fleet");
   assert.equal(ui.destination("triage").parent, "inbox");
   assert.equal(ui.destination("reviews").parent, "runs");

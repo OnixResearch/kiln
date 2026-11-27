@@ -692,6 +692,7 @@
     ["fleet", "3.1", "Fleet & Workers", "Fleet coordinator, machine slot census, live agent attempts, claims, swarms and configured worker execution targets."],
     ["workers", "3.1", "Workers", "Find a configured execution target, check its project slots and inspect its latest execution.", "fleet"],
     ["source", "3.2", "System & Source", "Source browser, retained activity timeline, repository feeds, automation policies, capacity operations and raw collaboration history."],
+    ["repositories", "3.2", "Repositories", "Multi-forge repository catalog, canonical Radicle/GitHub/Gitea remotes, mirrors, and cross-fleet local working copies.", "source"],
     ["activity", "3.2", "Activity", "Browse retained canonical events and attributable audit decisions.", "source"],
     ["feeds", "3.2", "Feeds", "Subscribe to Atom feeds of retained runs and follow external repository feeds. Feeds are read-only projections, not CI evidence.", "source"],
     ["automation", "3.2", "Automation", "Inspect registered triggers, schedules and delivery outcomes. Only admitted registrations are editable.", "source"],

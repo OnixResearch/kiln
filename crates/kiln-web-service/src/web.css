@@ -22,6 +22,7 @@ button, a, summary, input, select, [tabindex] { scroll-margin-block: 5rem 1rem; 
 button, input, select { font: inherit; }
 /* Controls are framed in ink: a paper face, a 1px ink line, square corners. Pressing inverts the face. */
 button, .button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: var(--control-height); padding: .4rem .85rem; border: 1px solid var(--frame); border-radius: var(--radius); background: var(--secondary); color: var(--foreground); font-size: var(--text-sm); font-weight: 600; line-height: 1.3; box-shadow: none; transition: background-color var(--motion-fast) ease, border-color var(--motion-fast) ease, color var(--motion-fast) ease; }
+a.button { text-decoration: none; }
 button:hover:not(:disabled), .button:hover { background: var(--accent); border-color: var(--frame); }
 button:not(.primary, .quiet, .danger):active:not(:disabled) { background: var(--foreground); color: var(--background); }
 button:disabled { cursor: not-allowed; opacity: .5; box-shadow: none; }
@@ -33,9 +34,9 @@ button.primary:active:not(:disabled), .button-primary:active { box-shadow: inset
 button.danger { color: var(--danger); border-color: var(--danger); background: var(--secondary); }
 button.danger:hover:not(:disabled) { background: var(--danger-background); border-color: var(--danger); }
 button.danger:active:not(:disabled) { background: var(--danger); border-color: var(--danger); color: var(--secondary); }
-button.quiet { background: transparent; border-color: transparent; box-shadow: none; color: var(--muted-foreground); }
-button.quiet:hover:not(:disabled) { background: var(--accent); border-color: transparent; color: var(--foreground); }
-button.quiet:active:not(:disabled) { background: var(--list-active); color: var(--foreground); }
+button.quiet, .button.quiet { background: transparent; border-color: transparent; box-shadow: none; color: var(--muted-foreground); }
+button.quiet:hover:not(:disabled), .button.quiet:hover { background: var(--accent); border-color: transparent; color: var(--foreground); }
+button.quiet:active:not(:disabled), .button.quiet:active { background: var(--list-active); color: var(--foreground); }
 .icon-button, button.icon-button { display: inline-grid; place-items: center; width: 2.25rem; min-width: 2.25rem; height: 2.25rem; min-height: 2.25rem; padding: 0; border-radius: var(--radius); }
 .icon-button svg { width: 1.1rem; height: 1.1rem; }
 /* r[impl kiln.web.design_system] Pinned Lucide icons; span placeholders share the size until ui.js hydrates them. */
@@ -126,7 +127,7 @@ button.chip[aria-pressed="true"] { background: var(--foreground); color: var(--b
 /* Timing a run cannot have yet (in progress, not started, not finished) is a stated fact, not a missing record. */
 .pending-timing { color: var(--muted-foreground); white-space: nowrap; }
 /* A table inside a panel is inner structure: a lighter frame than the panel's own ink frame. */
-.data-table-wrap { max-width: 100%; overflow-x: auto; border: 1px solid var(--border-emphasis); border-radius: var(--radius-lg); background: var(--secondary); }
+.data-table-wrap { min-width: 0; max-width: 100%; overflow-x: auto; border: 1px solid var(--border-emphasis); border-radius: var(--radius-lg); background: var(--secondary); }
 /* r[impl kiln.web.visual_design.scenario.lists] r[impl kiln.web.page_consistency] A table that can stack does so by
    the width of its own region, at the same 48rem as the run browser. */
 .data-table-wrap:has(> .data-table-stack) { container: data-table / inline-size; }
@@ -187,6 +188,9 @@ button.chip[aria-pressed="true"] { background: var(--foreground); color: var(--b
 :root { --rail-width: 4rem; --rail-expanded: 16rem; --topbar-height: 3.5rem; }
 /* The rail is one ink spine in both appearances (catalog.css sets its dark colour scheme); the mark sits at its head. */
 .app-sidebar { gap: var(--space-2); padding: var(--space-3) .625rem; max-height: 100dvh; }
+.app-sidebar[hidden], #work-command-open[hidden] { display: none; }
+:root:has(#app-sidebar[hidden]) .app-workspace { margin-left: 0; }
+.app-sidebar :focus-visible { outline-offset: -2px; }
 .app-sidebar .brand { flex: 0 0 auto; display: flex; align-items: center; gap: .75rem; min-height: 2.75rem; margin: 0 0 var(--space-3); padding-inline: .375rem; color: var(--foreground); font-size: 1.15rem; font-weight: 700; letter-spacing: -.02em; white-space: nowrap; text-decoration: none; }
 .app-sidebar .brand .brand-mark { font-size: 2rem; }
 .app-sidebar .app-navigation { flex: 1 1 auto; min-height: 0; display: grid; align-content: start; gap: 1px; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border-emphasis) transparent; }
@@ -234,6 +238,7 @@ button.chip[aria-pressed="true"] { background: var(--foreground); color: var(--b
 /* Slim top bar on paper over an ink rule: location left, field-like search centred, live state and account right.
    Intrinsic search width leaves usable space on both sides instead of forcing max-content outer tracks. */
 .app-topbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(9rem, max-content) minmax(0, 1fr); align-items: center; height: auto; min-height: var(--topbar-height); padding: .375rem clamp(1rem, 4vw, 2.5rem); gap: var(--space-4); }
+.app-topbar:has(#account-menu:not([hidden])) { z-index: 45; }
 /* r[impl kiln.web.request_feedback] A request in flight for longer than a moment draws a moving block of identity red on
    the bar's lower edge. It is indeterminate: it states waiting, never progress or success. web.js clears data-busy
    when no request remains, however the last one ended. */
@@ -307,7 +312,7 @@ button.account-button[aria-expanded="true"], #app-menu-toggle[aria-expanded="tru
 #operator-token { font-family: var(--mono); }
 
 /* ---------- CI views ---------- */
-.view-stack { display: grid; gap: var(--space-4); min-width: 0; }
+.view-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); min-width: 0; }
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
 .filter-panel > h2, .filter-panel .section-heading h2 { font-size: var(--text-md); }
 .project-forms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); align-items: start; }
@@ -346,7 +351,7 @@ button.account-button[aria-expanded="true"], #app-menu-toggle[aria-expanded="tru
 .trend-row-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
 .trend-row meter { width: 100%; max-width: 40rem; height: .5rem; accent-color: var(--progress-bar); }
 .workspace-grid { display: grid; grid-template-columns: minmax(16rem, 21rem) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
-.project-column, .detail-column, #run-detail { display: grid; gap: var(--space-4); min-width: 0; }
+.project-column, .detail-column, #run-detail { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); min-width: 0; }
 .run-browser > .section-heading h2 { font-size: var(--text-md); }
 .run-browser > * + * { margin-top: var(--space-3); }
 /* r[impl kiln.web.runs_table] Filters stay one wrapping toolbar; the table groups rows under local-day headings. */
@@ -836,7 +841,8 @@ a.count-chip:hover { border-color: var(--frame); background: var(--accent); box-
   .data-table-stack tbody tr:hover td { background: transparent; }
   .data-table-stack td.num { text-align: left; }
   .data-table-stack td[data-label="Status"] { grid-column: 1 / -1; }
-  .data-table-stack td[data-label="Duration"]::before, .data-table-stack td[data-label="Finished"]::before { content: attr(data-label) " "; color: var(--muted-foreground); font-size: var(--text-xs); }
+  .data-table-stack td[data-label]::before { content: attr(data-label) " "; color: var(--muted-foreground); font-size: var(--text-xs); }
+  .data-table-stack td:is([data-label="Status"], [data-label="Project"], [data-label="Inspect"], [data-label="Actions"])::before { content: none; }
   .data-table-stack td[data-label="Inspect"] { grid-column: 1 / -1; }
   .project-row-actions { justify-content: flex-start; }
 }
