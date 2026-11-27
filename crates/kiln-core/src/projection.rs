@@ -2048,6 +2048,7 @@ pub mod disclosure;
 pub mod manifest_store;
 pub mod materialization;
 pub mod sharing;
+pub mod verifier_projection;
 pub mod writeback;
 
 #[cfg(test)]

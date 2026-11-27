@@ -24,6 +24,9 @@ use kiln_core::projection::authority::{
     AttemptFence, OriginScope, PathScope, SnapshotRule, SourceAuthorityRequest, SourceViewOperation,
 };
 use kiln_core::projection::disclosure::ViewCeiling;
+use kiln_core::projection::verifier_projection::{
+    FullCandidateVerification, ProjectedVerificationResult, project_for_scope,
+};
 use kiln_core::projection::writeback::{
     MAX_OBSERVED_FILES, ObservedFile, SealedCandidate, SourceOperation,
 };
@@ -377,11 +380,15 @@ fn authorize_candidate_operations(
 /// Authorized result projection for a sealed writeback candidate (`RetrieveResult`).
 /// Operations touching any path outside the holder's `EffectiveSourceScope` or
 /// `ViewCeiling` are omitted without leaking hidden path names or blob digests.
+/// When separate-authority full-candidate verification evidence is attached,
+/// only the audience-projected [`ProjectedVerificationResult`] is surfaced.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct RestrictedWritebackResult {
     pub candidate_identity: ContentId,
     pub operations: Vec<SourceOperation>,
     pub omitted_operations: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub verification: Option<ProjectedVerificationResult>,
 }
 
 /// Project a sealed candidate's result for an observer after admitting and
@@ -394,6 +401,23 @@ pub fn retrieve_result(
     ceiling: &ViewCeiling,
     scope_path: &PathScope,
     auth: &mut SourceAuthorization<'_>,
+) -> Result<RestrictedWritebackResult, String> {
+    retrieve_result_with_verification(candidate, ceiling, scope_path, auth, None)
+}
+
+/// Project a sealed candidate's writeback operations and optional
+/// separate-authority full-candidate verification result for a restricted
+/// holder after admitting and revalidating [`SourceViewOperation::RetrieveResult`].
+///
+/// # Errors
+/// Returns a redacted message when `RetrieveResult` authority is denied, the
+/// ceiling or candidate identity mismatches, or verification projection fails.
+pub fn retrieve_result_with_verification(
+    candidate: &SealedCandidate,
+    ceiling: &ViewCeiling,
+    scope_path: &PathScope,
+    auth: &mut SourceAuthorization<'_>,
+    full_verification: Option<&FullCandidateVerification>,
 ) -> Result<RestrictedWritebackResult, String> {
     let (manifest, definition) = candidate.view();
     if ceiling.definition() != definition {
@@ -416,6 +440,19 @@ pub fn retrieve_result(
         }),
     };
     let scope = auth.authorize(&request)?;
+    let verification = match full_verification {
+        Some(full) => {
+            if full.candidate_identity != *candidate.identity() {
+                return Err("verification result does not match sealed candidate".into());
+            }
+            Some(
+                project_for_scope(full, ceiling, &scope, auth.now_unix_s).map_err(|refusal| {
+                    format!("verification result projection denied: {refusal:?}")
+                })?,
+            )
+        }
+        None => None,
+    };
     let mut operations = Vec::new();
     let mut omitted_operations = 0usize;
     for operation in candidate.operations() {
@@ -439,6 +476,7 @@ pub fn retrieve_result(
         candidate_identity: candidate.identity().clone(),
         operations,
         omitted_operations,
+        verification,
     })
 }
 

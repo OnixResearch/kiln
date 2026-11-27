@@ -58,7 +58,10 @@ fn detail_key(query: &str) -> Option<CairnKey> {
     let change = crate::engine::api::decoded(change).ok()?;
     let admitted = !change.trim().is_empty()
         && change.len() <= MAX_ID_BYTES
+        && change != "."
+        && change != ".."
         && !change.contains('/')
+        && !change.contains('\\')
         && !change.chars().any(char::is_control);
     admitted.then(|| CairnKey {
         repository_identity: repository.to_owned(),
@@ -232,6 +235,9 @@ mod tests {
             format!("repository={repository}&change="),
             format!("repository={repository}&change=%20"),
             format!("repository={repository}&change=a%2Fb"),
+            format!("repository={repository}&change=.."),
+            format!("repository={repository}&change=."),
+            format!("repository={repository}&change=a%5Cb"),
             format!("repository={repository}&change=a%0Ab"),
             format!("repository={repository}&change=a&extra=1"),
             format!("repository={repository}&change=%zz"),

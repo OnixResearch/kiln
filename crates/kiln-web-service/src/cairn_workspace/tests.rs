@@ -2707,7 +2707,25 @@ fn restricted_cairn_observer_redacts_hidden_campaign_count_in_snapshot_facts() {
         &[(chg_scope, vec![SourceViewOperation::Discover])],
     );
     let mut authority = fixture.authority();
-    let signer = fixture.signer();
+    let holder = kiln_adapter_basalt::SourceHolderKey::new(
+        kiln_adapter_basalt::test_support::seed(fixture.holder_seed),
+        fixture.token.clone(),
+    )
+    .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let nonce_counter = std::cell::Cell::new(0_u64);
+    let signer = kiln_adapter_basalt::SourceSigner::new(
+        &fixture.config(),
+        holder,
+        fixture.max_delegation_depth,
+        Box::new(move || {
+            let n = nonce_counter.get().checked_add(1)?;
+            nonce_counter.set(n);
+            let mut buf = [0_u8; kiln_core::implementation::authority::AUTHORITY_NONCE_BYTES];
+            buf[..8].copy_from_slice(&n.to_le_bytes());
+            Some(buf)
+        }),
+    )
+    .unwrap_or_else(|e| unreachable!("{e:?}"));
     let sign = |req: &SourceAuthorityRequest| -> Result<AuthorityProfile, String> {
         signer
             .sign(req)
@@ -2739,4 +2757,137 @@ fn restricted_cairn_observer_redacts_hidden_campaign_count_in_snapshot_facts() {
     .unwrap_or_else(|e| unreachable!("restricted_detail: {e}"))
     .unwrap_or_else(|| unreachable!("chg detail"));
     assert_eq!(r_det.detail.snapshot.campaigns_read, 1);
+}
+
+#[test]
+fn restricted_cairn_observer_non_interference_from_hidden_scale_and_obligations() {
+    use kiln_adapter_basalt::test_support::VERIFY_AT_S;
+    use kiln_core::implementation::authority::AuthorityProfile;
+    use kiln_core::projection::authority::SourceAuthorityRequest;
+
+    let enrollment = Enrollment {
+        repositories: BTreeSet::from([REPOSITORY.to_string()]),
+        actors: BTreeSet::from(["operator".to_string()]),
+    };
+    let mut ledger = WorkLedger::default();
+    let w_vis = work(REPOSITORY, "chg/task-1", 1, 'a', Vec::new());
+    let w_vis_id = w_vis.identity().unwrap_or_else(|e| unreachable!("{e:?}"));
+    ledger
+        .admit(&w_vis, None, &enrollment)
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+
+    // Add > MAX_CAIRN_ITEMS unrelated hidden changes, including a hidden change
+    // with > MAX_CAIRN_TEXT_BYTES across its tasks, to ensure hidden changes
+    // never fail or truncate visible Cairn observations.
+    let mut all_paths: Vec<String> = vec![".cairn/changes/chg/tasks.md".to_string()];
+    for i in 0..1_050_usize {
+        let ch = format!("hid-{i}");
+        if i == 0 {
+            for t in 0..45_usize {
+                let mut w_hid = work(REPOSITORY, &format!("{ch}/task-{t}"), 1, 'b', Vec::new());
+                w_hid.title = format!("hidden-{t}-{}", "x".repeat(450));
+                ledger
+                    .admit(&w_hid, None, &enrollment)
+                    .unwrap_or_else(|e| unreachable!("{e:?}"));
+            }
+        } else {
+            let w_hid = work(REPOSITORY, &format!("{ch}/task-1"), 1, 'b', Vec::new());
+            ledger
+                .admit(&w_hid, None, &enrollment)
+                .unwrap_or_else(|e| unreachable!("{e:?}"));
+        }
+        if i < 5 {
+            all_paths.push(format!(".cairn/changes/{ch}/tasks.md"));
+        }
+    }
+
+    let mut camp = CampaignState::start(contract(
+        "camp-vis",
+        REPOSITORY,
+        vec![binding(MemberSelector::WholeChange {
+            change: CHANGE.into(),
+        })],
+    ))
+    .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let mut obs = observed("chg/*", MemberStage::Ready, Some(w_vis_id));
+    obs.remaining_obligations =
+        BTreeSet::from(["chg/task-1".to_string(), "hid-0/secret-obl".to_string()]);
+    camp.observe(obs)
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+
+    let snap = CanonicalSnapshot {
+        work: Some(ledger),
+        campaigns: vec![(camp, STORE_VERSION)],
+        ..CanonicalSnapshot::default()
+    };
+
+    let chg_scope = PathScope::cairn_change(CHANGE).unwrap_or_else(|| unreachable!("chg scope"));
+    let path_refs: Vec<&str> = all_paths.iter().map(String::as_str).collect();
+    let (admitted_repo, def, facts, current, fixture, handle_key) = restricted_cairn_fixture(
+        path_refs,
+        &[(
+            chg_scope,
+            vec![
+                SourceViewOperation::Discover,
+                SourceViewOperation::ReadContent,
+            ],
+        )],
+    );
+    let mut authority = fixture.authority();
+    let holder = kiln_adapter_basalt::SourceHolderKey::new(
+        kiln_adapter_basalt::test_support::seed(fixture.holder_seed),
+        fixture.token.clone(),
+    )
+    .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let nonce_counter = std::cell::Cell::new(0_u64);
+    let signer = kiln_adapter_basalt::SourceSigner::new(
+        &fixture.config(),
+        holder,
+        fixture.max_delegation_depth,
+        Box::new(move || {
+            let n = nonce_counter.get().checked_add(1)?;
+            nonce_counter.set(n);
+            let mut buf = [0_u8; kiln_core::implementation::authority::AUTHORITY_NONCE_BYTES];
+            buf[..8].copy_from_slice(&n.to_le_bytes());
+            Some(buf)
+        }),
+    )
+    .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let sign = |req: &SourceAuthorityRequest| -> Result<AuthorityProfile, String> {
+        signer
+            .sign(req)
+            .map(AuthorityProfile::VerifiedUcan)
+            .map_err(|e| e.message)
+    };
+    let mut observer = RestrictedCairnObserver {
+        authority: &mut authority,
+        profile: RequestProfile::Signer(&sign),
+        current: &current,
+        repository_id: admitted_repo.identity(),
+        definition: &def,
+        admitted_repository: &admitted_repo,
+        facts: &facts,
+        handle_key: &handle_key,
+        now_unix_s: VERIFY_AT_S,
+    };
+
+    let r_idx = restricted_index(&snap, &mut observer)
+        .unwrap_or_else(|e| unreachable!("restricted_index: {e}"));
+    assert_eq!(r_idx.index.changes.len(), 1);
+    assert_eq!(r_idx.index.changes[0].change, CHANGE);
+    assert!(!r_idx.index.truncated);
+
+    let r_det = restricted_detail(
+        &snap,
+        &key(REPOSITORY, CHANGE),
+        &InventoryObservation::NotConfigured,
+        &mut observer,
+    )
+    .unwrap_or_else(|e| unreachable!("restricted_detail: {e}"))
+    .unwrap_or_else(|| unreachable!("chg detail"));
+    assert_eq!(r_det.detail.memberships.len(), 1);
+    assert_eq!(
+        r_det.detail.memberships[0].remaining_obligations,
+        vec!["chg/task-1".to_string()]
+    );
 }

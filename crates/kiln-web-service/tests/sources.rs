@@ -3188,3 +3188,343 @@ fn restricted_tree_hides_excluded_directories_uniformly_with_aliased_mounts() {
     assert_eq!(value(&excl_tree), json!({"error": "unavailable"}));
     assert_eq!(excl_tree.body, miss_tree.body);
 }
+
+#[test]
+fn restricted_search_download_and_tree_redaction_close_s5_oracles_and_cursor_replay() {
+    use kiln_adapter_basalt::test_support::{
+        COORDINATOR_SEED, EXPIRES_S, GENERATION, SourceFixture, VERIFY_AT_S,
+    };
+    use kiln_core::implementation::authority::{AttemptCurrentness, AuthorityProfile};
+    use kiln_core::projection::authority::{
+        PathScope, SnapshotObservation, SourceAuthorityRequest, SourceCurrentness,
+        SourceViewOperation,
+    };
+    use kiln_core::projection::disclosure::HandleKey;
+    use kiln_core::projection::{
+        ComponentVersion, Coverage, EntryKind, GeneratedInputs, Mount, ProjectionDefinition,
+        ProjectionFacts, ProjectionProfile, ProviderBinding, RepositoryEnrollment,
+        RepositoryLocator, Selection, SourceCapability, SourceEntry, TargetProfile,
+        admit_definition, admit_repositories,
+    };
+    use kiln_core::types::{ContentId, ExternalRef, ProviderProfileId};
+    use kiln_web_service::sources::{RestrictedSourceAccess, RestrictedSourceRepo};
+    use kiln_web_service::worker::source_auth::RequestProfile;
+
+    let root =
+        tempfile::tempdir().unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+    let work = root.path().join("work");
+    let repo =
+        Repository::init(&work).unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
+
+    let mut files: Vec<(String, String)> = vec![
+        (
+            "src/public/alpha.rs".into(),
+            "pub fn needle_alpha() -> u32 { 1 }\n".into(),
+        ),
+        (
+            "src/public/beta.rs".into(),
+            "pub fn needle_beta() -> u32 { 2 }\n".into(),
+        ),
+        (
+            "src/discover_only/namesake.rs".into(),
+            "pub fn secret_token_in_discover_only() {}\n".into(),
+        ),
+        (
+            "src/private/secret.rs".into(),
+            "pub fn needle_hidden_secret() {}\n".into(),
+        ),
+    ];
+    // Add > MAX_TREE_ENTRIES (512) hidden files in `src/hidden_bulk/` and root-sibling
+    // entries to verify hidden sibling counts never trigger `source_tree_bound` in restricted mode.
+    for i in 0..520_usize {
+        files.push((
+            format!("hidden_bulk_{i:04}.txt"),
+            format!("hidden needle_{i}\n"),
+        ));
+    }
+    let file_refs: Vec<(&str, &str)> = files
+        .iter()
+        .map(|(p, c)| (p.as_str(), c.as_str()))
+        .collect();
+    let rev = commit_nested(&repo, &file_refs, "s5-search-download", None);
+
+    let browser = Browser::restricted(Some(Profile {
+        schema: "kiln.web-sources.v1".into(),
+        sources: vec![policy("kiln", "git", &work)],
+    }))
+    .unwrap_or_else(|error| unreachable!("restricted browser: {error:?}"));
+    let adm = admit_repositories(
+        &[RepositoryEnrollment {
+            repository_id: "kiln".into(),
+            binding: ProviderBinding {
+                source_provider: ProviderProfileId::new("git-source-v1")
+                    .unwrap_or_else(|e| unreachable!("{e:?}")),
+                native_repository: ExternalRef::new("git", "repository", "kiln")
+                    .unwrap_or_else(|e| unreachable!("{e:?}")),
+            },
+            locators: vec![RepositoryLocator::LocalPath {
+                path: work.to_string_lossy().into_owned(),
+            }],
+        }],
+        &[],
+    )
+    .unwrap_or_else(|e| unreachable!("{e:?}"))
+    .pop()
+    .unwrap_or_else(|| unreachable!("admitted repo"));
+
+    let def = admit_definition(&ProjectionDefinition {
+        schema: kiln_core::projection::DEFINITION_SCHEMA.into(),
+        id: "s5-def".into(),
+        profile: ProjectionProfile::Runnable,
+        selection: Selection {
+            root: String::new(),
+            include: vec!["src/**".into()],
+            exclude: vec!["src/private/**".into()],
+        },
+        mounts: vec![Mount {
+            source_prefix: String::new(),
+            destination_prefix: String::new(),
+        }],
+        dependencies: Vec::new(),
+        creation_destinations: Vec::new(),
+        required_capabilities: vec![SourceCapability::ExactTree],
+        generated_inputs: GeneratedInputs::Refused,
+        target: TargetProfile::POSIX,
+        compatibility: None,
+    })
+    .unwrap_or_else(|e| unreachable!("{e:?}"));
+
+    let ext_rev = ExternalRef::new("git", "commit", &rev.to_string())
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let blob_ref = |bytes: &[u8]| {
+        let oid = Oid::hash_object(git2::ObjectType::Blob, bytes)
+            .unwrap_or_else(|e| unreachable!("{e:?}"));
+        ExternalRef::new("git", "blob", &oid.to_string()).unwrap_or_else(|e| unreachable!("{e:?}"))
+    };
+    let component = |name: &str| ComponentVersion {
+        name: name.into(),
+        version: "1".into(),
+    };
+    let tree_id = ContentId::from_blake3_hex(blake3::hash(b"t-s5").to_hex().to_string())
+        .unwrap_or_else(|e| unreachable!("{e:?}"));
+    let entries: Vec<SourceEntry> = files
+        .iter()
+        .map(|(p, c)| SourceEntry {
+            path: p.clone(),
+            object: blob_ref(c.as_bytes()),
+            kind: EntryKind::File,
+        })
+        .collect();
+    let facts = ProjectionFacts {
+        repository: adm.identity().clone(),
+        exact_revision: ext_rev.clone(),
+        canonical_tree: tree_id,
+        evaluator: component("kiln-projection"),
+        adapter: component("git-source"),
+        source_capabilities: vec![SourceCapability::ExactTree],
+        coverage: Coverage::Complete,
+        entries,
+        dependencies: Vec::new(),
+        generated: Vec::new(),
+    };
+    let cur = SourceCurrentness {
+        generation: GENERATION,
+        revocation_generation: 0,
+        snapshot: SnapshotObservation {
+            revision: ext_rev,
+            ref_name: None,
+            previous: None,
+            fast_forward: false,
+        },
+        attempt: AttemptCurrentness::Current,
+    };
+    let handle_key = HandleKey::from_bytes([0x55; 32]);
+    let repos = [RestrictedSourceRepo {
+        policy_id: "kiln",
+        admitted: &adm,
+        definition: &def,
+        facts: &facts,
+        current: &cur,
+    }];
+
+    let broad_fix = SourceFixture::direct(
+        COORDINATOR_SEED,
+        adm.identity(),
+        None,
+        &[
+            (
+                PathScope::from_path("src/public", true).unwrap_or_else(|| unreachable!("path")),
+                vec![
+                    SourceViewOperation::Discover,
+                    SourceViewOperation::ReadContent,
+                ],
+            ),
+            (
+                PathScope::from_path("src/discover_only", true)
+                    .unwrap_or_else(|| unreachable!("path")),
+                vec![SourceViewOperation::Discover],
+            ),
+        ],
+        EXPIRES_S,
+    );
+    let mut auth_broad = broad_fix.authority();
+    let signer_broad = broad_fix.signer();
+    let sign_broad = |req: &SourceAuthorityRequest| -> Result<AuthorityProfile, String> {
+        signer_broad
+            .sign(req)
+            .map(AuthorityProfile::VerifiedUcan)
+            .map_err(|e| e.message)
+    };
+    let mut call_broad = |target: &str| {
+        let mut access = RestrictedSourceAccess {
+            authority: &mut auth_broad,
+            profile: RequestProfile::Signer(&sign_broad),
+            repos: &repos,
+            handle_key: &handle_key,
+            now_unix_s: VERIFY_AT_S,
+        };
+        browser.restricted_response("GET", target, &[], Role::Viewer, &mut access)
+    };
+
+    // 1. Restricted tree succeeds despite >512 hidden sibling files and redacts dir oid and discover-only oid/bytes.
+    let root_tree = call_broad("/api/sources/kiln/tree");
+    assert_eq!(root_tree.status, 200);
+    let root_json = value(&root_tree);
+    let root_entries = root_json
+        .get("entries")
+        .and_then(Value::as_array)
+        .unwrap_or_else(|| unreachable!("entries"));
+    assert_eq!(root_entries.len(), 1);
+    assert_eq!(
+        root_entries[0].get("path").and_then(Value::as_str),
+        Some("src")
+    );
+    assert_eq!(root_entries[0].get("oid"), Some(&Value::Null));
+
+    let disc_tree = call_broad("/api/sources/kiln/tree?path=src/discover_only");
+    assert_eq!(disc_tree.status, 200);
+    let disc_json = value(&disc_tree);
+    let disc_entry = &disc_json["entries"][0];
+    assert_eq!(
+        disc_entry.get("path").and_then(Value::as_str),
+        Some("src/discover_only/namesake.rs")
+    );
+    assert_eq!(disc_entry.get("oid"), Some(&Value::Null));
+    assert_eq!(disc_entry.get("bytes"), Some(&Value::Null));
+
+    // 2. Restricted search returns only authorized matches, omits hidden files, and never searches content of discover-only files.
+    let search_secret = call_broad("/api/sources/kiln/search?q=secret_token_in_discover_only");
+    assert_eq!(search_secret.status, 200);
+    let search_secret_json = value(&search_secret);
+    assert_eq!(
+        search_secret_json.get("total_matches").and_then(Value::as_u64),
+        Some(0)
+    );
+    assert_eq!(
+        search_secret_json
+            .get("matches")
+            .and_then(Value::as_array)
+            .map(Vec::len),
+        Some(0)
+    );
+
+    let search_p1 = call_broad("/api/sources/kiln/search?q=needle&limit=1");
+    assert_eq!(search_p1.status, 200);
+    let p1_json = value(&search_p1);
+    assert_eq!(p1_json.get("total_matches").and_then(Value::as_u64), Some(2));
+    let cursor = p1_json
+        .get("next_cursor")
+        .and_then(Value::as_str)
+        .unwrap_or_else(|| unreachable!("next_cursor in {p1_json}"))
+        .to_owned();
+    assert_eq!(
+        p1_json["matches"][0].get("path").and_then(Value::as_str),
+        Some("src/public/alpha.rs")
+    );
+
+    let search_p2 = call_broad(&format!("/api/sources/kiln/search?q=needle&limit=1&cursor={cursor}"));
+    assert_eq!(search_p2.status, 200);
+    let p2_json = value(&search_p2);
+    assert_eq!(
+        p2_json["matches"][0].get("path").and_then(Value::as_str),
+        Some("src/public/beta.rs")
+    );
+    assert_eq!(p2_json.get("next_cursor"), Some(&Value::Null));
+
+    // Changing query or replaying cursor under a narrower scope MUST fail closed with 404 unavailable.
+    let wrong_query = call_broad(&format!("/api/sources/kiln/search?q=other&cursor={cursor}"));
+    assert_eq!(wrong_query.status, 404);
+    assert_eq!(value(&wrong_query), json!({"error": "unavailable"}));
+
+    let narrow_fix = SourceFixture::direct(
+        COORDINATOR_SEED,
+        adm.identity(),
+        None,
+        &[(
+            PathScope::from_path("src/public/alpha.rs", false)
+                .unwrap_or_else(|| unreachable!("path")),
+            vec![
+                SourceViewOperation::Discover,
+                SourceViewOperation::ReadContent,
+            ],
+        )],
+        EXPIRES_S,
+    );
+    let mut auth_narrow = narrow_fix.authority();
+    let signer_narrow = narrow_fix.signer();
+    let sign_narrow = |req: &SourceAuthorityRequest| -> Result<AuthorityProfile, String> {
+        signer_narrow
+            .sign(req)
+            .map(AuthorityProfile::VerifiedUcan)
+            .map_err(|e| e.message)
+    };
+    let mut call_narrow = |target: &str| {
+        let mut access = RestrictedSourceAccess {
+            authority: &mut auth_narrow,
+            profile: RequestProfile::Signer(&sign_narrow),
+            repos: &repos,
+            handle_key: &handle_key,
+            now_unix_s: VERIFY_AT_S,
+        };
+        browser.restricted_response("GET", target, &[], Role::Viewer, &mut access)
+    };
+    let replay_cursor = call_narrow(&format!("/api/sources/kiln/search?q=needle&cursor={cursor}"));
+    assert_eq!(replay_cursor.status, 404);
+    assert_eq!(value(&replay_cursor), json!({"error": "unavailable"}));
+
+    // Hidden vs nonexistent repo search oracle check
+    let hidden_search = call_broad("/api/sources/hidden_repo/search?q=needle");
+    let bad_q_hidden = call_broad("/api/sources/hidden_repo/search?q=");
+    let bad_q_real = call_broad("/api/sources/kiln/search?q=");
+    assert_eq!(hidden_search.status, 404);
+    assert_eq!(bad_q_hidden.status, 404);
+    assert_eq!(bad_q_real.status, 404);
+    assert_eq!(hidden_search.body, bad_q_hidden.body);
+
+    // 3. Restricted download succeeds for authorized handle/path, refuses discover-only, hidden, and path escape.
+    let alpha_handle = p1_json["matches"][0]
+        .get("handle")
+        .and_then(Value::as_str)
+        .unwrap_or_else(|| unreachable!("alpha handle"));
+    let dl_handle = call_broad(&format!("/api/sources/kiln/download?handle={alpha_handle}"));
+    assert_eq!(dl_handle.status, 200);
+    assert_eq!(dl_handle.content_type, "application/octet-stream");
+    assert_eq!(dl_handle.download_name.as_deref(), Some("alpha.rs"));
+    assert_eq!(dl_handle.body, b"pub fn needle_alpha() -> u32 { 1 }\n");
+
+    let dl_path = call_broad("/api/sources/kiln/download?path=src/public/alpha.rs");
+    assert_eq!(dl_path.status, 200);
+    assert_eq!(dl_path.body, b"pub fn needle_alpha() -> u32 { 1 }\n");
+
+    for denied in [
+        "/api/sources/kiln/download?path=src/discover_only/namesake.rs",
+        "/api/sources/kiln/download?path=src/private/secret.rs",
+        "/api/sources/kiln/download?path=../../etc/passwd",
+        "/api/sources/kiln/download?path=src/missing.rs",
+        "/api/sources/hidden/download?path=src/public/alpha.rs",
+    ] {
+        let resp = call_broad(denied);
+        assert_eq!(resp.status, 404, "{denied}");
+        assert_eq!(value(&resp), json!({"error": "unavailable"}), "{denied}");
+    }
+}

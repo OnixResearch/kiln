@@ -625,6 +625,8 @@
   // ---------- State ----------
 
   let generation = 0;
+  let activeController = null;
+  let fleetController = null;
   let mounted = null;
   let context = null;
   let filterTimer = null;
@@ -3057,6 +3059,12 @@
     expected = null;
     if (!options.force && drawn && sameSelection(route, shown) && !sameRoute(route, shown)) { render(container, route); return; }
     const current = ++generation;
+    activeController?.abort();
+    fleetController?.abort();
+    fleetController = null;
+    const controller = typeof AbortController === "function" ? new AbortController() : null;
+    activeController = controller;
+    const apiOpts = controller ? { controller } : undefined;
     clearTimeout(filterTimer);
     if (mounted !== container) { mounted?.replaceChildren(); model = null; shown = null; }
     mounted = container;
@@ -3064,8 +3072,8 @@
     if (!model || !sameSelection(route, shown)) container.replaceChildren(loadingState());
     container.setAttribute?.("aria-busy", "true");
     const [index, detail] = await Promise.all([
-      ctx.api(INDEX_ROUTE).then((value) => ({ value }), (error) => ({ error })),
-      route.change ? ctx.api(detailPath(route)).then((value) => ({ value }), (error) => ({ error })) : Promise.resolve(null),
+      ctx.api(INDEX_ROUTE, apiOpts).then((value) => ({ value }), (error) => ({ error })),
+      route.change ? ctx.api(detailPath(route), apiOpts).then((value) => ({ value }), (error) => ({ error })) : Promise.resolve(null),
     ]);
     if (!live()) return;
     container.removeAttribute?.("aria-busy");
@@ -3087,14 +3095,19 @@
 
   // Fleet reads never block the Cairn workspace. They update only the inline panel once both reads settle.
   async function loadFleet(route, current, live) {
+    fleetController?.abort();
+    const controller = typeof AbortController === "function" ? new AbortController() : null;
+    fleetController = controller;
+    const apiOpts = controller ? { controller } : undefined;
     const read = (path) => Promise.resolve()
-      .then(() => context.api(path))
+      .then(() => context.api(path, apiOpts))
       .then((value) => ({ value }), (error) => ({ error }));
     const [claims, attempts] = await Promise.all([
       read("/api/fleet/claims"),
       read("/api/fleet/attempts"),
     ]);
     if (current !== generation || !live()) return;
+    if (isAborted(claims.error) || isAborted(attempts.error)) return;
     model.fleet = claims.error || attempts.error
       ? { error: claims.error || attempts.error }
       : { claims: claims.value, attempts: attempts.value };
@@ -3102,6 +3115,10 @@
   }
   function clear() {
     generation += 1;
+    activeController?.abort();
+    activeController = null;
+    fleetController?.abort();
+    fleetController = null;
     clearTimeout(filterTimer);
     mounted?.replaceChildren();
     mounted?.removeAttribute?.("aria-busy");

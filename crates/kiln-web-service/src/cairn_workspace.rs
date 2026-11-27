@@ -24,8 +24,8 @@ use kiln_core::projection::authority::{
     SourceAuthorityRequest, SourceCurrentness, SourceViewOperation, check_request,
 };
 use kiln_core::projection::disclosure::{
-    CairnItem, CairnItemKind, CairnObservation, CairnStatus, HandleKey, RestrictedContext,
-    ScopedEnumeration, ScopedSelection, ViewCeiling, restrict, restrict_context,
+    CairnItem, CairnItemKind, CairnObservation, CairnStatus, HandleKey, MAX_CAIRN_TEXT_BYTES,
+    RestrictedContext, ScopedEnumeration, ScopedSelection, ViewCeiling, restrict, restrict_context,
 };
 use kiln_core::projection::{AdmittedDefinition, AdmittedRepository, ProjectionFacts, resolve};
 use kiln_core::types::{ContentId, ExternalRef};
@@ -1509,11 +1509,23 @@ struct BuiltCairnObservation {
     change_to_native: BTreeMap<String, String>,
 }
 
+fn truncate_utf8_bytes(value: &str, max_bytes: usize) -> String {
+    if value.len() <= max_bytes {
+        return value.to_owned();
+    }
+    let mut end = max_bytes;
+    while end > 0 && !value.is_char_boundary(end) {
+        end -= 1;
+    }
+    value[..end].to_owned()
+}
+
 fn build_cairn_observation(
     snapshot: &CanonicalSnapshot,
     observer_repo_hex: &str,
     repository_id: &ContentId,
     revision: &ExternalRef,
+    discovered_changes: &BTreeSet<&str>,
 ) -> Result<BuiltCairnObservation, &'static str> {
     let catalog = catalog(snapshot);
     let mut work_to_change: BTreeMap<String, String> = BTreeMap::new();
@@ -1522,6 +1534,9 @@ fn build_cairn_observation(
         .iter()
         .filter(|(key, _)| key.repository_identity == observer_repo_hex)
     {
+        if PathScope::cairn_change(&key.change).is_none() {
+            continue;
+        }
         let native_id = format!("change-{}", key.change);
         change_to_native.insert(key.change.clone(), native_id.clone());
         for (work, is_current) in &facts.work {
@@ -1530,16 +1545,14 @@ fn build_cairn_observation(
             }
         }
     }
-    let mut items = Vec::new();
-    let mut seen_native = BTreeSet::new();
-    for (key, facts) in catalog
-        .iter()
-        .filter(|(key, _)| key.repository_identity == observer_repo_hex)
-    {
-        let Some(native_id) = change_to_native.get(&key.change).cloned() else {
-            continue;
-        };
-        if !seen_native.insert(native_id.clone()) {
+    let mut prereqs_by_change: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    let mut direct_hidden_prereqs: BTreeSet<String> = BTreeSet::new();
+    let mut text_by_change: BTreeMap<String, String> = BTreeMap::new();
+    for (key, facts) in catalog.iter().filter(|(key, _)| {
+        key.repository_identity == observer_repo_hex
+            && discovered_changes.contains(key.change.as_str())
+    }) {
+        if PathScope::cairn_change(&key.change).is_none() {
             continue;
         }
         let mut prereqs = BTreeSet::new();
@@ -1555,17 +1568,54 @@ fn build_cairn_observation(
                     && let Some(dep_native) = change_to_native.get(dep_change)
                 {
                     prereqs.insert(dep_native.clone());
+                    if !discovered_changes.contains(dep_change.as_str()) {
+                        direct_hidden_prereqs.insert(dep_change.clone());
+                    }
                 }
             }
         }
+        prereqs_by_change.insert(key.change.clone(), prereqs);
+        text_by_change.insert(
+            key.change.clone(),
+            truncate_utf8_bytes(&text_parts.join("; "), MAX_CAIRN_TEXT_BYTES),
+        );
+    }
+    let mut items = Vec::new();
+    let mut seen_native = BTreeSet::new();
+    for (key, _) in catalog.iter().filter(|(key, _)| {
+        key.repository_identity == observer_repo_hex
+            && (discovered_changes.contains(key.change.as_str())
+                || direct_hidden_prereqs.contains(key.change.as_str()))
+    }) {
+        let Some(native_id) = change_to_native.get(&key.change).cloned() else {
+            continue;
+        };
+        if !seen_native.insert(native_id.clone()) {
+            continue;
+        }
+        let is_discovered = discovered_changes.contains(key.change.as_str());
+        let prereqs = if is_discovered {
+            prereqs_by_change
+                .remove(&key.change)
+                .unwrap_or_default()
+                .into_iter()
+                .collect()
+        } else {
+            Vec::new()
+        };
+        let text = if is_discovered {
+            text_by_change.remove(&key.change).unwrap_or_default()
+        } else {
+            String::new()
+        };
         items.push(CairnItem {
             change: key.change.clone(),
             kind: CairnItemKind::Change,
             native_id,
             path: format!(".cairn/changes/{}/tasks.md", key.change),
-            text: text_parts.join("; "),
+            text,
             status: CairnStatus::Open,
-            prerequisites: prereqs.into_iter().collect(),
+            prerequisites: prereqs,
         });
     }
     let observation = CairnObservation::new(repository_id.clone(), revision.clone(), items)
@@ -1876,11 +1926,13 @@ fn admit_cairn_context(
         observer.now_unix_s,
     )
     .map_err(|_| ())?;
+    let discovered_set: BTreeSet<&str> = discovered_changes.iter().map(String::as_str).collect();
     let built = build_cairn_observation(
         snapshot,
         &repo_hex,
         observer.repository_id,
         &observer.facts.exact_revision,
+        &discovered_set,
     )
     .map_err(|_| ())?;
     let context = restrict_context(
@@ -2114,6 +2166,10 @@ pub fn restricted_detail(
                 && dep
                     .split_once('/')
                     .is_some_and(|(ch, _)| can_discover_change(ch))
+        });
+        membership.remaining_obligations.retain(|obl| {
+            obl.split_once('/')
+                .is_some_and(|(ch, _)| can_discover_change(ch))
         });
         if !text_allowed {
             for blocker in &mut membership.blockers {

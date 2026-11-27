@@ -227,6 +227,8 @@
 
   // ---------- Module state ----------
   let generation = 0;
+  let activeController = null;
+  let logMoreController = null;
   let mounted = null;
   // What is drawn in `mounted`: source id, tree key and file key; null while loading or empty.
   let shown = null;
@@ -260,13 +262,14 @@
   const historicalSource = (selected) => selected.revision_scope === "revision" && selected.kind !== "pijul";
 
   // ---------- Reads ----------
-  async function readAll(ctx, route, selected) {
+  async function readAll(ctx, route, selected, apiOpts) {
     const id = encodeURIComponent(selected.id);
     const historical = historicalSource(selected);
     const head = typeof selected.head === "string" && selected.head ? selected.head : "";
-    // Cache only reads bound to an exact revision: a pinned one, or the observed head of a Git/Jujutsu source.
+    const viewScope = typeof selected?.view?.view === "string" ? selected.view.view : "";
+    // Cache only reads bound to an exact revision and current restricted view binding.
     const expected = route.rev || (historical ? head : "");
-    const key = (...parts) => (expected ? [selected.id, expected, ...parts].join("\u0000") : "");
+    const key = (...parts) => (expected ? [selected.id, viewScope, expected, ...parts].join("\u0000") : "");
     const query = (values) => { const params = new URLSearchParams(); for (const [name, value] of Object.entries(values)) if (value) params.set(name, value); return params; };
     const settle = (promise) => promise.then((value) => ({ ok: true, value }), (error) => ({ ok: false, error }));
     const cached = (kind, cacheKey, read, valid) => {
@@ -278,17 +281,17 @@
         return value;
       }));
     };
-    const logKey = head ? [selected.id, "log", head].join("\u0000") : "";
+    const logKey = head ? [selected.id, viewScope, "log", head].join("\u0000") : "";
     const reads = {
-      log: cached("log", logKey, () => ctx.api(`/api/sources/${id}/log?${query({ limit: String(LOG_PAGE_LIMIT) })}`).then((value) => ({ entries: Array.isArray(value?.entries) ? [...value.entries] : null, next_cursor: value?.next_cursor || null })), (value) => Array.isArray(value.entries)),
+      log: cached("log", logKey, () => ctx.api(`/api/sources/${id}/log?${query({ limit: String(LOG_PAGE_LIMIT) })}`, apiOpts).then((value) => ({ entries: Array.isArray(value?.entries) ? [...value.entries] : null, next_cursor: value?.next_cursor || null })), (value) => Array.isArray(value.entries)),
       tree: null, file: null, diff: null,
     };
     if (route.sview === "files") {
-      reads.tree = cached("tree", key("tree", route.spath), () => ctx.api(`/api/sources/${id}/tree?${query({ revision: route.rev, path: route.spath })}`), (value) => Array.isArray(value?.entries));
-      if (route.sfile) reads.file = cached("file", key("file", route.sfile), () => ctx.api(`/api/sources/${id}/file?${query({ revision: route.rev, path: route.sfile, highlight: "1" })}`), (value) => value?.binary === true || typeof value?.text === "string");
+      reads.tree = cached("tree", key("tree", route.spath), () => ctx.api(`/api/sources/${id}/tree?${query({ revision: route.rev, path: route.spath })}`, apiOpts), (value) => Array.isArray(value?.entries));
+      if (route.sfile) reads.file = cached("file", key("file", route.sfile), () => ctx.api(`/api/sources/${id}/file?${query({ revision: route.rev, path: route.sfile, highlight: "1" })}`, apiOpts), (value) => value?.binary === true || typeof value?.text === "string");
     }
     if (route.sview === "changes" && route.rev && historical) {
-      reads.diff = cached("diff", key("diff"), () => ctx.api(`/api/sources/${id}/diff?${query({ revision: route.rev, highlight: "1" })}`), (value) => typeof value?.diff === "string");
+      reads.diff = cached("diff", key("diff"), () => ctx.api(`/api/sources/${id}/diff?${query({ revision: route.rev, highlight: "1" })}`, apiOpts), (value) => typeof value?.diff === "string");
     }
     const names = Object.keys(reads).filter((name) => reads[name]);
     const results = await Promise.all(names.map((name) => reads[name]));
@@ -683,10 +686,13 @@
       status.setAttribute("role", "status");
       more.addEventListener("click", async () => {
         const before = generation;
+        logMoreController?.abort();
+        const controller = typeof AbortController === "function" ? new AbortController() : null;
+        logMoreController = controller;
         more.disabled = true;
         status.textContent = "Reading more revisions…";
         let page;
-        try { page = await ctx.api(`/api/sources/${encodeURIComponent(selected.id)}/log?${new URLSearchParams({ limit: String(LOG_PAGE_LIMIT), cursor: next })}`); }
+        try { page = await ctx.api(`/api/sources/${encodeURIComponent(selected.id)}/log?${new URLSearchParams({ limit: String(LOG_PAGE_LIMIT), cursor: next })}`, controller ? { controller } : undefined); }
         catch (error) { if (before === generation && !isAborted(error)) { status.textContent = `More revisions unavailable: ${explain(error)}`; more.disabled = false; } return; }
         if (before !== generation || !section.isConnected) return;
         if (!Array.isArray(page?.entries)) { status.textContent = "The source log response is invalid. Nothing was appended."; more.disabled = false; return; }
@@ -932,6 +938,12 @@
 
   async function load(container, ctx) {
     const current = ++generation;
+    activeController?.abort();
+    logMoreController?.abort();
+    logMoreController = null;
+    const controller = typeof AbortController === "function" ? new AbortController() : null;
+    activeController = controller;
+    const apiOpts = controller ? { controller } : undefined;
     clearTimeout(filterTimer);
     if (!container) return;
     if (mounted !== container) { mounted?.replaceChildren(); shown = null; }
@@ -941,7 +953,7 @@
     // The same repository keeps its page on screen while the next selection is read.
     if (shown?.src !== route.src || !container.firstChild) container.replaceChildren(loadingState("Reading configured sources…"));
     let inventory;
-    try { inventory = await ctx.api("/api/sources"); }
+    try { inventory = await ctx.api("/api/sources", apiOpts); }
     catch (error) {
       if (!live() || isAborted(error)) return;
       shown = null;
@@ -951,7 +963,7 @@
     if (!live()) return;
     const sources = Array.isArray(inventory?.sources) ? inventory.sources.filter((row) => row && typeof row.id === "string") : [];
     const selected = sources.find((row) => row.id === route.src) || null;
-    const reads = selected && selected.status === "available" ? await readAll(ctx, route, selected) : { log: null, tree: null, file: null, diff: null, aborted: false };
+    const reads = selected && selected.status === "available" ? await readAll(ctx, route, selected, apiOpts) : { log: null, tree: null, file: null, diff: null, aborted: false };
     if (!live() || reads.aborted) return;
     const focus = focusState(container);
     const list = container.querySelector(".src-entries");
@@ -965,6 +977,10 @@
   }
   function clear() {
     generation += 1;
+    activeController?.abort();
+    activeController = null;
+    logMoreController?.abort();
+    logMoreController = null;
     clearTimeout(filterTimer);
     mounted?.replaceChildren();
     mounted = null;
@@ -1155,6 +1171,7 @@
   }
 
   let repoGeneration = 0;
+  let repoController = null;
   let repoMounted = null;
   let repoFilterState = { status: "all", query: "" };
 
@@ -1674,6 +1691,9 @@
 
   async function loadRepositories(container, ctx) {
     const current = ++repoGeneration;
+    repoController?.abort();
+    const controller = typeof AbortController === "function" ? new AbortController() : null;
+    repoController = controller;
     if (!container) return;
     if (repoMounted !== container) { repoMounted?.replaceChildren(); }
     repoMounted = container;
@@ -1685,8 +1705,8 @@
     let sources = [];
     try {
       const [repoResult, sourcesResult] = await Promise.allSettled([
-        ctx.api("/api/repositories"),
-        ctx.api("/api/sources", { quiet: true }),
+        ctx.api("/api/repositories", controller ? { controller } : undefined),
+        ctx.api("/api/sources", controller ? { quiet: true, controller } : { quiet: true }),
       ]);
       if (!live()) return;
       if (repoResult.status === "rejected") {
@@ -1713,6 +1733,8 @@
 
   function clearRepositories() {
     repoGeneration += 1;
+    repoController?.abort();
+    repoController = null;
     repoMounted?.replaceChildren();
     repoMounted = null;
   }

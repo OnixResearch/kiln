@@ -45,6 +45,13 @@ const MAX_AUTHOR_CHARS: usize = 256;
 const MAX_COMMIT_BYTES: usize = 65_536;
 const MAX_TREE_BYTES: usize = 65_536;
 const MAX_DIFF_BYTES: usize = 262_144;
+const DEFAULT_SEARCH_LIMIT: usize = 20;
+const MAX_SEARCH_LIMIT: usize = 50;
+const MAX_SEARCH_QUERY_BYTES: usize = 256;
+const MAX_SEARCH_MATCHES: usize = 200;
+const MAX_SNIPPETS_PER_FILE: usize = 3;
+const MAX_SNIPPET_CHARS: usize = 200;
+const SEARCH_CURSOR_DOMAIN: &str = "kiln.source-view-search-cursor.v1";
 const PIJUL_TIMEOUT_MS: u64 = 15_000;
 const PIJUL_POLL_MS: u64 = 25;
 const PIJUL_TEARDOWN_MS: u64 = 2_000;
@@ -313,6 +320,8 @@ impl Browser {
             "tree" => &["revision", "path"],
             "file" => &["revision", "path", "highlight"],
             "diff" => &["revision", "highlight"],
+            "search" => &["q", "revision", "cursor", "limit"],
+            "download" => &["revision", "path"],
             _ => return error(404, "route_missing"),
         };
         if values.keys().any(|key| !allowed.contains(&key.as_str())) {
@@ -334,6 +343,8 @@ impl Browser {
             "log" => self.log(policy, &values),
             "tree" => self.tree(policy, &values),
             "diff" => self.diff(policy, &values, highlight),
+            "search" => self.search(policy, &values),
+            "download" => self.download(policy, &values),
             _ => self.file(policy, &values, highlight),
         }
     }
@@ -474,6 +485,60 @@ impl Browser {
         }
     }
 
+    fn download(
+        &self,
+        policy: &SourcePolicy,
+        values: &BTreeMap<String, String>,
+    ) -> Result<ApiResponse, String> {
+        let revision = values.get("revision").map_or("", String::as_str);
+        let path = values.get("path").map_or("", String::as_str);
+        let components = match components(path) {
+            Ok(components) => components,
+            Err(()) => return error(400, "source_path_invalid"),
+        };
+        if components.is_empty() {
+            return error(400, "source_path_invalid");
+        }
+        let bytes = match policy.kind.as_str() {
+            "pijul" => pijul_raw_file(policy, revision, &components)?,
+            _ => git_raw_file(policy, revision, &components)?,
+        };
+        Ok(raw_download_response(path, bytes))
+    }
+
+    fn search(
+        &self,
+        policy: &SourcePolicy,
+        values: &BTreeMap<String, String>,
+    ) -> Result<ApiResponse, String> {
+        let query_text = values.get("q").map_or("", String::as_str);
+        if query_text.trim().is_empty()
+            || query_text.len() > MAX_SEARCH_QUERY_BYTES
+            || query_text.chars().any(char::is_control)
+        {
+            return error(400, "source_search_invalid");
+        }
+        let limit = match values.get("limit") {
+            None => DEFAULT_SEARCH_LIMIT,
+            Some(value) => match value.parse::<usize>() {
+                Ok(limit) if (1..=MAX_SEARCH_LIMIT).contains(&limit) => limit,
+                _ => return error(400, "source_limit_invalid"),
+            },
+        };
+        let offset = match values.get("cursor") {
+            None => 0,
+            Some(value) => match value.parse::<usize>() {
+                Ok(offset) if offset <= MAX_SEARCH_MATCHES => offset,
+                _ => return error(400, "source_cursor_invalid"),
+            },
+        };
+        let revision = values.get("revision").map_or("", String::as_str);
+        match policy.kind.as_str() {
+            "pijul" => pijul_search(policy, revision, query_text, limit, offset),
+            _ => git_search(policy, revision, query_text, limit, offset),
+        }
+    }
+
     fn read_restricted(
         &self,
         method: &str,
@@ -533,12 +598,17 @@ impl Browser {
             "tree" => &["revision", "path"],
             "file" => &["revision", "path", "handle", "highlight"],
             "diff" => &["revision", "highlight"],
+            "search" => &["q", "revision", "cursor", "limit"],
+            "download" => &["revision", "path", "handle"],
             _ => return Err(public_unavailable()),
         };
         if values.keys().any(|key| !allowed.contains(&key.as_str())) {
             return Err(err_resp(400, "query_invalid"));
         }
-        if leaf == "file" && values.contains_key("handle") && values.contains_key("path") {
+        if (leaf == "file" || leaf == "download")
+            && values.contains_key("handle")
+            && values.contains_key("path")
+        {
             return Err(err_resp(400, "query_invalid"));
         }
         let highlight = match values.get("highlight").map(String::as_str) {
@@ -559,6 +629,8 @@ impl Browser {
             "log" => self.restricted_log(policy, repo, &values, access),
             "tree" => self.restricted_tree(policy, repo, &values, access),
             "diff" => self.restricted_diff(policy, repo, &values, highlight, access),
+            "search" => self.restricted_search(policy, repo, &values, access),
+            "download" => self.restricted_download(policy, repo, &values, access),
             _ => self.restricted_file(policy, repo, &values, highlight, access),
         }
     }
@@ -751,25 +823,27 @@ impl Browser {
         else {
             return Err(public_unavailable());
         };
-        let visible_origins: BTreeSet<&str> = view
+        let mut visible_origins: BTreeSet<&str> = BTreeSet::new();
+        let mut readable_origins: BTreeSet<&str> = BTreeSet::new();
+        for entry in view
             .entries()
             .iter()
             .filter(|entry| entry.display_path.is_some())
-            .filter_map(|entry| {
-                view.resolve(
-                    &partial,
-                    &scope,
-                    access.now_unix_s,
-                    &entry.handle,
-                    SourceViewOperation::Discover,
-                )
-                .ok()
-                .and_then(|manifest_entry| match &manifest_entry.origin {
-                    EntryOrigin::Native { path, .. } => Some(path.as_str()),
-                    EntryOrigin::Generated { .. } => None,
-                })
-            })
-            .collect();
+        {
+            if let Ok(manifest_entry) = view.resolve(
+                &partial,
+                &scope,
+                access.now_unix_s,
+                &entry.handle,
+                SourceViewOperation::Discover,
+            ) && let EntryOrigin::Native { path, .. } = &manifest_entry.origin
+            {
+                visible_origins.insert(path.as_str());
+                if entry.readable {
+                    readable_origins.insert(path.as_str());
+                }
+            }
+        }
         if !path.is_empty() {
             let prefix = format!("{path}/");
             let has_visible_descendant = visible_origins.iter().any(|p| p.starts_with(&prefix));
@@ -778,8 +852,8 @@ impl Browser {
             }
         }
         let response = match policy.kind.as_str() {
-            "pijul" => pijul_tree(policy, pinned_rev, &components),
-            _ => git_tree(policy, pinned_rev, &components),
+            "pijul" => pijul_tree_filtered(policy, pinned_rev, &components, Some(&visible_origins)),
+            _ => git_tree_filtered(policy, pinned_rev, &components, Some(&visible_origins)),
         }
         .map_err(|_| public_unavailable())?;
         if response.status != 200 {
@@ -800,6 +874,21 @@ impl Browser {
                     visible_origins.contains(entry_path)
                 }
             });
+            for entry in entries.iter_mut() {
+                let is_dir = entry.get("kind").and_then(Value::as_str) == Some("directory");
+                let is_readable = entry
+                    .get("path")
+                    .and_then(Value::as_str)
+                    .is_some_and(|p| readable_origins.contains(p));
+                if let Some(obj) = entry.as_object_mut()
+                    && (is_dir || !is_readable)
+                {
+                    obj.insert("oid".into(), Value::Null);
+                    if !is_dir {
+                        obj.insert("bytes".into(), Value::Null);
+                    }
+                }
+            }
         }
         if let Some(obj) = body.as_object_mut() {
             obj.insert(
@@ -852,18 +941,14 @@ impl Browser {
         Ok(resp)
     }
 
-    fn restricted_file(
+    fn resolve_restricted_file_origin(
         &self,
-        policy: &SourcePolicy,
         repo: &RestrictedSourceRepo<'_>,
         values: &BTreeMap<String, String>,
-        highlight: bool,
         access: &mut RestrictedSourceAccess<'_>,
-    ) -> Result<ApiResponse, ApiResponse> {
-        let revision = values.get("revision").map_or("", String::as_str);
-        let pinned_rev = pin_restricted_revision(policy, repo, revision)?;
+    ) -> Result<(String, String), ApiResponse> {
         let ceiling = ViewCeiling::from_definition(repo.definition);
-        let resolved_path: String = if let Some(handle_hex) = values.get("handle") {
+        if let Some(handle_hex) = values.get("handle") {
             let Some(handle) = OpaqueHandle::from_hex(handle_hex) else {
                 return Err(public_unavailable());
             };
@@ -883,6 +968,13 @@ impl Browser {
             ) else {
                 return Err(public_unavailable());
             };
+            let display_name = view
+                .entries()
+                .iter()
+                .find(|v| v.handle == handle)
+                .and_then(|v| v.display_path.as_deref())
+                .unwrap_or(entry.destination.as_str())
+                .to_owned();
             let EntryOrigin::Native {
                 path: target_origin,
                 ..
@@ -942,7 +1034,7 @@ impl Browser {
             let Some(resolved_path) = matched_origin else {
                 return Err(public_unavailable());
             };
-            resolved_path
+            Ok((resolved_path, display_name))
         } else {
             let path = values.get("path").map_or("", String::as_str);
             if components(path).is_err() || path.is_empty() {
@@ -1004,6 +1096,7 @@ impl Browser {
             let Some(entry) = entries.into_iter().find(|e| e.readable) else {
                 return Err(public_unavailable());
             };
+            let display_name = entry.display_path.clone().unwrap_or_else(|| path.to_owned());
             let Ok(manifest_entry) = view.resolve(
                 &partial,
                 &joined,
@@ -1014,11 +1107,23 @@ impl Browser {
                 return Err(public_unavailable());
             };
             match &manifest_entry.origin {
-                EntryOrigin::Native { path, .. } => path.clone(),
-                EntryOrigin::Generated { .. } => return Err(public_unavailable()),
+                EntryOrigin::Native { path, .. } => Ok((path.clone(), display_name)),
+                EntryOrigin::Generated { .. } => Err(public_unavailable()),
             }
-        };
+        }
+    }
 
+    fn restricted_file(
+        &self,
+        policy: &SourcePolicy,
+        repo: &RestrictedSourceRepo<'_>,
+        values: &BTreeMap<String, String>,
+        highlight: bool,
+        access: &mut RestrictedSourceAccess<'_>,
+    ) -> Result<ApiResponse, ApiResponse> {
+        let revision = values.get("revision").map_or("", String::as_str);
+        let pinned_rev = pin_restricted_revision(policy, repo, revision)?;
+        let (resolved_path, _) = self.resolve_restricted_file_origin(repo, values, access)?;
         let comps = components(&resolved_path).map_err(|()| public_unavailable())?;
         let resp = match policy.kind.as_str() {
             "pijul" => pijul_file(policy, pinned_rev, &comps, highlight),
@@ -1029,6 +1134,165 @@ impl Browser {
             return Err(public_unavailable());
         }
         Ok(resp)
+    }
+
+    fn restricted_download(
+        &self,
+        policy: &SourcePolicy,
+        repo: &RestrictedSourceRepo<'_>,
+        values: &BTreeMap<String, String>,
+        access: &mut RestrictedSourceAccess<'_>,
+    ) -> Result<ApiResponse, ApiResponse> {
+        let revision = values.get("revision").map_or("", String::as_str);
+        let pinned_rev = pin_restricted_revision(policy, repo, revision)?;
+        let (resolved_path, display_name) =
+            self.resolve_restricted_file_origin(repo, values, access)?;
+        let comps = components(&resolved_path).map_err(|()| public_unavailable())?;
+        let bytes = match policy.kind.as_str() {
+            "pijul" => pijul_raw_file(policy, pinned_rev, &comps),
+            _ => git_raw_file(policy, pinned_rev, &comps),
+        }
+        .map_err(|_| public_unavailable())?;
+        Ok(raw_download_response(&display_name, bytes))
+    }
+
+    fn restricted_search(
+        &self,
+        policy: &SourcePolicy,
+        repo: &RestrictedSourceRepo<'_>,
+        values: &BTreeMap<String, String>,
+        access: &mut RestrictedSourceAccess<'_>,
+    ) -> Result<ApiResponse, ApiResponse> {
+        let query_text = values.get("q").map_or("", String::as_str);
+        if query_text.trim().is_empty()
+            || query_text.len() > MAX_SEARCH_QUERY_BYTES
+            || query_text.chars().any(char::is_control)
+        {
+            return Err(public_unavailable());
+        }
+        let limit = match values.get("limit") {
+            None => DEFAULT_SEARCH_LIMIT,
+            Some(value) => match value.parse::<usize>() {
+                Ok(limit) if (1..=MAX_SEARCH_LIMIT).contains(&limit) => limit,
+                _ => return Err(public_unavailable()),
+            },
+        };
+        let revision = values.get("revision").map_or("", String::as_str);
+        let pinned_rev = pin_restricted_revision(policy, repo, revision)?;
+        let Some((scope, view, partial)) =
+            admit_best_discovery_view(repo, query_text.as_bytes(), access)
+        else {
+            return Err(public_unavailable());
+        };
+        if view.check_current(&scope, access.now_unix_s).is_err() {
+            return Err(public_unavailable());
+        }
+        let offset = match values.get("cursor") {
+            None => 0,
+            Some(token) => decode_search_cursor(token, &view, query_text)
+                .ok_or_else(public_unavailable)?,
+        };
+        let ceiling = ViewCeiling::from_definition(repo.definition);
+        let needle = query_text.to_lowercase();
+        let repository = if policy.kind == "pijul" {
+            None
+        } else {
+            Some(open_git(policy).map_err(|_| public_unavailable())?)
+        };
+        let tree = match &repository {
+            Some(git_repo) => {
+                let commit_obj =
+                    commit(git_repo, pinned_rev).map_err(|_| public_unavailable())?;
+                Some(tree(git_repo, &commit_obj).map_err(|_| public_unavailable())?)
+            }
+            None => None,
+        };
+
+        let mut all_matches = Vec::new();
+        for visible in view.entries() {
+            let Some(display_path) = visible.display_path.as_deref() else {
+                continue;
+            };
+            let Ok(manifest_entry) = view.resolve(
+                &partial,
+                &scope,
+                access.now_unix_s,
+                &visible.handle,
+                SourceViewOperation::Discover,
+            ) else {
+                continue;
+            };
+            let EntryOrigin::Native { path: origin, .. } = &manifest_entry.origin else {
+                continue;
+            };
+            let path_match = display_path.to_lowercase().contains(&needle);
+            let mut snippets = Vec::new();
+            let can_read = visible.readable
+                && ceiling.allows(SourceViewOperation::ReadContent, origin)
+                && scope.permits(SourceViewOperation::ReadContent, origin)
+                && view
+                    .resolve(
+                        &partial,
+                        &scope,
+                        access.now_unix_s,
+                        &visible.handle,
+                        SourceViewOperation::ReadContent,
+                    )
+                    .is_ok();
+            if can_read {
+                let bytes_opt = match (&repository, &tree) {
+                    (Some(git_repo), Some(git_tree)) => {
+                        read_git_blob_bytes(git_repo, git_tree, origin).ok()
+                    }
+                    _ => components(origin)
+                        .ok()
+                        .and_then(|c| pijul_raw_file(policy, pinned_rev, &c).ok()),
+                };
+                if let Some(bytes) = bytes_opt {
+                    snippets = search_snippets(&bytes, &needle);
+                }
+            }
+            if path_match || !snippets.is_empty() {
+                all_matches.push(json!({
+                    "handle": visible.handle,
+                    "path": display_path,
+                    "readable": can_read,
+                    "path_match": path_match,
+                    "snippets": snippets,
+                }));
+                if all_matches.len() >= MAX_SEARCH_MATCHES {
+                    break;
+                }
+            }
+        }
+        if offset > all_matches.len() {
+            return Err(public_unavailable());
+        }
+        let end = offset.saturating_add(limit).min(all_matches.len());
+        let page = all_matches[offset..end].to_vec();
+        let next_cursor = (end < all_matches.len()).then(|| encode_search_cursor(&view, query_text, end));
+        let exact_rev = if policy.kind == "pijul" {
+            Value::Null
+        } else {
+            Value::String(pinned_rev.to_owned())
+        };
+        json_response(
+            200,
+            json!({
+                "source": policy.id,
+                "kind": policy.kind,
+                "label": policy.label,
+                "revision": exact_rev,
+                "query": query_text,
+                "matches": page,
+                "total_matches": all_matches.len(),
+                "truncated": all_matches.len() >= MAX_SEARCH_MATCHES,
+                "next_cursor": next_cursor,
+                "view": view.presentation(),
+                "non_claims": NON_CLAIMS,
+            }),
+        )
+        .map_err(|_| public_unavailable())
     }
 }
 
@@ -1633,6 +1897,15 @@ fn git_tree(
     revision: &str,
     components: &[&str],
 ) -> Result<ApiResponse, String> {
+    git_tree_filtered(policy, revision, components, None)
+}
+
+fn git_tree_filtered(
+    policy: &SourcePolicy,
+    revision: &str,
+    components: &[&str],
+    visible_origins: Option<&BTreeSet<&str>>,
+) -> Result<ApiResponse, String> {
     let repository = match open_git(policy) {
         Ok(repository) => repository,
         Err(_) => return error(503, "source_unavailable"),
@@ -1657,7 +1930,7 @@ fn git_tree(
             Err(_) => return error(503, "source_unavailable"),
         };
     }
-    if tree.len() > MAX_TREE_ENTRIES {
+    if visible_origins.is_none() && tree.len() > MAX_TREE_ENTRIES {
         return error(503, "source_tree_bound");
     }
     let mut entries = Vec::new();
@@ -1666,12 +1939,31 @@ fn git_tree(
             Ok(name) => name,
             Err(_) => return error(503, "source_unavailable"),
         };
+        let entry_path = if components.is_empty() {
+            name.to_owned()
+        } else {
+            format!("{}/{}", components.join("/"), name)
+        };
         let kind = match entry.kind() {
             Some(ObjectType::Blob) if entry.filemode() == 0o120000 => "symlink",
             Some(ObjectType::Blob) => "file",
             Some(ObjectType::Tree) => "directory",
             _ => "submodule",
         };
+        if let Some(allowed) = visible_origins {
+            let visible = if kind == "directory" {
+                let prefix = format!("{entry_path}/");
+                allowed.iter().any(|p| p.starts_with(&prefix))
+            } else {
+                allowed.contains(entry_path.as_str())
+            };
+            if !visible {
+                continue;
+            }
+        }
+        if entries.len() >= MAX_TREE_ENTRIES {
+            return error(503, "source_tree_bound");
+        }
         let bytes = if kind == "file" {
             repository
                 .find_blob(entry.id())
@@ -1682,11 +1974,7 @@ fn git_tree(
         };
         entries.push(json!({
             "name": name,
-            "path": if components.is_empty() {
-                name.to_owned()
-            } else {
-                format!("{}/{}", components.join("/"), name)
-            },
+            "path": entry_path,
             "kind": kind,
             "mode": format!("{:o}", entry.filemode()),
             "oid": entry.id().to_string(),
@@ -2028,6 +2316,15 @@ fn pijul_tree(
     revision: &str,
     components: &[&str],
 ) -> Result<ApiResponse, String> {
+    pijul_tree_filtered(policy, revision, components, None)
+}
+
+fn pijul_tree_filtered(
+    policy: &SourcePolicy,
+    revision: &str,
+    components: &[&str],
+    visible_origins: Option<&BTreeSet<&str>>,
+) -> Result<ApiResponse, String> {
     if !revision.is_empty() {
         return error(400, "source_revision_unsupported");
     }
@@ -2045,6 +2342,11 @@ fn pijul_tree(
     for line in text.lines() {
         let path = line.trim();
         if path.is_empty() || path.len() > MAX_PATH_BYTES || path.contains('\\') {
+            continue;
+        }
+        if let Some(allowed) = visible_origins
+            && !allowed.contains(path)
+        {
             continue;
         }
         let parts: Vec<&str> = path.split('/').collect();
@@ -2163,6 +2465,294 @@ fn pijul_file(
         object.insert("non_claims".into(), json!(NON_CLAIMS));
     }
     respond(response, highlighted)
+}
+
+fn search_cursor_tag(view: &AudienceView, query_text: &str, offset: usize) -> blake3::Hash {
+    let key_hash = blake3::hash(view.binding().identity().as_str().as_bytes());
+    let mut hasher = blake3::Hasher::new_keyed(key_hash.as_bytes());
+    hasher.update(SEARCH_CURSOR_DOMAIN.as_bytes());
+    hasher.update(b"\0");
+    hasher.update(view.reference().as_bytes());
+    hasher.update(b"\0");
+    hasher.update(&(query_text.len() as u64).to_le_bytes());
+    hasher.update(query_text.as_bytes());
+    hasher.update(&(offset as u64).to_le_bytes());
+    hasher.finalize()
+}
+
+fn encode_search_cursor(view: &AudienceView, query_text: &str, offset: usize) -> String {
+    let pos = u32::try_from(offset).unwrap_or(u32::MAX);
+    let tag = search_cursor_tag(view, query_text, offset);
+    let mut out = String::with_capacity(8 + 64);
+    for byte in pos.to_be_bytes() {
+        out.push_str(&format!("{byte:02x}"));
+    }
+    out.push_str(tag.to_hex().as_str());
+    out
+}
+
+fn decode_search_cursor(token: &str, view: &AudienceView, query_text: &str) -> Option<usize> {
+    if token.len() != 8 + 64 {
+        return None;
+    }
+    let pos = u32::from_str_radix(token.get(..8)?, 16).ok()? as usize;
+    let tag = blake3::Hash::from_hex(token.get(8..)?).ok()?;
+    let expected = search_cursor_tag(view, query_text, pos);
+    (tag == expected).then_some(pos)
+}
+
+fn search_snippets(bytes: &[u8], needle_lower: &str) -> Vec<Value> {
+    if bytes.contains(&0) {
+        return Vec::new();
+    }
+    let Ok(text) = std::str::from_utf8(bytes) else {
+        return Vec::new();
+    };
+    let mut snippets = Vec::new();
+    for (idx, line) in text.lines().enumerate() {
+        if line.to_lowercase().contains(needle_lower) {
+            let trimmed: String = line.chars().take(MAX_SNIPPET_CHARS).collect();
+            snippets.push(json!({
+                "line": idx + 1,
+                "text": trimmed,
+            }));
+            if snippets.len() >= MAX_SNIPPETS_PER_FILE {
+                break;
+            }
+        }
+    }
+    snippets
+}
+
+fn read_git_blob_bytes(
+    repository: &Repository,
+    tree: &git2::Tree<'_>,
+    relative_path: &str,
+) -> Result<Vec<u8>, String> {
+    let entry = tree
+        .get_path(Path::new(relative_path))
+        .map_err(|_| "source_path_missing".to_string())?;
+    if entry.kind() != Some(ObjectType::Blob) || entry.filemode() == 0o120000 {
+        return Err("source_path_missing".into());
+    }
+    let (size, kind) = repository
+        .odb()
+        .and_then(|odb| odb.read_header(entry.id()))
+        .map_err(|_| "source_unavailable".to_string())?;
+    if kind != ObjectType::Blob {
+        return Err("source_path_missing".into());
+    }
+    if size > MAX_FILE_BYTES {
+        return Err("source_file_too_large".into());
+    }
+    let blob = repository
+        .find_blob(entry.id())
+        .map_err(|_| "source_unavailable".to_string())?;
+    Ok(blob.content().to_vec())
+}
+
+fn git_raw_file(
+    policy: &SourcePolicy,
+    revision: &str,
+    components: &[&str],
+) -> Result<Vec<u8>, String> {
+    let repository = open_git(policy).map_err(|_| "source_unavailable".to_string())?;
+    let commit_obj = commit(&repository, revision).map_err(|_| "source_unavailable".to_string())?;
+    let tree_obj = tree(&repository, &commit_obj).map_err(|_| "source_unavailable".to_string())?;
+    read_git_blob_bytes(&repository, &tree_obj, &components.join("/"))
+}
+
+fn pijul_raw_file(
+    policy: &SourcePolicy,
+    revision: &str,
+    components: &[&str],
+) -> Result<Vec<u8>, String> {
+    if !revision.is_empty() {
+        return Err("source_revision_unsupported".into());
+    }
+    let run =
+        pijul_run(policy, pijul_base_args(policy, "list")).map_err(|e| e.to_string())?;
+    let text = std::str::from_utf8(&run.stdout).map_err(|_| "source_unavailable".to_string())?;
+    let relative = components.join("/");
+    if !text.lines().any(|line| line.trim() == relative) {
+        return Err("source_path_missing".into());
+    }
+    let mut path = policy.path.clone();
+    for part in components {
+        path.push(part);
+    }
+    let metadata =
+        std::fs::symlink_metadata(&path).map_err(|_| "source_path_missing".to_string())?;
+    if metadata.file_type().is_symlink() || !metadata.is_file() {
+        return Err("source_path_missing".into());
+    }
+    if metadata.len() > MAX_FILE_BYTES as u64 {
+        return Err("source_file_too_large".into());
+    }
+    std::fs::read(&path).map_err(|_| "source_unavailable".to_string())
+}
+
+fn raw_download_response(display_path: &str, bytes: Vec<u8>) -> ApiResponse {
+    let basename = display_path
+        .rsplit('/')
+        .next()
+        .filter(|name| !name.is_empty() && *name != "." && *name != "..")
+        .unwrap_or("source.bin");
+    let safe_name: String = basename
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_') {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    ApiResponse {
+        status: 200,
+        content_type: "application/octet-stream",
+        body: bytes,
+        download_name: Some(safe_name),
+        headers: vec![("X-Content-Type-Options".into(), "nosniff".into())],
+    }
+}
+
+fn git_search(
+    policy: &SourcePolicy,
+    revision: &str,
+    query_text: &str,
+    limit: usize,
+    offset: usize,
+) -> Result<ApiResponse, String> {
+    let repository = match open_git(policy) {
+        Ok(repository) => repository,
+        Err(_) => return error(503, "source_unavailable"),
+    };
+    let commit_obj = match commit(&repository, revision) {
+        Ok(commit) => commit,
+        Err(_) if !revision.is_empty() => return error(400, "source_revision_invalid"),
+        Err(_) => return error(503, "source_unavailable"),
+    };
+    let tree_obj = match tree(&repository, &commit_obj) {
+        Ok(tree) => tree,
+        Err(_) => return error(503, "source_unavailable"),
+    };
+    let needle = query_text.to_lowercase();
+    let mut matches = Vec::new();
+    let mut paths = Vec::new();
+    tree_obj
+        .walk(git2::TreeWalkMode::PreOrder, |root, entry| {
+            if entry.kind() == Some(ObjectType::Blob) && entry.filemode() != 0o120000
+                && let Ok(name) = entry.name()
+            {
+                paths.push(format!("{root}{name}"));
+            }
+            if paths.len() >= MAX_TREE_ENTRIES * 8 {
+                return git2::TreeWalkResult::Abort;
+            }
+            git2::TreeWalkResult::Ok
+        })
+        .ok();
+    paths.sort();
+    for path in paths {
+        let path_match = path.to_lowercase().contains(&needle);
+        let snippets = read_git_blob_bytes(&repository, &tree_obj, &path)
+            .map(|bytes| search_snippets(&bytes, &needle))
+            .unwrap_or_default();
+        if path_match || !snippets.is_empty() {
+            matches.push(json!({
+                "path": path,
+                "path_match": path_match,
+                "snippets": snippets,
+            }));
+            if matches.len() >= MAX_SEARCH_MATCHES {
+                break;
+            }
+        }
+    }
+    if offset > matches.len() {
+        return error(400, "source_cursor_invalid");
+    }
+    let end = offset.saturating_add(limit).min(matches.len());
+    let next_cursor = (end < matches.len()).then(|| end.to_string());
+    json_response(
+        200,
+        json!({
+            "source": policy.id,
+            "kind": policy.kind,
+            "label": policy.label,
+            "revision": commit_obj.id().to_string(),
+            "query": query_text,
+            "matches": matches[offset..end],
+            "total_matches": matches.len(),
+            "truncated": matches.len() >= MAX_SEARCH_MATCHES,
+            "next_cursor": next_cursor,
+            "non_claims": NON_CLAIMS,
+        }),
+    )
+}
+
+fn pijul_search(
+    policy: &SourcePolicy,
+    revision: &str,
+    query_text: &str,
+    limit: usize,
+    offset: usize,
+) -> Result<ApiResponse, String> {
+    if !revision.is_empty() {
+        return error(400, "source_revision_unsupported");
+    }
+    let run = match pijul_run(policy, pijul_base_args(policy, "list")) {
+        Ok(run) => run,
+        Err(_) => return error(503, "source_unavailable"),
+    };
+    let text = match std::str::from_utf8(&run.stdout) {
+        Ok(text) => text,
+        Err(_) => return error(503, "source_unavailable"),
+    };
+    let needle = query_text.to_lowercase();
+    let mut matches = Vec::new();
+    for line in text.lines() {
+        let path = line.trim();
+        let Ok(comps) = components(path) else {
+            continue;
+        };
+        let path_match = path.to_lowercase().contains(&needle);
+        let snippets = pijul_raw_file(policy, revision, &comps)
+            .map(|bytes| search_snippets(&bytes, &needle))
+            .unwrap_or_default();
+        if path_match || !snippets.is_empty() {
+            matches.push(json!({
+                "path": path,
+                "path_match": path_match,
+                "snippets": snippets,
+            }));
+            if matches.len() >= MAX_SEARCH_MATCHES {
+                break;
+            }
+        }
+    }
+    if offset > matches.len() {
+        return error(400, "source_cursor_invalid");
+    }
+    let end = offset.saturating_add(limit).min(matches.len());
+    let next_cursor = (end < matches.len()).then(|| end.to_string());
+    json_response(
+        200,
+        json!({
+            "source": policy.id,
+            "kind": policy.kind,
+            "label": policy.label,
+            "channel": policy.channel,
+            "revision": Value::Null,
+            "query": query_text,
+            "matches": matches[offset..end],
+            "total_matches": matches.len(),
+            "truncated": matches.len() >= MAX_SEARCH_MATCHES,
+            "next_cursor": next_cursor,
+            "non_claims": NON_CLAIMS,
+        }),
+    )
 }
 
 /// Parse one UTC RFC 3339 timestamp into milliseconds since the Unix epoch.

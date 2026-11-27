@@ -926,3 +926,178 @@ fn observe_requires_root_retrieve_result_and_retrieve_result_checks_ceiling_defi
     let other_ceiling = ViewCeiling::from_definition(&other_def);
     assert!(retrieve_result(&candidate, &other_ceiling, &shared_scope, &mut full_ctx).is_err());
 }
+
+#[test]
+fn retrieve_result_with_verification_projects_authorized_evidence_and_redacts_hidden_failures() {
+    use kiln_core::projection::verifier_projection::{
+        DiagnosticSeverity, ExternalImpact, FULL_VERIFICATION_SCHEMA, FullCandidateVerification,
+        LogChunk, LogStream, OutputArtifact, ProjectVerification, TestCaseOutcome, ToolDiagnostic,
+        VerificationVerdict,
+    };
+
+    let fixture = fixture();
+    let (pin, overlay) = fixture.overlay("attempt-verifier-proj");
+    ok(fs::write(
+        overlay.join("projects/alpha/src/lib.rs"),
+        b"pub fn alpha() -> u32 { 1 }\n",
+    ));
+    let candidate = fixture.declared(&pin, &overlay, &[]);
+    let attempt = AttemptFence {
+        attempt: candidate.attempt().clone(),
+        fence: candidate.fence(),
+    };
+    let current = SourceCurrentness {
+        generation: GENERATION,
+        revocation_generation: 0,
+        snapshot: SnapshotObservation {
+            revision: candidate.base_revision().clone(),
+            ref_name: None,
+            previous: None,
+            fast_forward: false,
+        },
+        attempt: AttemptCurrentness::Current,
+    };
+    let alpha_scope =
+        PathScope::from_path("projects/alpha", true).unwrap_or_else(|| unreachable!("path"));
+    let alpha_fix = SourceFixture::direct(
+        COORDINATOR_SEED,
+        candidate.repository(),
+        Some(&attempt),
+        &[(alpha_scope.clone(), vec![SourceViewOperation::RetrieveResult])],
+        EXPIRES_S,
+    );
+    let signer = alpha_fix.signer();
+    let mut auth = alpha_fix.authority();
+    let sign = |req: &SourceAuthorityRequest| {
+        signer
+            .sign(req)
+            .map(AuthorityProfile::VerifiedUcan)
+            .map_err(|e| format!("{}: {}", e.code, e.message))
+    };
+    let ceiling = ViewCeiling::from_definition(&fixture.definition);
+    let full = FullCandidateVerification {
+        schema: FULL_VERIFICATION_SCHEMA.into(),
+        repository: candidate.repository().clone(),
+        base_revision: candidate.base_revision().clone(),
+        candidate_identity: candidate.identity().clone(),
+        candidate_facts_identity: None,
+        affected_projects: vec![
+            ProjectVerification {
+                project_id: "alpha".into(),
+                scope: alpha_scope.clone(),
+                verdict: VerificationVerdict::Passed,
+            },
+            ProjectVerification {
+                project_id: "beta-secret".into(),
+                scope: PathScope::from_path("projects/beta", true)
+                    .unwrap_or_else(|| unreachable!("path")),
+                verdict: VerificationVerdict::Failed,
+            },
+        ],
+        test_cases: vec![
+            TestCaseOutcome {
+                project_id: "alpha".into(),
+                name: "alpha::works".into(),
+                verdict: VerificationVerdict::Passed,
+                duration_ms: 5,
+                paths: vec!["projects/alpha/src/lib.rs".into()],
+                message: None,
+            },
+            TestCaseOutcome {
+                project_id: "beta-secret".into(),
+                name: "beta::secret_failure".into(),
+                verdict: VerificationVerdict::Failed,
+                duration_ms: 8,
+                paths: vec!["projects/beta/src/lib.rs".into()],
+                message: Some("hidden beta panic".into()),
+            },
+        ],
+        log_chunks: vec![
+            LogChunk {
+                project_id: "alpha".into(),
+                stream: LogStream::Stdout,
+                sequence: 1,
+                text: "alpha ok\n".into(),
+                paths: vec!["projects/alpha/src/lib.rs".into()],
+            },
+            LogChunk {
+                project_id: "beta-secret".into(),
+                stream: LogStream::Stderr,
+                sequence: 2,
+                text: "secret beta failure log\n".into(),
+                paths: vec!["projects/beta/src/lib.rs".into()],
+            },
+        ],
+        diagnostics: vec![ToolDiagnostic {
+            project_id: "beta-secret".into(),
+            severity: DiagnosticSeverity::Error,
+            code: Some("E0425".into()),
+            file_path: Some("projects/beta/src/lib.rs".into()),
+            line: Some(1),
+            message: "secret symbol".into(),
+        }],
+        artifacts: vec![
+            OutputArtifact {
+                project_id: "alpha".into(),
+                name: "alpha.log".into(),
+                path: Some("projects/alpha/src/lib.rs".into()),
+                digest: digest("alpha-art"),
+                size_bytes: 128,
+            },
+            OutputArtifact {
+                project_id: "beta-secret".into(),
+                name: "beta-secret.bin".into(),
+                path: Some("projects/beta/src/lib.rs".into()),
+                digest: digest("beta-art"),
+                size_bytes: 2048,
+            },
+        ],
+    };
+
+    let mut ctx = SourceAuthorization {
+        authority: &mut auth,
+        profile: RequestProfile::Signer(&sign),
+        current: &current,
+        now_unix_s: VERIFY_AT_S,
+    };
+    let projected = ok(retrieve_result_with_verification(
+        &candidate,
+        &ceiling,
+        &alpha_scope,
+        &mut ctx,
+        Some(&full),
+    ));
+    let ver = projected
+        .verification
+        .as_ref()
+        .unwrap_or_else(|| unreachable!("projected verification"));
+    assert_eq!(ver.affected_projects().len(), 1);
+    assert_eq!(ver.affected_projects()[0].project_id, "alpha");
+    assert_eq!(ver.test_cases().len(), 1);
+    assert_eq!(ver.log_chunks().len(), 1);
+    assert!(ver.diagnostics().is_empty());
+    assert_eq!(ver.artifacts().len(), 1);
+    assert_eq!(ver.visible_verdict(), VerificationVerdict::Passed);
+    assert_eq!(ver.external_impact(), ExternalImpact::ExternalChecksFailed);
+    assert!(!ver.full_candidate_passed());
+
+    let serialized = ok(serde_json::to_string(&projected));
+    assert!(!serialized.contains("beta-secret"));
+    assert!(!serialized.contains("projects/beta"));
+    assert!(!serialized.contains("hidden beta panic"));
+
+    // Mismatched candidate identity (e.g. C1 verification replayed onto C2) MUST fail closed.
+    let mut stale_full = full;
+    stale_full.candidate_identity = digest("other-candidate");
+    let err = match retrieve_result_with_verification(
+        &candidate,
+        &ceiling,
+        &alpha_scope,
+        &mut ctx,
+        Some(&stale_full),
+    ) {
+        Ok(_) => unreachable!("stale verification must be rejected"),
+        Err(err) => err,
+    };
+    assert!(err.contains("does not match sealed candidate"), "{err}");
+}
