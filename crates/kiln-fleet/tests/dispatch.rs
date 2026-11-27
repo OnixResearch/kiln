@@ -711,6 +711,115 @@ fn queued_move_round_trip_never_reuses_old_cas_token() -> TestResult {
     Ok(())
 }
 
+#[test]
+fn queued_move_eligible_matches_admission_for_re_move_and_refused_states() -> TestResult {
+    use kiln_core::fair_admission::AdmissionPolicy;
+    use kiln_core::operations::FairnessStrategy;
+    use kiln_core::types::{Alias, ContentId};
+    use kiln_fleet::dispatch::placement::{
+        MoveSubmit, SplitSubmit, preview as preview_split, preview_move, submit as submit_split,
+        submit_move,
+    };
+    use kiln_implementer::admission::AdmissionCommand;
+    use std::collections::BTreeMap;
+
+    // 1. Positive: an already-moved unstarted attempt remains eligible for re-moving.
+    let (fleet, request) = move_fixture(true)?;
+    let mut store = fleet.service.store.open_coordinator()?;
+    let clock = now();
+    let first = preview_move(&fleet.service, &mut store, request.clone(), clock)?;
+    submit_move(
+        &fleet.service,
+        &mut store,
+        MoveSubmit {
+            plan: first.identity,
+            attempt: request.attempt.clone(),
+            fence: request.fence,
+            reservation: request.reservation,
+            destination: request.destination,
+        },
+        clock,
+    )?;
+    let attempts = move_route(&fleet, COORDINATOR, "GET", "/v1/attempts", &Value::Null);
+    assert_eq!(attempts.status, 200);
+    assert_eq!(attempts.body["attempts"][0]["queued_move_eligible"], true);
+
+    // 2. Negative: split-lineage attempts are not eligible for queued move.
+    let (split_fleet, split_request) = split_fixture("requirements", false)?;
+    let mut split_store = split_fleet.service.store.open_coordinator()?;
+    let split_plan =
+        preview_split(&split_fleet.service, &mut split_store, split_request.clone(), clock)?;
+    submit_split(
+        &split_fleet.service,
+        &mut split_store,
+        SplitSubmit {
+            plan: split_plan.identity,
+            units: split_request.units,
+        },
+        clock,
+    )?;
+    let split_attempts = move_route(&split_fleet, COORDINATOR, "GET", "/v1/attempts", &Value::Null);
+    assert_eq!(split_attempts.status, 200);
+    for row in split_attempts.body["attempts"]
+        .as_array()
+        .ok_or("split attempts array")?
+    {
+        assert_eq!(row["queued_move_eligible"], false);
+    }
+
+    // 3. Negative: fair-admission mode (admission policy configured) is ineligible.
+    let (fair_fleet, _) = move_fixture(true)?;
+    {
+        let mut fair_store = fair_fleet.service.store.open_coordinator()?;
+        let policy = AdmissionPolicy {
+            version: 1,
+            accounting_basis: ContentId::from_blake3_hex("a".repeat(64))
+                .map_err(|error| error.message)?,
+            max_items: 8,
+            max_bytes: 100_000,
+            max_wait_ms: 1_000,
+            max_observation_age_ms: 100,
+            max_retry_after_ms: 100,
+            max_children: 4,
+            max_active: 2,
+            strategy: FairnessStrategy::DominantShare,
+            shares: BTreeMap::from([(
+                Alias::new("tenant").map_err(|error| error.message)?,
+                1,
+            )]),
+            group_limits: vec![],
+            serving: None,
+        };
+        fair_store.admission_apply(AdmissionCommand::Configure { policy }, clock)?;
+    }
+    let fair_attempts = move_route(&fair_fleet, COORDINATOR, "GET", "/v1/attempts", &Value::Null);
+    assert_eq!(fair_attempts.body["attempts"][0]["queued_move_eligible"], false);
+
+    // 4. Negative: bound session makes attempt ineligible.
+    let (sess_fleet, sess_request) = move_fixture(true)?;
+    {
+        let mut sess_store = sess_fleet.service.store.open_coordinator()?;
+        let attempt = sess_store
+            .attempt(&sess_request.attempt)?
+            .ok_or("attempt missing")?;
+        sess_store.fleet_bind_reserved_session(
+            kiln_core::fleet::Placement {
+                attempt: sess_request.attempt,
+                fence: sess_request.fence,
+                work: attempt.work_identity,
+                work_revision: attempt.work_revision,
+                machine: COORDINATOR.into(),
+                kind: "omp".into(),
+            },
+            &sess_request.reservation,
+            clock,
+        )?;
+    }
+    let sess_attempts = move_route(&sess_fleet, COORDINATOR, "GET", "/v1/attempts", &Value::Null);
+    assert_eq!(sess_attempts.body["attempts"][0]["queued_move_eligible"], false);
+    Ok(())
+}
+
 fn split_fixture(
     second_path: &str,
     dependent: bool,

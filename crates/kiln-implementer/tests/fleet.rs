@@ -355,19 +355,6 @@ fn fleet_claim_fences_are_checked_and_persist_across_reopen() -> TestResult {
         &[],
     )?;
     assert!(matches!(outcome, ClaimOutcome::Renewed(_)), "{outcome:?}");
-    implementer.fleet_claim(
-        ClaimCommand::MirrorObserved {
-            identity: claim.identity.clone(),
-            release: false,
-            status: MirrorStatus::Posted {
-                message_id: Some("<claim@kiln>".to_string()),
-            },
-        },
-        21,
-        COORDINATOR,
-        &[],
-    )?;
-    assert!(implementer.fleet_pending_mirror(COORDINATOR)?.is_empty());
     let (outcome, effects) = implementer.fleet_claim(
         ClaimCommand::Release {
             identity: claim.identity.clone(),
@@ -379,9 +366,10 @@ fn fleet_claim_fences_are_checked_and_persist_across_reopen() -> TestResult {
         &[],
     )?;
     assert!(matches!(outcome, ClaimOutcome::Released(_)), "{outcome:?}");
+    assert!(effects.is_empty(), "release waits for the claim receipt");
     assert!(matches!(
-        effects.as_slice(),
-        [ClaimEffect::PostRelease { references: Some(reference), .. }] if reference == "<claim@kiln>"
+        implementer.fleet_pending_mirror(COORDINATOR)?.as_slice(),
+        [ClaimEffect::PostClaim { .. }]
     ));
     drop(implementer);
 
@@ -396,7 +384,28 @@ fn fleet_claim_fences_are_checked_and_persist_across_reopen() -> TestResult {
         released.state,
         ClaimState::Released { at_ms: 30, .. }
     ));
-    assert_eq!(reopened.fleet_pending_mirror(COORDINATOR)?, effects);
+    assert!(matches!(
+        reopened.fleet_pending_mirror(COORDINATOR)?.as_slice(),
+        [ClaimEffect::PostClaim { .. }]
+    ));
+    reopened.fleet_claim(
+        ClaimCommand::MirrorObserved {
+            identity: claim.identity.clone(),
+            release: false,
+            status: MirrorStatus::Posted {
+                message_id: Some("<claim@kiln>".to_string()),
+            },
+        },
+        35,
+        COORDINATOR,
+        &[],
+    )?;
+    drop(reopened);
+    let mut reopened = open(&path)?;
+    assert!(matches!(
+        reopened.fleet_pending_mirror(COORDINATOR)?.as_slice(),
+        [ClaimEffect::PostRelease { references: Some(reference), .. }] if reference == "<claim@kiln>"
+    ));
     let (outcome, _) =
         reopened.fleet_claim(acquire("onix/kiln docs", "s2")?, 40, COORDINATOR, &[])?;
     let ClaimOutcome::Granted(next) = outcome else {

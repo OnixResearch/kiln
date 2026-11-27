@@ -293,6 +293,7 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     observe(PLACEMENT, "fleet_check_explicit_launch"),
     operator(PLACEMENT, "fleet_begin_explicit_launch"),
     observe(PLACEMENT, "fleet_move_status"),
+    observe(PLACEMENT, "fleet_queued_move_eligible"),
     operator(PLACEMENT, "fleet_prepare_move"),
     protected(PLACEMENT, "fleet_prepare_move", Op::Dispatch),
     operator(PLACEMENT, "fleet_prepare_split"),

@@ -12,6 +12,7 @@ class Element {
     this.children = [];
     this.listeners = {};
     this.textContent = "";
+    this.isConnected = true;
   }
   append(...children) { this.children.push(...children); }
   replaceChildren(...children) { this.children = children; }
@@ -82,4 +83,47 @@ test("unconfigured sources are explicit and viewers have no source control", asy
   assert.doesNotMatch(root.copy(), /operator path is private/);
   await runbooks.load(root, { api, canOperate: false });
   assert.equal(root.find("button"), undefined);
+});
+
+test("draft owner surfaces validation feedback when Draft ID is empty or invalid", async () => {
+  const { runbooks, root } = harness();
+  const calls = [];
+  const api = async (path, options) => {
+    calls.push([path, options]);
+    if (path === "/api/runbooks") return {};
+    if (path === route) return { revisions: [] };
+    if (path === "/api/lattice/drafts" && !options?.method) {
+      return { workflows: ["wf-a"] };
+    }
+    if (path === "/api/lattice/drafts" && options?.body?.action === "inspect") {
+      return {
+        status: "inspected",
+        workflow: "wf-a",
+        head: "a".repeat(64),
+        source: { entry: "workflow.ncl", members: ["workflow.ncl"] },
+      };
+    }
+    throw new Error(`Unexpected request: ${path}`);
+  };
+  await runbooks.load(root, { api, canOperate: true });
+  const draftPanel = root.findAll("details").find((d) => d.copy().includes("Edit Lattice workflow drafts"));
+  assert.ok(draftPanel);
+  draftPanel.open = true;
+  await draftPanel.listeners.toggle();
+  await settled();
+  const workflowSelect = root.find("select");
+  assert.ok(workflowSelect);
+  workflowSelect.value = "wf-a";
+  const inspectBtn = root.findAll("button").find((b) => b.textContent === "Read current workflow head");
+  assert.ok(inspectBtn);
+  await inspectBtn.listeners.click();
+  await settled();
+  const openBtn = root.findAll("button").find((b) => b.textContent === "Open draft member");
+  assert.ok(openBtn);
+  const draftInput = root.findAll("input").find((i) => i.maxLength === 128);
+  assert.ok(draftInput);
+  draftInput.value = "bad/draft";
+  await openBtn.listeners.click();
+  assert.match(root.copy(), /Enter a Draft ID using 1–128 letters, digits, underscores, or hyphens/);
+  assert.equal(calls.filter(([p, o]) => p === "/api/lattice/drafts" && o?.body?.action === "view").length, 0);
 });

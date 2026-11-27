@@ -676,6 +676,10 @@ fn asset(path: &str) -> ApiResponse {
             "text/plain; charset=utf-8",
             include_bytes!("../src/generated/herdr-viewer.wasm.b64"),
         ),
+        "/herdr-viewer-notices.txt" => bytes(
+            "text/plain; charset=utf-8",
+            include_bytes!("../src/generated/herdr-viewer-notices.txt"),
+        ),
         "/healthz" => json(200, json!({"status":"ok","synthetic":true})),
         name => {
             macro_rules! assets {

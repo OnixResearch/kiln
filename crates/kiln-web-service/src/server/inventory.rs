@@ -4125,6 +4125,7 @@ pub(crate) mod tests {
                 },
                 purpose: "work".into(),
                 fence: 1,
+                initial_fence: None,
                 granted_ms: 1_000,
                 expires_ms: now_ms + 60_000,
                 state: ClaimState::Open,

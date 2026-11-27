@@ -124,6 +124,20 @@ class FakeElement extends FakeNode {
       this.children.push(node);
     }
   }
+  prepend(...nodes) {
+    const converted = [];
+    for (const item of nodes) {
+      if (item === null || item === undefined) continue;
+      const node = item instanceof FakeNode ? item : new FakeNode(3, String(item));
+      if (node.parentNode && node.parentNode !== this) {
+        node.parentNode.children = node.parentNode.children.filter((c) => c !== node);
+      }
+      node.parentNode = this;
+      setConnected(node, this.isConnected);
+      converted.push(node);
+    }
+    this.children.unshift(...converted);
+  }
   replaceChildren(...nodes) {
     for (const c of this.children) {
       c.parentNode = null;
@@ -1055,6 +1069,150 @@ test("Fair-Admission unconfigured and unavailable states render explicitly witho
     await new Promise((r) => setTimeout(r, 25));
     assert.match(allText(env.root), /No fair-admission policy configured/);
     assert.match(allText(env.root), /no quota or burn is fabricated/);
+  } finally {
+    env.cleanup();
+  }
+});
+
+test("Herdr viewer surfaces WASM grid clipping and enforces aligned 500-cell bound", async () => {
+  const fixture = herdrViewerFixture();
+  const settle = () => new Promise((resolve) => setImmediate(resolve));
+  let snapshot = fixture.snapshot;
+  const env = setup({
+    apiHandler: async (path) => {
+      if (path === "/api/fleet/machines") return { machines: fixture.machines };
+      if (path === fixture.list) return { machine: "aspen3", windows: [fixture.pane] };
+      if (path === fixture.ansi) return snapshot;
+      return {};
+    },
+  });
+  let clippedReturn = true;
+  let renderCalls = 0;
+  env.context.KilnHerdrViewer = {
+    load: async () => ({
+      mount: () => ({
+        render: () => {
+          renderCalls += 1;
+          return clippedReturn;
+        },
+        dispose() {},
+      }),
+    }),
+  };
+  const control = (label) => descendants(env.root).find((node) => node.getAttribute?.("aria-label") === label);
+  try {
+    env.fleet.load(env.root, env.loadCtx);
+    await settle();
+    control("Browse Herdr windows on aspen3").click();
+    await settle();
+    control("Open viewer for aspen3 / w1:pA").click();
+    await settle();
+    assert.equal(renderCalls, 1);
+    assert.match(allText(env.root), /Clipped to viewer grid/);
+
+    clippedReturn = false;
+    snapshot = { ...fixture.snapshot, columns: 501 };
+    control("Open viewer for aspen3 / w1:pA").click();
+    await settle();
+    assert.equal(renderCalls, 1, "501-column snapshot is refused before calling WASM render");
+    assert.match(allText(env.root), /Refresh stopped · Terminal capture unavailable/);
+  } finally {
+    env.cleanup();
+  }
+});
+
+test("movePanel re-enables review on input change and refuses stale snapshot on submit", async () => {
+  const reservation = `dispatch-${"1".repeat(64)}`;
+  const planId = "2".repeat(64);
+  const attemptsPayload = {
+    attempts: [{
+      attempt: HASH_A,
+      fence: 5,
+      state: "claimed",
+      phase: "claimed",
+      reservation,
+      queued_move_eligible: true,
+      title: "Moveable work",
+    }],
+  };
+  const env = setup({
+    apiHandler: async (path, opts = {}) => {
+      if (path === "/api/fleet/machines") {
+        return {
+          machines: [
+            { machine: "aspen1", placement_configured: true, state: "reporting", observed_at_ms: null, last_seen_at_ms: null, sessions: null },
+            { machine: "aspen3", placement_configured: true, state: "reporting", observed_at_ms: null, last_seen_at_ms: null, sessions: null },
+          ],
+        };
+      }
+      if (path === "/api/fleet/placement/capabilities") return { move: true, split: false };
+      if (path === "/api/fleet/placement/move/plan" && opts.method === "POST") {
+        return {
+          plan: {
+            identity: planId,
+            source: "aspen1",
+            request: opts.body,
+          },
+        };
+      }
+      if (path === "/api/fleet/placement/move" && opts.method === "POST") {
+        return {
+          placement: {
+            state: "requested",
+            plan: { identity: planId, request: opts.body },
+            session: null,
+          },
+        };
+      }
+      if (path === "/api/fleet/claims?include=foreign,expired") return { claims: [], foreign_claims: [], expired_claims: [] };
+      if (path === "/api/work") return { schema: "kiln.work.v1", bounded: true, configured: true, principal: "local:operator", objects: [] };
+      if (path === "/api/fleet/dispatch/status") return { state: "running", deferred_count: 0 };
+      if (path === "/api/implementation/cairn") return { changes: [], snapshot: { work_recorded: true, attempts_recorded: true } };
+      return {};
+    },
+  });
+  const settle = () => new Promise((resolve) => setImmediate(resolve));
+  try {
+    env.fleet.load(env.root, env.loadCtx);
+    await settle();
+    env.emitEvent("fleet", makeSnapshot({ attempts: attemptsPayload }));
+    await settle();
+
+    const details = descendants(env.root).find(
+      (n) => n.localName === "details" && descendants(n).some((c) => c.textContent === "Move queued workload"),
+    );
+    assert.ok(details);
+    details.open = true;
+    details.dispatchEvent({ type: "toggle" });
+    await settle();
+
+    const selects = descendants(details).filter((n) => n.localName === "select");
+    const review = descendants(details).find((n) => n.localName === "button" && n.textContent === "Review queued move");
+    assert.equal(selects.length, 2);
+    assert.ok(review);
+    selects[0].value = HASH_A;
+    selects[1].value = "aspen3";
+    review.click();
+    await settle();
+    assert.equal(env.elementsById.get("control-dialog").open, true);
+    env.elementsById.get("control-form").dispatchEvent({ type: "submit", preventDefault() {} });
+    await settle();
+    assert.equal(review.disabled, true);
+
+    // Changing destination re-enables review.
+    selects[1].value = "aspen1";
+    selects[1].dispatchEvent({ type: "change" });
+    assert.equal(review.disabled, false);
+
+    // Stale snapshot (attempt no longer eligible) refuses review without posting.
+    env.emitEvent("fleet", makeSnapshot({ attempts: { attempts: [] } }));
+    await settle();
+    const beforeCalls = env.apiCalls.filter((c) => c.path === "/api/fleet/placement/move/plan").length;
+    review.click();
+    await settle();
+    const afterCalls = env.apiCalls.filter((c) => c.path === "/api/fleet/placement/move/plan").length;
+    assert.equal(afterCalls, beforeCalls);
+    assert.match(allText(details), /Fleet snapshot changed/);
   } finally {
     env.cleanup();
   }

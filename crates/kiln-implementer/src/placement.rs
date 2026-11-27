@@ -193,6 +193,59 @@ fn status(
 }
 
 impl Implementer {
+    /// Whether `attempt_id` at `fence` satisfies every owner-side queued-move
+    /// admission check enforced by [`Self::fleet_prepare_move`] and
+    /// [`queued_move_source`], including re-moving an already-moved unstarted attempt.
+    pub fn fleet_queued_move_eligible(
+        &mut self,
+        attempt_id: &ContentId,
+        fence: u64,
+        now_ms: u64,
+    ) -> Result<bool, String> {
+        let tx = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Deferred)
+            .map_err(text)?;
+        if require_native_admission(&tx).is_err() {
+            return Ok(false);
+        }
+        let (split, _) = load::<Option<ContentId>>(&tx, &unit_row(attempt_id))?;
+        if split.is_some() {
+            return Ok(false);
+        }
+        let (launches, _) = load::<TransportLaunches>(&tx, TRANSPORT_LAUNCH_KIND)?;
+        if launches.recall(attempt_id).is_some() {
+            return Ok(false);
+        }
+        let (fleet, _) = load::<FleetState>(&tx, FLEET_STATE_KIND)?;
+        if fleet.schema != FLEET_STATE_SCHEMA {
+            return Err("fleet_state_schema: fleet state schema is unsupported".into());
+        }
+        if fleet.sessions.for_attempt(attempt_id).is_some() {
+            return Ok(false);
+        }
+        let (attempts, _) = load::<AttemptLedger>(&tx, ATTEMPT_KIND)?;
+        let Some(attempt) = attempts.get(attempt_id) else {
+            return Ok(false);
+        };
+        let Some(reservation) = attempt.dispatch.as_ref() else {
+            return Ok(false);
+        };
+        let (work, _) = load::<WorkLedger>(&tx, WORK_KIND)?;
+        let Some(work) = work.get(&attempt.canonical_key) else {
+            return Ok(false);
+        };
+        let probe = MoveRequest {
+            attempt: attempt_id.clone(),
+            fence,
+            reservation: reservation.effect_id.clone(),
+            destination: "__probe__".into(),
+        };
+        let eligible = queued_move_source(&attempts, work, &probe, now_ms).is_ok();
+        tx.commit().map_err(text)?;
+        Ok(eligible)
+    }
+
     /// Read one immutable rebind receipt and its current provider observation.
     pub fn fleet_move_status(
         &mut self,

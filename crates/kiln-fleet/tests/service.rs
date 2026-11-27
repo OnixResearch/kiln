@@ -2058,7 +2058,8 @@ fn hold_fake_clock_renews_within_one_third_lease_and_tracks_fence() -> TestResul
             .iter()
             .filter(|effect| matches!(effect, ClaimEffect::PostRelease { identity, .. } if identity == &claim.identity))
             .count(),
-        1
+        0,
+        "release waits for the claim receipt"
     );
 
     // Part B: scripted fence-bumping coordinator (fence 1 -> 2 -> 3) verifies hold

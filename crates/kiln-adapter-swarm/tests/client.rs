@@ -32,6 +32,7 @@ if [ "$cmd" = "post" ]; then
     echo "441 posting rate limit exceeded" >&2
     exit 3
   fi
+  printf '%s\n' '{"posted":true,"message_id":"<recorded@swarm.local>"}'
   exit 0
 fi
 if [ "$cmd" = "groups" ]; then
@@ -153,6 +154,18 @@ fn post_classifies_accepted_rejected_and_unknown() {
     let accepted = client.post(subject, None, body);
     assert_eq!(accepted.outcome, PostOutcome::Accepted);
     assert_eq!(accepted.detail, None);
+    assert_eq!(
+        accepted.message_id.as_deref(),
+        Some("<recorded@swarm.local>")
+    );
+    let release = client.post(
+        "RELEASE OnixResearch/kiln crates/kiln-core",
+        accepted.message_id.as_deref(),
+        body,
+    );
+    assert_eq!(release.outcome, PostOutcome::Accepted);
+    let args = fs::read_to_string(state.join("argv-post")).unwrap_or_else(|_| unreachable!());
+    assert!(args.contains("--references\n<recorded@swarm.local>\n"));
 
     fs::write(state.join("reject"), "1").unwrap_or_else(|_| unreachable!());
     let rejected = client.post(subject, None, body);

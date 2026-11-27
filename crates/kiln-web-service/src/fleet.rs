@@ -18,7 +18,10 @@ pub const FLEET_PROFILE_SCHEMA: &str = "kiln.web-fleet.v1";
 pub const MAX_FLEET_PROFILE_BYTES: usize = 4_096;
 pub const MIN_FLEET_TIMEOUT_MS: u64 = 250;
 pub const MAX_FLEET_TIMEOUT_MS: u64 = 10_000;
-pub const MIN_FLEET_RESPONSE_BYTES: usize = 65_536;
+/// Worst-case JSON escaping for a 64 KiB visible ANSI snapshot (`\x1b` -> `\u001b`)
+/// expands up to ~384 KiB plus envelope metadata; require at least 512 KiB so an
+/// admitted Fleet bridge profile cannot silently reject valid viewer responses.
+pub const MIN_FLEET_RESPONSE_BYTES: usize = 524_288;
 pub const MAX_FLEET_RESPONSE_BYTES: usize = 4_194_304;
 pub const MAX_MACHINE_LABEL_BYTES: usize = 63;
 pub const MAX_PANE_READ_LINES: u32 = 1_000;
@@ -1032,8 +1035,10 @@ mod tests {
             .unwrap_or_else(|_| unreachable!("address"));
         let server = std::thread::spawn(move || {
             let (mut stream, _) = listener.accept().unwrap_or_else(|_| unreachable!("accept"));
-            let _ = stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 70000\r\n\r\n");
-            let _ = stream.write_all(&vec![b'x'; 70_000]);
+            let body_len = MIN_FLEET_RESPONSE_BYTES + 10_000;
+            let header = format!("HTTP/1.1 200 OK\r\nContent-Length: {body_len}\r\n\r\n");
+            let _ = stream.write_all(header.as_bytes());
+            let _ = stream.write_all(&vec![b'x'; body_len]);
         });
         let client = Client::new(&profile(address)).unwrap_or_else(|_| unreachable!("client"));
         assert!(client.call("GET", "/v1/claims", None).is_err());
@@ -1045,7 +1050,7 @@ mod tests {
             schema: FLEET_PROFILE_SCHEMA.into(),
             address: address.to_string(),
             timeout_ms: 1_000,
-            max_response_bytes: 65_536,
+            max_response_bytes: MIN_FLEET_RESPONSE_BYTES,
         }
     }
 
@@ -1136,7 +1141,7 @@ mod tests {
         profile.timeout_ms = 100;
         assert!(profile.admit().is_err());
         profile.timeout_ms = 2_000;
-        profile.max_response_bytes = 1_024;
+        profile.max_response_bytes = 65_536;
         assert!(profile.admit().is_err());
         profile.max_response_bytes = 1_048_576;
         profile.schema = "kiln.web-fleet.v2".into();
@@ -1162,6 +1167,7 @@ mod tests {
             },
             purpose: "test".into(),
             fence: 1,
+            initial_fence: None,
             granted_ms: 1_000,
             expires_ms: 600_000,
             state: ClaimState::Open,

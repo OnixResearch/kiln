@@ -1028,6 +1028,7 @@ fn fleet_claim_overlap_refuses_skips_serializes_and_checks_monorepo_scopes() {
         },
         purpose: "edit kiln".into(),
         fence: 1,
+        initial_fence: None,
         granted_ms: now_ms.saturating_sub(1_000),
         expires_ms: now_ms.saturating_add(600_000),
         state: ClaimState::Open,

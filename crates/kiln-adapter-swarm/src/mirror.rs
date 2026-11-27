@@ -288,6 +288,7 @@ mod tests {
             PostReceipt {
                 outcome: self.outcome,
                 detail: None,
+                message_id: None,
             }
         }
     }
@@ -323,6 +324,7 @@ mod tests {
             subject: "CLAIM OnixResearch/kiln crates/kiln-core".to_owned(),
             date: "Wed, 18 Nov 2026 23:01:00 +0000".to_owned(),
             references: String::new(),
+            body: String::new(),
         });
         let mut journal = MirrorJournal::default();
         let first = reconcile(&transport, &mut journal, &[attempt(false)], &context());
@@ -365,6 +367,7 @@ mod tests {
                     subject: "CLAIM OnixResearch/kiln crates/other".to_owned(),
                     date: "Wed, 18 Nov 2026 23:01:00 +0000".to_owned(),
                     references: String::new(),
+                    body: String::new(),
                 });
             }
             articles.push(Article {
@@ -374,6 +377,7 @@ mod tests {
                 subject: "CLAIM OnixResearch/kiln crates/kiln-core".to_owned(),
                 date: "Wed, 18 Nov 2026 23:01:00 +0000".to_owned(),
                 references: String::new(),
+                body: String::new(),
             });
         }
         let mut journal = MirrorJournal::default();

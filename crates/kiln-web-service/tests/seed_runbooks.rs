@@ -1044,6 +1044,7 @@ fn preview_path_enforces_rbac_zero_side_effects_claim_overlap_and_bundle_drift()
         },
         purpose: "update flake lock".into(),
         fence: 706,
+        initial_fence: None,
         granted_ms: now_ms.saturating_sub(1_000),
         expires_ms: now_ms.saturating_add(600_000),
         state: ClaimState::Open,

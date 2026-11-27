@@ -401,6 +401,18 @@ fn stale_fences_are_refused_and_sweeps_expire() {
         ),
         "fleet_claim_lease"
     );
+    let (registry, _, _) = decide(
+        &registry,
+        ClaimCommand::MirrorObserved {
+            identity: claim.identity.clone(),
+            release: false,
+            status: MirrorStatus::Posted {
+                message_id: Some("<expired-claim@kiln>".to_string()),
+            },
+        },
+        &ctx,
+    )
+    .unwrap_or_else(|_| unreachable!());
 
     let renewed = decide(
         &registry,
@@ -452,8 +464,8 @@ fn stale_fences_are_refused_and_sweeps_expire() {
     );
     assert!(matches!(
         effects.as_slice(),
-        [ClaimEffect::PostRelease { subject, body, .. }]
-            if subject == "RELEASE onixresearch/kiln docs" && body.contains(EXPIRED_RELEASE_REASON)
+        [ClaimEffect::PostRelease { subject, body, references: Some(parent), .. }]
+            if subject == "RELEASE onixresearch/kiln docs" && body.contains(EXPIRED_RELEASE_REASON) && parent == "<expired-claim@kiln>"
     ));
     // A second sweep requests nothing more, and the expired claim is closed.
     let (_, swept, effects) =
@@ -658,7 +670,7 @@ fn claim_and_release_articles_reference_the_claim() {
 
 #[test]
 // r[verify kiln.fleet.mirror]
-fn release_without_a_known_claim_id_has_no_references() {
+fn release_waits_for_the_durable_claim_id() {
     let holder = agent("omp", "aspen3", "s1");
     let (registry, claim, _) = granted(
         &FleetClaimRegistry::default(),
@@ -675,16 +687,114 @@ fn release_without_a_known_claim_id_has_no_references() {
         &context(NOW + 5, &[], &[]),
     )
     .unwrap_or_else(|_| unreachable!());
+    assert!(effects.is_empty());
+    assert!(matches!(
+        pending_mirror_effects(&registry, COORDINATOR).as_deref(),
+        Ok([ClaimEffect::PostClaim { .. }])
+    ));
+
+    let ctx = context(NOW + 6, &[], &[]);
+    let (registry, _, _) = decide(
+        &registry,
+        ClaimCommand::MirrorObserved {
+            identity: claim.identity.clone(),
+            release: false,
+            status: MirrorStatus::Posted { message_id: None },
+        },
+        &ctx,
+    )
+    .unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        pending_mirror_effects(&registry, COORDINATOR),
+        Ok(Vec::new())
+    );
+    let (registry, _, _) = decide(
+        &registry,
+        ClaimCommand::MirrorObserved {
+            identity: claim.identity,
+            release: false,
+            status: MirrorStatus::Posted {
+                message_id: Some("<recovered@kiln>".to_string()),
+            },
+        },
+        &ctx,
+    )
+    .unwrap_or_else(|_| unreachable!());
+    let snapshot = serde_json::to_vec(&registry).unwrap_or_else(|_| unreachable!());
+    let restored: FleetClaimRegistry =
+        serde_json::from_slice(&snapshot).unwrap_or_else(|_| unreachable!());
+    assert!(matches!(
+        pending_mirror_effects(&restored, COORDINATOR).as_deref(),
+        Ok([ClaimEffect::PostRelease { references: Some(parent), body, .. }])
+            if parent == "<recovered@kiln>" && body.contains(DEFAULT_RELEASE_REASON)
+    ));
+}
+
+#[test]
+// r[verify kiln.fleet.mirror]
+fn renewed_claim_preserves_initial_fence_and_threads_release_after_claim_id_arrives() {
+    let holder = agent("omp", "aspen3", "s1");
+    let (registry, claim, _) = granted(
+        &FleetClaimRegistry::default(),
+        acquire_command("OnixResearch/kiln crates/kiln-fleet", &holder),
+        &context(NOW, &[], &[]),
+    );
+    assert_eq!(claim.initial_fence, Some(claim.fence));
+    let (mut registry, _, _) = decide(
+        &registry,
+        ClaimCommand::Renew {
+            identity: claim.identity.clone(),
+            fence: claim.fence,
+            lease_ms: MAX_CLAIM_LEASE_MS,
+        },
+        &context(NOW + 1_000, &[], &[]),
+    )
+    .unwrap_or_else(|_| unreachable!());
+    // Simulate a fence bump on renewal while initial_fence retains the original CLAIM fence.
+    let updated_fence = claim.fence + 1;
+    registry
+        .claims
+        .get_mut(&claim.identity)
+        .unwrap_or_else(|| unreachable!())
+        .fence = updated_fence;
+    assert_eq!(
+        registry
+            .claims
+            .get(&claim.identity)
+            .map(FleetClaim::initial_fence),
+        Some(claim.fence)
+    );
+    assert!(matches!(
+        pending_mirror_effects(&registry, COORDINATOR).as_deref(),
+        Ok([ClaimEffect::PostClaim { body, .. }]) if body.contains(&format!("fence: {}\n", claim.fence))
+    ));
+    let (registry, _, _) = decide(
+        &registry,
+        ClaimCommand::MirrorObserved {
+            identity: claim.identity.clone(),
+            release: false,
+            status: MirrorStatus::Posted {
+                message_id: Some("<renewed-claim@kiln>".to_string()),
+            },
+        },
+        &context(NOW + 2_000, &[], &[]),
+    )
+    .unwrap_or_else(|_| unreachable!());
+    let (_, _, effects) = decide(
+        &registry,
+        ClaimCommand::Release {
+            identity: claim.identity,
+            fence: updated_fence,
+            note: "done".to_string(),
+        },
+        &context(NOW + 3_000, &[], &[]),
+    )
+    .unwrap_or_else(|_| unreachable!());
     assert!(matches!(
         effects.as_slice(),
-        [ClaimEffect::PostRelease { references: None, body, .. }]
-            if body.contains(DEFAULT_RELEASE_REASON)
+        [ClaimEffect::PostRelease { references: Some(parent), body, .. }]
+            if parent == "<renewed-claim@kiln>" && body.contains(&format!("fence: {updated_fence}\n"))
     ));
-    // Both the claim and release articles are still owed after a crash.
-    assert_eq!(
-        pending_mirror_effects(&registry, COORDINATOR).map(|effects| effects.len()),
-        Ok(2)
-    );
 }
 
 #[test]

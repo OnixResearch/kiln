@@ -598,7 +598,10 @@ fn hold_exit_zero_nonzero_and_conflict_against_loopback_service() -> TestResult 
         .iter()
         .filter(|effect| matches!(effect, ClaimEffect::PostRelease { identity, .. } if identity == &zero_claim.identity))
         .collect();
-    assert_eq!(release_effects.len(), 1);
+    assert!(
+        release_effects.is_empty(),
+        "release waits for the claim receipt"
+    );
     drop(store);
 
     // AC 2: non-zero exit releases claim with exit code in note, hold exits with same code.
@@ -953,7 +956,7 @@ fn hold_sigkill_leaves_claim_open_until_sweep_queues_release_mirror() -> TestRes
     assert_eq!(expired_claim.release_mirror, MirrorStatus::Pending);
 
     let pending = store.fleet_pending_mirror(common::COORDINATOR)?;
-    assert!(pending.iter().any(|effect| matches!(
+    assert!(!pending.iter().any(|effect| matches!(
         effect,
         ClaimEffect::PostRelease { identity, .. } if identity == &claim.identity
     )));
@@ -1106,7 +1109,7 @@ fn hold_child_killed_by_signal_exits_128_plus_sig_and_releases_claim() -> TestRe
     ));
     assert_eq!(term_claim.release_mirror, MirrorStatus::Pending);
     let pending = store.fleet_pending_mirror(common::COORDINATOR)?;
-    assert!(pending.iter().any(|effect| matches!(
+    assert!(!pending.iter().any(|effect| matches!(
         effect,
         ClaimEffect::PostRelease { identity, .. } if identity == &term_claim.identity
     )));
@@ -1166,7 +1169,7 @@ fn hold_child_killed_by_signal_exits_128_plus_sig_and_releases_claim() -> TestRe
     ));
     assert_eq!(kill_claim.release_mirror, MirrorStatus::Pending);
     let pending = store.fleet_pending_mirror(common::COORDINATOR)?;
-    assert!(pending.iter().any(|effect| matches!(
+    assert!(!pending.iter().any(|effect| matches!(
         effect,
         ClaimEffect::PostRelease { identity, .. } if identity == &kill_claim.identity
     )));

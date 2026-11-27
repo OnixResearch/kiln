@@ -512,4 +512,197 @@ mod tests {
         );
         Ok(())
     }
+
+    #[test]
+    fn queued_move_source_allows_re_move_and_refuses_execution_or_unresolved_prior() -> CoreResult<()>
+    {
+        use crate::implementation::{
+            AcceptanceObligation, DEFAULT_LEASE_MS, DispatchControls, DispatchExecutionBindings,
+            DispatchWorkspace, FailureClass, IMPLEMENTATION_WORK_SCHEMA, ImplementationWork,
+            SourceRef, TerminalPolicy, WorkBudget, WorkSourceKind, WorkspaceIsolation,
+        };
+        use crate::inventory::{
+            AttemptBinding, FactRef, ResourceRequirement, WorkNeeds, WorkNeedsAttachment,
+        };
+        use crate::types::{ExternalRef, ProviderProfileId};
+
+        let base = Some(ExternalRef::new("git", "commit", &"1".repeat(40))?);
+        let work = ImplementationWork {
+            schema: IMPLEMENTATION_WORK_SCHEMA.into(),
+            revision: 1,
+            actor: "operator".into(),
+            repository: "onix/kiln".into(),
+            project: "kiln".into(),
+            base: base.clone(),
+            title: "move work".into(),
+            requested_outcome: "implement".into(),
+            acceptance: vec![AcceptanceObligation {
+                id: "accept".into(),
+                statement: "accept".into(),
+            }],
+            dependencies: vec![],
+            permitted_paths: vec!["src".into()],
+            permitted_effects: BTreeSet::from([
+                "write_source".into(),
+                INTERACTIVE_AGENT_EFFECT.into(),
+            ]),
+            verification_profile: content_identity(b"verify")?,
+            budget: WorkBudget {
+                attempts: 3,
+                minutes_per_attempt: 60,
+            },
+            terminal_policy: TerminalPolicy::VerifiedPullRequest,
+            priority: 1,
+            aliases: vec![SourceRef {
+                kind: WorkSourceKind::GitHubIssue,
+                source: ExternalRef::new("github", "issue", "onix/kiln#1")?,
+                native_id: "onix/kiln#1".into(),
+                version: content_identity(b"src")?,
+            }],
+        };
+
+        let make_plan = |attempt: &ImplementationAttempt, ws: &[u8]| -> CoreResult<ImplementationDispatchPlan> {
+            Ok(ImplementationDispatchPlan {
+                schema: crate::implementation::DISPATCH_PLAN_SCHEMA.into(),
+                work_identity: attempt.work_identity.clone(),
+                work_revision: work.revision,
+                attempt_identity: attempt.identity.clone(),
+                fence: attempt.fence,
+                repository: work.repository.clone(),
+                base: base.clone(),
+                workspace: DispatchWorkspace {
+                    isolation: WorkspaceIsolation::InteractiveWorktree,
+                    identity: content_identity(ws)?,
+                    network: true,
+                    credentials: true,
+                    projection: None,
+                },
+                provider_profile: ProviderProfileId::new(INTERACTIVE_PROVIDER_PROFILE)?,
+                permitted_paths: work.permitted_paths.clone(),
+                permitted_effects: work.permitted_effects.clone(),
+                controls: DispatchControls {
+                    cancel: true,
+                    pause: false,
+                    resume: false,
+                },
+                deadline_minutes: 60,
+                token_budget: 1_000,
+                invocation_budget: 10,
+                expected_output: content_identity(b"output")?,
+                execution: None,
+            })
+        };
+
+        // 1. Positive: transport_start_bound (from an earlier move) is still allowed to re-move.
+        let mut ledger = AttemptLedger::default();
+        let attempt = ledger.claim(&work, 10, DEFAULT_LEASE_MS)?;
+        let plan = make_plan(&attempt, b"ws-1")?;
+        let reservation = ledger.reserve_dispatch_plan(&work, &attempt.identity, attempt.fence, 11, &plan)?;
+        ledger.bind_transport_start(&attempt.identity)?;
+        let req = MoveRequest {
+            attempt: attempt.identity.clone(),
+            fence: attempt.fence,
+            reservation: reservation.effect_id,
+            destination: "aspen3".into(),
+        };
+        assert!(queued_move_source(&ledger, &work, &req, 12).is_ok());
+
+        // 2. Negative: plan.execution.is_some() is refused.
+        let mut exec_ledger = AttemptLedger::default();
+        let exec_attempt = exec_ledger.claim(&work, 10, DEFAULT_LEASE_MS)?;
+        let mut exec_plan = make_plan(&exec_attempt, b"ws-2")?;
+        let policy_id = content_identity(b"policy")?;
+        let reference = |id: &str| FactRef {
+            source: "provider-v1".into(),
+            id: id.into(),
+        };
+        exec_plan.execution = Some(DispatchExecutionBindings {
+            native_request_profile: None,
+            requirements: WorkNeedsAttachment::new(
+                exec_attempt.work_identity.clone(),
+                work.revision,
+                policy_id.clone(),
+                WorkNeeds {
+                    work_version: exec_attempt.work_identity.as_str().into(),
+                    task_family: "feature".into(),
+                    output_contract: "candidate-v1".into(),
+                    definition: reference("definition"),
+                    profile_revision: "worker-v1".into(),
+                    policy_ref: policy_id.as_str().into(),
+                    harness: "omp-jsonl".into(),
+                    tools: vec!["edit".into()],
+                    sandbox: "bubblewrap".into(),
+                    execution_backend: "cpu-linux".into(),
+                    model_backend: "remote-api".into(),
+                    context_tokens: 1024,
+                    execution_resources: vec![ResourceRequirement {
+                        unit: "cpu".into(),
+                        amount: 1,
+                    }],
+                    modalities: vec!["text".into()],
+                    model_artifact: Some("model-v1".into()),
+                    qualification_subject: "subject".into(),
+                    qualification_corpus: "corpus".into(),
+                    qualification_protocol: "v1".into(),
+                },
+            )
+            .map_err(|msg| refusal("test", "needs", msg))?,
+            attempt: AttemptBinding {
+                work_version: exec_attempt.work_identity.as_str().into(),
+                attempt: exec_attempt.identity.as_str().into(),
+                fence: exec_attempt.fence,
+                worker: reference("worker"),
+                execution_grant: reference("cpu-grant"),
+                model_services: vec![reference("shared-model")],
+                request_admissions: vec![reference("request-grant")],
+            },
+        });
+        let exec_res = exec_ledger.reserve_dispatch_plan(
+            &work,
+            &exec_attempt.identity,
+            exec_attempt.fence,
+            11,
+            &exec_plan,
+        )?;
+        let exec_req = MoveRequest {
+            attempt: exec_attempt.identity,
+            fence: exec_attempt.fence,
+            reservation: exec_res.effect_id,
+            destination: "aspen3".into(),
+        };
+        assert_eq!(
+            queued_move_source(&exec_ledger, &work, &exec_req, 12)
+                .err()
+                .map(|e| e.code),
+            Some("fleet_placement_source".into())
+        );
+
+        // 3. Negative: unresolved prior attempt on canonical_key is refused.
+        let mut prior_ledger = AttemptLedger::default();
+        let a1 = prior_ledger.claim(&work, 10, DEFAULT_LEASE_MS)?;
+        let p1 = make_plan(&a1, b"ws-3")?;
+        let _r1 = prior_ledger.reserve_dispatch_plan(&work, &a1.identity, a1.fence, 11, &p1)?;
+        prior_ledger.fail(&a1.identity, a1.fence, 12, FailureClass::Infrastructure, "tmp")?;
+        let a2 = prior_ledger.claim(&work, 13, DEFAULT_LEASE_MS)?;
+        let p2 = make_plan(&a2, b"ws-4")?;
+        let r2 = prior_ledger.reserve_dispatch_plan(&work, &a2.identity, a2.fence, 14, &p2)?;
+        let mut ledger_json = serde_json::to_value(&prior_ledger).expect("serialize ledger");
+        ledger_json["attempts"][a1.identity.as_str()]["failure"] =
+            serde_json::to_value(FailureClass::Unknown).expect("serialize failure class");
+        let prior_ledger: AttemptLedger =
+            serde_json::from_value(ledger_json).expect("deserialize ledger");
+        let req2 = MoveRequest {
+            attempt: a2.identity,
+            fence: a2.fence,
+            reservation: r2.effect_id,
+            destination: "aspen3".into(),
+        };
+        assert_eq!(
+            queued_move_source(&prior_ledger, &work, &req2, 15)
+                .err()
+                .map(|e| e.code),
+            Some("fleet_placement_source".into())
+        );
+        Ok(())
+    }
 }

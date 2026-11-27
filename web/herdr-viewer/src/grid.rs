@@ -15,7 +15,7 @@ use librio::{
 
 /// The largest snapshot interpreted; the Fleet capture route bounds to the same size.
 pub const MAX_SNAPSHOT_BYTES: usize = 64 * 1_024;
-/// Grid sides beyond these are clipped.
+/// Grid sides beyond these are clipped; aligned with `MAX_PANE_CELLS` and `HERDR_VIEWER_MAX_CELLS`.
 pub const MAX_COLUMNS: u16 = 500;
 pub const MAX_ROWS: u16 = 500;
 /// librio refuses a side smaller than two cells.

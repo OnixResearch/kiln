@@ -21,12 +21,12 @@ use kiln_adapter_herdr::{
     HerdrFailure, HerdrInventory, HerdrMachine, MachineLoad, Occupancy, agent_name, attempt_short,
     place,
 };
+use kiln_adapter_swarm::Article;
 use kiln_core::fleet::{
     AgentStatus, ClaimCommand, ClaimEffect, ClaimOutcome, FleetAgent, FleetEffect, FleetScope,
     FleetSession, ForeignClaim, HandoffInstructions, Observation, Placement, SessionState,
     SessionWorkspace, branch_name, overlaps, parse_scope, render_attempt_prompt,
 };
-use kiln_core::implementation::swarm::ArticleView;
 use kiln_core::implementation::{
     DISPATCH_PLAN_SCHEMA, DispatchControls, DispatchWorkspace, FailureClass as AttemptFailure,
     INTERACTIVE_AGENT_EFFECT, INTERACTIVE_PROVIDER_PROFILE, ImplementationAttempt,
@@ -185,11 +185,7 @@ impl Dispatcher {
             None => None,
         };
         let foreign: Option<Vec<ForeignClaim>> = match (&self.service.swarm, &window) {
-            (Some(swarm), Some(articles)) => Some(crate::swarm::foreign_claims(
-                articles,
-                swarm.own_address(),
-                now_ms,
-            )),
+            (Some(swarm), Some(articles)) => Some(swarm.foreign_in(articles, now_ms)),
             (Some(_), None) => None,
             (None, _) => Some(Vec::new()),
         };
@@ -281,7 +277,7 @@ impl Dispatcher {
     }
 
     // r[impl kiln.fleet.mirror]
-    fn mirror(&mut self, window: Option<&[ArticleView]>) -> Result<(), String> {
+    fn mirror(&mut self, window: Option<&[Article]>) -> Result<(), String> {
         let Some(swarm) = self.service.swarm.clone() else {
             return Ok(());
         };
@@ -321,12 +317,12 @@ impl Dispatcher {
                 ClaimEffect::PostClaim { identity, .. } => (identity.clone(), false),
                 ClaimEffect::PostRelease { identity, .. } => (identity.clone(), true),
             };
-            let outcome = swarm.post(&effect);
+            let receipt = swarm.post(&effect);
             log::info(
                 "mirror.post",
-                json!({ "claim": identity, "release": release, "outcome": outcome.as_str() }),
+                json!({ "claim": identity, "release": release, "outcome": receipt.outcome.as_str() }),
             );
-            if let Some(status) = mirror_status(outcome) {
+            if let Some(status) = mirror_status(receipt) {
                 self.store.fleet_claim(
                     ClaimCommand::MirrorObserved {
                         identity,

@@ -1064,6 +1064,7 @@ mod tests {
             },
             purpose: "edit".into(),
             fence: 1,
+            initial_fence: None,
             granted_ms: 100,
             expires_ms: 500,
             state: ClaimState::Open,

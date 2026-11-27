@@ -420,7 +420,8 @@ pub fn parse_window_capture_query(query: Option<&str>) -> Result<WindowCaptureQu
 }
 
 /// Strip ANSI escape sequences and control characters, keeping at most the
-/// trailing `max_lines` lines and at most `max_bytes` bytes.
+/// trailing `max_lines` lines and at most `max_bytes` bytes (retaining the
+/// trailing lines or trailing suffix on single-line overflow).
 #[must_use]
 pub fn sanitize_pane_output(raw: &str, max_lines: u32, max_bytes: usize) -> SanitizedPane {
     let cleaned = strip_ansi_and_controls(raw);
@@ -434,7 +435,11 @@ pub fn sanitize_pane_output(raw: &str, max_lines: u32, max_bytes: usize) -> Sani
 
 /// Bound a visible-screen ANSI snapshot without interpreting it: at most the
 /// trailing `max_lines` rows and `max_bytes` bytes, rows joined by CR LF.
-/// Escapes stay for the viewer, which treats them only as terminal state.
+/// Both multi-line and single-line overflow keep the trailing rows or trailing
+/// suffix (advancing single-line cuts past any partial escape sequence so
+/// broken CSI/OSC tails never appear as literal text). Note that dropping
+/// leading rows or bytes may drop earlier SGR attributes. Escapes stay for the
+/// viewer, which treats them only as terminal state.
 #[must_use]
 pub fn bound_ansi_output(raw: &str, max_lines: u32, max_bytes: usize) -> SanitizedPane {
     bound_trailing_lines(
@@ -469,11 +474,7 @@ fn bound_trailing_lines(
         truncated = true;
     }
     if lines.len() == 1 && lines[0].len() > max_bytes {
-        let mut end = max_bytes;
-        while end > 0 && !lines[0].is_char_boundary(end) {
-            end -= 1;
-        }
-        lines[0].truncate(end);
+        lines[0] = trailing_safe_slice(&lines[0], max_bytes).to_owned();
         truncated = true;
     }
     let text = lines.join(separator);
@@ -484,6 +485,65 @@ fn bound_trailing_lines(
         line_count,
         truncated,
     }
+}
+
+/// Return the longest suffix of `line` fitting in `max_bytes` that starts on a
+/// UTF-8 character boundary outside any ANSI escape sequence.
+fn trailing_safe_slice(line: &str, max_bytes: usize) -> &str {
+    let min_start = line.len().saturating_sub(max_bytes);
+    if min_start == 0 {
+        return line;
+    }
+    let bytes = line.as_bytes();
+    let mut i = 0;
+    while i < min_start {
+        if bytes[i] == 0x1b {
+            i += 1;
+            if i < bytes.len() && bytes[i] == b'[' {
+                i += 1;
+                while i < bytes.len() {
+                    let b = bytes[i];
+                    i += 1;
+                    if (0x40..=0x7e).contains(&b) {
+                        break;
+                    }
+                }
+            } else if i < bytes.len() && bytes[i] == b']' {
+                i += 1;
+                while i < bytes.len() {
+                    if bytes[i] == 0x07 {
+                        i += 1;
+                        break;
+                    }
+                    if bytes[i] == 0x1b && i + 1 < bytes.len() && bytes[i + 1] == b'\\' {
+                        i += 2;
+                        break;
+                    }
+                    i += 1;
+                }
+            } else if i < bytes.len() && matches!(bytes[i], b'P' | b'_' | b'^' | b'X') {
+                i += 1;
+                while i < bytes.len() {
+                    if bytes[i] == 0x1b && i + 1 < bytes.len() && bytes[i + 1] == b'\\' {
+                        i += 2;
+                        break;
+                    }
+                    i += 1;
+                }
+            } else if i < bytes.len() {
+                i += line[i..]
+                    .chars()
+                    .next()
+                    .map_or(1, char::len_utf8);
+            }
+        } else {
+            i += line[i..]
+                .chars()
+                .next()
+                .map_or(1, char::len_utf8);
+        }
+    }
+    line.get(i..).unwrap_or("")
 }
 
 fn strip_ansi_and_controls(raw: &str) -> String {
@@ -1015,6 +1075,16 @@ mod tests {
         let wide = bound_ansi_output(&"é".repeat(10), 10, 5);
         assert_eq!(wide.text, "éé");
         assert!(wide.truncated);
+
+        // Single-line overflow keeps trailing content consistently with multi-line
+        // overflow, and advances past any escape sequence split at the cut boundary.
+        let single_plain = bound_ansi_output("prefix-middle-suffix", 10, 6);
+        assert_eq!(single_plain.text, "suffix");
+        assert!(single_plain.truncated);
+
+        let single_ansi = bound_ansi_output("\x1b[31mhello\x1b[0m world", 10, 9);
+        assert_eq!(single_ansi.text, " world");
+        assert!(single_ansi.truncated);
     }
 
     #[test]
@@ -1128,6 +1198,7 @@ mod tests {
             },
             purpose: "test".into(),
             fence: 1,
+            initial_fence: None,
             granted_ms: 100,
             expires_ms,
             state,

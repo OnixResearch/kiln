@@ -1212,15 +1212,9 @@ impl Service {
                     });
                 let queued_move_eligible = reservation.is_some()
                     && session.is_none()
-                    && attempt.is_some_and(|attempt| {
-                        attempt.phase == kiln_core::implementation::AttemptPhase::Claimed
-                            && attempt.superseded_by.is_none()
-                            && attempt.workflow.is_none()
-                            && attempt.dispatch_request_binding.is_none()
-                            && !attempts.dispatch_requires_recovery(&attempt.identity)
-                            && !attempts.transport_start_bound(&attempt.identity)
-                            && attempts.is_current(&attempt.identity, view.fence, now_ms)
-                    });
+                    && implementer
+                        .fleet_queued_move_eligible(&view.attempt, view.fence, now_ms)
+                        .unwrap_or(false);
                 json!({
                     "attempt": view.attempt,
                     "fence": view.fence,

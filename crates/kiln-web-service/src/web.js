@@ -2544,7 +2544,7 @@
     // r[impl kiln.web.project_page] Project history renders through project.js; Run latest reuses the existing start form.
     if (subPage === "project") {
       if (!window.KilnProject) { $("project-content").replaceChildren(element("p", "Project history is loading.", "small")); return; }
-      await window.KilnProject.load($("project-content"), { api, navigate, project: route.project, canOperate: canOperate(), startRun });
+      await window.KilnProject.load($("project-content"), { api, navigate, project: route.project, canOperate, startRun });
       return;
     }
     if (subPage === "projects") {
@@ -2562,7 +2562,7 @@
         notice,
         confirmControl,
         route,
-        canOperate: canOperate(),
+        canOperate,
         principal: state.principal,
         getEnrolledProjects: () => state.projects.enrolled,
         runLink,

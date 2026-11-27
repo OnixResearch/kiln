@@ -49,8 +49,9 @@ pub const CLI_USAGE_EXIT: i32 = 2;
 pub const READ_SOURCE: &str = "recent-unwrapped";
 /// Read source for the browser viewer: the visible screen, rendered with SGR.
 pub const ANSI_READ_SOURCE: &str = "visible";
-/// Largest pane side, in cells, Kiln reports to the viewer.
-pub const MAX_PANE_CELLS: u16 = 1_000;
+/// Largest pane side, in cells, Kiln reports to the viewer; aligned with
+/// `web/herdr-viewer` (`MAX_COLUMNS` / `MAX_ROWS`).
+pub const MAX_PANE_CELLS: u16 = 500;
 /// Logical key that interrupts an interactive agent turn.
 pub const INTERRUPT_KEY: &str = "ctrl+c";
 /// Git object names Kiln accepts as an exact base: SHA-1 or SHA-256 hex.
@@ -1258,7 +1259,8 @@ mod tests {
         let layout = br#"{"result":{"type":"pane_layout","layout":{"panes":[
             {"pane_id":"w1:p1","rect":{"width":120,"height":40,"x":0,"y":0}},
             {"pane_id":"w1:p2","rect":{"width":0,"height":40,"x":0,"y":0}},
-            {"pane_id":"w1:p3","rect":{"width":70000,"height":40,"x":0,"y":0}}]}}}"#;
+            {"pane_id":"w1:p3","rect":{"width":501,"height":40,"x":0,"y":0}},
+            {"pane_id":"w1:p4","rect":{"width":500,"height":500,"x":0,"y":0}}]}}}"#;
         let decoded: Result<PaneLayoutResult, _> = decode(layout, "pane_layout", Effect::Read);
         let Ok(decoded) = decoded else {
             panic!("layout must decode");
@@ -1272,6 +1274,13 @@ mod tests {
         );
         assert_eq!(pane_size(&decoded.layout, "w1:p2").ok().flatten(), None);
         assert_eq!(pane_size(&decoded.layout, "w1:p3").ok().flatten(), None);
+        assert_eq!(
+            pane_size(&decoded.layout, "w1:p4").ok().flatten(),
+            Some(PaneSize {
+                columns: 500,
+                rows: 500
+            })
+        );
         assert_eq!(pane_size(&decoded.layout, "w1:p9").ok().flatten(), None);
         let wrong = br#"{"result":{"type":"pane_list","panes":[]}}"#;
         assert!(decode::<PaneLayoutResult>(wrong, "pane_layout", Effect::Read).is_err());

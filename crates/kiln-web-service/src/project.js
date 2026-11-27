@@ -32,6 +32,7 @@
   const SVG_NS = "http://www.w3.org/2000/svg";
   const HEADER_SLOT = "page-primary-action";
   const NOT_RECORDED = "Not recorded";
+  const canOp = (ctx) => (typeof ctx?.canOperate === "function" ? ctx.canOperate() === true : Boolean(ctx?.canOperate));
 
   let generation = 0;
   // The container last given to load(); clear() empties it even while a first read is pending.
@@ -172,7 +173,7 @@
   function headerAction(ctx, project) {
     const slot = document.getElementById(HEADER_SLOT);
     if (!slot) return;
-    if (!project || !ctx.canOperate || typeof ctx.startRun !== "function") { releaseHeader(); return; }
+    if (!project || !canOp(ctx) || typeof ctx.startRun !== "function") { releaseHeader(); return; }
     if (slot.firstElementChild?.dataset.projectAction === project.id) return;
     // r[impl kiln.web.design_system] It opens the start form preselected (more input before dispatch), so it ends in an ellipsis.
     const button = element("button", "Run latest…", "primary");
@@ -434,7 +435,7 @@
         headerAction(ctx, null);
         return page;
       }
-      page.append(emptyState("No retained runs for this project yet", enrolled && ctx.canOperate ? "Use Run latest… to start the first source-bound run." : "Runs appear here once this project has executed."));
+      page.append(emptyState("No retained runs for this project yet", enrolled && canOp(ctx) ? "Use Run latest… to start the first source-bound run." : "Runs appear here once this project has executed."));
     } else {
       page.append(healthCard(ctx, project ? { ...project, id } : { id, reference: "", repository: "" }, history.value), trendCard(history.value.runs), runsTable(ctx, id, history.value.runs, history.value.total));
     }

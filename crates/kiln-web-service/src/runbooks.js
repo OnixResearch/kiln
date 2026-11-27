@@ -18,6 +18,7 @@
   let refreshPreview = null;
 
   const ui = () => window.KilnUi;
+  const canOp = (ctx) => (typeof ctx?.canOperate === "function" ? ctx.canOperate() === true : Boolean(ctx?.canOperate));
   const element = (tag, value, className) => {
     const node = document.createElement(tag);
     if (value !== undefined) node.textContent = String(value);
@@ -832,17 +833,17 @@
     const previewBtn = element("button", "Preview effects & budgets");
     previewBtn.id = "runbook-preview-btn";
     previewBtn.type = "button";
-    previewBtn.disabled = !ctx.canOperate || busy;
+    previewBtn.disabled = !canOp(ctx) || busy;
     const submitBtn = element("button", "Dispatch runbook", "primary");
     submitBtn.id = "runbook-dispatch-submit";
     submitBtn.type = "submit";
     submitBtn.dataset.operate = "";
-    const permitted = ctx.canOperate && runbook.can_dispatch !== false;
+    const permitted = canOp(ctx) && runbook.can_dispatch !== false;
     submitBtn.disabled = !permitted || busy;
     submitRow.append(previewBtn, submitBtn);
     form.append(submitRow);
 
-    if (!ctx.canOperate) {
+    if (!canOp(ctx)) {
       form.append(element("p", "Read-only session: operator access is required to dispatch runbooks.", "warning"));
     } else if (runbook.can_dispatch === false) {
       form.append(element("p", `Dispatch refused (${runbook.dispatch_refusal || "runbook_grant_required"}): an explicit principal grant is required for this mutating runbook.`, "warning"));
@@ -862,7 +863,7 @@
     resultBox.hidden = true;
 
     previewBtn.addEventListener("click", async () => {
-      if (busy || !ctx.canOperate) return;
+      if (busy || !canOp(ctx)) return;
       errorBox.hidden = true;
       errorBox.replaceChildren();
       previewResultBox.hidden = true;
@@ -907,7 +908,7 @@
       } finally {
         if (generation === currentGen) {
           busy = false;
-          previewBtn.disabled = !ctx.canOperate;
+          previewBtn.disabled = !canOp(ctx);
           submitBtn.disabled = !permitted;
         }
       }
@@ -1163,7 +1164,7 @@
     const fanoutPreviewBtn = element("button", "Preview fan-out effects & budgets");
     fanoutPreviewBtn.id = "runbook-fanout-preview-btn";
     fanoutPreviewBtn.type = "button";
-    fanoutPreviewBtn.disabled = !ctx.canOperate || busy;
+    fanoutPreviewBtn.disabled = !canOp(ctx) || busy;
     const submitBtn = element("button", "Dispatch fan-out", "primary");
     submitBtn.id = "runbook-fanout-submit";
     submitBtn.type = "submit";
@@ -1186,7 +1187,7 @@
     resultBox.hidden = true;
 
     fanoutPreviewBtn.addEventListener("click", async () => {
-      if (busy || !ctx.canOperate) return;
+      if (busy || !canOp(ctx)) return;
       errorBox.hidden = true;
       errorBox.replaceChildren();
       fanoutPreviewResultBox.hidden = true;
@@ -1244,7 +1245,7 @@
       } finally {
         if (generation === currentGen) {
           busy = false;
-          fanoutPreviewBtn.disabled = !ctx.canOperate;
+          fanoutPreviewBtn.disabled = !canOp(ctx);
           submitBtn.disabled = !permitted;
         }
       }
@@ -1805,7 +1806,7 @@
     }
 
     const controls = isRecord(fanout.controls) ? fanout.controls : {};
-    if (ctx.canOperate && (controls.pause || controls.continue || controls.cancel)) {
+    if (canOp(ctx) && (controls.pause || controls.continue || controls.cancel)) {
       const controlSection = element("section", undefined, "view-stack");
       controlSection.id = "fanout-controls";
       const reqWrap = element("div", undefined, "form-field");
@@ -2183,7 +2184,11 @@
             view.append(element("p", `Current catalog head: ${head.head}`, "small"), field("Draft ID", draft), field("Source member", member), read, editor);
             status.textContent = "Choose a draft ID and source member.";
             read.addEventListener("click", async () => {
-              if (!current() || !/^[A-Za-z0-9_-]{1,128}$/.test(draft.value)) return;
+              if (!current()) return;
+              if (!/^[A-Za-z0-9_-]{1,128}$/.test(draft.value)) {
+                status.textContent = "Enter a Draft ID using 1–128 letters, digits, underscores, or hyphens.";
+                return;
+              }
               discard();
               const binding = { workflow: selected, expected_head: head.head, draft_id: draft.value, member: member.value };
               const retained = () => current() && draft.value === binding.draft_id && member.value === binding.member;
@@ -2250,8 +2255,8 @@
     busy = false;
     refreshPreview = null;
     const isCurrent = () => generation === currentGen && (!ctx.isCurrent || ctx.isCurrent());
-    const authoring = ctx.canOperate ? renderLatticeAuthoring(ctx, isCurrent) : null;
-    const drafts = ctx.canOperate ? renderDraftOwner(ctx, isCurrent) : null;
+    const authoring = canOp(ctx) ? renderLatticeAuthoring(ctx, isCurrent) : null;
+    const drafts = canOp(ctx) ? renderDraftOwner(ctx, isCurrent) : null;
     const show = (content) => root.replaceChildren(...(authoring ? [authoring, drafts, content] : [content]));
     show(element("p", "Loading reviewed runbooks…", "small"));
     let response;

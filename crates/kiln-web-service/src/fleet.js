@@ -16,7 +16,7 @@
   const HERDR_VIEWER_LINES = 1_000;
   const HERDR_VIEWER_REFRESH_MS = 2_000;
   const HERDR_VIEWER_MAX_ANSI = 64 * 1_024;
-  const HERDR_VIEWER_MAX_CELLS = 1_000;
+  const HERDR_VIEWER_MAX_CELLS = 500;
   const HERDR_VIEWER_MODULE = "/herdr-viewer.js";
   const CLAIMS_INCLUDE = "/api/fleet/claims?include=foreign,expired";
   const DISPATCH_STATUS = "/api/fleet/dispatch/status";
@@ -446,14 +446,15 @@
         return;
       }
       viewer.controller = null;
+      let clipped = false;
       try {
-        viewer.terminal.render(new TextEncoder().encode(value.ansi), value.columns ?? 0, value.rows ?? 0);
+        clipped = viewer.terminal.render(new TextEncoder().encode(value.ansi), value.columns ?? 0, value.rows ?? 0) === true;
       } catch {
         await fallBack("The terminal viewer could not draw this window; showing plain text.");
         return;
       }
       const observed = new Date();
-      status.textContent = `${label} · Visible screen${value.truncated ? " · Limited by Kiln" : ""} · Read ${observed.toLocaleTimeString()} · Refreshing every ${HERDR_VIEWER_REFRESH_MS / 1000}s while open and visible`;
+      status.textContent = `${label} · Visible screen${value.truncated ? " · Limited by Kiln" : ""}${clipped ? " · Clipped to viewer grid" : ""} · Read ${observed.toLocaleTimeString()} · Refreshing every ${HERDR_VIEWER_REFRESH_MS / 1000}s while open and visible`;
       viewer.timer = setTimeout(() => void viewer.refresh(), HERDR_VIEWER_REFRESH_MS);
     };
     await viewer.refresh();
@@ -1329,6 +1330,8 @@
     const button = (label) => { const b = element("button", label); b.type = "button"; return b; };
     const option = (select, value, label = value) => { const o = element("option", label); o.value = value; select.append(o); };
     const label = (name, control) => { const l = element("label", name); l.append(control); return l; };
+    const eligibleMoves = () => (state.listedAttempts || []).filter((a) => a.queued_move_eligible === true && /^dispatch-[0-9a-f]{64}$/.test(a.reservation) && IDENTITY.test(a.attempt) && count(a.fence) > 0);
+    const reportingHosts = () => (state.listedMachines || []).filter((m) => m.placement_configured === true && m.state === "reporting");
     panel.addEventListener("toggle", async () => {
       if (!panel.open || !current()) return;
       const result = element("div");
@@ -1339,18 +1342,26 @@
         if (!visible()) return;
         status.textContent = capabilities.active_move_reason || "Running workloads cannot be moved.";
         if (!capabilities.move) { content.prepend(element("p", capabilities.move_reason || "Queued moves are unavailable.")); return; }
-        const attempts = (state.listedAttempts || []).filter((a) => a.queued_move_eligible === true && /^dispatch-[0-9a-f]{64}$/.test(a.reservation) && IDENTITY.test(a.attempt) && count(a.fence) > 0);
+        const attempts = eligibleMoves();
         if (!attempts.length) { content.prepend(element("p", "No movable reservation in the current Fleet snapshot. Reopen after Fleet refreshes.")); return; }
         const attempt = element("select");
         const host = element("select");
         option(host, "", "Choose a destination");
         attempts.forEach((a) => option(attempt, a.attempt, `${a.title || "Attempt"} · ${a.attempt.slice(0, 12)}`));
-        (state.listedMachines || []).filter((m) => m.placement_configured === true && m.state === "reporting").forEach((m) => option(host, m.machine));
+        reportingHosts().forEach((m) => option(host, m.machine));
         const review = button("Review queued move");
+        const allowReview = () => { review.disabled = false; };
+        attempt.addEventListener("change", allowReview);
+        host.addEventListener("change", allowReview);
         content.prepend(label("Queued attempt", attempt), label("New destination", host), review);
         review.addEventListener("click", async () => {
-          const item = attempts.find((a) => a.attempt === attempt.value);
-          if (!visible() || review.disabled || !item || !host.value) return;
+          const item = eligibleMoves().find((a) => a.attempt === attempt.value);
+          const hostAllowed = reportingHosts().some((m) => m.machine === host.value);
+          if (!visible() || review.disabled || !host.value) return;
+          if (!item || !hostAllowed) {
+            result.replaceChildren(element("p", "The Fleet snapshot changed. Reopen to review against the current reservation."));
+            return;
+          }
           const request = { attempt: item.attempt, fence: item.fence, reservation: item.reservation, destination: host.value };
           review.disabled = attempt.disabled = host.disabled = true;
           let submitted;
@@ -1415,8 +1426,10 @@
         const form = element("form");
         const fields = element("fieldset");
         fields.append(element("legend", "Attempts and destination machines"));
-        const choices = (state.listedAttempts || []).filter((a) => a.state === "claimed" && !a.session && IDENTITY.test(a.attempt) && count(a.fence) > 0);
-        const hosts = (state.listedMachines || []).filter((m) => m.placement_configured === true && m.state === "reporting");
+        const eligibleChoices = () => (state.listedAttempts || []).filter((a) => a.state === "claimed" && !a.session && IDENTITY.test(a.attempt) && count(a.fence) > 0);
+        const reportingHosts = () => (state.listedMachines || []).filter((m) => m.placement_configured === true && m.state === "reporting");
+        const choices = eligibleChoices();
+        const hosts = reportingHosts();
         const rows = [];
         const add = element("button", "Add another unit", "quiet");
         add.type = "button";
@@ -1488,7 +1501,13 @@
         form.addEventListener("submit", async (event) => {
           event.preventDefault();
           if (!current() || preview.disabled) return;
-          const units = rows.map(({ attempt, destination }) => ({ attempt: attempt.value, fence: choices.find((a) => a.attempt === attempt.value)?.fence, destination: destination.value }));
+          const currentChoices = eligibleChoices();
+          const currentHosts = reportingHosts();
+          const units = rows.map(({ attempt, destination }) => ({ attempt: attempt.value, fence: currentChoices.find((a) => a.attempt === attempt.value)?.fence, destination: destination.value }));
+          if (units.some((u) => count(u.fence) === null || !currentHosts.some((m) => m.machine === u.destination))) {
+            status.textContent = "The Fleet snapshot changed. Reopen to place against the current claims and hosts.";
+            return;
+          }
           if (new Set(units.map((u) => u.attempt)).size !== units.length || new Set(units.map((u) => u.destination)).size < 2) {
             status.textContent = "Select distinct attempts and at least two distinct destination machines.";
             return;

@@ -13,7 +13,7 @@ use bounded_exec::{
     OutcomePolicy, RunError, RunRequest, TerminationScope, run,
 };
 use kiln_core::implementation::swarm::{
-    ArticleView, ClaimArticle, admit_body, parse_rfc2822_ms, parse_subject,
+    ArticleView, ClaimArticle, MAX_MESSAGE_ID_BYTES, admit_body, parse_rfc2822_ms, parse_subject,
 };
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
@@ -32,6 +32,8 @@ pub struct Article {
     pub date: String,
     #[serde(default)]
     pub references: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub body: String,
 }
 
 impl Article {
@@ -93,11 +95,45 @@ pub struct PostReceipt {
     pub outcome: PostOutcome,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub detail: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message_id: Option<String>,
 }
 
 impl PostReceipt {
     fn new(outcome: PostOutcome, detail: Option<String>) -> Self {
-        Self { outcome, detail }
+        Self {
+            outcome,
+            detail,
+            message_id: None,
+        }
+    }
+
+    fn accepted(stdout: &[u8]) -> Self {
+        #[derive(Deserialize)]
+        struct Ack {
+            posted: bool,
+            message_id: Option<String>,
+        }
+        let message_id = serde_json::from_slice::<Ack>(stdout)
+            .ok()
+            .filter(|ack| ack.posted)
+            .and_then(|ack| ack.message_id)
+            .filter(|id| {
+                id.len() <= MAX_MESSAGE_ID_BYTES
+                    && id
+                        .strip_prefix('<')
+                        .and_then(|id| id.strip_suffix('>'))
+                        .is_some_and(|id| {
+                            id.contains('@')
+                                && id.bytes().all(|byte| {
+                                    byte.is_ascii_graphic() && !matches!(byte, b'<' | b'>')
+                                })
+                        })
+            });
+        Self {
+            message_id,
+            ..Self::new(PostOutcome::Accepted, None)
+        }
     }
 }
 
@@ -250,7 +286,7 @@ impl SwarmClient {
         };
         match run(request) {
             Ok(output) => match output.disposition {
-                Disposition::Succeeded => PostReceipt::new(PostOutcome::Accepted, None),
+                Disposition::Succeeded => PostReceipt::accepted(&output.stdout.bytes),
                 Disposition::ExitFailed => {
                     PostReceipt::new(PostOutcome::Rejected, detail(&output.stderr.bytes))
                 }
@@ -417,12 +453,36 @@ mod tests {
             subject: "CLAIM OnixResearch/kiln crates/kiln-core".to_owned(),
             date: "Wed, 18 Nov 2026 23:01:00 +0000".to_owned(),
             references: "<parent@aspen1> <other@aspen1>".to_owned(),
+            body: String::new(),
         };
         let view = article
             .view()
             .unwrap_or_else(|| unreachable!("date must parse"));
         assert_eq!(view.date_unix_ms, 1_795_042_860_000);
         assert_eq!(view.references.len(), 2);
+    }
+
+    #[test]
+    fn accepted_receipt_admits_only_bounded_message_ids() {
+        assert_eq!(
+            PostReceipt::accepted(br#"{"posted":true,"message_id":"<id@swarm.local>"}"#).message_id.as_deref(),
+            Some("<id@swarm.local>")
+        );
+        assert_eq!(
+            PostReceipt::accepted(br#"{"posted":false,"message_id":"<id@swarm.local>"}"#).message_id,
+            None
+        );
+        assert_eq!(
+            PostReceipt::accepted(br#"{"posted":true,"message_id":"not-angle-bracketed"}"#).message_id,
+            None
+        );
+        assert_eq!(
+            PostReceipt::accepted(br#"{"posted":true,"message_id":"<bad<id@swarm>"}"#).message_id,
+            None
+        );
+        let oversized = format!(r#"{{"posted":true,"message_id":"<{}@swarm>"}}"#, "x".repeat(MAX_MESSAGE_ID_BYTES));
+        assert_eq!(PostReceipt::accepted(oversized.as_bytes()).message_id, None);
+        assert_eq!(PostReceipt::accepted(b"plain ok").message_id, None);
     }
 }
 

@@ -109,6 +109,8 @@ pub struct FleetClaim {
     pub holder: FleetAgent,
     pub purpose: String,
     pub fence: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub initial_fence: Option<u64>,
     pub granted_ms: u64,
     pub expires_ms: u64,
     pub state: ClaimState,
@@ -122,6 +124,16 @@ impl FleetClaim {
     #[must_use]
     pub fn is_live(&self, now_ms: u64) -> bool {
         self.state == ClaimState::Open && self.expires_ms > now_ms
+    }
+
+    /// Fence of the original `CLAIM` article; falls back to [`Self::fence`]
+    /// for claims persisted before `initial_fence` was recorded.
+    #[must_use]
+    pub const fn initial_fence(&self) -> u64 {
+        match self.initial_fence {
+            Some(fence) => fence,
+            None => self.fence,
+        }
     }
 }
 
@@ -322,7 +334,7 @@ pub fn pending_mirror_effects(
             effects.push(claim_effect(claim, coordinator)?);
         }
         if claim.state != ClaimState::Open && claim.release_mirror == MirrorStatus::Pending {
-            effects.push(release_effect(claim, coordinator)?);
+            effects.extend(release_effect(claim, coordinator)?);
         }
     }
     Ok(effects)
@@ -434,6 +446,7 @@ fn acquire(
         holder: request.holder,
         purpose: request.purpose,
         fence,
+        initial_fence: Some(fence),
         granted_ms: now_ms,
         expires_ms,
         state: ClaimState::Open,
@@ -532,10 +545,12 @@ fn release(
         note,
     };
     released.release_mirror = MirrorStatus::Pending;
-    let effect = release_effect(&released, context.coordinator)?;
+    let effects = release_effect(&released, context.coordinator)?
+        .into_iter()
+        .collect();
     let mut next = registry.clone();
     next.claims.insert(identity.clone(), released.clone());
-    Ok((next, ClaimOutcome::Released(released), alloc::vec![effect]))
+    Ok((next, ClaimOutcome::Released(released), effects))
 }
 
 fn sweep(registry: &FleetClaimRegistry, context: &ClaimContext<'_>) -> CoreResult<Decided> {
@@ -548,7 +563,7 @@ fn sweep(registry: &FleetClaimRegistry, context: &ClaimContext<'_>) -> CoreResul
                 at_ms: context.now_ms,
             };
             claim.release_mirror = MirrorStatus::Pending;
-            effects.push(release_effect(claim, context.coordinator)?);
+            effects.extend(release_effect(claim, context.coordinator)?);
             swept.push(claim.identity.clone());
         }
     }
@@ -661,7 +676,7 @@ fn claim_effect(claim: &FleetClaim, coordinator: &str) -> CoreResult<ClaimEffect
         target,
         path,
         purpose: &claim.purpose,
-        fence: claim.fence,
+        fence: claim.initial_fence(),
         lease_minutes: lease_ms.div_ceil(MS_PER_MINUTE),
         signature: signature(claim, coordinator),
     })
@@ -673,7 +688,7 @@ fn claim_effect(claim: &FleetClaim, coordinator: &str) -> CoreResult<ClaimEffect
     })
 }
 
-fn release_effect(claim: &FleetClaim, coordinator: &str) -> CoreResult<ClaimEffect> {
+fn release_effect(claim: &FleetClaim, coordinator: &str) -> CoreResult<Option<ClaimEffect>> {
     let target = claim.scope.target_text();
     let path = claim.scope.path_text();
     let subject = release_subject(target, path).map_err(mirror_refusal)?;
@@ -690,16 +705,18 @@ fn release_effect(claim: &FleetClaim, coordinator: &str) -> CoreResult<ClaimEffe
         signature: signature(claim, coordinator),
     })
     .map_err(mirror_refusal)?;
-    let references = match &claim.claim_mirror {
-        MirrorStatus::Posted { message_id } => message_id.clone(),
-        _ => None,
+    let MirrorStatus::Posted {
+        message_id: Some(message_id),
+    } = &claim.claim_mirror
+    else {
+        return Ok(None);
     };
-    Ok(ClaimEffect::PostRelease {
+    Ok(Some(ClaimEffect::PostRelease {
         identity: claim.identity.clone(),
         subject,
-        references,
+        references: Some(message_id.clone()),
         body,
-    })
+    }))
 }
 
 fn signature<'a>(claim: &'a FleetClaim, coordinator: &'a str) -> FleetSignature<'a> {
