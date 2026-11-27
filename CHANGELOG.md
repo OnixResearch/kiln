@@ -46,6 +46,24 @@ entry describes the source tree prepared for the first tagged release.
   routes, authority registration, console display, and fault-matrix tests. Live
   execution remains fail-closed pending Aspen #15 fencing, Lattice reconnect, and
   two-host KVM qualification.
+- Trusted full-candidate verifier result projection and S5 restricted route
+  enforcement (`#76`, `#77`, `#79`): pure non-interfering verifier projection in
+  `kiln-core::projection::verifier_projection` (omitting hidden projects, paths,
+  test names, diagnostics, and artifacts while surfacing bounded opaque external
+  failure states), wired into `kiln-web-service` writeback `retrieve_result`,
+  restricted source search/download, Cairn workspace observers, and `source.js`
+  / `cairn.js` delayed-response cancellation.
+- Projected source manifest persistence (`#80`): pure `no_std + alloc`
+  CAS/eviction/broker ticket model in `kiln-core::projection::manifest_store`,
+  Molten (`AspenContentPort`) + optional off-by-default conditional-write S3
+  tier and capability-scoped `ProjectedManifestBroker` in `kiln-adapter-aspen`,
+  and typed Nickel contract `config/projected-manifest-store.ncl`.
+- Optional off-by-default Slurm remote-execution adapter (`#95`): standalone
+  `kiln-adapter-slurm` crate (`MIT OR Apache-2.0`) implementing
+  `RemoteExecutionPort` and `RemoteLifecyclePort` over `bounded-exec`
+  (`sbatch`/`squeue`/`scancel`) with strict allowlists, zero shell
+  interpolation, explicit `Unknown` mapping, typed Nickel profile
+  `config/slurm-remote.ncl`, and adapter conformance fixtures.
 
 **Core**
 
