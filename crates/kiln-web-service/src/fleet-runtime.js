@@ -177,6 +177,7 @@
       page.append(article);
     }
     const contracts = element("details", undefined, "inventory-disclosure");
+    contracts.open = root.querySelector(".fleet-runtime details.inventory-disclosure")?.open === true;
     contracts.append(element("summary", "Remaining native producer contracts — not supplied by Fleet"));
     const list = element("ul");
     for (const contract of PRODUCERS) list.append(element("li", contract));
@@ -199,7 +200,9 @@
     const request = new AbortController(); controller = request;
     mounted = root;
     root.setAttribute("aria-busy", "true");
-    root.replaceChildren(element("p", "Reading admitted runtime inventory…", "small"));
+    if (!root.querySelector(".fleet-runtime")) {
+      root.replaceChildren(element("p", "Reading admitted runtime inventory…", "small"));
+    }
     const live = () => current === generation && root.isConnected && ctx.isCurrent();
     try {
       const projection = await ctx.api("/api/inventory", { quiet: true, controller: request });

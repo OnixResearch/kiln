@@ -171,7 +171,7 @@
   }
 
   // r[impl kiln.admission.live_console_governance]
-  function admissionPanel(state, admission) {
+  function admissionPanel(state, admission, notice = "") {
     const panel = node("section", undefined, "panel fleet-capacity-panel fleet-admission-panel");
     panel.append(
       node("h2", "Fair-admission governance & AttemptMetrics"),
@@ -179,6 +179,11 @@
     );
 
     if (!admission.configured || !admission.policy) {
+      if (notice) {
+        const statusEl = node("p", notice, "small");
+        statusEl.setAttribute("role", "status");
+        panel.append(statusEl);
+      }
       panel.append(empty("No fair-admission policy configured", "The implementation store has no active opt-in fair-admission policy. Existing compatibility path applies; no quota or burn is fabricated."));
     } else {
       const policy = admission.policy;
@@ -231,9 +236,9 @@
       const policyWrap = node("div", undefined, "fleet-admission-controls");
       policyWrap.append(node("h3", "Update fair-admission shares (Tier-2 guarded)"));
       const canOp = state.context?.canOperate?.() !== false;
-      const statusEl = node("p", undefined, "small");
+      const statusEl = node("p", notice || undefined, "small");
       statusEl.setAttribute("role", "status");
-      statusEl.hidden = true;
+      statusEl.hidden = !notice;
       const errorEl = node("p", undefined, "fleet-capacity-error");
       errorEl.setAttribute("role", "alert");
       errorEl.hidden = true;
@@ -311,11 +316,12 @@
               shares: nextShares,
             };
             const res = await state.context.api("/api/implementation/admission/policy", { method: "POST", body });
-            statusEl.textContent = `Fair-admission policy ${text(res?.result) || "updated"}${res?.policy_identity ? ` · ${res.policy_identity.slice(0, 12)}` : ""}.`;
+            const nextNotice = `Fair-admission policy ${text(res?.result) || "updated"}${res?.policy_identity ? ` · ${res.policy_identity.slice(0, 12)}` : ""}.`;
+            statusEl.textContent = nextNotice;
             statusEl.hidden = false;
             try {
               const refreshed = validateAdmission(await state.context.api("/api/implementation/admission"));
-              if (current(state) && state.admissionRoot) state.admissionRoot.replaceChildren(admissionPanel(state, refreshed));
+              if (current(state) && state.admissionRoot) state.admissionRoot.replaceChildren(admissionPanel(state, refreshed, nextNotice));
             } catch (_) {}
           } catch (err) {
             errorEl.textContent = `Fair-admission update refused (${err?.status || "error"}): ${text(err?.message) || "owner rejected policy update"}`;

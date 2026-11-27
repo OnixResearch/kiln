@@ -592,7 +592,8 @@
       input = document.createElement("select");
       input.id = id;
       input.name = decl.name;
-      if (decl.required) {
+      const hasDefault = decl.default === true || decl.default === false;
+      if (decl.required || !hasDefault) {
         const blank = element("option", "Select…");
         blank.value = "";
         input.append(blank);
@@ -604,11 +605,13 @@
       }
       if (decl.default === true) input.value = "true";
       else if (decl.default === false) input.value = "false";
+      else input.value = "";
     } else if (decl.kind === "enum") {
       input = document.createElement("select");
       input.id = id;
       input.name = decl.name;
-      if (decl.required) {
+      const hasDefault = typeof decl.default === "string";
+      if (decl.required || !hasDefault) {
         const blank = element("option", "Select…");
         blank.value = "";
         input.append(blank);
@@ -618,7 +621,8 @@
         opt.value = val;
         input.append(opt);
       }
-      if (typeof decl.default === "string") input.value = decl.default;
+      if (hasDefault) input.value = decl.default;
+      else input.value = "";
     } else if (decl.kind === "integer") {
       input = document.createElement("input");
       input.type = "number";
@@ -978,7 +982,12 @@
       } catch (err) {
         if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
         const classified = classifyError(err);
-        errorBox.textContent = `${classified.title}: ${classified.message}`;
+        if (classified.retryable) {
+          reqInput.value = checked.payload.request_id;
+          errorBox.textContent = `${classified.title}: ${classified.message} Request ID: ${checked.payload.request_id}`;
+        } else {
+          errorBox.textContent = `${classified.title}: ${classified.message}`;
+        }
         errorBox.hidden = false;
         ctx.notice?.(errorBox.textContent, "warning");
       } finally {
@@ -1001,6 +1010,8 @@
         fanoutBtn.setAttribute("aria-pressed", "false");
         form.hidden = false;
         errorBox.hidden = true;
+        previewResultBox.hidden = true;
+        previewResultBox.replaceChildren();
         resultBox.hidden = true;
         fanoutForm.hidden = true;
       });
@@ -1009,6 +1020,8 @@
         fanoutBtn.setAttribute("aria-pressed", "true");
         form.hidden = true;
         errorBox.hidden = true;
+        previewResultBox.hidden = true;
+        previewResultBox.replaceChildren();
         resultBox.hidden = true;
         fanoutForm.hidden = false;
       });
@@ -1592,14 +1605,17 @@
       for (const row of filtered) {
         const tr = document.createElement("tr");
         const targetCell = document.createElement("td");
+        targetCell.dataset.label = "Target";
         targetCell.append(element("div", text(row.target), "mono"), element("div", text(row.project_id), "small"));
 
         const rev = text(row.source_revision);
         const revCell = document.createElement("td");
+        revCell.dataset.label = "Exact Revision";
         revCell.append(element("code", rev ? rev.slice(0, 12) : "Not recorded", "mono"));
         if (rev) revCell.title = rev;
 
         const outcomeCell = document.createElement("td");
+        outcomeCell.dataset.label = "Outcome";
         const outInfo = row.run_outcome && ui()?.outcomeStatus
           ? ui().outcomeStatus(row.run_outcome, row.run_phase || "")
           : fanoutOutcomeStatus(row.status);
@@ -1607,14 +1623,18 @@
         if (row.reason) outcomeCell.append(element("div", text(row.reason), "small"));
 
         const pgCell = document.createElement("td");
+        pgCell.dataset.label = "Patchgate Receipt";
         pgCell.append(renderReceiptBadge(row.patchgate_receipt, "patchgate", row.run_id));
 
         const verCell = document.createElement("td");
+        verCell.dataset.label = "Verification Receipt";
         verCell.append(renderReceiptBadge(row.verification_receipt, "verification", row.run_id));
 
         const prCell = renderPrLinksCell(row);
+        prCell.dataset.label = "PR / Stack Links";
 
         const runCell = document.createElement("td");
+        runCell.dataset.label = "Run";
         if (row.run_id) {
           if (typeof ctx.runLink === "function") {
             runCell.append(ctx.runLink(row.run_id, row.run_id));
@@ -1684,11 +1704,16 @@
 
   async function renderDispatchRollupInspector(detailPanel, runId, rollupCursor, ctx, currentGen) {
     const query = rollupCursor ? `?cursor=${encodeURIComponent(rollupCursor)}` : "";
+    detailPanel.setAttribute("aria-busy", "true");
+    const loading = element("p", "Loading dispatch roll-up…", "small");
+    loading.setAttribute("role", "status");
+    detailPanel.replaceChildren(loading);
     let rollup;
     try {
       rollup = await ctx.api(`/api/runbooks/dispatches/${encodeURIComponent(runId)}/rollup${query}`);
     } catch (err) {
       if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
+      detailPanel.removeAttribute("aria-busy");
       if (err?.status === 404) {
         const missing = element("p", `Runbook dispatch not found: ${runId}. No other dispatch was substituted.`, "warning");
         missing.setAttribute("role", "alert");
@@ -1702,6 +1727,7 @@
       return;
     }
     if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
+    detailPanel.removeAttribute("aria-busy");
     if (!isRecord(rollup) || !Array.isArray(rollup.targets)) {
       detailPanel.replaceChildren(element("p", "Dispatch roll-up response was invalid.", "warning"));
       return;
@@ -1726,11 +1752,16 @@
   }
 
   async function renderFanoutInspector(detailPanel, fanoutId, ctx, currentGen, initialError = "", rollupCursor = "") {
+    detailPanel.setAttribute("aria-busy", "true");
+    const loading = element("p", "Loading fan-out details…", "small");
+    loading.setAttribute("role", "status");
+    detailPanel.replaceChildren(loading);
     let fanout;
     try {
       fanout = await ctx.api(`/api/runbooks/fanouts/${encodeURIComponent(fanoutId)}`);
     } catch (err) {
       if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
+      detailPanel.removeAttribute("aria-busy");
       if (err?.status === 404) {
         const missing = element("p", `Fan-out run not found: ${fanoutId}. No other fan-out run was substituted.`, "warning");
         missing.setAttribute("role", "alert");
@@ -1744,6 +1775,7 @@
       return;
     }
     if (generation !== currentGen || (ctx.isCurrent && !ctx.isCurrent())) return;
+    detailPanel.removeAttribute("aria-busy");
     if (!isRecord(fanout) || !Array.isArray(fanout.children)) {
       detailPanel.replaceChildren(element("p", "Fan-out response was invalid.", "warning"));
       return;
@@ -1832,6 +1864,16 @@
       retryBtn.type = "button";
       retryBtn.id = "fanout-control-retry";
       retryBtn.hidden = true;
+      const controlButtons = [];
+      let cancelBtnRef = null;
+      let confirmBoxRef = null;
+      const syncControlButtons = () => {
+        for (const b of controlButtons) {
+          if (busy) b.disabled = true;
+          else if (b === cancelBtnRef) b.disabled = !confirmBoxRef?.checked;
+          else b.disabled = false;
+        }
+      };
 
       const sendControl = async (action, explicitRequestId) => {
         if (busy) return;
@@ -1859,6 +1901,7 @@
           return;
         }
         busy = true;
+        syncControlButtons();
         try {
           const resp = await ctx.api(`/api/runbooks/fanouts/${encodeURIComponent(fanout.id)}/${action}`, {
             method: "POST",
@@ -1890,7 +1933,10 @@
             controlErr.hidden = false;
           }
         } finally {
-          if (generation === currentGen) busy = false;
+          if (generation === currentGen) {
+            busy = false;
+            syncControlButtons();
+          }
         }
       };
 
@@ -1905,6 +1951,7 @@
         pauseBtn.type = "button";
         pauseBtn.id = "fanout-pause-btn";
         pauseBtn.addEventListener("click", () => void sendControl("pause"));
+        controlButtons.push(pauseBtn);
         btnRow.append(pauseBtn);
       }
       if (controls.continue) {
@@ -1912,6 +1959,7 @@
         contBtn.type = "button";
         contBtn.id = "fanout-continue-btn";
         contBtn.addEventListener("click", () => void sendControl("continue"));
+        controlButtons.push(contBtn);
         btnRow.append(contBtn);
       }
       if (controls.cancel) {
@@ -1919,6 +1967,7 @@
         const confirmBox = document.createElement("input");
         confirmBox.type = "checkbox";
         confirmBox.id = "fanout-cancel-confirm";
+        confirmBoxRef = confirmBox;
         confirmLabel.append(confirmBox, element("span", "I understand cancelling stops future child admission permanently and does not stop already-running child runs."));
         controlSection.append(confirmLabel);
 
@@ -1926,14 +1975,17 @@
         cancelBtn.type = "button";
         cancelBtn.id = "fanout-cancel-btn";
         cancelBtn.disabled = true;
+        cancelBtnRef = cancelBtn;
+        controlButtons.push(cancelBtn);
         confirmBox.addEventListener("change", () => {
-          cancelBtn.disabled = !confirmBox.checked;
+          cancelBtn.disabled = busy || !confirmBox.checked;
         });
         cancelBtn.addEventListener("click", () => {
           if (confirmBox.checked) void sendControl("cancel");
         });
         btnRow.append(cancelBtn);
       }
+      controlButtons.push(retryBtn);
       btnRow.append(retryBtn);
       controlSection.append(btnRow, controlErr);
       detailPanel.append(controlSection);
@@ -1964,17 +2016,22 @@
       for (const child of filtered) {
         const tr = document.createElement("tr");
         const targetCell = element("td", text(child.target), "mono");
+        targetCell.dataset.label = "Target";
         const rev = text(child.source_revision);
         const revCell = element("td", rev ? rev.slice(0, 12) : "", "mono");
+        revCell.dataset.label = "Revision";
         if (rev) revCell.title = rev;
         const { status, label } = fanoutOutcomeStatus(child.status);
         const statusCell = document.createElement("td");
+        statusCell.dataset.label = "Status";
         statusCell.append(renderStatusPill(status, label));
         const reasonParts = [];
         if (child.reason) reasonParts.push(child.reason);
         if (child.write_scope) reasonParts.push(child.write_scope);
         const reasonCell = element("td", reasonParts.join(" · ") || "—", "small");
+        reasonCell.dataset.label = "Reason / Scope";
         const runCell = document.createElement("td");
+        runCell.dataset.label = "Child Run";
         if (child.run_id) {
           if (typeof ctx.runLink === "function") {
             runCell.append(ctx.runLink(child.run_id, child.run_id));
@@ -2072,7 +2129,7 @@
         const facts = element("dl", undefined, "facts");
         const memberStatus = element("p", "", "small");
         memberStatus.setAttribute("role", "status");
-        const source = element("pre");
+        const source = element("pre", undefined, "identity");
         controls.append(revisionLabel, facts, memberLabel, memberStatus, source);
         for (const [index, row] of revisions.entries()) {
           const option = element("option", `${row.workflow} — ${row.source_revision.slice(0, 12)} (archive ${row.archive_blake3.slice(0, 12)})`);
@@ -2202,10 +2259,28 @@
                 draftText.rows = 16;
                 draftText.value = source.content;
                 const baseline = draftText.value;
+                const DRAFT_MAX_BYTES = 48 * 1024;
+                const sizeNote = element("p", "", "small");
+                sizeNote.setAttribute("role", "status");
+                sizeNote.hidden = true;
                 const save = button("Validate and save draft");
+                const syncDraftSaveState = () => {
+                  const bytes = utf8Length(draftText.value);
+                  const overLimit = bytes > DRAFT_MAX_BYTES;
+                  if (overLimit) {
+                    sizeNote.textContent = `Draft exceeds the 48 KB limit (${bytes.toLocaleString("en-US")} / ${DRAFT_MAX_BYTES.toLocaleString("en-US")} bytes). Shorten the content before saving.`;
+                    sizeNote.className = "warning";
+                    sizeNote.hidden = false;
+                  } else {
+                    sizeNote.textContent = "";
+                    sizeNote.className = "small";
+                    sizeNote.hidden = true;
+                  }
+                  save.disabled = draftText.value === baseline || overLimit;
+                };
                 save.disabled = true;
-                draftText.addEventListener("input", () => { save.disabled = draftText.value === baseline || new TextEncoder().encode(draftText.value).length > 48 * 1024; });
-                editor.append(field("Workflow source", draftText), save);
+                draftText.addEventListener("input", syncDraftSaveState);
+                editor.append(field("Workflow source", draftText), sizeNote, save);
                 status.textContent = source.draft_revision ? `Draft revision: ${source.draft_revision}` : "New draft from the exact displayed head.";
                 save.addEventListener("click", async () => {
                   if (!retained() || save.disabled) return;
@@ -2218,19 +2293,19 @@
                       facts: [["Workflow", selected], ["Member", binding.member], ["Head", head.head], ["Draft version", source.draft_revision || "Not yet created"]],
                       warning: "Does not publish to the catalog or run the workflow." });
                     if (!approval.confirmed || !retained()) return;
-                    submitted = true;
                     const saved = await native({ action: "save", ...binding, expected_draft: source.draft_revision, content: replacement });
                     if (!retained()) return;
                     if (saved.status !== "saved" || saved.head !== binding.expected_head || saved.member !== binding.member || saved.draft_id !== binding.draft_id || saved.workflow !== selected || !identity(saved.draft_revision) || !saved.receipt) throw new Error("Native draft commit was not confirmed");
-                    const receipt = element("pre", JSON.stringify(saved.receipt, null, 2));
+                    submitted = true;
+                    const receipt = element("pre", JSON.stringify(saved.receipt, null, 2), "identity");
                     editor.replaceChildren(receipt);
                     status.textContent = `Lattice saved draft ${saved.draft_revision}. The catalog head was not changed.`;
                   } catch (error) {
                     if (retained()) status.textContent = `Save not confirmed: ${error?.message || "draft unavailable"}. Read the current head and draft before retrying.`;
                   } finally {
                     if (retained()) {
-                      if (submitted) { draftText.remove(); save.remove(); }
-                      else { save.disabled = false; draftText.disabled = false; }
+                      if (submitted) { draftText.remove(); sizeNote.remove(); save.remove(); }
+                      else { draftText.disabled = false; syncDraftSaveState(); }
                     }
                   }
                 });

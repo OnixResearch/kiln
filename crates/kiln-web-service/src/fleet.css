@@ -38,7 +38,12 @@ button.fleet-mix-toggle[aria-pressed="true"] { background: var(--accent); border
 .fleet-attention-list { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
 .fleet-attention-list li { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; padding: var(--space-2); border: 1px solid var(--border); }
 .fleet-inspector-body { display: grid; gap: var(--space-2); min-width: 0; }
-.fleet-attempt-inspection { padding: var(--space-2) var(--space-3); border: 1px solid var(--border); overflow-wrap: anywhere; }
+.fleet-attempt-inspection { min-width: 0; padding: var(--space-2) var(--space-3); border: 1px solid var(--border); overflow-wrap: anywhere; }
+.fleet-execution-artifacts pre, .fleet-section pre { max-width: 100%; max-height: 24rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.fleet-command-banner { position: sticky; top: var(--topbar-height, 3.5rem); z-index: 10; }
+.fleet-guest-move-controls { display: grid; gap: var(--space-2); }
+.fleet-guest-move-controls label { display: grid; gap: var(--space-1); min-width: 0; }
+.fleet-guest-move-controls input { width: 100%; min-width: 0; }
 .fleet-attempt-inspection summary { cursor: pointer; font-weight: 600; }
 .fleet-mix-bar { display: block; width: 100%; height: .6rem; appearance: none; background: var(--muted); border: 1px solid var(--border-emphasis); }
 .fleet-mix-bar::-webkit-meter-bar { height: 100%; border: 0; border-radius: 0; background: var(--muted); }
@@ -74,9 +79,6 @@ button.fleet-mix-toggle[aria-pressed="true"] { background: var(--accent); border
 .fleet-swarm-detail h3, .fleet-swarm-detail h4 { margin: 0; }
 .fleet-swarm-replay { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 .fleet-swarm-replay input[type="range"] { min-width: 12rem; flex: 1 1 12rem; }
-@media (max-width: 60rem) {
-  .fleet-columns { grid-template-columns: minmax(0, 1fr); }
-}
 @container fleet-page (max-width: 48rem) {
   .fleet-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .fleet-metrics > div:nth-child(2) { border-right: 0; }
@@ -92,17 +94,11 @@ button.fleet-mix-toggle[aria-pressed="true"] { background: var(--accent); border
   .fleet-answer input { max-width: none; }
 }
 
-/* Give the roster's stacked cells labels at the shared stack breakpoint. */
+/* Give stacked Fleet and Runbooks tables explicit cell labels across the full stack breakpoint. */
 @container data-table (max-width: 48rem) {
-  #fleet-machines .fleet-table td { display: block; min-width: 0; }
-  #fleet-machines .fleet-table td::before { content: attr(data-label); display: block; margin-bottom: .15rem; color: var(--muted-foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; }
-}
-
-/* Below the shared two-column stack, give each Fleet fact a full row. */
-@container data-table (max-width: 34rem) {
-  .fleet-table tr { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
-  .fleet-table td { display: block; min-width: 0; }
-  .fleet-table td::before { content: attr(data-label); display: block; margin-bottom: .15rem; color: var(--muted-foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; }
+  .fleet-table tr, #rollup-targets-table tr, #fanout-children-table tr { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
+  .fleet-table td, #rollup-targets-table td, #fanout-children-table td { display: block; min-width: 0; }
+  .fleet-table td[data-label]:not([data-label=""])::before, #rollup-targets-table td[data-label]:not([data-label=""])::before, #fanout-children-table td[data-label]:not([data-label=""])::before { content: attr(data-label); display: block; margin-bottom: .15rem; color: var(--muted-foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; }
   .fleet-identity { display: flex; min-width: 0; }
   .fleet-identity code { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
@@ -114,7 +110,7 @@ button.fleet-mix-toggle[aria-pressed="true"] { background: var(--accent); border
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
-  background: var(--surface-subtle, var(--surface));
+  background: var(--secondary);
 }
 .fleet-machine-unavailable {
   display: grid;

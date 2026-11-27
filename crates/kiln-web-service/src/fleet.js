@@ -336,7 +336,7 @@
         || typeof value.text !== "string") throw new Error("Capture identity or bounds mismatch");
       noted(
         observationStatus(`${host} / ${windowId.pane_id} · ${value.line_count} lines${value.truncated ? " · Limited by Kiln" : ""}`),
-        value.text ? element("pre", value.text, "mono") : element("p", "No terminal output returned.", "small"),
+        value.text ? element("pre", value.text, "mono identity") : element("p", "No terminal output returned.", "small"),
       );
     } catch (error) {
       if (!current()) return;
@@ -394,11 +394,19 @@
     state.herdrWindowRequest = null;
     const label = `${host} / ${windowId.pane_id}`;
     const status = observationStatus(`Opening viewer for ${label}…`);
+    const controls = element("div", undefined, "fleet-herdr-actions");
     const close = element("button", "Close viewer", "quiet");
     close.type = "button";
     close.setAttribute("aria-label", `Close viewer for ${label}`);
+    const retryBtn = element("button", "Retry viewer", "quiet");
+    retryBtn.type = "button";
+    retryBtn.hidden = true;
+    const plainBtn = element("button", "Plain text", "quiet");
+    plainBtn.type = "button";
+    plainBtn.hidden = true;
+    controls.append(close, retryBtn, plainBtn);
     const surface = element("div", undefined, "fleet-herdr-viewer");
-    result.replaceChildren(status, close, surface);
+    result.replaceChildren(status, controls, surface);
     const viewer = { label, timer: null, controller: null, terminal: null, stopped: false, paused: false };
     state.herdrViewer = viewer;
     const current = () => active === state && state.herdrViewer === viewer && state.context.isCurrent()
@@ -412,6 +420,18 @@
       stopHerdrViewer(state);
       return captureHerdrWindow(state, host, path, windowId, result, note);
     };
+    retryBtn.addEventListener("click", () => {
+      if (!current()) return;
+      retryBtn.hidden = true;
+      plainBtn.hidden = true;
+      viewer.stopped = false;
+      status.textContent = `Retrying viewer for ${label}…`;
+      void viewer.refresh();
+    });
+    plainBtn.addEventListener("click", () => {
+      if (!current()) return;
+      void fallBack("Switched to plain-text capture.");
+    });
     try {
       const module = await herdrViewerModule();
       if (!current()) return;
@@ -443,8 +463,13 @@
         if (!current() || viewer.controller !== controller) return;
         stopViewerRefresh(viewer);
         status.textContent = `${label} · Refresh stopped · ${captureFailure(error)}`;
+        const recoverable = error?.code !== "fleet_herdr_window_unknown" && error?.status !== 403;
+        retryBtn.hidden = !recoverable;
+        plainBtn.hidden = !recoverable;
         return;
       }
+      retryBtn.hidden = true;
+      plainBtn.hidden = true;
       viewer.controller = null;
       let clipped = false;
       try {
@@ -478,8 +503,15 @@
     const inventory = element("div");
     inventory.append(observationStatus("Reading current Herdr windows…"));
     const result = element("div");
+    const wasHidden = panel.hidden;
+    const heading = element("h3", `Herdr windows · ${host}`);
+    heading.tabIndex = -1;
     panel.hidden = false;
-    panel.replaceChildren(element("h3", `Herdr windows · ${host}`), refresh, close, inventory, result);
+    panel.replaceChildren(heading, refresh, close, inventory, result);
+    if (wasHidden) {
+      panel.scrollIntoView?.({ block: "nearest" });
+      heading.focus?.({ preventScroll: true });
+    }
     try {
       const value = await state.context.api(path, { quiet: true, controller });
       if (!current()) return;
@@ -572,6 +604,10 @@
             reason: nextDraining ? { label: "Drain reason", placeholder: "Why this machine is being drained", required: true, maxLength: REASON_MAX } : null,
             cliCommand: `kiln-fleet machines ${nextDraining ? "drain" : "undrain"} ${row.machine}`,
             opener: drainBtn,
+            guardState: () => {
+              const target = (state.listedMachines || []).find((m) => m.machine === row.machine);
+              return target ? `${Boolean(target.draining)}:${target.state}` : "missing";
+            },
           });
           if (!choice.confirmed) return;
           const reqId = typeof crypto?.randomUUID === "function" ? crypto.randomUUID() : `drain-${Date.now()}`;
@@ -861,19 +897,52 @@
     });
   }
 
+  function commandNotice(state, message = "") {
+    notice(state.command, message);
+    if (message) state.command.scrollIntoView?.({ block: "nearest" });
+  }
+
   async function confirmGuardedFleetMutation(state, options) {
     if (!isSnapshotFresh(state)) {
-      notice(state.command, "Fleet observation snapshot is stale or disconnected (older than 30s). Wait for a live snapshot before mutating.");
+      commandNotice(state, "Fleet observation snapshot is stale or disconnected (older than 30s). Wait for a live snapshot before mutating.");
       return { confirmed: false, reason: "" };
     }
-    const expectedVersion = state.version;
+    const expectedEntity = typeof options.guardState === "function" ? options.guardState() : null;
     const choice = await openConfirmDialog(state, options);
     if (!choice?.confirmed) return { confirmed: false, reason: "" };
-    if (!state.context?.isCurrent?.() || !isSnapshotFresh(state) || (expectedVersion && state.version !== expectedVersion)) {
-      notice(state.command, "Fleet observation became stale or changed before confirmation completed. Nothing was sent.");
+    const entityChanged = typeof options.guardState === "function" && options.guardState() !== expectedEntity;
+    if (!state.context?.isCurrent?.() || !isSnapshotFresh(state) || entityChanged) {
+      commandNotice(state, "Fleet observation became stale or changed before confirmation completed. Nothing was sent.");
       return { confirmed: false, reason: "" };
     }
     return choice;
+  }
+
+  async function mutateBulk(state, buttons, items, verbPast, buildRequest, onItemDone) {
+    if (state.mutating || !items.length) return;
+    state.mutating = true;
+    commandNotice(state);
+    for (const button of buttons) if (button) button.disabled = true;
+    let completed = 0;
+    let failed = false;
+    try {
+      for (const item of items) {
+        const { path, body } = buildRequest(item);
+        await state.context.api(path, { method: "POST", body });
+        onItemDone?.(item);
+        completed += 1;
+      }
+    } catch (error) {
+      failed = true;
+      if (error?.name !== "AbortError") {
+        const prefix = completed > 0 ? `${completed} of ${items.length} ${verbPast} before error: ` : "";
+        commandNotice(state, `${prefix}${error?.message || "The fleet coordinator rejected the command."}`);
+      }
+    } finally {
+      state.mutating = false;
+      for (const button of buttons) if (button) button.disabled = false;
+      if (completed > 0 || failed) restart(state);
+    }
   }
 
   function renderClaims(state, claims) {
@@ -884,6 +953,14 @@
     state.metrics.claims.textContent = String(open);
     const known = new Set(claims.map((c) => c.identity));
     for (const id of [...state.selectedClaims]) if (!known.has(id)) state.selectedClaims.delete(id);
+    const claimGuard = (identity) => () => {
+      const target = (state.listedClaims || []).find((c) => c.identity === identity);
+      return target ? `${target.fence}:${stateText(target.state)}` : "missing";
+    };
+    const bulkClaimsGuard = (selected) => () => JSON.stringify(selected.map((s) => {
+      const target = (state.listedClaims || []).find((c) => c.identity === s.identity);
+      return target ? [s.identity, target.fence, stateText(target.state)] : [s.identity, "missing"];
+    }));
     const bulkWrap = state.claimsBulk;
     const renderBulk = () => {
       if (!bulkWrap) return;
@@ -893,6 +970,10 @@
       const labelNode = element("span", `${countSelected} claim${countSelected === 1 ? "" : "s"} selected`, "small");
       const bulkRenew = element("button", "Renew selected (+30m)", "quiet");
       bulkRenew.type = "button";
+      const bulkRelease = element("button", "Release selected", "danger");
+      bulkRelease.type = "button";
+      const clearSel = element("button", "Clear", "quiet");
+      clearSel.type = "button";
       bulkRenew.addEventListener("click", async () => {
         const selected = (state.listedClaims || []).filter((c) => state.selectedClaims.has(c.identity));
         if (!selected.length) return;
@@ -905,16 +986,18 @@
           facts: [["Count", String(selected.length)], ["Leases", selected.map((c) => c.identity.slice(0, 10)).join(", ")]],
           cliCommand: selected.map((c) => `kiln-fleet claims renew ${c.identity} --fence ${c.fence}`).join(" && "),
           opener: bulkRenew,
+          guardState: bulkClaimsGuard(selected),
         });
         if (!choice.confirmed) return;
-        for (const claim of selected) {
-          await state.context.api(`/api/fleet/claims/${claim.identity}/renew`, { method: "POST", body: { fence: claim.fence } });
-        }
-        state.selectedClaims.clear();
-        restart(state);
+        await mutateBulk(
+          state,
+          [bulkRenew, bulkRelease, clearSel],
+          selected,
+          "claims renewed",
+          (claim) => ({ path: `/api/fleet/claims/${claim.identity}/renew`, body: { fence: claim.fence } }),
+          (claim) => state.selectedClaims.delete(claim.identity),
+        );
       });
-      const bulkRelease = element("button", "Release selected", "danger");
-      bulkRelease.type = "button";
       bulkRelease.addEventListener("click", async () => {
         const selected = (state.listedClaims || []).filter((c) => state.selectedClaims.has(c.identity));
         if (!selected.length) return;
@@ -928,18 +1011,20 @@
           reason: { label: "Bulk release reason", placeholder: "Why these claims are being released", required: true, maxLength: REASON_MAX },
           cliCommand: selected.map((c) => `kiln-fleet claims release ${c.identity} --fence ${c.fence}`).join(" && "),
           opener: bulkRelease,
+          guardState: bulkClaimsGuard(selected),
         });
         if (!choice.confirmed) return;
         const bounded = text(choice.reason).trim().slice(0, REASON_MAX);
         if (!bounded) return;
-        for (const claim of selected) {
-          await state.context.api(`/api/fleet/claims/${claim.identity}/release`, { method: "POST", body: { fence: claim.fence, note: bounded } });
-        }
-        state.selectedClaims.clear();
-        restart(state);
+        await mutateBulk(
+          state,
+          [bulkRenew, bulkRelease, clearSel],
+          selected,
+          "claims released",
+          (claim) => ({ path: `/api/fleet/claims/${claim.identity}/release`, body: { fence: claim.fence, note: bounded } }),
+          (claim) => state.selectedClaims.delete(claim.identity),
+        );
       });
-      const clearSel = element("button", "Clear", "quiet");
-      clearSel.type = "button";
       clearSel.addEventListener("click", () => { state.selectedClaims.clear(); renderClaims(state, state.listedClaims || []); });
       bulkWrap.replaceChildren(labelNode, bulkRenew, bulkRelease, clearSel);
     };
@@ -979,6 +1064,7 @@
           reason: { label: "Renewal note (optional)", placeholder: "Optional context for this renewal", required: false, maxLength: REASON_MAX },
           cliCommand: `kiln-fleet claims renew ${claim.identity} --fence ${claim.fence}`,
           opener: renew,
+          guardState: claimGuard(claim.identity),
         });
         if (!choice.confirmed) return;
         void mutate(state, renew, `/api/fleet/claims/${claim.identity}/renew`, { fence: claim.fence });
@@ -1001,10 +1087,11 @@
           reason: { label: "Release reason", placeholder: "Why this claim is being released", required: true, maxLength: REASON_MAX },
           cliCommand: `kiln-fleet claims release ${claim.identity} --fence ${claim.fence} --note "${text(scopeText(claim.scope)).replace(/"/g, "'")}"`,
           opener: release,
+          guardState: claimGuard(claim.identity),
         });
         if (!choice.confirmed) return;
         const bounded = text(choice.reason).trim().slice(0, REASON_MAX);
-        if (!bounded) { notice(state.command, "A release reason is required."); return; }
+        if (!bounded) { commandNotice(state, "A release reason is required."); return; }
         void mutate(state, release, `/api/fleet/claims/${claim.identity}/release`, { fence: claim.fence, note: bounded });
       });
       actions.append(renew, release);
@@ -1032,7 +1119,7 @@
   function renderAttempts(state, attempts) {
     state.metrics.attempts.textContent = String(attempts.length);
     state.listedAttempts = attempts;
-    if (!state.runtimeStarted) loadRuntime(state);
+    loadRuntime(state);
     renderCairnWorkers(state);
     const focus = state.facets.map((facet) => renderFacet(state, facet, attempts)).find(Boolean);
     applyAttemptFilters(state);
@@ -1042,6 +1129,14 @@
   function renderAttemptRows(state, attempts, filtering) {
     const known = new Set(attempts.map((a) => a.attempt));
     for (const id of [...state.selectedAttempts]) if (!known.has(id)) state.selectedAttempts.delete(id);
+    const attemptGuard = (id) => () => {
+      const target = (state.listedAttempts || []).find((a) => a.attempt === id);
+      return target ? `${target.fence}:${stateText(target.state)}` : "missing";
+    };
+    const bulkAttemptsGuard = (selected) => () => JSON.stringify(selected.map((s) => {
+      const target = (state.listedAttempts || []).find((a) => a.attempt === s.attempt);
+      return target ? [s.attempt, target.fence, stateText(target.state)] : [s.attempt, "missing"];
+    }));
     const bulkWrap = state.attemptsBulk;
     const renderBulk = () => {
       if (!bulkWrap) return;
@@ -1051,6 +1146,8 @@
       const labelNode = element("span", `${countSelected} attempt${countSelected === 1 ? "" : "s"} selected`, "small");
       const bulkCancel = element("button", "Cancel selected", "danger");
       bulkCancel.type = "button";
+      const clearSel = element("button", "Clear", "quiet");
+      clearSel.type = "button";
       bulkCancel.addEventListener("click", async () => {
         const selected = (state.listedAttempts || []).filter((a) => state.selectedAttempts.has(a.attempt));
         if (!selected.length) return;
@@ -1064,18 +1161,20 @@
           reason: { label: "Bulk cancel reason", placeholder: "Why these attempts are being cancelled", required: true, maxLength: REASON_MAX },
           cliCommand: selected.map((a) => `kiln-fleet attempts cancel ${a.attempt}`).join(" && "),
           opener: bulkCancel,
+          guardState: bulkAttemptsGuard(selected),
         });
         if (!choice.confirmed) return;
         const bounded = text(choice.reason).trim().slice(0, REASON_MAX);
         if (!bounded) return;
-        for (const attempt of selected) {
-          await state.context.api(`/api/fleet/attempts/${attempt.attempt}/cancel`, { method: "POST", body: { reason: bounded } });
-        }
-        state.selectedAttempts.clear();
-        restart(state);
+        await mutateBulk(
+          state,
+          [bulkCancel, clearSel],
+          selected,
+          "attempts cancelled",
+          (attempt) => ({ path: `/api/fleet/attempts/${attempt.attempt}/cancel`, body: { reason: bounded } }),
+          (attempt) => state.selectedAttempts.delete(attempt.attempt),
+        );
       });
-      const clearSel = element("button", "Clear", "quiet");
-      clearSel.type = "button";
       clearSel.addEventListener("click", () => { state.selectedAttempts.clear(); renderAttemptRows(state, attempts, filtering); });
       bulkWrap.replaceChildren(labelNode, bulkCancel, clearSel);
     };
@@ -1115,10 +1214,11 @@
           reason: { label: "Cancel reason", placeholder: "Why this attempt is being cancelled", required: true, maxLength: REASON_MAX },
           cliCommand: `kiln-fleet attempts cancel ${attempt.attempt} --reason "Cancelled via console"`,
           opener: cancel,
+          guardState: attemptGuard(attempt.attempt),
         });
         if (!choice.confirmed) return;
         const bounded = text(choice.reason).trim().slice(0, REASON_MAX);
-        if (!bounded) { notice(state.command, "A cancel reason is required."); return; }
+        if (!bounded) { commandNotice(state, "A cancel reason is required."); return; }
         void mutate(state, cancel, `/api/fleet/attempts/${attempt.attempt}/cancel`, { reason: bounded });
       });
       actions.append(cancel);
@@ -1226,9 +1326,11 @@
     const headSeq = Number(graph?.head_seq ?? run?.board?.posts?.length ?? 0);
     const cutoff = Number(graph?.up_to_seq ?? headSeq);
     const replay = element("div", undefined, "fleet-swarm-replay");
+    const sliderId = `fleet-swarm-replay-${runId || "seq"}`;
     const sliderLabel = element("label", `Replay mention graph up to seq ${cutoff} / ${headSeq}`);
+    sliderLabel.htmlFor = sliderId;
     const slider = element("input");
-    Object.assign(slider, { type: "range", min: "0", max: String(headSeq), value: String(cutoff) });
+    Object.assign(slider, { id: sliderId, type: "range", min: "0", max: String(headSeq), value: String(cutoff) });
     const graphBox = element("div");
     renderSwarmGraph(graphBox, graph);
     const boardBox = element("div");
@@ -1245,14 +1347,21 @@
       boardBox.replaceChildren(table(["Seq", "Sender", "Role", "Kind", "Mentions", "Body"], postRows, "No board posts", "No posts at or before this cursor."));
     };
     renderBoardAt(cutoff);
+    let replayGen = 0;
     slider.addEventListener("change", async () => {
+      const seq = ++replayGen;
       const targetSeq = Number(slider.value);
+      state.swarmReplaying = targetSeq < headSeq ? runId : "";
       sliderLabel.textContent = `Replay mention graph up to seq ${targetSeq} / ${headSeq}`;
       renderBoardAt(targetSeq);
       try {
         const res = await state.context.api(`/api/fleet/swarms/${run.identity}/graph?up_to_seq=${targetSeq}`, { quiet: true });
+        if (active !== state || !state.context.isCurrent() || state.selectedSwarm !== runId || seq !== replayGen) return;
         if (record(res) && record(res.graph)) renderSwarmGraph(graphBox, res.graph);
-      } catch (_) {}
+      } catch (error) {
+        if (active !== state || !state.context.isCurrent() || state.selectedSwarm !== runId || seq !== replayGen || error?.name === "AbortError") return;
+        graphBox.replaceChildren(empty("Replay graph unavailable", error?.message || "Could not load the mention graph at this sequence."));
+      }
     });
     replay.append(sliderLabel, slider);
 
@@ -1269,53 +1378,88 @@
     state.swarmDetail.replaceChildren(detail);
   }
 
-  async function inspectSwarm(state, id) {
+  async function inspectSwarm(state, id, options = {}) {
     if (!IDENTITY.test(id)) return;
+    if (!options.fromRefresh) state.swarmReplaying = "";
+    if (options.fromRefresh && state.swarmReplaying === id) return;
     state.selectedSwarm = id;
+    state.swarmDetailGen = (state.swarmDetailGen || 0) + 1;
+    const gen = state.swarmDetailGen;
+    state.swarmDetailController?.abort();
+    const controller = new AbortController();
+    state.swarmDetailController = controller;
+    const current = () => active === state && state.context.isCurrent() && state.swarmDetailGen === gen && state.selectedSwarm === id;
     try {
       const [runRes, graphRes] = await Promise.all([
-        state.context.api(`/api/fleet/swarms/${id}`, { quiet: true }),
-        state.context.api(`/api/fleet/swarms/${id}/graph`, { quiet: true }),
+        state.context.api(`/api/fleet/swarms/${id}`, { quiet: true, controller }),
+        state.context.api(`/api/fleet/swarms/${id}/graph`, { quiet: true, controller }),
       ]);
+      if (!current()) return;
+      if (options.fromRefresh && state.swarmReplaying === id) return;
       if (record(runRes) && record(runRes.swarm)) {
-        renderSwarmDetail(state, runRes.swarm, record(graphRes) ? graphRes.graph : null);
+        const graph = record(graphRes) ? graphRes.graph : null;
+        const sig = JSON.stringify([runRes.swarm, graph]);
+        if (options.fromRefresh && sig === state.swarmDetailSignature) return;
+        state.swarmDetailSignature = sig;
+        if (state.swarmStatus) notice(state.swarmStatus, "");
+        renderSwarmDetail(state, runRes.swarm, graph);
       }
-    } catch (_) {}
+    } catch (error) {
+      if (!current() || error?.name === "AbortError") return;
+      const msg = `Swarm detail unavailable: ${error?.message || "read failed"}.`;
+      if (options.fromRefresh && state.swarmStatus) notice(state.swarmStatus, msg);
+      else state.swarmDetail.replaceChildren(empty("Swarm detail unavailable", msg));
+    }
   }
 
   async function refreshSwarms(state) {
+    state.swarmListGen = (state.swarmListGen || 0) + 1;
+    const gen = state.swarmListGen;
+    state.swarmListController?.abort();
+    const controller = new AbortController();
+    state.swarmListController = controller;
+    const current = () => active === state && state.context.isCurrent() && state.swarmListGen === gen;
     try {
-      const payload = await state.context.api("/api/fleet/swarms", { quiet: true });
+      const payload = await state.context.api("/api/fleet/swarms", { quiet: true, controller });
+      if (!current()) return;
+      if (state.swarmStatus) notice(state.swarmStatus, "");
       const swarms = record(payload) && Array.isArray(payload.swarms) ? payload.swarms : [];
-      const rows = swarms.map((run) => {
-        const id = text(run.identity);
-        const actions = element("div", undefined, "fleet-actions");
-        const inspect = element("button", "Inspect", "quiet");
-        inspect.type = "button";
-        inspect.addEventListener("click", () => { void inspectSwarm(state, id); });
-        actions.append(inspect);
-        if (IDENTITY.test(id)) {
-          const link = element("a", "HTML", "small");
-          link.href = `/fleet/swarms/${id}`;
-          actions.append(link);
-        }
-        const members = record(run.members) ? Object.keys(run.members).length : 0;
-        const headSeq = Array.isArray(run?.board?.posts) && run.board.posts.length ? run.board.posts[run.board.posts.length - 1].seq : 0;
-        return [
-          identityCell(id),
-          text(run?.config?.title),
-          stateText(run.phase),
-          String(members),
-          `#${headSeq}`,
-          `${run?.budget?.drawn_units ?? 0} / ${run?.budget?.ceiling_units ?? 0}`,
-          actions,
-        ];
-      });
-      state.swarms.replaceChildren(table(["ID", "Title", "Phase", "Members", "Board", "Budget", "View"], rows, "No swarm runs", "The coordinator reports no swarm runs."));
-      if (state.selectedSwarm && swarms.some((r) => text(r.identity) === state.selectedSwarm)) {
-        void inspectSwarm(state, state.selectedSwarm);
+      const listSig = JSON.stringify(swarms);
+      if (listSig !== state.swarmListSignature) {
+        state.swarmListSignature = listSig;
+        const rows = swarms.map((run) => {
+          const id = text(run.identity);
+          const actions = element("div", undefined, "fleet-actions");
+          const inspect = element("button", "Inspect", "quiet");
+          inspect.type = "button";
+          inspect.addEventListener("click", () => { void inspectSwarm(state, id); });
+          actions.append(inspect);
+          if (IDENTITY.test(id)) {
+            const link = element("a", "HTML", "small");
+            link.href = `/fleet/swarms/${id}`;
+            actions.append(link);
+          }
+          const members = record(run.members) ? Object.keys(run.members).length : 0;
+          const headSeq = Array.isArray(run?.board?.posts) && run.board.posts.length ? run.board.posts[run.board.posts.length - 1].seq : 0;
+          return [
+            identityCell(id),
+            text(run?.config?.title),
+            stateText(run.phase),
+            String(members),
+            `#${headSeq}`,
+            `${run?.budget?.drawn_units ?? 0} / ${run?.budget?.ceiling_units ?? 0}`,
+            actions,
+          ];
+        });
+        state.swarms.replaceChildren(table(["ID", "Title", "Phase", "Members", "Board", "Budget", "View"], rows, "No swarm runs", "The coordinator reports no swarm runs."));
       }
-    } catch (_) {}
+      if (state.selectedSwarm && swarms.some((r) => text(r.identity) === state.selectedSwarm)) {
+        void inspectSwarm(state, state.selectedSwarm, { fromRefresh: true });
+      }
+    } catch (error) {
+      if (!current() || error?.name === "AbortError") return;
+      if (state.swarmStatus) notice(state.swarmStatus, `Swarm runs unavailable: ${error?.message || "read failed"}.`);
+    }
   }
 
   // r[impl kiln.sdlc.workload_placement]
@@ -1357,7 +1501,12 @@
         review.addEventListener("click", async () => {
           const item = eligibleMoves().find((a) => a.attempt === attempt.value);
           const hostAllowed = reportingHosts().some((m) => m.machine === host.value);
-          if (!visible() || review.disabled || !host.value) return;
+          if (!visible() || review.disabled) return;
+          if (!host.value) {
+            result.replaceChildren(element("p", "Choose a destination host before reviewing the queued move.", "small"));
+            host.focus?.();
+            return;
+          }
           if (!item || !hostAllowed) {
             result.replaceChildren(element("p", "The Fleet snapshot changed. Reopen to review against the current reservation."));
             return;
@@ -1414,6 +1563,11 @@
     const base = "/api/fleet/placement";
     open.addEventListener("click", async () => {
       if (!current()) return;
+      const existingForm = content.querySelector?.("form");
+      if (existingForm) {
+        existingForm.querySelector?.("select")?.focus?.();
+        return;
+      }
       open.disabled = true;
       const status = element("p", "Checking placement capabilities…", "small");
       status.setAttribute("role", "status");
@@ -1423,13 +1577,21 @@
         if (!current()) return;
         status.textContent = capabilities.split ? `Select independently claimed, unstarted attempts. ${capabilities.move_reason || "Existing execution cannot be moved by this provider."}` : "This coordinator has no qualified split or move provider.";
         if (!capabilities.split) return;
-        const form = element("form");
-        const fields = element("fieldset");
-        fields.append(element("legend", "Attempts and destination machines"));
         const eligibleChoices = () => (state.listedAttempts || []).filter((a) => a.state === "claimed" && !a.session && IDENTITY.test(a.attempt) && count(a.fence) > 0);
         const reportingHosts = () => (state.listedMachines || []).filter((m) => m.placement_configured === true && m.state === "reporting");
         const choices = eligibleChoices();
         const hosts = reportingHosts();
+        if (hosts.length < 2) {
+          content.append(element("p", "At least two reporting placement-configured hosts are required to split work units.", "small"));
+          return;
+        }
+        if (choices.length < 2) {
+          content.append(element("p", choices.length === 0 ? "No eligible unstarted claimed attempts in the current Fleet snapshot." : "At least two eligible unstarted claimed attempts are required to split work units.", "small"));
+          return;
+        }
+        const form = element("form");
+        const fields = element("fieldset");
+        fields.append(element("legend", "Attempts and destination machines"));
         const rows = [];
         const add = element("button", "Add another unit", "quiet");
         add.type = "button";
@@ -1597,14 +1759,14 @@
   async function mutate(state, button, path, body, form) {
     if (state.mutating) return;
     state.mutating = true;
-    notice(state.command);
+    commandNotice(state);
     button.disabled = true;
     try {
       await state.context.api(path, { method: "POST", body });
       if (form) form.reset();
       restart(state);
     } catch (error) {
-      if (error?.name !== "AbortError") notice(state.command, error?.message || "The fleet coordinator rejected the command.");
+      if (error?.name !== "AbortError") commandNotice(state, error?.message || "The fleet coordinator rejected the command.");
     } finally {
       state.mutating = false;
       button.disabled = false;
@@ -2127,7 +2289,7 @@
             if (entry?.redacted) meta.push("Redacted");
             if (entry?.truncated) meta.push("Truncated");
             item.append(element("div", meta.join(" · ")));
-            item.append(element("pre", typeof entry?.text === "string" ? entry.text : ""));
+            item.append(element("pre", typeof entry?.text === "string" ? entry.text : "", "identity"));
             list.append(item);
           }
           details.append(list);
@@ -2303,7 +2465,10 @@
 
   function loadRuntime(state) {
     if (!window.KilnFleetRuntime || !state.listedAttempts || state.connection.dataset.state === "stale" || state.connection.dataset.state === "unavailable") return;
+    const signature = JSON.stringify(state.listedAttempts);
+    if (state.runtimeStarted && state.runtimeAttemptsSignature === signature) return;
     state.runtimeStarted = true;
+    state.runtimeAttemptsSignature = signature;
     void window.KilnFleetRuntime.load(state.runtime, state.context, state.listedAttempts);
   }
 
@@ -2404,6 +2569,7 @@
     if (!record(status)) { state.dispatchBar.hidden = true; return; }
     state.dispatchBar.hidden = false;
     const paused = status.paused === true || text(status.state).toLowerCase() === "paused";
+    state.dispatchPaused = paused;
     const deferred = Number.isSafeInteger(status.deferred_count) ? status.deferred_count : 0;
     const badge = element("span", paused ? `DISPATCH PAUSED · ${deferred} deferred` : "DISPATCH RUNNING", "state-badge");
     badge.dataset.tone = paused ? "warning" : "good";
@@ -2426,14 +2592,14 @@
           reason: nextPause ? { label: "Pause reason", placeholder: "Why dispatch is being paused", required: true, maxLength: REASON_MAX } : null,
           cliCommand: `kiln-fleet dispatch ${nextPause ? "pause" : "resume"}`,
           opener: btn,
+          guardState: () => String(Boolean(state.dispatchPaused)),
         });
         if (!choice.confirmed) return;
         const reqId = typeof crypto?.randomUUID === "function" ? crypto.randomUUID() : `dispatch-${Date.now()}`;
-        await state.context.api(`/api/fleet/dispatch/${nextPause ? "pause" : "resume"}`, {
-          method: "POST",
-          body: { ...(choice.reason ? { reason: choice.reason } : {}), request_id: reqId },
+        void mutate(state, btn, `/api/fleet/dispatch/${nextPause ? "pause" : "resume"}`, {
+          ...(choice.reason ? { reason: choice.reason } : {}),
+          request_id: reqId,
         });
-        restart(state);
       });
       items.push(btn);
     }
@@ -2502,7 +2668,7 @@
     const claimMetric = metric("Open claims", null), readyMetric = metric("Ready & unclaimed", null), attemptMetric = metric("Listed attempts", null), decisionMetric = metric("Listed open decisions", null);
     metrics.append(claimMetric, readyMetric, attemptMetric, decisionMetric);
     const transport = element("p", undefined, "fleet-banner");
-    const command = element("p", undefined, "fleet-banner");
+    const command = element("p", undefined, "fleet-banner fleet-command-banner");
     for (const banner of [transport, command]) {
       banner.setAttribute("role", "alert");
       banner.hidden = true;
@@ -2594,9 +2760,11 @@
     decisionsPanel.append(decisions);
     const swarmsPanel = element("section", undefined, "panel fleet-section");
     swarmsPanel.append(element("h2", "Swarm runs"), element("p", "Read-only inspection of Kiln-governed swarm runs: roster, replayable mention graph, and untrusted board feed.", "small"));
+    state.swarmStatus = observationStatus("");
+    state.swarmStatus.hidden = true;
     const swarms = element("div");
     const swarmDetail = element("div");
-    swarmsPanel.append(swarms, swarmDetail);
+    swarmsPanel.append(state.swarmStatus, swarms, swarmDetail);
     const cairnPanel = element("section", undefined, "panel fleet-section");
     state.cairnStatus = element("span", "Reading Cairn change index…");
     state.cairnStatus.setAttribute("role", "status");
@@ -2726,8 +2894,19 @@
       confirmControl: (opts) => confirmGuardedFleetMutation(state, opts),
     });
     if (window.KilnInventory?.loadFleetCampaign) {
-      void window.KilnInventory.loadFleetCampaign(state.campaign, context, context.route?.worker_campaign || "", (campaign) => {
-        if (context.isCurrent() && campaign !== (context.route?.worker_campaign || "")) context.navigate?.({ worker_campaign: campaign });
+      let selectedCampaign = context.route?.worker_campaign || "";
+      void window.KilnInventory.loadFleetCampaign(state.campaign, context, selectedCampaign, (campaign) => {
+        if (!context.isCurrent() || campaign === selectedCampaign) return;
+        selectedCampaign = campaign;
+        if (context.route && typeof context.route === "object") {
+          try { context.route.worker_campaign = campaign; } catch (_) {}
+        }
+        if (typeof history?.replaceState === "function" && typeof location?.href === "string") {
+          const url = new URL(location.href);
+          if (campaign) url.searchParams.set("worker_campaign", campaign);
+          else url.searchParams.delete("worker_campaign");
+          history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+        }
       });
     }
   }
@@ -2746,6 +2925,9 @@
       }
       clearTimeout(state.cairnTimer);
       state.cairnController?.abort();
+      state.swarmListController?.abort();
+      state.swarmDetailController?.abort();
+      state.guestMoveController?.abort();
       state.inspectorController?.abort();
       state.inspectorController = null;
       for (const poll of state.polls) {
@@ -2781,6 +2963,24 @@
     );
     const base = "/api/fleet/placement/guest-move";
     const current = () => active === state && state.context.isCurrent() && state.context.canOperate?.() === true && section.isConnected;
+    let draft = { attempt: "", session: "", fence: "1", version: "1", destination: "" };
+    let activeInputs = null;
+    let refreshGen = 0;
+    const labelField = (title, control) => {
+      const field = element("label", title);
+      field.append(control);
+      return field;
+    };
+    const snapshotDraft = () => {
+      if (!activeInputs) return;
+      draft = {
+        attempt: activeInputs.attemptInput.value,
+        session: activeInputs.sessionInput.value,
+        fence: activeInputs.fenceInput.value,
+        version: activeInputs.versionInput.value,
+        destination: activeInputs.destInput.value,
+      };
+    };
     const renderMove = (move) => {
       detail.replaceChildren();
       if (!record(move) || !record(move.plan)) return;
@@ -2816,6 +3016,7 @@
     };
     const renderOverview = (overview) => {
       if (!current()) return;
+      snapshotDraft();
       const available = overview?.available === true;
       const ordered = Array.isArray(overview?.ordered_steps) ? overview.ordered_steps.join(" -> ") : "pause -> checkpoint -> transfer -> restore -> reconnect -> retire_source";
       if (!available) {
@@ -2824,6 +3025,7 @@
         status.textContent = `Running guest move ready · ordered steps: ${ordered}`;
       }
       controls.replaceChildren();
+      activeInputs = null;
       if (Array.isArray(overview?.prerequisites) && overview.prerequisites.length) {
         const prereqList = element("ul", undefined, "small");
         for (const req of overview.prerequisites) {
@@ -2837,23 +3039,27 @@
       }
       const attemptInput = element("input");
       attemptInput.placeholder = "Attempt ID (64 hex)";
+      attemptInput.value = draft.attempt;
       attemptInput.setAttribute("aria-label", "Guest attempt ID");
       const sessionInput = element("input");
       sessionInput.placeholder = "Session ID (64 hex)";
+      sessionInput.value = draft.session;
       sessionInput.setAttribute("aria-label", "Guest session ID");
       const fenceInput = element("input");
       fenceInput.type = "number";
       fenceInput.min = "1";
-      fenceInput.value = "1";
+      fenceInput.value = draft.fence || "1";
       fenceInput.setAttribute("aria-label", "Guest attempt fence");
       const versionInput = element("input");
       versionInput.type = "number";
       versionInput.min = "1";
-      versionInput.value = "1";
+      versionInput.value = draft.version || "1";
       versionInput.setAttribute("aria-label", "Placement version");
       const destInput = element("input");
       destInput.placeholder = "Destination host";
+      destInput.value = draft.destination;
       destInput.setAttribute("aria-label", "Guest destination host");
+      activeInputs = { attemptInput, sessionInput, fenceInput, versionInput, destInput };
       const previewBtn = element("button", "Review guest move", "primary");
       previewBtn.type = "button";
       previewBtn.addEventListener("click", async () => {
@@ -2902,15 +3108,32 @@
           previewBtn.disabled = false;
         }
       });
-      controls.append(attemptInput, sessionInput, fenceInput, versionInput, destInput, previewBtn);
+      controls.append(
+        labelField("Attempt ID", attemptInput),
+        labelField("Session ID", sessionInput),
+        labelField("Attempt fence", fenceInput),
+        labelField("Placement version", versionInput),
+        labelField("Destination host", destInput),
+        previewBtn,
+      );
       if (Array.isArray(overview?.moves) && overview.moves.length) renderMove(overview.moves[0]);
     };
     const refresh = async () => {
+      const gen = ++refreshGen;
+      state.guestMoveController?.abort();
+      const controller = new AbortController();
+      state.guestMoveController = controller;
+      refreshBtn.disabled = true;
       try {
-        const overview = await state.context.api(base, { quiet: true });
+        const overview = await state.context.api(base, { quiet: true, controller });
+        if (!current() || gen !== refreshGen) return;
         renderOverview(overview);
       } catch (error) {
-        if (current()) status.textContent = `Running guest move unavailable: ${error?.message || "failed closed"}.`;
+        if (current() && gen === refreshGen && error?.name !== "AbortError") {
+          status.textContent = `Running guest move unavailable: ${error?.message || "failed closed"}.`;
+        }
+      } finally {
+        if (current() && gen === refreshGen) refreshBtn.disabled = false;
       }
     };
     refreshBtn.addEventListener("click", () => { void refresh(); });

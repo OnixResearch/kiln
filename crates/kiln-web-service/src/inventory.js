@@ -357,7 +357,7 @@
           const label = element("label"); label.append(confirm, element("span", "I understand cancellation is permanent and does not stop running workers."));
           allowed = () => confirm.checked;
           controls.append(label);
-          confirm.addEventListener("change", () => { button.disabled = !allowed(); });
+          confirm.addEventListener("change", () => { button.disabled = Boolean(button._inFlight) || !allowed(); });
         }
         const button = controlButton(CONTROL_LABELS[operation], allowed); button.dataset.campaignCommand = operation;
         button.disabled = !allowed(); buttons.push(button);
@@ -418,7 +418,12 @@
   // reconciles the same owner operation instead of applying a new one.
   function commandRunner(ctx, ui, newId = newRequestId) {
     let pending = null;
-    const lock = (busy) => { for (const button of ui.buttons()) button.disabled = busy || !button.allowed(); };
+    const lock = (busy) => {
+      for (const button of ui.buttons()) {
+        button._inFlight = busy;
+        button.disabled = busy || !button.allowed();
+      }
+    };
     async function send(intent, requestId) {
       if (pending?.inFlight) return;
       pending = { intent, requestId, inFlight: true };
@@ -601,8 +606,10 @@
   let selectedWork = "";
   let campaignGeneration = 0;
   let campaignMounted = null;
+  let campaignIndexResetGen = 0;
+  const campaignIndexGenerations = new WeakMap();
   function clear() {
-    generation += 1; campaignGeneration += 1; definitionsGeneration += 1;
+    generation += 1; campaignGeneration += 1; definitionsGeneration += 1; campaignIndexResetGen += 1;
     mounted?.replaceChildren(); mounted?.removeAttribute("aria-busy"); mounted = null; selectedWork = "";
     campaignMounted?.replaceChildren(); campaignMounted?.removeAttribute("aria-busy"); campaignMounted = null;
     definitionsMounted?.replaceChildren(); definitionsMounted?.removeAttribute("aria-busy"); definitionsMounted = null;
@@ -733,13 +740,17 @@
     return wrap;
   }
   async function loadCampaignIndex(holder, ctx, selectedId = "", onSelect = () => {}, options = {}) {
+    const resetGen = campaignIndexResetGen;
+    const current = (campaignIndexGenerations.get(holder) || 0) + 1;
+    campaignIndexGenerations.set(holder, current);
+    const live = () => resetGen === campaignIndexResetGen && campaignIndexGenerations.get(holder) === current && holder.isConnected && ctx.isCurrent?.() !== false;
     holder.replaceChildren(element("p", "Reading campaign index…", "small"));
     try {
       const listing = validateCampaignIndex(await ctx.api("/api/implementation/campaigns", { quiet: true }));
-      if (!holder.isConnected || !ctx.isCurrent?.()) return;
+      if (!live()) return;
       holder.replaceChildren(renderCampaignIndex(listing, selectedId, onSelect, options));
     } catch (error) {
-      if (!holder.isConnected || error?.name === "AbortError" || ctx.isCurrent?.() === false) return;
+      if (!live() || error?.name === "AbortError") return;
       holder.replaceChildren(controlsUnavailable(error, "Campaign index"));
     }
   }
@@ -823,6 +834,8 @@
     }
     function select(id) {
       if (!live()) return;
+      const selectEl = indexRoot.querySelector?.("#fleet-campaign-select");
+      if (selectEl && selectEl.value !== id) selectEl.value = id;
       void selected(id);
       onSelect(id);
     }

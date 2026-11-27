@@ -278,12 +278,6 @@
     for (const [key, value] of Object.entries(patch)) { if (value) params.set(key, value); else params.delete(key); }
     return `?${params}`;
   }
-  function link(ctx, patch, label, className) {
-    const node = element("a", label, className);
-    node.href = routeHref(patch);
-    node.addEventListener("click", (event) => { if (!plainClick(event)) return; event.preventDefault(); ctx.navigate(patch); });
-    return node;
-  }
   function pill(entry, label = entry.label) {
     const node = element("span", undefined, "status-pill");
     node.dataset.status = entry.tone;
@@ -584,17 +578,21 @@
     details.append(ui().disclosureSummary("About Patchgate receipts", "info"), body);
     return details;
   }
-  function receiptRow(ctx, row, selected) {
-    const item = element("li");
-    const anchor = element("a", undefined, "receipt-row");
-    anchor.href = routeHref({ receipt: row.name });
-    // A click carries the filter the reader has applied, even if it is not yet written to the URL.
-    anchor.addEventListener("click", (event) => {
+  function filteredLink(ctx, patch, label, className) {
+    const merged = () => ({ ...patch, ...(applied ? { receipt_q: applied.q, receipt_decision: applied.decision } : {}) });
+    const node = element("a", label, className);
+    node.href = routeHref(merged());
+    node.addEventListener("click", (event) => {
       if (!plainClick(event)) return;
       event.preventDefault();
       clearTimeout(filterTimer);
-      ctx.navigate({ receipt: row.name, ...(applied ? { receipt_q: applied.q, receipt_decision: applied.decision } : {}) });
+      ctx.navigate(merged());
     });
+    return node;
+  }
+  function receiptRow(ctx, row, selected) {
+    const item = element("li");
+    const anchor = filteredLink(ctx, { receipt: row.name }, undefined, "receipt-row");
     anchor.dataset.receipt = row.name;
     if (row.name === selected) anchor.setAttribute("aria-current", "true");
     const pills = element("span", undefined, "receipt-row-tally");
@@ -732,7 +730,7 @@
       return panel;
     }
     panel.setAttribute("aria-label", "Selected receipt");
-    panel.append(link(ctx, { receipt: "" }, "All receipts", "button receipts-back"));
+    panel.append(filteredLink(ctx, { receipt: "" }, "All receipts", "button receipts-back"));
     if (detail.error) {
       panel.append(errorState(`Receipt ${route.receipt} unavailable: ${explain(detail.error)} No other receipt was substituted.`));
       return panel;

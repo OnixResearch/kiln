@@ -388,24 +388,30 @@
     controls.append(indexRoot, clearSelection, refresh, refreshIndex, status);
     const campaignRoot = element("div", undefined, "workers-campaign-projection"); campaignRoot.dataset.campaignRoot = "true";
     if (!route.campaign) campaignRoot.append(element("p", "Campaign data is not requested until a campaign is selected. No absence or completion is inferred.", "small"));
-    const loadIndex = () => {
+    const loadIndex = async () => {
       if (!context?.isCurrent?.()) return;
-      void window.KilnInventory?.loadCampaignIndex?.(indexRoot, context, route.campaign, (id) => {
-        navigate({ worker: route.worker, worker_q: route.q, worker_status: route.status, worker_campaign: id });
-      }, { selectId: "workers-campaign-select" });
+      refreshIndex.disabled = true;
+      try {
+        await window.KilnInventory?.loadCampaignIndex?.(indexRoot, context, route.campaign, (id) => {
+          navigate({ worker: route.worker, worker_q: route.q, worker_status: route.status, worker_campaign: id });
+        }, { selectId: "workers-campaign-select" });
+      } finally {
+        if (refreshIndex.isConnected && context?.isCurrent?.()) refreshIndex.disabled = false;
+      }
     };
     clearSelection.addEventListener("click", () => navigate({ worker: route.worker, worker_q: route.q, worker_status: route.status, worker_campaign: "" }));
     refresh.addEventListener("click", () => {
       if (!route.campaign || !context?.isCurrent()) return;
       void window.KilnInventory?.loadCampaign(campaignRoot, context, route.campaign);
     });
-    refreshIndex.addEventListener("click", loadIndex);
+    refreshIndex.addEventListener("click", () => { void loadIndex(); });
     // Previews are read only when asked for; an unconfigured service is not polled.
     const definitions = element("details", undefined, "inventory-disclosure workers-campaign-definitions");
+    definitions.dataset.workerDisclosure = "campaign-definitions";
     const definitionsRoot = element("div");
     definitions.append(element("summary", "Start a configured campaign"), definitionsRoot);
     definitions.addEventListener("toggle", () => {
-      if (!definitions.open || !context?.isCurrent()) return;
+      if (!definitions.open || !context?.isCurrent() || definitionsRoot.childElementCount) return;
       void window.KilnInventory?.loadDefinitions(definitionsRoot, context, (id) => navigate({ worker: route.worker, worker_q: route.q, worker_status: route.status, worker_campaign: id }));
     });
     panel.append(controls, campaignRoot, definitions);
@@ -438,13 +444,35 @@
     if (active.classList.contains("workers-back")) return "@back";
     return active.dataset.worker || (["workers-q", "workers-status"].includes(active.id) ? `#${active.id}` : "");
   }
-  function loadCampaignSelection(root, ctx, route) {
+  function hasActiveCampaignInput(node) {
+    if (!node) return false;
+    const active = document.activeElement;
+    if (active && node.contains?.(active)) return true;
+    const inputs = [...(node.querySelectorAll?.("input") || [])];
+    if (inputs.some((input) => input.checked || (input.type !== "radio" && input.type !== "checkbox" && input.value))) return true;
+    const retry = node.querySelector?.(".campaign-command-retry");
+    return Boolean(retry && !retry.hidden);
+  }
+  function hasActiveInventoryInput(node) {
+    if (!node) return false;
+    const active = document.activeElement;
+    if (active && node.contains?.(active)) return true;
+    const workInput = node.querySelector?.("#inventory-work-identity");
+    if (workInput?.value) return true;
+    const nested = [...(node.querySelectorAll?.("details") || [])];
+    return Boolean(node.open || nested.some((d) => d.open));
+  }
+  function loadCampaignSelection(root, ctx, route, options = {}) {
     const indexRoot = root.querySelector("[data-campaign-index-root]");
-    if (indexRoot) void window.KilnInventory?.loadCampaignIndex?.(indexRoot, ctx, route.campaign, (id) => {
-      navigate({ worker: route.worker, worker_q: route.q, worker_status: route.status, worker_campaign: id });
-    }, { selectId: "workers-campaign-select" });
+    if (indexRoot && options.refreshIndex !== false) {
+      void window.KilnInventory?.loadCampaignIndex?.(indexRoot, ctx, route.campaign, (id) => {
+        navigate({ worker: route.worker, worker_q: route.q, worker_status: route.status, worker_campaign: id });
+      }, { selectId: "workers-campaign-select" });
+    }
     const campaignRoot = root.querySelector("[data-campaign-root]");
-    if (campaignRoot && route.campaign) void window.KilnInventory?.loadCampaign(campaignRoot, ctx, route.campaign);
+    if (campaignRoot && route.campaign && options.refreshCampaign !== false) {
+      void window.KilnInventory?.loadCampaign(campaignRoot, ctx, route.campaign);
+    }
   }
   // r[impl kiln.dashboard.workers.view] r[impl kiln.dashboard.workers.view.scenario.restore]
   async function load(root, ctx) {
@@ -465,15 +493,44 @@
       if (!live()) return;
       validate(inventory);
       if (inventory.storage_failed) throw new Error("Durable worker state is unavailable. No free capacity or worker health is inferred.");
+      const inventorySignature = JSON.stringify(inventory);
+      const sameWorkerAndCampaign = Boolean(shown && model && route.worker === shown.worker && route.campaign === shown.campaign && root.firstChild);
+      if (sameWorkerAndCampaign && inventorySignature === model.signature) {
+        const campaignSelect = root.querySelector?.("#workers-campaign-select");
+        const selectFocused = Boolean(campaignSelect && document.activeElement === campaignSelect);
+        if (!selectFocused) loadCampaignSelection(root, ctx, route, { refreshCampaign: false });
+        shown = route;
+        title();
+        return;
+      }
       const prior = shown?.worker || "";
       const focus = focused(root);
       const open = new Map([...root.querySelectorAll("details[data-worker-disclosure]")].map((node) => [node.dataset.workerDisclosure, node.open]));
-      model = { inventory, rows: rows(inventory) };
+      const existingDefs = sameWorkerAndCampaign ? root.querySelector?.("details.workers-campaign-definitions") : null;
+      const keepDefs = Boolean(existingDefs && existingDefs.open);
+      const existingCampaignRoot = sameWorkerAndCampaign && route.campaign ? root.querySelector?.("[data-campaign-root]") : null;
+      const keepCampaign = Boolean(existingCampaignRoot && (hasActiveCampaignInput(existingCampaignRoot) || existingCampaignRoot.querySelector?.(".campaign-projection")));
+      const existingObserved = sameWorkerAndCampaign ? root.querySelector?.('details[data-worker-disclosure="observed-inventories"]') : null;
+      const keepObserved = Boolean(existingObserved && hasActiveInventoryInput(existingObserved));
+      model = { inventory, signature: inventorySignature, rows: rows(inventory) };
       applied = { q: route.q, status: route.status };
-      root.replaceChildren(render(inventory, model.rows, route));
+      const nextPage = render(inventory, model.rows, route);
+      if (keepDefs) {
+        const freshDefs = nextPage.querySelector?.("details.workers-campaign-definitions");
+        if (freshDefs && typeof freshDefs.replaceWith === "function") freshDefs.replaceWith(existingDefs);
+      }
+      if (keepCampaign) {
+        const freshCampaignRoot = nextPage.querySelector?.("[data-campaign-root]");
+        if (freshCampaignRoot && typeof freshCampaignRoot.replaceWith === "function") freshCampaignRoot.replaceWith(existingCampaignRoot);
+      }
+      if (keepObserved) {
+        const freshObserved = nextPage.querySelector?.('details[data-worker-disclosure="observed-inventories"]');
+        if (freshObserved && typeof freshObserved.replaceWith === "function") freshObserved.replaceWith(existingObserved);
+      }
+      root.replaceChildren(nextPage);
       const observed = root.querySelector("[data-inventory-root]");
-      if (observed) void window.KilnInventory.load(observed, ctx);
-      loadCampaignSelection(root, ctx, route);
+      if (observed && !keepObserved) void window.KilnInventory.load(observed, ctx);
+      loadCampaignSelection(root, ctx, route, { refreshCampaign: !keepCampaign });
       if (prior === route.worker) for (const node of root.querySelectorAll("details[data-worker-disclosure]")) if (open.has(node.dataset.workerDisclosure)) node.open = open.get(node.dataset.workerDisclosure);
       shown = route;
       if (focus.startsWith("#")) root.querySelector(focus)?.focus({ preventScroll: true });
@@ -499,7 +556,8 @@
       panel.append(element("h2", "Workers unavailable"), failure, retry, campaignCard(route)); root.replaceChildren(panel);
       if (window.KilnInventory) {
         const observed = element("div", undefined, "workers-observed-inventories");
-        root.prepend(observed);
+        observed.dataset.inventoryRoot = "true";
+        root.append(disclosure("Observed resource inventories", "observed-inventories", observed));
         void window.KilnInventory.load(observed, ctx);
       }
       loadCampaignSelection(root, ctx, route);
