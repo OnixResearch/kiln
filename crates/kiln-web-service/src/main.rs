@@ -64,7 +64,11 @@ fn main() {
         Some("worker-target") => worker_target(arguments),
         Some("extend-projects") => extend_projects(arguments),
         Some("feed-token") => feed_token(arguments),
-        Some("--help" | "-h") | None => {
+        Some("--help" | "-h") => {
+            println!("{USAGE}");
+            0
+        }
+        None => {
             usage();
             0
         }
@@ -73,35 +77,44 @@ fn main() {
     std::process::exit(status);
 }
 
+const USAGE: &str = "\
+usage: kiln-web-service <command> [arguments]
+
+minimal local example (after `kiln init --repo PATH --out DIR`):
+  kiln-web-service check --profile DIR/service.json --access DIR/access.json --sources DIR/sources.json
+  kiln-web-service serve --profile DIR/service.json --access DIR/access.json --sources DIR/sources.json
+
+Web Server:
+  kiln-web-service serve --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>] [--cache <path>] [--workers <path>] [--work <path>] [--code-review <path>] [--fleet <path>] [--runbooks <path>] [--runbooks-dir <path>]
+  kiln-web-service check --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>] [--cache <path>] [--workers <path>] [--work <path>] [--code-review <path>] [--fleet <path>] [--runbooks <path>] [--runbooks-dir <path>]
+  serve/check observations: [--inventory <path>] [--implementation-work <database>] [--campaign-controls <profile>] [--dispatch-recovery <profile>] [--native-runtime-evidence <profile>] [--execution-artifacts <profile>] [--delivery-observations <path>] [--artifact-previews <catalog>] [--preview-observations <owned-directory>] [--repository-root <dir>]
+  serve/check workflow source catalog: [--lattice-authoring <profile>] [--lattice-drafts <profile>]
+  serve/check native change authoring: [--cairn-authoring <profile>]
+  kiln-web-service proxy-auth --access <path>
+  kiln-web-service extend-projects --previous-profile <path> --profile <path>
+  kiln-web-service feed-token --path <absolute-new-path>
+
+Local CI & Runbooks:
+  kiln-web-service ci --profile <path> --identity <blake3> <submit|review-submit|preview|dispatch|dispatch-list|dispatch-rollup|fanout|fanout-list|fanout-status|fanout-rollup|fanout-watch|fanout-pause|fanout-continue|fanout-cancel|watch|logs|cancel|retry> [arguments]
+  kiln-web-service reviewed-request --profile <path> --project <id> [--nodes <id,id,...>]
+  kiln-web-service job --profile <path> --identity <blake3>
+  kiln-web-service heartbeat --profile <path> --identity <blake3>
+  kiln-web-service worker-target --provider-profile <id> --socket <path> --platform <id>
+
+Inventory & Campaigns:
+  kiln-web-service inventory INPUT PRINCIPAL NOW_MS [json|html]
+  kiln-web-service inventory-collect MANIFEST PROFILE
+  kiln-web-service campaign-projection DATABASE CAMPAIGN_ID [json|html] [--inventory INPUT PRINCIPAL NOW_MS]
+  kiln-web-service drive-implementation-campaign --profile PROFILE --campaign-id ID --expected-version N
+  kiln-web-service continue-implementation-campaign --profile PROFILE --campaign-id ID
+  kiln-web-service wake-implementation-campaign --database DB --campaign-id ID --kind KIND [--observed-version N]
+
+Verification & Diagnostics:
+  kiln-web-service verify-implementation --help
+  kiln-web-service implementation-verification-graph --help";
+
 fn usage() -> i32 {
-    eprintln!(
-        "usage: kiln-web-service serve --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>] [--cache <path>] [--workers <path>] [--work <path>] [--code-review <path>] [--fleet <path>] [--runbooks <path>] [--runbooks-dir <path>]\n       kiln-web-service check --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>] [--cache <path>] [--workers <path>] [--work <path>] [--code-review <path>] [--fleet <path>] [--runbooks <path>] [--runbooks-dir <path>]\n       kiln-web-service proxy-auth --access <path>\n       kiln-web-service job --profile <path> --identity <blake3>\n       kiln-web-service heartbeat --profile <path> --identity <blake3>\n       kiln-web-service ci --profile <path> --identity <blake3> <submit|review-submit|preview|dispatch|dispatch-list|dispatch-rollup|fanout|fanout-list|fanout-status|fanout-rollup|fanout-watch|fanout-pause|fanout-continue|fanout-cancel|watch|logs|cancel|retry> [arguments]\n       kiln-web-service reviewed-request --profile <path> --project <id> [--nodes <id,id,...>]\n       kiln-web-service extend-projects --previous-profile <path> --profile <path>
-       kiln-web-service feed-token --path <absolute-new-path>"
-    );
-    eprintln!(
-        "       kiln-web-service worker-target --provider-profile <id> --socket <path> --platform <id>"
-    );
-    eprintln!(
-        "       serve/check observations: [--inventory <path>] [--implementation-work <database>] [--campaign-controls <profile>] [--dispatch-recovery <profile>] [--native-runtime-evidence <profile>] [--execution-artifacts <profile>] [--delivery-observations <path>] [--artifact-previews <catalog>] [--preview-observations <owned-directory>] [--repository-root <dir>]"
-    );
-    eprintln!("       serve/check workflow source catalog: [--lattice-authoring <profile>]");
-    eprintln!("       serve/check native change authoring: [--cairn-authoring <profile>]");
-    eprintln!("       kiln-web-service verify-implementation --help");
-    eprintln!("       kiln-web-service implementation-verification-graph --help");
-    eprintln!("       kiln-web-service inventory INPUT PRINCIPAL NOW_MS [json|html]");
-    eprintln!("       kiln-web-service inventory-collect MANIFEST PROFILE");
-    eprintln!(
-        "       kiln-web-service campaign-projection DATABASE CAMPAIGN_ID [json|html] [--inventory INPUT PRINCIPAL NOW_MS]"
-    );
-    eprintln!(
-        "       kiln-web-service drive-implementation-campaign --profile PROFILE --campaign-id ID --expected-version N"
-    );
-    eprintln!(
-        "       kiln-web-service continue-implementation-campaign --profile PROFILE --campaign-id ID"
-    );
-    eprintln!(
-        "       kiln-web-service wake-implementation-campaign --database DB --campaign-id ID --kind KIND [--observed-version N]"
-    );
+    eprintln!("{USAGE}");
     2
 }
 
@@ -331,6 +344,77 @@ fn reviewed_request(mut arguments: impl Iterator<Item = String>) -> i32 {
         Err(message) => {
             eprintln!("kiln-web-service: {message}");
             1
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::USAGE;
+
+    #[test]
+    fn usage_groups_every_command_and_flag() {
+        for section in [
+            "Web Server:",
+            "Local CI & Runbooks:",
+            "Inventory & Campaigns:",
+            "Verification & Diagnostics:",
+        ] {
+            assert!(USAGE.contains(section), "missing section {section}");
+        }
+        assert!(USAGE.contains("kiln-web-service check --profile DIR/service.json"));
+        assert!(USAGE.contains("kiln-web-service serve --profile DIR/service.json"));
+        for command in [
+            "serve",
+            "check",
+            "proxy-auth",
+            "extend-projects",
+            "feed-token",
+            "ci",
+            "reviewed-request",
+            "job",
+            "heartbeat",
+            "worker-target",
+            "inventory",
+            "inventory-collect",
+            "campaign-projection",
+            "drive-implementation-campaign",
+            "continue-implementation-campaign",
+            "wake-implementation-campaign",
+            "verify-implementation",
+            "implementation-verification-graph",
+        ] {
+            assert!(USAGE.contains(command), "missing command {command}");
+        }
+        for flag in [
+            "--profile",
+            "--access",
+            "--automation",
+            "--cobs",
+            "--sources",
+            "--reviews",
+            "--cache",
+            "--workers",
+            "--work",
+            "--code-review",
+            "--fleet",
+            "--runbooks",
+            "--runbooks-dir",
+            "--inventory",
+            "--implementation-work",
+            "--campaign-controls",
+            "--dispatch-recovery",
+            "--native-runtime-evidence",
+            "--execution-artifacts",
+            "--delivery-observations",
+            "--artifact-previews",
+            "--preview-observations",
+            "--repository-root",
+            "--lattice-authoring",
+            "--lattice-drafts",
+            "--cairn-authoring",
+        ] {
+            assert!(USAGE.contains(flag), "missing flag {flag}");
         }
     }
 }

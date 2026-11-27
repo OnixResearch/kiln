@@ -9,6 +9,7 @@ The sections below group the maintained documents by the question they answer.
 
 ## Start here
 
+- [5-minute quickstart](quickstart.md): clone, run the zero-setup interactive console, and initialize your own local repo workspace.
 - [README](../README.md): project overview, quick start and what runs today.
 - [Implementation status and evidence index](status.md): the detailed ledger of implemented areas and evidence.
 - [Architecture](architecture.md): Kiln owns CI meaning; providers own external effects.

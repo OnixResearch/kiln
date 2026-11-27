@@ -16,7 +16,7 @@ explicit, and recorded state can be replayed.
 | License | Mixed. Kiln-owned packages default to `MIT OR Apache-2.0`; see the [license map](LICENSES.md) |
 | Source | Canonical on Radicle at `rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE`, with read-only HTTPS and GitHub projections |
 
-[Quick start](#quick-start) · [What runs today](#what-runs-today) ·
+[5-minute quickstart](docs/quickstart.md) · [Quick start](#quick-start) · [What runs today](#what-runs-today) ·
 [Documentation](docs/README.md) · [Detailed status](docs/status.md) ·
 [Claim boundary](#claim-boundary)
 
@@ -65,7 +65,16 @@ Read [the architecture](docs/architecture.md) for crate boundaries and
 
 ## Quick start
 
-Acquire the read-only HTTPS projection without a Radicle node:
+See the [5-minute quickstart](docs/quickstart.md) for a step-by-step walkthrough.
+
+Clone the read-only GitHub projection with plain Git:
+
+```console
+git clone https://github.com/OnixResearch/kiln.git
+cd kiln
+```
+
+Or acquire from the canonical Radicle mirror over read-only HTTPS without a Radicle node:
 
 ```console
 GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=protocol.version GIT_CONFIG_VALUE_0=0 \
@@ -75,13 +84,6 @@ cd kiln
 
 This selects Git smart-HTTP protocol v0 for the Garden endpoint. Default negotiation returned HTTP 500 in the fresh-client check; the command above acquired the published source without credentials. These settings apply only to this clone, not global Git configuration.
 
-The read-only GitHub projection needs only Git:
-
-```console
-git clone https://github.com/OnixResearch/kiln.git
-cd kiln
-```
-
 Select and verify the intended exact revision before building; `main` is a moving reference.
 
 ```console
@@ -89,6 +91,18 @@ nix develop path:$PWD
 cargo test --locked --workspace
 cargo run --locked -p onix-kiln-cli -- demo
 ```
+
+To initialize a minimal local workspace (`service.json`, `access.json`, `sources.json`, `START_HERE.txt`) for one of your own Git repositories without touching external providers, run `cargo run --locked -p onix-kiln-cli -- init --repo /path/to/repo --out /tmp/my-kiln`.
+
+### Which binary do I run?
+
+| Binary | Package | Role |
+| --- | --- | --- |
+| `kiln` | `onix-kiln-cli` | Operator & onboarding CLI (`demo`, `init`, `evidence`, `host-qualify`, `dashboard`, `native-git`) |
+| `kiln-web-service` | `kiln-web-service` | Single-tenant HTTPS web console, local CI & runbooks (`check`, `serve`, `ci`) |
+| `kiln-fleet` | `kiln-fleet` | Multi-machine claim authority & agent dispatch |
+| `kiln-implementer` | `kiln-adapter-github` | Durable implementation ledger for queued deliveries, attempts & verification |
+| `kiln-dashboard` | `kiln-dashboard` | Standalone read-only terminal/HTML dashboard report |
 
 The first build compiles the workspace from source; no binary is published.
 Kiln is not published to crates.io. Its command-line package is

@@ -1,4 +1,5 @@
 mod dashboard;
+mod init;
 mod native_git;
 mod qualification;
 
@@ -12,6 +13,7 @@ use kiln_core::types::{
 use kiln_standalone::{CommitMode, MemoryJournal};
 
 const COMMAND_DEMO: &str = "demo";
+const COMMAND_INIT: &str = "init";
 const COMMAND_EVIDENCE: &str = "evidence";
 const COMMAND_HOST_QUALIFY: &str = "host-qualify";
 const COMMAND_DASHBOARD: &str = "dashboard";
@@ -32,6 +34,9 @@ commands:
   demo
       commit one StartRun command to an in-memory journal and print the state;
       contacts no provider
+  init --repo PATH --out DIR [--project ID]
+      generate a minimal, self-contained local workspace (service.json,
+      access.json, sources.json, START_HERE.txt) for a local Git repository
   evidence INPUT OUTPUT
       write the JSON object INPUT to OUTPUT with its BLAKE3 receipt_hash and
       print the hash
@@ -48,7 +53,13 @@ commands:
   help, --help, -h
       print this text
   --version, -V
-      print the version";
+      print the version
+
+related binaries:
+  kiln-web-service   web console & local CI (`check`, `serve`, `ci`)
+  kiln-fleet         multi-machine claims & agent dispatch
+  kiln-implementer   automated implementation ledger
+  kiln-dashboard     standalone terminal/HTML dashboard report";
 const QUALIFICATION_USAGE: &str = "usage: kiln host-qualify COHORT RECEIPT ARTIFACT_ROOT";
 const NATIVE_GIT_USAGE: &str = "usage: kiln native-git <qualify --request PATH --enrollment PATH --service-profile PATH --review-profile PATH --execute | lifecycle-receipt --request PATH --enrollment PATH --service-profile PATH --review-profile PATH --repository PATH --report PATH>";
 const EXIT_FAILURE: i32 = 1;
@@ -75,6 +86,11 @@ fn main() {
             return;
         }
         COMMAND_DEMO => demo(),
+        COMMAND_INIT => match init::run(arguments) {
+            Ok(output) => Ok(output),
+            Err(init::InitError::Usage(usage)) => fail(&usage, EXIT_USAGE),
+            Err(init::InitError::Failed(message)) => Err(message),
+        },
         COMMAND_EVIDENCE => {
             let Some(input) = arguments.next() else {
                 fail("usage: kiln evidence INPUT OUTPUT", EXIT_USAGE);
