@@ -1,0 +1,17 @@
+{
+  "scope": "Disposable two-host Fleet and Herdr command fixtures plus authenticated console UI checks; not live-provider qualification.",
+  "checks": {
+    "kiln-fleet split": "passed (crates/kiln-fleet/tests/dispatch.rs)",
+    "kiln-core fleet::placement": "passed (crates/kiln-core/src/fleet/placement.rs)",
+    "authority_coverage": "9 passed",
+    "fleet-ui": "passed (tests/fleet-ui.test.mjs)"
+  },
+  "related_receipts": [
+    ".cairn/changes/move-queued-workloads/evidence/verification.json",
+    ".cairn/changes/move-queued-workloads/evidence/two-host-browser-verification.json"
+  ],
+  "observations": [
+    "Explicit non-overlapping workload splits admit destination hosts and preserve plan vs requested effect vs observed placement",
+    "Stale snapshots, overlapping units, and unconfigured destinations are refused fail-closed"
+  ]
+}

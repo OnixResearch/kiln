@@ -187,3 +187,16 @@ r[kiln.admission.lattice_lineage.scenario.reported]
 - THEN it MUST print exactly one `kiln.lattice-sent-request.v1` object naming the request file and state root the recorded launch ran, exactly as recorded and with `recorded` true, or for a launch recorded without its request the admitted request frozen in the profile's output directory with `recorded` false, after checking that the file is a bounded ordinary file hashing to the reported BLAKE3 that `verify_frozen` accepts
 - AND it MUST exit non-zero with nothing on stdout for an attempt or fence the ledger does not hold, admitted bytes that are not the request sealed at bind-dispatch, no recorded transport intent, a missing, unbounded or crossed file, or a ledger in WAL mode, which a read-only SQLite open could change by creating its `-wal` and `-shm` files
 - AND it MUST write nothing: no ledger version or byte changes, no file is created, and no owner grant, credential read or Lattice start occurs
+
+### Requirement: Live Fair-Admission governance and AttemptMetrics visibility in the console
+
+r[kiln.admission.live_console_governance]
+`kiln-web-service` MUST expose `GET /api/implementation/admission` projecting the live fair-admission tenant tree, quotas, shares, `ServingBounds`, held debits, and `AttemptMetrics` effort summaries (tokens, turns, wall-time burn) without conflating transfers with consumption or unobserved data with zero. `3.1 Fleet & Workers` MUST render this projection and route any authorized quota/share updates through owner commands with explicit freshness and authority checks.
+
+#### Scenario: Fair-admission shares and unobserved burn render honestly
+
+r[kiln.admission.live_console_governance.scenario.honest_metrics]
+- GIVEN two active tenants with distinct fair-admission shares and one attempt lacking token telemetry
+- WHEN the operator views the Fair-Admission & Effort panel in `3.1 Fleet & Workers`
+- THEN each tenant's exact share, held debit, and serving bound MUST be displayed separately from transfers
+- AND the attempt lacking token telemetry MUST display `not recorded` rather than `0`

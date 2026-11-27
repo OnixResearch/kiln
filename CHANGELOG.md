@@ -30,6 +30,22 @@ entry describes the source tree prepared for the first tagged release.
 - Fleet can optionally observe pinned Herdr Core instances through a local Unix
   socket, showing redacted live terminal and program-status counts separately
   from legacy Herdr dispatch and Kiln work assignments.
+- Operator SDLC console controls (`61e8b877`) and read-only Rio WASM Herdr pane
+  viewer (`2da9adc4`): enrolled Cairn change authoring, Lattice workflow draft
+  authoring, Herdr terminal window browsing and Canvas-rendered WASM pane
+  viewing (with aligned 500×500 bounds and clipping notices), explicit workload
+  split/queued move controls, and Fleet mirror release threading across claim
+  renewals.
+- Admitted exact-execution artifact route (`GET /api/implementation/execution-artifacts`)
+  exposing observed implementation-provider graph and bounded redacted logs with
+  freshness and explicit unavailable/unsupported states (`fleet-operator-control-plane`).
+- Kiln-side running guest workload move (`move-running-guest-workloads`): pure
+  `no_std + alloc` plan/step transitions (`Pause` through `RetireSource`),
+  durable fail-closed `kiln-hosted` retained-mobility shell with versioned Aspen
+  placement-fencing and Lattice epoch-reconnect ports, operator-only Fleet/web
+  routes, authority registration, console display, and fault-matrix tests. Live
+  execution remains fail-closed pending Aspen #15 fencing, Lattice reconnect, and
+  two-host KVM qualification.
 
 **Core**
 
@@ -56,8 +72,13 @@ entry describes the source tree prepared for the first tagged release.
   and binding identities are deterministic BLAKE3, and a binding holds proof
   references only. Attempts retain one optional binding, absent from
   serialization until bound; an unwired issuance fold resumes an unissued
-  intent under its original identity and propagates revocation. Verified
-  cross-holder delegation waits for Basalt B1. (#70; pure-core fixtures)
+  intent under its original identity and propagates revocation. Durable SQLite
+  grant issuance (`grant_issuance_record`, `grant_issuance_slot`,
+  `grant_issuance_denial`), `#61` concurrent child budget enforcement,
+  unknown-termination cleanup fencing, and redacted `#60` denial/lineage
+  explanations are wired across `kiln-implementer` admission and `kiln-core`
+  inventory projections. Verified cross-holder delegation waits for Basalt B1.
+  (#70, #60; core + implementer SQLite fixtures)
 - Projected workspace source authority (`S7 authorize-projected-workspaces`):
   `BasaltSourceAuthority`, `SourceSigner`, `SourceHolderKey`, and
   `issue_delegated_source_grant` in `kiln-adapter-basalt` implement

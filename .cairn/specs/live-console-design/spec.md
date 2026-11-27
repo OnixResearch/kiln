@@ -197,3 +197,115 @@ r[kiln.web.topbar_containment.scenario.evidence]
 - GIVEN rebuilt local assets and an explicitly selected existing deployed example
 - WHEN the bounded Bombadil rail runs
 - THEN it MUST use the unchanged semantic properties, retain native outcomes and meaningful observed states, clean up owned processes and preserve managed services, without treating a deployed observation as deployment of this local fix or claiming exhaustive coverage or release authority
+
+### Requirement: Source-bound factory control views
+
+r[kiln.web.factory_control_views]
+The console MUST display triage, change lineage, recovery, delivery, workflow and flow observations without inferring missing identities, current state, effect or authority. Actions MUST delegate to their existing owner.
+
+#### Scenario: An owner is unavailable
+- GIVEN a console view reads more than one owner
+- WHEN one owner's observation is unavailable
+- THEN remaining observations stay visible and unavailable data does not read as success or absence
+
+### Requirement: Task-first console hierarchy
+
+r[kiln.web.console_page_priority]
+The console MUST preserve exact destination and detail routes while prioritizing the work each page supports. Routine actions, failures, and unavailable observations MUST remain visible. Supporting inventory and provenance MAY be grouped separately without changing their ownership or linking them by inference.
+
+#### Scenario: Open a secondary destination directly
+- GIVEN a destination in a collapsed navigation group
+- WHEN a reader opens its exact route
+- THEN the group opens and the destination is marked current
+
+### Requirement: Inventory-safe Factory rail promotion
+
+r[kiln.web.factory_p0_rail_promotion]
+The live console MUST promote `2.7 Cairn changes` and `2.8 Fleet` out of collapsed navigation disclosures into visible primary rail items while folding `kiln-ui-simplify` and source-bound owner projection groundwork cleanly. During P0, all 23 registered destination identifiers and `parent: null` registrations MUST remain intact so `docs/console-port-inventory.json`, `tests/console-inventory.test.mjs`, and `tests/live-console-ui.test.mjs` pass without drift.
+
+#### Scenario: Factory destinations are immediately visible without breaking inventory
+
+r[kiln.web.factory_p0_rail_promotion.scenario.visible]
+- GIVEN the live console navigation rail in `web.html`
+- WHEN an operator loads the console and runs the console inventory and UI tests
+- THEN `Cairn changes` and `Fleet` MUST be visible without opening `More work`
+- AND every registered destination MUST still match `docs/console-port-inventory.json`
+
+### Requirement: Guarded Fleet control dialogs without blocking browser prompts
+
+r[kiln.web.factory_p0_control_safety]
+Fleet mutations in the web console (`Renew`, `Release`, `Cancel`) MUST NOT call `window.prompt()` or `window.alert()`, and MUST NOT execute destructive claim release or attempt cancellation without an explicit confirmation dialog capturing reason context and validating observation freshness against `CONTROL_FRESHNESS_MS`.
+
+#### Scenario: Stale or unconfirmed Fleet mutation is blocked
+
+r[kiln.web.factory_p0_control_safety.scenario.guarded]
+- GIVEN an operator invoking `Release` on a claim or `Cancel` on an attempt in `fleet.js`
+- WHEN the observation snapshot is older than `CONTROL_FRESHNESS_MS` or the operator has not confirmed in `#control-dialog`
+- THEN the browser MUST NOT issue the mutation request
+- AND the dialog MUST require a fresh snapshot and explicit confirmation before submission
+
+### Requirement: Two-region Factory Cockpit with non-destructive Slide-Over Inspector
+
+r[kiln.web.factory_cockpit_and_slideover]
+The `1.1 Factory` landing view MUST render inside `.page-frame-wide` (`110rem`) using a persistent Global Live Strip, a Live Factory Telemetry Ribbon (dispatch state, swarm mirror health, open escalations, expiring claims, host occupancy), a main column (auto-collapsing Attention & Escalation Inbox + compact clickable `DeliverySpine` rows + 1-line-per-target Merge Train strip), and a `24rem` side rail (`Machine & Slot Census` + `Claims & Fair-Admission Budget` collapsing healthy non-expiring claims behind a count). Selecting any Attention item, Claim, Attempt, Run, or Review MUST open a `44rem` Slide-Over Inspector synchronized to `?inspect=<kind>:<id>` without tearing down page state or closing the SSE stream, and MUST stream live `herdr` pane output strictly while the Attempt drawer is open and `document.visibilityState === "visible"`.
+
+#### Scenario: Zero blockers compacts Attention and Slide-Over preserves SSE
+
+r[kiln.web.factory_cockpit_and_slideover.scenario.cockpit]
+- GIVEN an operator viewing `1.1 Factory` with zero active escalations and one running agent attempt
+- WHEN the page renders and the operator opens the running attempt in the Slide-Over Inspector
+- THEN the Attention section MUST compact to a single healthy summary bar
+- AND opening the Slide-Over MUST NOT close `/api/events`, MUST sync `?inspect=attempt:<id>`, and MUST pause pane tailing immediately on drawer close or tab hide
+
+#### Scenario: Tiered control safety and CLI parity
+
+r[kiln.web.factory_cockpit_and_slideover.scenario.tiered_safety]
+- GIVEN an operator invoking a Tier 3 destructive action (`Cancel Attempt`, `Force-Release / Steal Foreign Claim`, `Drain Machine`, or bulk mutation)
+- WHEN the action is triggered from the Cockpit, Slide-Over, or Command Palette
+- THEN the console MUST require a reason note, explicit confirmation, and idempotency `request_id`
+- AND MUST display a 1-click copyable `kiln-fleet` or `kiln-implementer` CLI equivalent command
+
+### Requirement: Full-factory Command Palette, keyboard chords, and bulk controls
+
+r[kiln.web.factory_command_palette_and_bulk]
+The `Ctrl/Cmd+K` Command Palette (`work-interaction.js`) MUST index Destinations, Fleet Claims, Attempts, Open Decisions, Cairn Changes, Campaigns, Projects, server-searched Runs, Code Reviews, and Machines, and MUST support typed operational verbs (`> renew`, `> release`, `> approve`, `> reconcile`, `> wake`, `> drain`, `> cancel`) routed through the tiered safety rails. The console MUST provide consistent `g + <key>` navigation chords (`g f`, `g a`, `g d`, `g r`, `g c`, `g m`), `j`/`k`/`Enter`/`[`/`]`/`Esc` list and Slide-Over navigation, Attention triage shortcuts (`a`, `r`, `p`, `Shift+X`), and multi-select (`x`) bulk toolbars on Claims, Attempts, and Runs.
+
+#### Scenario: Operator executes a Fleet verb via Command Palette
+
+r[kiln.web.factory_command_palette_and_bulk.scenario.palette_verb]
+- GIVEN an open expiring claim in Fleet
+- WHEN the operator opens `Ctrl/Cmd+K` and selects `> renew <claim>` or `> release <claim>`
+- THEN the palette MUST find the live Fleet claim and execute Tier 1 renewal or open the Tier 3 release modal without switching pages
+
+### Requirement: Causal event timeline, cross-node failure digest, and bounded opt-in Atlas topology
+
+r[kiln.web.causal_timeline_and_failure_digest]
+Run `Activity` and `Evidence` MUST render canonical events and audit records as a chronological state-machine progression (`Admitted -> Gate -> Dispatched -> Observations -> Controls/Unknown -> Terminal`) showing timestamp, principal/agent, and copyable 12-char BLAKE3 `event_identity` prefixes while preserving raw JSON inside collapsible disclosures. Run `Logs` MUST display a deduplicated Cross-Node Failure Digest above the log viewer for multi-node DAG failures with 1-click navigation to each failed node's `stderr`/`stdout`. Opt-in Atlas topology views (`docs/atlas-view.md`) MUST use same-origin assets only, distinguish declared vs observed edges visually, and enforce a strict `<= 64`-node bound with bounded table fallback when exceeded.
+
+#### Scenario: Multi-node DAG failure surfaces deduplicated failure digest and causal timeline
+
+r[kiln.web.causal_timeline_and_failure_digest.scenario.multi_node]
+- GIVEN a retained multi-node CI run where two workflow nodes failed after dispatch
+- WHEN the operator opens the run's `Activity` and `Logs` views
+- THEN `Activity` MUST display the ordered causal state progression with copyable BLAKE3 event identities
+- AND `Logs` MUST surface a deduplicated failure summary listing both failing nodes above the log pane without requiring manual dropdown hunting
+
+#### Scenario: Atlas topology refuses unbounded graphs
+
+r[kiln.web.causal_timeline_and_failure_digest.scenario.atlas_bound]
+- GIVEN a topology projection containing more than 64 nodes
+- WHEN the operator requests the opt-in Atlas view
+- THEN the console MUST enforce the 64-node bound and render an explicit bounded summary fallback rather than an unbounded graph
+
+### Requirement: Repositories and Fleet Copies workbench with guarded multi-forge import UI
+
+r[kiln.web.repository_import_ui]
+The live console MUST provide a **Repositories & Fleet Copies** view inside `3.2 System & Source` (linked from `1.1 Factory`, `?inspect=repo:<id>` Slide-Over Inspector, and `Ctrl+K` `> import repo`) displaying each repository's canonical Kiln identity, GitHub/Gitea/Radicle remotes and mirrors (`canonical` vs `mirror`), cross-fleet local working copies per machine (`vcs`, `head_commit`, `branch_or_bookmark`, `dirty`/`diverged`/`unavailable` badges, and active Cairn counts), and admission status (`Observed` vs `CI Configured` vs `Fleet Enrolled`). The **Import Repository / Add Mirror** flow MUST support GitHub, Gitea/Forgejo, and Radicle inputs, surface an explicit read-only Radicle non-mutation notice, and route all catalog mutations through `#control-dialog` Tier-2/3 confirmations.
+
+#### Scenario: Operator imports a remote/mirror and inspects cross-fleet local copies
+
+r[kiln.web.repository_import_ui.scenario.workbench]
+- GIVEN an authenticated Operator viewing `3.2 System & Source` -> `Repositories`
+- WHEN the Operator imports a GitHub or Gitea mirror onto an existing Radicle repository and opens `?inspect=repo:<id>` in the Slide-Over Inspector
+- THEN the UI MUST require `#control-dialog` confirmation before issuing `POST /api/repositories/{id}/mirrors`
+- AND the Slide-Over MUST display all remotes/mirrors alongside every machine's local copy status, explicitly flagging diverged, dirty, or offline hosts

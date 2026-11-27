@@ -334,3 +334,29 @@ r[kiln.dashboard.campaign.projection.scenario.readonly]
 - WHEN an authorized consumer reads a selected campaign
 - THEN no schema or row mutation, reservation, dispatch, owner discovery, or lifecycle transition MAY occur
 - AND persisted campaign/version bytes MUST remain unchanged
+
+### Requirement: Campaign index endpoint for operator selection
+
+r[kiln.implementation.campaign.index_route]
+The web service MUST expose `GET /api/implementation/campaigns` returning a bounded, ordered index of active and recent implementation campaigns with their identifiers, current status, pending human-decision counts, and latest update timestamps. The Fleet and Workers views MUST populate a selectable campaign list from this endpoint instead of requiring operators to memorize and type raw campaign IDs.
+
+#### Scenario: Operator selects a campaign from the live index
+
+r[kiln.implementation.campaign.index_route.scenario.list]
+- GIVEN one or more active or recent implementation campaigns in the store
+- WHEN an operator opens Fleet or Workers and the console fetches `GET /api/implementation/campaigns`
+- THEN each campaign MUST appear in a selectable list with its status and pending decision count
+- AND an empty store MUST render an explicit empty state rather than an error or fabricated campaign
+
+### Requirement: Unified Attention aggregation, campaign wake, and termination reconciliation routes
+
+r[kiln.implementation.campaign.unified_attention_and_recovery]
+`kiln-web-service` MUST expose `GET /api/implementation/attention` aggregating all human-required escalations (`UntrustedRunApproval`, `FleetSessionDecision`, `CampaignDecision`, `PlanReviewGate` for `plan_not_accepted`, `UnknownTerminationOrDispatch`, and `ExpiringOrConflictClaim`) with severity, target identities, context preview, TTL, and allowed actions. It MUST also expose `POST /api/implementation/campaigns/{id}/wake` and `POST /api/implementation/reconcile-termination` so operators can wake deferred campaigns, review/accept blocked plans inline in the Slide-Over, and clear ambiguous termination guards without dropping to the CLI.
+
+#### Scenario: Ambiguous termination and blocked plan resolve from Attention
+
+r[kiln.implementation.campaign.unified_attention_and_recovery.scenario.resolve]
+- GIVEN a campaign member blocked on `plan_not_accepted` and another blocked on an ambiguous termination guard
+- WHEN the operator opens `GET /api/implementation/attention` in the Cockpit or Attention view
+- THEN both items MUST appear with exact target identities and context previews
+- AND invoking the inline plan gate or `POST /api/implementation/reconcile-termination` MUST validate exact identities before clearing the guard

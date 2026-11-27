@@ -223,3 +223,204 @@ r[kiln.fleet.swarm.console.scenario.escaping_and_replay]
 - WHEN the console proxy routes and HTML views are requested
 - THEN non-GET requests to `/api/fleet/swarms*` and malformed query strings MUST be refused
 - AND rendered HTML MUST escape all untrusted payloads, include zero external CDN links, and filter the mention graph and board deterministically at `up_to_seq`
+
+### Requirement: Herdr panes render in a read-only WASM terminal viewer
+
+r[kiln.sdlc.herdr_viewer]
+Kiln MUST render an operator-selected Herdr pane's bounded ANSI snapshot in a WebAssembly terminal viewer that interprets escapes only as terminal state. The viewer MUST NOT send input to the pane, and MUST fall back to plain-text capture when the module cannot load.
+
+#### Scenario: Operator views a colored pane
+
+r[kiln.sdlc.herdr_viewer.scenario.view]
+- GIVEN a configured host with a pane showing colored output
+- WHEN an operator opens the pane in the viewer
+- THEN the console renders the pane's cells with their colors
+- AND refreshes only while the viewer is open and visible
+
+#### Scenario: Hostile output stays inert
+
+r[kiln.sdlc.herdr_viewer.scenario.inert]
+- GIVEN pane output containing HTML, script text, and unsupported escape sequences
+- WHEN the viewer renders it
+- THEN no markup or script is interpreted
+- AND unsupported sequences have no effect outside the cell grid
+
+### Requirement: Fleet composes exact operator observations and controls
+
+r[kiln.fleet.operator_plane] Fleet MUST expose exact attempt inspection, operator attention and recovery, queue and capacity explanation, worker runtime evidence and campaign controls through their existing owners. It MUST preserve explicit unknown and unavailable states, and MUST NOT translate ambiguous dispatch into redispatch or provider observation into lifecycle authority.
+
+#### Scenario: A blocked or unknown attempt can be inspected without crossing authority
+
+r[kiln.fleet.operator_plane.scenario.stuck]
+- GIVEN a Cairn change with a blocked or unknown execution
+- WHEN an operator inspects it in Fleet
+- THEN the exact owner observations and supported controls MUST be reachable
+- AND unsupported or unobserved facts MUST be explicit rather than inferred
+
+### Requirement: Herdr window browsing
+
+r[kiln.sdlc.herdr_windows]
+Kiln MUST inspect bounded terminal windows on configured Herdr hosts, including windows without a Kiln attempt. Use only configured Herdr hosts and its native window and capture operations. Only an authenticated operator can read terminal contents. Use the selected host and a window observed in that host’s current inventory, bounded sanitized text, and explicit unavailable states.
+
+#### Scenario: Operator uses herdr window browsing
+
+r[kiln.sdlc.herdr_windows.scenario.operator]
+- GIVEN an authenticated operator and an explicitly configured provider
+- WHEN they open a configured host and select an observed terminal window
+- THEN Kiln MUST show the exact host and window with bounded captured output; refuse unknown windows and viewer capture
+
+### Requirement: Queued workload rebind
+
+r[kiln.sdlc.queued_workload_move]
+Kiln MUST rebind an exact current unstarted interactive reservation to an explicitly selected admitted host in the native placement owner. It MUST compare the reservation and fence atomically against session binding and transport start, preserve the attempt and work, and retain replayable intent separately from provider observation. Kiln MUST NOT treat quota failover or active migration as a queued rebind.
+
+#### Scenario: Operator moves a queued workload
+
+r[kiln.sdlc.queued_workload_move.scenario.operator]
+- GIVEN exact queued work and an enrolled reachable destination with compatible capacity and a repository checkout
+- WHEN an operator previews and submits an unchanged move
+- THEN only the selected destination may launch; stale, unavailable and potentially started work is refused, and replay or ambiguous observation never creates another execution
+
+### Requirement: Explicit workload placement
+
+r[kiln.sdlc.workload_placement]
+Kiln MUST move eligible workloads and split independent units across selected hosts. Keep placement with the owner. Use exact current attempt, checkpoint, destination admission, and fencing for a move, never duplicate an unresolved execution. Split into non-overlapping units with explicit dependencies and destination admission. Distinguish plan, requested effect, and observed placement.
+
+#### Scenario: Operator uses explicit workload placement
+
+r[kiln.sdlc.workload_placement.scenario.operator]
+- GIVEN an authenticated operator and an explicitly configured provider
+- WHEN they move an eligible attempt or place two independent split units on two enrolled hosts
+- THEN Kiln MUST record owner-confirmed placement and lineage; refuse overlap, cycles, stale fences and unavailable destinations
+
+### Requirement: Machine-first Fleet observations
+
+r[kiln.fleet.aggregate_workspace]
+The console MUST distinguish enrolled machines from observed Herdr sessions and exact Fleet assignments, retain independent Cairn and issue sources, and NOT infer a healthy or idle host or matched source when the evidence is missing.
+
+#### Scenario: Peer enrollment is not telemetry
+- GIVEN a roster with an observed machine, an unreachable target and a peer without a Herdr route
+- WHEN the operator opens Fleet
+- THEN all three appear with distinct observation states and the work view preserves independently observed Cairn and issue identities
+
+### Requirement: Herdr Core observation isolation
+
+r[kiln.fleet.herdr_core_observation]
+Fleet MUST admit Core observations through an explicitly selected versioned local endpoint independently of dispatch, and MUST NOT expose terminal content or infer assignment from Core status or display data.
+
+#### Scenario: A remote line drops
+- GIVEN a mapped Core machine with a previously observed terminal
+- WHEN the Core connection or its remote line no longer provides a fresh observation
+- THEN Fleet MUST distinguish stale or unobserved data from zero live terminals, and retain independent Cairn and issue reads
+
+### Requirement: The Fleet console distinguishes snapshot composition from freshness
+
+r[kiln.fleet.console_snapshot] The authenticated Fleet console MUST label attempt state counts as a breakdown of the listed attempts, distinguish ranked work from the ready-and-unclaimed count, and distinguish the last accepted snapshot from connection and command feedback. A transport failure MUST NOT make retained records appear current. An unrelated update MUST NOT discard a draft answer to a decision that remains open.
+
+#### Scenario: Changes and outages preserve observation meaning
+
+r[kiln.fleet.console_snapshot.scenario.transitions]
+- GIVEN a bounded snapshot with mixed attempt states and an open decision
+- WHEN a heartbeat, an unrelated update and a connection failure arrive
+- THEN the state breakdown MUST count listed attempts only, the draft answer MUST remain, and the last accepted snapshot MUST be marked stale without becoming an empty register
+
+### Requirement: Fleet attempt visualizations drill down locally
+
+r[kiln.fleet.console_drilldown] The Fleet console MUST let operators use keyboard or pointer to filter listed attempts by coordinator state and recorded session machine. The register MUST show the intersection, distinguish no matches from no attempts, and retain the selection across snapshots until cleared. Bar counts MUST still describe the whole listed snapshot.
+
+#### Scenario: Combined filters outlive a changing snapshot
+
+r[kiln.fleet.console_drilldown.scenario.intersection]
+- GIVEN listed attempts on two machines and an attempt without a recorded machine
+- WHEN the reader selects a state and a machine and the next snapshot has no matching row
+- THEN the selected filters MUST remain visible with no matching rows until cleared
+- AND clearing MUST restore all rows of the latest snapshot without a request
+
+### Requirement: Fleet shows current Cairn lifecycle progress
+
+r[kiln.fleet.cairn_progress] Fleet MUST refresh the canonical Cairn index while visible independently of its coordinator stream. It MUST show each listed change's observed lane, unit lane counts and exact detail link, distinguish truncated and unobserved results, and mark retained rows stale after a failed refresh rather than inferring progress.
+
+#### Scenario: Cairn progresses without a Fleet event
+
+r[kiln.fleet.cairn_progress.scenario.refresh]
+- GIVEN Fleet shows a Cairn change in progress
+- WHEN the Cairn index records a later lifecycle lane and then a refresh fails
+- THEN the later lane MUST appear without a Fleet event and remain visible as stale after the failure
+
+### Requirement: Cairn progress attributes workers by exact attempt
+
+r[kiln.fleet.cairn_workers] Fleet MUST show the recorded worker binding or matching Fleet session for listed active attempts on current Cairn work. A Fleet session MUST match both attempt and fence. Missing evidence MUST remain unknown, and a dispatch binding MUST NOT imply live placement.
+
+#### Scenario: A neighboring session cannot be substituted
+
+r[kiln.fleet.cairn_workers.scenario.attribution]
+- GIVEN an active Cairn attempt with a retained worker binding and Fleet sessions on the current and a different fence
+- WHEN Fleet displays the change
+- THEN it MUST show the recorded binding and only the current-fence session
+- AND an attempt without either observation MUST remain unattributed
+
+### Requirement: Cairn execution context distinguishes plans from observations
+
+r[kiln.fleet.cairn_execution_context] Fleet MUST distinguish the dispatch provider, harness, requested artifact and bound model services from an observed Fleet machine and agent. The display MUST NOT infer a serving model, a Lattice host or swarm membership from the plan or missing observations.
+
+#### Scenario: A plan is not a runtime observation
+
+r[kiln.fleet.cairn_execution_context.scenario.evidence]
+- GIVEN an active attempt with planned model evidence and no matching session
+- WHEN Fleet displays the attempt
+- THEN the model MUST be identified as requested or bound, and machine and swarm membership MUST remain unobserved
+- AND a later exact Fleet session MUST populate its machine and agent, not change the model into a runtime claim
+
+### Requirement: Combined Fleet UI surface and proxy exposure of existing metrics and version routes
+
+r[kiln.fleet.unified_console_surface]
+Kiln MUST NOT maintain a second divergent interactive HTML control plane in `crates/kiln-fleet/src/ui.html`. `kiln-fleet`'s `/` and `/ui` routes MUST combine into the unified `kiln-web-service` Factory Control Plane (redirecting to the configured console Fleet URL or returning a clear pointer when unconfigured). `crates/kiln-web-service/src/fleet.rs` MUST extend its `upstream_path` allowlist to proxy existing `kiln-fleet` `/v1/metrics` and `/v1/version` endpoints while continuing to reject unallowlisted or traversal paths.
+
+#### Scenario: Standalone Fleet UI route points to unified console
+
+r[kiln.fleet.unified_console_surface.scenario.combined]
+- GIVEN a `kiln-fleet` server configured with the primary `kiln-web-service` console URL
+- WHEN an operator requests `GET /` or `GET /ui` on `kiln-fleet`
+- THEN the response MUST direct the operator to the unified Factory console rather than serving a separate bespoke `prompt()`/`alert()` HTML application
+
+#### Scenario: Metrics and version proxy enforces allowlist
+
+r[kiln.fleet.unified_console_surface.scenario.proxy]
+- GIVEN an authenticated console operator requesting `/api/fleet/metrics` or `/api/fleet/version`
+- WHEN `fleet.rs` forwards the request to `kiln-fleet`
+- THEN `/v1/metrics` and `/v1/version` MUST be proxied cleanly
+- AND unallowlisted paths or path-traversal attempts MUST be rejected before upstream dispatch
+
+### Requirement: Live agent pane observation, machine slot census, foreign claims, and dispatch pause
+
+r[kiln.fleet.live_pane_and_machine_census]
+`kiln-fleet` MUST expose authenticated HTTP endpoints for live operator control: `GET /v1/machines` (returning `HerdrInventory`, live `HerdrClient::occupancy()`, explicit `Unavailable(HerdrFailure)` errors, and machine drain state), `POST /v1/machines/{name}/drain`, `GET /v1/attempts/{id}/pane?lines=N` (bounded `N <= 1000`, wrapping `HerdrClient::read`), `POST /v1/attempts/{id}/prompt`, `POST /v1/attempts/{id}/interrupt`, `GET /v1/claims?include=foreign,expired` (exposing `SwarmLink::foreign()`, mirror state, and recently expired claims), `GET /v1/dispatch/status` (exposing `TickReport` deferral reasons and `Running | Paused` state), and `POST /v1/dispatch/pause` / `POST /v1/dispatch/resume`. `crates/kiln-web-service/src/fleet.rs` MUST proxy these routes with strict path and parameter validation.
+
+#### Scenario: Operator inspects blocked agent pane and steers without SSH
+
+r[kiln.fleet.live_pane_and_machine_census.scenario.pane_read]
+- GIVEN a running attempt in `blocked_question` state on an available `herdr` host
+- WHEN the operator opens the Attempt in the Slide-Over Inspector and fetches `GET /api/fleet/attempts/{id}/pane?lines=200`
+- THEN `kiln-fleet` MUST return bounded plain-text pane lines from `HerdrClient::read`
+- AND the operator MUST be able to send an answer/prompt or interrupt through the guarded control route
+
+#### Scenario: Offline host and foreign claim conflicts remain explicit
+
+r[kiln.fleet.live_pane_and_machine_census.scenario.offline_and_foreign]
+- GIVEN one unreachable `herdr` machine returning `HerdrFailure` and one active `ForeignClaim` blocking dispatch
+- WHEN the console loads `GET /api/fleet/machines` and `GET /api/fleet/claims?include=foreign,expired`
+- THEN the offline machine MUST display `Unavailable` with its error reason rather than `0/0` idle slots
+- AND the blocking `ForeignClaim` and its mirror status MUST be surfaced explicitly
+
+### Requirement: Read-only Fleet local-copy census across configured machines
+
+r[kiln.fleet.local_copy_census]
+`kiln-fleet` MUST expose an authenticated read-only endpoint `GET /v1/repositories` (and `crates/kiln-web-service/src/fleet.rs` MUST proxy `GET /api/fleet/repositories` -> `/v1/repositories`) that observes local repository checkouts across configured fleet machines and checkout roots without mutating working trees, running remote fetches, or invoking Radicle mutations. Each observed copy MUST report `machine`, `path`, `vcs` (`git | jj | pijul`), exact `head_commit` (or `null`), `branch_or_bookmark`, `dirty` (`bool | null`), discovered remote URLs/RIDs, active `.cairn/changes` directory count, `observed_at_ms`, and `health`. Unreachable or unconfigured hosts MUST appear explicitly with `health: "unavailable"` and their error diagnostic rather than being omitted or reported as clean.
+
+#### Scenario: Offline fleet host remains explicit alongside healthy local copies
+
+r[kiln.fleet.local_copy_census.scenario.offline_host]
+- GIVEN a fleet with local checkouts observed on `britton-desktop` and an unreachable peer host `aspen3`
+- WHEN a client fetches `GET /api/fleet/repositories`
+- THEN `britton-desktop`'s observed local copies MUST be returned with exact HEAD, VCS, remotes, and Cairn count
+- AND `aspen3` MUST be reported explicitly as `unavailable` with its failure reason

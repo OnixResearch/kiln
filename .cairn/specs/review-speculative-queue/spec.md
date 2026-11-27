@@ -84,3 +84,28 @@ r[kiln.review.queue.speculative.serial.scenario.replay]
 - GIVEN a profile, queue entry and pending journal serialized before this change
 - WHEN they are loaded and serialized again, and a serial queue runs to submission
 - THEN the bytes MUST be identical and the stored records MUST contain no speculative keys
+
+### Requirement: Speculative queue window projection in code-review API
+
+r[kiln.review.queue.speculative.window_projection]
+`GET /api/code-review` MUST include the recorded `queue_windows` and active `WindowPolicy` bounds (`floor`, `ceiling`, `increase`, `decrease`, current depth, and per-target mode) alongside `state.queue` so the console can display exact speculative merge train depth and policy without hidden client inference.
+
+#### Scenario: Code-review API returns active speculative window bounds
+
+r[kiln.review.queue.speculative.window_projection.scenario.exposed]
+- GIVEN a code-review target configured with a speculative `WindowPolicy`
+- WHEN a client fetches `GET /api/code-review`
+- THEN the response MUST serialize `queue_windows` with the exact target ref, mode, active window depth, and configured bounds
+- AND targets in `serial` mode MUST omit speculative window claims rather than fabricating defaults
+
+### Requirement: Visual Speculative Merge Train view and Cockpit status strip
+
+r[kiln.review.queue.speculative.visual_train]
+The Code Review workbench MUST expose a first-class `Merge Queue` tab rendering per-target speculative `Chain` predecessor graphs (`Window floor..ceiling`, active depth, `generation`, `root_target`, and retired `superseded_chains` with exact ejection/rebuild causes). The `1.1 Factory` Cockpit MUST display a compact 1-line-per-target Merge Train status strip linking directly into the Code Review `Merge Queue` tab or opening the item in the Slide-Over Inspector.
+
+#### Scenario: Retired speculative chain explains predecessor failure
+
+r[kiln.review.queue.speculative.visual_train.scenario.retired_chain]
+- GIVEN a speculative merge train where predecessor `#1` failed CI and caused `#2` and `#3` to rebuild in a new generation
+- WHEN the operator opens the `Merge Queue` tab in Code Review
+- THEN the UI MUST render the active predecessor chain, window depth, and the retired `superseded_chains` entry stating the exact predecessor failure cause
