@@ -103,7 +103,7 @@
   // r[impl kiln.web.readable_observations]
   // r[impl kiln.web.readable_observations.scenario.unknown]
   const ui = window.KilnUi;
-  function when(ms) { return ui.timeElement(Number.isSafeInteger(ms) ? ms : null); }
+  function when(ms, options) { return ui.timeElement(Number.isSafeInteger(ms) ? ms : null, options); }
   function elapsed(ms) { return ui.durationElement(Number.isSafeInteger(ms) && ms >= 0 ? ms : null); }
   function relativeText(ms) { return Number.isSafeInteger(ms) ? ui.formatRelative(ms) : "Not recorded"; }
   function statePill(status, label, exact) {
@@ -1806,37 +1806,48 @@
     operations: Object.freeze({ page: "source", tab: "operations" }),
     cobs: Object.freeze({ page: "source", tab: "cobs" }),
   });
+  const NAV_TOOLTIPS = Object.freeze({
+    overview: "Live Factory cockpit: escalations, delivery spine, speculative merge train, machine slots and expiring claims. (CI projects and build runs live in 2.2 Runs & Evidence.)",
+    inbox: "Escalations, blocked agents, untrusted PR runs, assignments, triage requests and expiring claims needing human action.",
+    cairn: "Cairn lifecycle specs & change packages (.cairn/), delivery units, issues, planning boards, saved views and dependencies.",
+    runs: "Filter CI build runs, inspect workflow DAGs and logs, browse CI projects, dispatch runbooks and inspect Patchgate receipts.",
+    "code-review": "Review exact code revisions, inline threads, Jujutsu (jj) stacks, required CI checks and the Speculative Merge Train.",
+    fleet: "Monitor the Fleet coordinator, machine slot capacity, active agent attempts, lease claims, swarms and configured workers.",
+    source: "Browse source trees, multi-forge repositories, activity timeline, Atom feeds, automation triggers, capacity limits and COBs.",
+    guide: "New-user orientation, section directory, run state legend, plain-English glossary and keyboard shortcuts.",
+    settings: "Review your access role and adjust theme appearance and layout density.",
+  });
   const DESTINATION_TABS = Object.freeze({
     inbox: Object.freeze([
-      Object.freeze({ id: "attention", label: "Escalations", panel: "inbox-attention" }),
-      Object.freeze({ id: "inbox", label: "My inbox", panel: "inbox" }),
-      Object.freeze({ id: "triage", label: "Requests & triage", panel: "triage" }),
+      Object.freeze({ id: "attention", label: "Escalations", panel: "inbox-attention", title: "Open escalations, blocked plans, ambiguous agent terminations and expiring claims needing operator action." }),
+      Object.freeze({ id: "inbox", label: "My inbox", panel: "inbox", title: "Assigned work items and notifications waiting on your review or action." }),
+      Object.freeze({ id: "triage", label: "Requests & triage", panel: "triage", title: "Review incoming requests, keep their original source and decide what to take on next." }),
     ]),
     cairn: Object.freeze([
-      Object.freeze({ id: "cairn", label: "Cairn changes", panel: "cairn" }),
-      Object.freeze({ id: "work", label: "Issues", panel: "work" }),
-      Object.freeze({ id: "planning", label: "Planning", panel: "planning" }),
-      Object.freeze({ id: "workviews", label: "Saved views", panel: "workviews" }),
+      Object.freeze({ id: "cairn", label: "Cairn changes", panel: "cairn", title: "Browse .cairn/ specification and change packages, lifecycle stages, blockers and agent attempts." }),
+      Object.freeze({ id: "work", label: "Issues", panel: "work", title: "Capture an issue, decide what happens next, and follow its discussion and linked CI results." }),
+      Object.freeze({ id: "planning", label: "Planning", panel: "planning", title: "Organize issues into projects, milestones and cycles, and track larger goals." }),
+      Object.freeze({ id: "workviews", label: "Saved views", panel: "workviews", title: "Return to private or shared filters, boards and favorites saved in this workspace." }),
     ]),
     runs: Object.freeze([
-      Object.freeze({ id: "runs", label: "Retained runs", panel: "runs" }),
-      Object.freeze({ id: "projects", label: "CI projects", panel: "projects" }),
-      Object.freeze({ id: "runbooks", label: "Runbooks", panel: "runbooks" }),
-      Object.freeze({ id: "reviews", label: "Patchgate receipts", panel: "reviews" }),
-      Object.freeze({ id: "evidence", label: "Evidence", panel: "evidence" }),
+      Object.freeze({ id: "runs", label: "Retained runs", panel: "runs", title: "Browse and filter retained CI runs, inspect workflow DAGs, live logs, artifacts and test reports." }),
+      Object.freeze({ id: "projects", label: "CI projects", panel: "projects", title: "Browse enrolled CI repositories, inspect latest build health and start a new source-bound run." }),
+      Object.freeze({ id: "runbooks", label: "Runbooks", panel: "runbooks", title: "Choose a reviewed automation runbook, enter typed parameters and dispatch a source-bound run." }),
+      Object.freeze({ id: "reviews", label: "Patchgate receipts", panel: "reviews", title: "Read-only automated Patchgate review decisions per change (evidence only; never merges automatically)." }),
+      Object.freeze({ id: "evidence", label: "Evidence", panel: "evidence", title: "Inspect recorded source, execution, provenance and verification evidence for a retained run." }),
     ]),
     fleet: Object.freeze([
-      Object.freeze({ id: "fleet", label: "Fleet coordinator", panel: "fleet" }),
-      Object.freeze({ id: "workers", label: "Worker targets", panel: "workers" }),
+      Object.freeze({ id: "fleet", label: "Fleet coordinator", panel: "fleet", title: "Inspect the Fleet coordinator, machine slot census, live agent attempts, lease claims and swarms." }),
+      Object.freeze({ id: "workers", label: "Worker targets", panel: "workers", title: "Inspect configured execution targets, project admission slots and latest execution state." }),
     ]),
     source: Object.freeze([
-      Object.freeze({ id: "source", label: "Source browser", panel: "source" }),
-      Object.freeze({ id: "repositories", label: "Repositories", panel: "repositories" }),
-      Object.freeze({ id: "activity", label: "Activity", panel: "activity" }),
-      Object.freeze({ id: "feeds", label: "Feeds", panel: "feeds" }),
-      Object.freeze({ id: "automation", label: "Automation", panel: "automation" }),
-      Object.freeze({ id: "operations", label: "Operations", panel: "operations" }),
-      Object.freeze({ id: "cobs", label: "Collaboration history", panel: "cobs" }),
+      Object.freeze({ id: "source", label: "Source browser", panel: "source", title: "Browse committed repository trees, diffs and commit history without running workspace commands." }),
+      Object.freeze({ id: "repositories", label: "Repositories", panel: "repositories", title: "Multi-forge repository catalog, canonical Radicle/GitHub/Gitea remotes, mirrors and local working copies." }),
+      Object.freeze({ id: "activity", label: "Activity", panel: "activity", title: "Browse retained canonical events and attributable audit decisions." }),
+      Object.freeze({ id: "feeds", label: "Feeds", panel: "feeds", title: "Subscribe to Atom feeds of retained runs and follow external repository feeds (read-only projections)." }),
+      Object.freeze({ id: "automation", label: "Automation", panel: "automation", title: "Inspect registered webhook triggers, schedules and delivery outcomes." }),
+      Object.freeze({ id: "operations", label: "Operations", panel: "operations", title: "Inspect server capacity, durable queue depth and retention limits." }),
+      Object.freeze({ id: "cobs", label: "Collaboration history", panel: "cobs", title: "Browse raw local Radicle Collaborative Objects (COBs) such as issues and patches stored in Git." }),
     ]),
   });
   const ALLOWED_TABS = Object.freeze({
@@ -1868,14 +1879,18 @@
   const PENDING_RUNS = Object.freeze({ page: "runs", outcome: "Pending", project: "", q: "", source: "", cursor: "", run: "", node: "" });
   // r[impl kiln.web.wayfinding] The brand returns to the workspace's home, the page the bare URL opens.
   const HOME = Object.freeze({ page: "overview" });
-  // Each rail destination carries its register number; the number is visual wayfinding and stays out of the link's name.
+  // Each rail destination carries its register number and a plain-English tooltip; the number is visual wayfinding and stays out of the link's name.
   for (const link of document.querySelectorAll("#app-sidebar a[data-page]")) {
     const place = ui.destination(link.dataset.page);
     if (!place) continue;
+    if (!link.title) link.title = NAV_TOOLTIPS[place.page] || place.purpose;
     const number = element("span", place.number, "nav-number");
     number.setAttribute("aria-hidden", "true");
     link.querySelector(".nav-text")?.before(number);
   }
+  if ($("global-firing-pill") && !$("global-firing-pill").title) $("global-firing-pill").title = "Active CI runs currently executing; click to view pending runs.";
+  if ($("global-escalations-pill") && !$("global-escalations-pill").title) $("global-escalations-pill").title = "Open escalations, blocked plans and expiring claims needing operator action.";
+  if ($("global-expiring-claims-pill") && !$("global-expiring-claims-pill").title) $("global-expiring-claims-pill").title = "Coordination lease claims expiring within 15 minutes or held by foreign tools.";
   // r[impl kiln.web.console_layout] Wide screens show pipeline and logs together (side by side when the inspector has room);
   // the tab bar selects the remaining run view below them.
   const splitRunQuery = window.matchMedia("(min-width: 90rem)");
@@ -2028,6 +2043,8 @@
       const link = element("a", tab.label);
       link.dataset.tab = tab.id;
       link.href = routeHref({ page: route.page, tab: tab.id });
+      const tooltip = tab.title || NAV_TOOLTIPS[tab.id] || ui.destination(tab.id)?.purpose;
+      if (tooltip) link.title = tooltip;
       if (tab.id === activeTab) link.setAttribute("aria-current", "page");
       link.addEventListener("click", (event) => {
         if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
@@ -2204,6 +2221,21 @@
     ["Receipt", "Patchgate's recorded review of inbox changes: one decision per change and Patchgate's own report, kept byte for byte. A receipt never accepts or merges a change."],
     ["Viewer and operator", "Viewers read. Operators can also enroll projects and start, cancel, approve and rerun runs; the service checks every request again."],
   ]);
+  const GUIDE_GLOSSARY = Object.freeze([
+    ["Cairn", "Lifecycle and specification manager whose .cairn/ packages organize proposals, designs, tasks and release gates tracked in Delivery & Cairn."],
+    ["Lattice", "Standalone workflow runner that executes admitted CI jobs and agent attempts across local or remote machines."],
+    ["Mantle", "Standalone build and cache executor that compiles and realizes pinned derivations into verifiable outputs."],
+    ["Aspen / Molten", "Runtime and local service shell that provides bounded execution, durability and transport beneath Kiln's adapters."],
+    ["Herdr", "Machine and workspace session manager that places interactive coding agents into isolated worktrees on enrolled hosts."],
+    ["Basalt / UCAN", "Capability-token policy engine using signed UCAN delegations to verify who is authorized to run or approve an operation."],
+    ["COB", "Collaborative Object — a local, cryptographically linked Radicle record (such as an issue or patch) stored in Git history."],
+    ["Fence", "Monotonic lease number attached to a coordination claim or agent attempt so stale or superseded workers cannot act out of turn."],
+    ["Admitted", "Explicitly validated and accepted by server policy (such as an allowlisted repository, typed config or approved PR) before execution begins."],
+    ["Canonical", "Kiln's own provider-neutral source of truth (state, events and BLAKE3 identities), distinct from external forge or mirror projections."],
+    ["Candidate-set identity", "Exact BLAKE3 digest of the revision, target branch and dependency commits evaluated by a CI or merge-train gate."],
+    ["Projection", "Read-only derived view or mirror (such as GitHub, Atom feeds or capacity snapshots) that reflects state without granting write or merge authority."],
+    ["Receipt", "Signed or byte-preserved evidence record of what an automated check, build or Patchgate review decided for an exact revision."],
+  ]);
   // One Guide sheet: a framed panel with its section title.
   function guideSheet(parent, title) {
     const sheet = element("section", undefined, "panel guide-sheet");
@@ -2223,10 +2255,54 @@
   }
   function renderGuide(parent) {
     parent.replaceChildren();
+    const onboarding = guideSheet(parent, "New to Kiln? 3 things to try first");
+    onboarding.classList.add("guide-onboarding");
+    onboarding.append(element("p", "Start with the workflow for your task. CI projects and build runs live under 2.2 Runs & Evidence; 1.1 Factory is the live operations cockpit.", "small"));
+    const tryList = element("ol", undefined, "guide-try-list");
+    for (const entry of [
+      {
+        step: "1",
+        title: "Run or inspect a CI build",
+        where: "2.2 Runs & Evidence → CI projects",
+        detail: "Choose an enrolled project to start a source-bound build, or open any retained run to inspect its workflow graph and logs.",
+        actions: [
+          workspaceLink({ page: "runs", tab: "projects" }, "Open CI projects", "button"),
+          workspaceLink({ page: "runs" }, "Browse Runs & Evidence", "button quiet"),
+        ],
+      },
+      {
+        step: "2",
+        title: "Review a change & its required checks",
+        where: "2.3 Code Review & Queue",
+        detail: "Inspect exact code revisions, inline review threads, Jujutsu (jj) stacks, submit requirements and the Speculative Merge Train.",
+        actions: [
+          workspaceLink({ page: "code-review" }, "Open Code Review & Queue", "button"),
+        ],
+      },
+      {
+        step: "3",
+        title: "Monitor machines, claims & escalations",
+        where: "1.1 Factory / 3.1 Fleet & Workers",
+        detail: "Watch machine slot capacity, active agent attempts, lease claims, delivery spine progress and escalations needing human action.",
+        actions: [
+          workspaceLink({ page: "overview" }, "Open 1.1 Factory", "button"),
+          workspaceLink({ page: "fleet" }, "Open 3.1 Fleet & Workers", "button quiet"),
+        ],
+      },
+    ]) {
+      const card = element("li", undefined, "guide-try-card");
+      const head = element("div", undefined, "guide-try-head");
+      head.append(element("span", entry.step, "guide-try-step"), element("h3", entry.title, "guide-try-title"));
+      const actions = element("div", undefined, "guide-try-actions");
+      actions.append(...entry.actions);
+      card.append(head, element("p", entry.where, "guide-try-where"), element("p", entry.detail, "small"), actions);
+      tryList.append(card);
+    }
+    onboarding.append(tryList);
     const start = guideSheet(parent, "Start here");
     const steps = element("ol", undefined, "contents-list guide-steps");
     for (const [page, text] of [
-      ["overview", "Failing projects come first. Each card opens the exact failed run at its logs."],
+      ["overview", "Live Factory cockpit: escalations, delivery spine, speculative merge train, machine slots and expiring claims. (CI projects and build runs live in 2.2 Runs & Evidence.)"],
       ["runs", "Every retained run, newest first. Select a run to see its pipeline, logs, artifacts, tests and evidence."],
       ["projects", "Start a run: choose a project, then its latest reference, a named reference or an exact revision."],
       ["code-review", "Review a change at its exact revision; its submit requirements show the CI results that apply to it."],
@@ -2256,6 +2332,11 @@
       legend.append(term, element("dd", meaning));
     }
     states.append(legend);
+    const glossary = guideSheet(parent, "Plain-English Glossary");
+    glossary.append(element("p", "Internal ecosystem and domain terms you will encounter across Kiln, explained in plain English.", "small"));
+    const glossaryList = element("dl", undefined, "guide-terms guide-glossary");
+    for (const [term, meaning] of GUIDE_GLOSSARY) glossaryList.append(element("dt", term), element("dd", meaning));
+    glossary.append(glossaryList);
     const terms = guideSheet(parent, "Words Kiln uses");
     const vocabulary = element("dl", undefined, "guide-terms");
     for (const [term, meaning] of GUIDE_TERMS) vocabulary.append(element("dt", term), element("dd", meaning));
@@ -3548,7 +3629,7 @@
       card.dataset.kind = kind;
       const scopeLabel = typeof c.scope?.target === "string" ? `${c.scope.target}${c.scope.path && c.scope.path !== "whole" ? ` ${c.scope.path}` : ""}` : shortIdentity(c.identity);
       const head = element("div", undefined, "factory-attention-head");
-      head.append(element("strong", scopeLabel), when(c.expires_ms));
+      head.append(element("strong", scopeLabel), when(c.expires_ms, { compact: true }));
       const actions = element("div", undefined, "factory-attention-actions");
       const inspectBtn = element("button", "Inspect", "quiet");
       inspectBtn.type = "button";
@@ -3723,7 +3804,7 @@
   function runMoment(health, run) {
     const [label, ms, className] = health === "active" ? ["Started ", run.started_at_ms, "running-since"] : health === "queued" ? ["Requested ", run.created_at_ms, "meta"] : ["Finished ", run.completed_at_ms, "meta"];
     const node = element("span", label, className);
-    node.append(when(ms));
+    node.append(when(ms, { compact: true }));
     return node;
   }
   // r[impl kiln.web.project_page] Project names open the project's history page with a clean run selection.
@@ -3813,7 +3894,7 @@
     const { pipeline, logs } = projectRunLinks(project, latest);
     const head = element("div", undefined, "attention-head");
     const finished = element("span", "Finished ", "meta");
-    finished.append(when(latest.completed_at_ms));
+    finished.append(when(latest.completed_at_ms, { compact: true }));
     head.append(ui.statusPill(latest.outcome, latest.phase), finished);
     const title = element("h3", undefined, "attention-title");
     title.append(projectLink(project.id, project.label));
@@ -3876,7 +3957,7 @@
       const item = element("div", undefined, "trend-row");
       const heading = element("div", undefined, "trend-row-head");
       const meta = element("span", undefined, "meta");
-      meta.append(elapsed(row.duration_ms), document.createTextNode(" · "), when(row.completed_at_ms));
+      meta.append(elapsed(row.duration_ms), document.createTextNode(" · "), when(row.completed_at_ms, { compact: true }));
       heading.append(ui.statusPill(row.outcome), runLink(row.run_id, text(row.project_id)), meta);
       item.append(heading);
       if (Number.isSafeInteger(row.duration_ms)) { const bar = element("meter"); bar.min = 0; bar.max = max; bar.value = row.duration_ms; bar.setAttribute("aria-label", `${row.run_id}: ${duration(row.duration_ms)}`); item.append(bar); }
@@ -3966,7 +4047,7 @@
     if (item.project_id) meta.append(element("span", text(projectLabel(item.project_id))));
     if (item.kind === "audit" && item.audit?.actor_label) meta.append(element("span", text(item.audit.actor_label)));
     if (item.kind === "audit" && item.audit?.agent) { const agent = item.audit.agent; meta.append(element("span", `Agent ${text(agent.harness)}${agent.model ? ` · ${text(agent.model)}` : ""} (declared)`)); }
-    meta.append(when(item.recorded_at_ms));
+    meta.append(when(item.recorded_at_ms, { compact: true }));
     if (item.run_id) { const link = runLink(item.run_id, `Run ${shortIdentity(item.run_id)}`, "activity"); link.title = item.run_id; meta.append(link); }
     return meta;
   }
@@ -4722,7 +4803,7 @@
       head.append(stageBadge);
       if (info.outcome) head.append(ui.statusPill(info.outcome));
       head.append(element("h3", info.title, "causal-event-title"));
-      head.append(when(item?.recorded_at_ms));
+      head.append(when(item?.recorded_at_ms, { compact: true }));
       card.append(head);
 
       const meta = element("div", undefined, "causal-event-meta");
@@ -4944,7 +5025,7 @@
     } else renderRecorded(capacity, result.capacity);
     const queue = section("Durable queue", parent, "view-stack");
     if (!result.queue?.length) queue.append(emptyState("Queue is empty", "No queued work in the admitted snapshot."));
-    for (const row of result.queue || []) { const card = section(`Position ${text(row.position)} · ${text(projectLabel(row.project_id))}`, queue, "record-card"); const queued = element("p", "Queued ", "small"); queued.append(when(row.created_at_ms)); const link = runLink(row.run_id, `Run ${shortIdentity(row.run_id)}`); link.title = text(row.run_id); card.append(element("p", text(row.project_id), "mono meta"), link, queued); }
+    for (const row of result.queue || []) { const card = section(`Position ${text(row.position)} · ${text(projectLabel(row.project_id))}`, queue, "record-card"); const queued = element("p", "Queued ", "small"); queued.append(when(row.created_at_ms, { compact: true })); const link = runLink(row.run_id, `Run ${shortIdentity(row.run_id)}`); link.title = text(row.run_id); card.append(element("p", text(row.project_id), "mono meta"), link, queued); }
     const providers = section("Provider observations", parent, "view-stack");
     if (!result.providers?.length) providers.append(emptyState("No provider observations", "No provider observation is retained in this snapshot. Capacity is not inferred."));
     for (const row of result.providers || []) {

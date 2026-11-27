@@ -123,6 +123,7 @@ button.chip[aria-pressed="true"] { background: var(--foreground); color: var(--b
 .state-badge[data-tone="failure"] { color: var(--danger); background: var(--danger-background); border-color: color-mix(in srgb, var(--danger) 55%, transparent); }
 .badges { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
 .duration, .relative-time { font-variant-numeric: tabular-nums; white-space: nowrap; }
+time.relative-time[title] { cursor: help; }
 .not-recorded { color: var(--muted-foreground); font-style: italic; }
 /* Timing a run cannot have yet (in progress, not started, not finished) is a stated fact, not a missing record. */
 .pending-timing { color: var(--muted-foreground); white-space: nowrap; }
@@ -724,9 +725,20 @@ a.count-chip:hover { border-color: var(--frame); background: var(--accent); box-
 .guide-legend, .guide-terms, .contents-keys { display: grid; grid-template-columns: 12rem minmax(0, 1fr); margin: 0; border-top: 1px solid var(--frame); }
 .guide-legend > *, .guide-terms > *, .contents-keys > * { margin: 0; padding: var(--space-2) 0; border-bottom: 1px solid var(--border); }
 .guide-legend > dd, .guide-terms > dd, .contents-keys > dd { padding-left: var(--space-4); font-size: var(--text-sm); }
-.guide-terms > dt { color: var(--foreground); font-weight: 700; }
+.guide-terms > dt { color: var(--foreground); font-weight: 700; overflow-wrap: anywhere; }
+.guide-terms > dd { overflow-wrap: anywhere; }
 .contents-keys > dt { display: flex; flex-wrap: wrap; gap: .25rem; align-items: center; }
 .guide-sheet > .eyebrow { margin-top: var(--space-4); }
+.guide-onboarding { border-color: var(--frame); background: var(--group-box); }
+.guide-try-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+.guide-try-card { display: grid; align-content: start; gap: var(--space-2); min-width: 0; padding: var(--space-3); border: 1px solid var(--border-emphasis); border-radius: var(--radius); background: var(--secondary); }
+.guide-try-head { display: flex; align-items: baseline; gap: var(--space-2); min-width: 0; }
+.guide-try-step { display: inline-grid; place-items: center; flex: 0 0 auto; width: 1.5rem; height: 1.5rem; border: 1px solid var(--frame); border-radius: var(--radius-sm); background: var(--foreground); color: var(--background); font: 700 var(--text-xs)/1 var(--mono); }
+.guide-try-title { margin: 0; font-size: var(--text-sm); font-weight: 700; line-height: 1.35; color: var(--foreground); overflow-wrap: anywhere; }
+.guide-try-where { margin: 0; font: 600 var(--text-xs)/1.4 var(--mono); color: var(--muted-foreground); overflow-wrap: anywhere; }
+.guide-try-card > .small { margin: 0; }
+.guide-try-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-top: auto; padding-top: var(--space-2); border-top: 1px solid var(--border); }
+.guide-try-actions .button { min-height: 2rem; font-size: var(--text-xs); }
 
 /* ---------- Split run view ---------- */
 .run-primary-panels { display: grid; gap: var(--space-4); min-width: 0; align-items: start; }
@@ -818,7 +830,7 @@ a.count-chip:hover { border-color: var(--frame); background: var(--accent); box-
   summary { min-height: 2.75rem; }
   .project-row-actions a, .project-row-name > a { display: inline-flex; align-items: center; min-height: 2.75rem; }
   button.chip { min-height: 2.75rem; }
-  a.count-chip, .attention-actions a, .project-actions a, .action-row a, .split-toggle, .dashboard-section-head a { min-height: 2.75rem; display: inline-flex; align-items: center; }
+  a.count-chip, .attention-actions a, .project-actions a, .action-row a, .guide-try-actions a, .split-toggle, .dashboard-section-head a { min-height: 2.75rem; display: inline-flex; align-items: center; }
   /* Feed links open an external resource and stay links; sort controls keep their table lane. Both are 44px tall on touch layouts. */
   a.button-link, a.activity-feed-title { display: inline-flex; align-items: center; min-height: 2.75rem; }
   .run-table .sort-button { min-height: 2.75rem; }

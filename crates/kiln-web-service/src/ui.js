@@ -190,7 +190,7 @@
     const amount = distance < HOUR_MS - MINUTE_MS / 2 ? `${Math.max(1, Math.round(distance / MINUTE_MS))}m` : distance < DAY_MS - HOUR_MS / 2 ? `${Math.round(distance / HOUR_MS)}h` : `${Math.round(distance / DAY_MS)}d`;
     return delta >= 0 ? `${amount} ago` : `in ${amount}`;
   }
-  function timeElement(value) {
+  function timeElement(value, options) {
     const date = instant(value);
     if (!date) {
       const span = document.createElement("span");
@@ -205,7 +205,7 @@
     time.dateTime = iso;
     time.title = exact;
     time.textContent = formatRelative(date.getTime());
-    time.append(hidden(` (${exact})`));
+    if (!options?.compact) time.append(hidden(` (${exact})`));
     return time;
   }
 
@@ -674,8 +674,8 @@
     ["0", "Start here"], ["1", "Factory operations"], ["2", "Delivery & execution"], ["3", "Infrastructure & system"], ["4", "Administration"],
   ].map(([number, name]) => Object.freeze({ number, name })));
   const DESTINATIONS = Object.freeze([
-    ["guide", "0.0", "Guide", "Every destination by section number, how run states read, the words Kiln uses and the keyboard reference."],
-    ["overview", "1.1", "Factory", "Live Factory cockpit: attention escalations, delivery spine, speculative merge train, machine slot census and expiring claims."],
+    ["guide", "0.0", "Guide", "New-user orientation, every destination by section number, how run states read, a plain-English glossary and the keyboard reference."],
+    ["overview", "1.1", "Factory", "Live Factory cockpit: escalations, delivery spine, speculative merge train, machine slots and expiring claims. (CI projects and build runs live in 2.2 Runs & Evidence.)"],
     ["inbox", "1.2", "Attention", "Unified escalations, blocked agents, untrusted runs, assignments, requests & triage and expiring claims requiring operator action."],
     ["triage", "1.2", "Requests & triage", "Review incoming requests, keep their original source and decide what to take on next.", "inbox"],
     ["cairn", "2.1", "Delivery & Cairn", "Cairn changes, delivery units, issues, planning boards, saved views and campaign dependencies."],
