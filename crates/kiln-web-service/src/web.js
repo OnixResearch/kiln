@@ -625,6 +625,7 @@
     $("runs-status").textContent = state.runsError || `${runs.length} shown of ${text(state.total)} matching retained runs · bounded page${state.connected ? "" : " · snapshot may be stale"}`;
     $("runs-next").disabled = !state.nextCursor;
     const sort = state.runSort;
+    $("run-sort-note").hidden = !sort && !state.nextCursor && !state.route?.cursor;
     $("run-sort-note").textContent = sort ? `Sorted by ${RUN_SORTS[sort.key].label.toLowerCase()} (${sort.dir === "asc" ? "ascending" : "descending"}) within this page` : "Service order · sorting reorders this page only";
     $("run-list").replaceChildren();
     if (!runs.length && !state.runsError) {
@@ -3278,12 +3279,16 @@
         dd.append(statePill(mirror === "ok" ? "success" : mirror === "unavailable" ? "failure" : "unknown", mirror.toUpperCase()));
       });
     }
-    addCell("Escalations", (dd) => {
-      dd.append(element("span", String(escalations)), workspaceLink({ page: "inbox", tab: "attention" }, "View ->", "row-link"));
-    });
-    addCell("Claims <15m / foreign", (dd) => {
-      dd.append(element("span", `${expiringCount} expiring · ${foreignCount} foreign`));
-    });
+    if (escalations > 0) {
+      addCell("Escalations", (dd) => {
+        dd.append(element("span", String(escalations)), workspaceLink({ page: "inbox", tab: "attention" }, "View ->", "row-link"));
+      });
+    }
+    if (expiringCount > 0 || foreignCount > 0) {
+      addCell("Claims <15m / foreign", (dd) => {
+        dd.append(element("span", `${expiringCount} expiring · ${foreignCount} foreign`));
+      });
+    }
     addCell("Host slot occupancy", (dd) => {
       dd.append(element("span", `${usedSlots} / ${capSlots}${offlineMachines ? ` (${offlineMachines} offline)` : ""}`));
     });
@@ -5047,8 +5052,12 @@
       if (row.run_id) card.append(runLink(row.run_id, "Inspect retained run"));
       if (Number.isSafeInteger(row.used) && Number.isSafeInteger(row.maximum) && row.maximum > 0) { const meter = element("meter"); meter.min = 0; meter.max = row.maximum; meter.value = row.used; meter.setAttribute("aria-label", `${row.resource}: ${row.used} of ${row.maximum}`); card.append(meter); }
     }
-    const policy = section("Retention policy", parent, "record-card"); renderRecorded(policy, result.retention_policy);
-    const access = element("dl", undefined, "facts"); addFacts(access, [["Access policy BLAKE3", result.access_policy_identity]]); parent.append(access);
+    const policyDetails = element("details", undefined, "panel fleet-secondary-disclosure");
+    policyDetails.dataset.opsDisclosure = "policy";
+    policyDetails.append(element("summary", "Retention & access policy"));
+    const policy = section("Retention policy", policyDetails, "record-card"); renderRecorded(policy, result.retention_policy);
+    const access = element("dl", undefined, "facts"); addFacts(access, [["Access policy BLAKE3", result.access_policy_identity]]); policyDetails.append(access);
+    parent.append(policyDetails);
   }
   function field(form, label, type, value, bounds = {}) {
     const wrapper = element("label", undefined, type === "checkbox" ? "check" : "form-field");
@@ -6059,6 +6068,7 @@
     subscribeEvents,
     eventsState: () => state.events,
     factoryState: () => state.factory,
+    capabilities: () => state.capabilities,
     canOperate,
     navigate,
     route: () => state.route,

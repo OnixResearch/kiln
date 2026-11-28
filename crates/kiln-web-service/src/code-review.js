@@ -802,11 +802,15 @@
       if (badgeText) b.append(chip(badgeText));
       return b;
     };
+    const showQueueTab = state.snapshot?.queue_enabled !== false || activeTab === "queue";
     tabs.append(
       makeTab("changes", "Changes", state.snapshot?.total != null ? String(state.snapshot.total) : null),
-      makeTab("queue", "Merge Queue", activeQueueCount ? `${activeQueueCount} active` : state.snapshot?.queue_enabled === false ? "Off" : null),
     );
-    bar.append(tabs, access());
+    if (showQueueTab) {
+      tabs.append(makeTab("queue", "Merge Queue", activeQueueCount ? `${activeQueueCount} active` : state.snapshot?.queue_enabled === false ? "Off" : null));
+    }
+    if (showQueueTab) bar.append(tabs);
+    bar.append(access());
     root.append(bar);
   }
   function draw() {

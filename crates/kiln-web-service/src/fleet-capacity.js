@@ -599,7 +599,6 @@
     const state = { root, context, selection: 0 };
     active = state;
     const page = node("div", undefined, "fleet-capacity-page");
-    page.append(node("h2", "Fleet queue and capacity"), node("p", "Read-only owner snapshots. The Fleet work ledger, configured CI project slots and separately supplied resource observations do not imply one another.", "small"));
     const workRoot = node("div", undefined, "fleet-capacity-region");
     const workerRoot = node("div", undefined, "fleet-capacity-region");
     const admissionRoot = node("div", undefined, "fleet-capacity-region");

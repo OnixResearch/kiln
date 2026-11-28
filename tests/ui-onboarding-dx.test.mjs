@@ -1201,3 +1201,118 @@ test("Pass 2 pruning: Factory, Guide, Projects, Cairn authoring, and Source/Repo
     cairnEnv.cleanup();
   }
 });
+
+test("Pass 3 pruning: healthy Factory ribbon deduplicates live strip, Operations collapses policy, Runs hides sort note, Code Review hides off Merge Queue tab", async () => {
+  const baseSession = {
+    principal: { id: "local:operator", label: "Operator", role: "operator" },
+    permissions: { read: true, operate: true, configure: true },
+    feeds_configured: false,
+    capabilities: { feeds: false, runbooks: false, inventory: false, campaign_controls: false, automation: false, cairn_authoring: false },
+  };
+
+  // Factory ribbon hides Escalations & Claims <15m when both are zero.
+  const healthyFactory = await setup({
+    initialSearch: "?page=overview",
+    fetchHandler: async (target) => {
+      if (target === "/api/session") return jsonResponse(baseSession);
+      if (target === "/api/projects") return jsonResponse({ enrolled: [], available: [] });
+      if (target === "/api/overview") return jsonResponse({ totals: { runs: 0, failed: 0, active: 0, queued: 0, succeeded: 0, cancelled: 0, unknown: 0 }, projects: [], duration_trend: [], timing: { recorded: 0, total: 0 } });
+      if (target.startsWith("/api/activity")) return jsonResponse({ total: 0, bounded: true, items: [] });
+      if (target === "/api/implementation/attention") return jsonResponse({ items: [], total: 0 });
+      if (target === "/api/fleet/machines") return jsonResponse({ machines: [] });
+      if (target.startsWith("/api/fleet/claims")) return jsonResponse({ claims: [], foreign_claims: [], foreign_mirror: { status: "unconfigured" } });
+      if (target === "/api/fleet/dispatch/status") return jsonResponse({ state: "running", last_tick: { deferred_count: 0 } });
+      if (target === "/api/implementation/cairn") return jsonResponse({ changes: [] });
+      if (target === "/api/fleet/attempts") return jsonResponse({ attempts: [] });
+      if (target.startsWith("/api/code-review")) return jsonResponse({ changes: [] });
+      if (target === "/api/repositories") return jsonResponse({ repositories: [] });
+      return jsonResponse({});
+    },
+  });
+  try {
+    const ribbonText = healthyFactory.doc.getElementById("factory-ribbon").textContent;
+    assert.match(ribbonText, /Dispatch/);
+    assert.match(ribbonText, /Host slot occupancy/);
+    assert.match(ribbonText, /Repositories & Fleet Sync/);
+    assert.doesNotMatch(ribbonText, /Escalations/);
+    assert.doesNotMatch(ribbonText, /Claims <15m/);
+  } finally {
+    healthyFactory.cleanup();
+  }
+
+  // Operations collapses Retention & access policy into a closed disclosure.
+  const opsEnv = await setup({
+    initialSearch: "?page=source&tab=operations",
+    fetchHandler: async (target) => {
+      if (target === "/api/session") return jsonResponse(baseSession);
+      if (target === "/api/projects") return jsonResponse({ enrolled: [], available: [] });
+      if (target === "/api/operations") {
+        return jsonResponse({
+          storage_failed: false,
+          warnings: [],
+          capacity: { active_runs: 0, queued_runs: 0 },
+          queue: [],
+          providers: [],
+          usage: [],
+          retention_policy: { max_runs: 500 },
+          access_policy_identity: "b".repeat(64),
+        });
+      }
+      return jsonResponse({});
+    },
+  });
+  try {
+    const policyDisclosure = opsEnv.doc.querySelectorAll("details.fleet-secondary-disclosure").find((d) => d.dataset.opsDisclosure === "policy");
+    assert.ok(policyDisclosure, "Operations should collapse Retention & access policy");
+    assert.equal(policyDisclosure.open, false);
+  } finally {
+    opsEnv.cleanup();
+  }
+
+  // Runs hides #run-sort-note when unsorted and unpaginated.
+  const runsEnv = await setup({
+    initialSearch: "?page=runs",
+    fetchHandler: async (target) => {
+      if (target === "/api/session") return jsonResponse(baseSession);
+      if (target === "/api/projects") return jsonResponse({ enrolled: [], available: [] });
+      if (target.startsWith("/api/runs")) return jsonResponse({ runs: [], total: 0, next_cursor: null });
+      return jsonResponse({});
+    },
+  });
+  try {
+    assert.equal(runsEnv.doc.getElementById("run-sort-note").hidden, true);
+  } finally {
+    runsEnv.cleanup();
+  }
+
+  // Code Review hides Merge Queue tab when queue_enabled is false.
+  const crEnv = await setup({
+    initialSearch: "?page=code-review",
+    extraAssets: ["code-review.js"],
+    fetchHandler: async (target) => {
+      if (target === "/api/session") return jsonResponse(baseSession);
+      if (target === "/api/projects") return jsonResponse({ enrolled: [], available: [] });
+      if (target.startsWith("/api/code-review")) {
+        return jsonResponse({
+          schema: "kiln.code-review.v1",
+          configured: true,
+          principal: "local:operator",
+          can_write: true,
+          queue_enabled: false,
+          total: 0,
+          changes: [],
+          queue: [],
+          queue_windows: [],
+          non_claims: [],
+        });
+      }
+      return jsonResponse({});
+    },
+  });
+  try {
+    const crText = crEnv.doc.getElementById("code-review-content").textContent;
+    assert.doesNotMatch(crText, /Merge Queue/);
+  } finally {
+    crEnv.cleanup();
+  }
+});

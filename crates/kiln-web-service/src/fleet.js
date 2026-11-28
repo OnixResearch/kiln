@@ -2707,7 +2707,7 @@
     state.herdrWindowsPanel = element("section");
     state.herdrWindowsPanel.hidden = true;
     machinesPanel.append(element("h2", "Machines"),
-      element("p", "Enrolled peers and observed Herdr sessions. Counts cover listed attempts by exact session machine and live claims by holder machine, not claim scope. These counts do not establish host availability.", "small"),
+      element("p", "Enrolled peers, Herdr sessions, and observed claim/attempt counts.", "small"),
       state.machineStatus, state.assignmentStatus, state.machineCoverage, state.machineRows, state.herdrWindowsPanel);
     const issuesPanel = element("section", undefined, "panel fleet-section");
     issuesPanel.id = "fleet-issues";
@@ -2725,7 +2725,7 @@
       state.sourceCoverage, state.sourceRows);
     const claimsPanel = element("section", undefined, "panel fleet-section");
     const claimsHead = element("div", undefined, "fleet-section-head");
-    claimsHead.append(element("h2", "Claims"), element("p", "Live coordination claims with their current lease. Renew or release uses the claim's recorded fence.", "small"));
+    claimsHead.append(element("h2", "Claims"), element("p", "Active coordination claims and leases.", "small"));
     const acquire = element("div");
     claimsHead.append(acquire);
     const claimsBulk = element("div", undefined, "bulk-toolbar");
@@ -2747,7 +2747,7 @@
     blockedPanel.append(blocked);
     work.append(readyPanel, blockedPanel);
     const attemptsPanel = element("section", undefined, "panel fleet-section");
-    attemptsPanel.append(element("h2", "Attempts"), element("p", "Select a bar to filter by state or recorded session machine. Counts cover all listed attempts.", "small"));
+    attemptsPanel.append(element("h2", "Attempts"), element("p", "Active and recent agent attempts.", "small"));
     const facets = [attemptFacet("By state", attemptState, ATTEMPT_STATES), attemptFacet("By session machine", attemptMachine)];
     const charts = element("div", undefined, "fleet-charts");
     for (const facet of facets) {

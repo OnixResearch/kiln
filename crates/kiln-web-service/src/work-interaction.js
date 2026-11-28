@@ -97,7 +97,7 @@
   function ensurePalette() {
     if (palette) return palette;
     const shell = dialog("Search and commands", "work-command-palette");
-    const label = node("label", "Search work, CI projects, runs and retained reviews", "work-command-label");
+    const label = node("label", "Search Kiln — work, runs, claims, repos, commands (>)", "work-command-label");
     const input = node("input");
     input.id = "work-command-query";
     input.type = "search";
@@ -293,23 +293,21 @@
         const readable = typeof window.KilnUi?.statusPill === "function";
         return data.runs.map((run) => ({ label: readable ? run.project_id : `${run.project_id} · ${run.outcome}`, outcome: run.outcome ?? null, phase: run.phase, at: run.created_at_ms, detail: "CI run", exact: [run.id, run.source_revision].filter(Boolean).join(" · "), run: () => bridge().navigate({ page: "runs", run: run.id, node: "" }) }));
       }],
-      ["Retained reviews", "/api/reviews", (data) => {
-        if (!Array.isArray(data.receipts)) throw new Error("Invalid review inventory");
-        return data.receipts.filter((receipt) => matches(searchTerm, receipt.name, receipt.provider_profile, ...Object.keys(receipt.decision_counts || {}))).map((receipt) => ({ label: receipt.name, detail: `Retained review · ${receipt.provider_profile || "profile unavailable"}`, run: () => bridge().navigate({ page: "reviews", receipt: receipt.name }) }));
-      }],
     ];
-    const [coreResults, claimsData, attemptsData, decisionsData, machinesData, cairnData, campaignsData, workersData, reviewData, attentionData, reposData] = await Promise.all([
+    const caps = fac?.capabilities?.();
+    const [coreResults, claimsData, attemptsData, decisionsData, machinesData, cairnData, campaignsData, workersData, reviewData, attentionData, reposData, receiptsData] = await Promise.all([
       Promise.allSettled(coreSources.map(async ([, target, project]) => project(await bridge().api(target, apiOpts)))),
       safeFetch("/api/fleet/claims?include=foreign,expired"),
       safeFetch("/api/fleet/attempts"),
       safeFetch("/api/fleet/decisions"),
       safeFetch("/api/fleet/machines"),
       safeFetch("/api/implementation/cairn"),
-      safeFetch("/api/implementation/campaigns"),
+      caps?.campaign_controls === false ? Promise.resolve(null) : safeFetch("/api/implementation/campaigns"),
       safeFetch("/api/workers"),
       safeFetch("/api/code-review"),
       safeFetch("/api/implementation/attention"),
       safeFetch("/api/repositories"),
+      isVerbQuery ? Promise.resolve(null) : safeFetch("/api/reviews"),
     ]);
     if (signal?.aborted || !current()) return;
     const errors = [];
@@ -318,6 +316,11 @@
       if (result.status === "fulfilled") entries.push(...result.value.map((entry) => ({ ...entry, group: coreSources[index][0] })));
       else errors.push(`${coreSources[index][0]} unavailable: ${errorText(result.reason)}`);
     });
+    if (Array.isArray(receiptsData?.receipts)) {
+      for (const receipt of receiptsData.receipts.filter((r) => matches(searchTerm, r.name, r.provider_profile, ...Object.keys(r.decision_counts || {})))) {
+        entries.push({ group: "Retained reviews", label: receipt.name, detail: `Retained review · ${receipt.provider_profile || "profile unavailable"}`, run: () => bridge().navigate({ page: "reviews", receipt: receipt.name }) });
+      }
+    }
 
     // Operational verbs (> renew, > release, > approve, > reconcile, > wake, > drain, > cancel) routed through Tier 1-3 safety rails.
     if (isVerbQuery || (searchTerm && canOp)) {

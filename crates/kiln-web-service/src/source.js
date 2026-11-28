@@ -901,8 +901,8 @@
     page.append(header);
     if (!inventory?.configured) { page.append(errorState("No source repositories are configured. The service operator must admit a separate --sources policy. This is not proof that no repository is readable.")); return page; }
     if (!route.src) {
-      page.append(sources.length ? emptyState("Choose a repository", "Pick a configured repository to browse its files, history and changes. No repository is selected automatically.") : emptyState("No repositories", "The admitted source policy lists no repository."));
       if (sources.length) page.append(repositoryChooser(ctx, sources));
+      else page.append(emptyState("No repositories", "The admitted source policy lists no repository."));
       return page;
     }
     if (!selected) {

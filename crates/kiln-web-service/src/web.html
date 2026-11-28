@@ -117,7 +117,7 @@
       <!-- r[impl kiln.web.console_layout] Split run view: the retained-runs table sits beside the selected run at ≥90rem and above it otherwise; the inspector shows pipeline and logs side by side when it has room, one tabbed column when it does not (failed runs show logs first). -->
       <!-- r[impl kiln.web.runs_table] Retained runs table grouped by local day; header sorting reorders only the loaded page. -->
       <section data-panel="runs" hidden>
-        <div id="run-split" class="split-view run-split"><aside id="run-browser" class="split-list project-column" aria-label="Retained run browser"><section class="panel run-browser"><div class="section-heading"><h2>Retained runs</h2><p id="run-sort-note" class="small">Sorting reorders this page only</p></div>
+        <div id="run-split" class="split-view run-split"><aside id="run-browser" class="split-list project-column" aria-label="Retained run browser"><section class="panel run-browser"><div class="section-heading"><h2>Retained runs</h2><p id="run-sort-note" class="small" hidden>Sorting reorders this page only</p></div>
           <form id="run-search-form" class="run-filters">
             <div class="run-filter-search"><label for="run-search">Search</label><input id="run-search" type="search" maxlength="256" autocomplete="off" placeholder="Run, repository, revision…"></div>
             <div><label for="run-filter">Project</label><select id="run-filter"><option value="">All projects</option></select></div>
