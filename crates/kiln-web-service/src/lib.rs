@@ -42,3 +42,4 @@ pub mod worker;
 
 mod auth;
 pub mod server;
+pub mod workspace_config;

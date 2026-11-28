@@ -81,12 +81,16 @@ const USAGE: &str = "\
 usage: kiln-web-service <command> [arguments]
 
 minimal local example (after `kiln init --repo PATH --out DIR`):
+  kiln-web-service check --config DIR/kiln.json
+  kiln-web-service serve --config DIR/kiln.json
+
+explicit profile example:
   kiln-web-service check --profile DIR/service.json --access DIR/access.json --sources DIR/sources.json
   kiln-web-service serve --profile DIR/service.json --access DIR/access.json --sources DIR/sources.json
 
 Web Server:
-  kiln-web-service serve --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>] [--cache <path>] [--workers <path>] [--work <path>] [--code-review <path>] [--fleet <path>] [--runbooks <path>] [--runbooks-dir <path>]
-  kiln-web-service check --profile <path> [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>] [--cache <path>] [--workers <path>] [--work <path>] [--code-review <path>] [--fleet <path>] [--runbooks <path>] [--runbooks-dir <path>]
+  kiln-web-service serve [--config <path>] [--profile <path>] [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>] [--cache <path>] [--workers <path>] [--work <path>] [--code-review <path>] [--fleet <path>] [--runbooks <path>] [--runbooks-dir <path>]
+  kiln-web-service check [--config <path>] [--profile <path>] [--access <path>] [--automation <path>] [--cobs <path>] [--sources <path>] [--reviews <path>] [--cache <path>] [--workers <path>] [--work <path>] [--code-review <path>] [--fleet <path>] [--runbooks <path>] [--runbooks-dir <path>]
   serve/check observations: [--inventory <path>] [--implementation-work <database>] [--campaign-controls <profile>] [--dispatch-recovery <profile>] [--native-runtime-evidence <profile>] [--execution-artifacts <profile>] [--delivery-observations <path>] [--artifact-previews <catalog>] [--preview-observations <owned-directory>] [--repository-root <dir>]
   serve/check workflow source catalog: [--lattice-authoring <profile>] [--lattice-drafts <profile>]
   serve/check native change authoring: [--cairn-authoring <profile>]
@@ -200,63 +204,8 @@ fn worker_target(mut arguments: impl Iterator<Item = String>) -> i32 {
     }
 }
 
-fn service(command: &str, mut arguments: impl Iterator<Item = String>) -> i32 {
-    let mut profile = None;
-    let mut options = kiln_web_service::server::Options::default();
-    while let Some(flag) = arguments.next() {
-        if flag == "--repository-root" {
-            let Some(value) = arguments.next().filter(|value| !value.starts_with("--")) else {
-                return usage();
-            };
-            options
-                .repository_roots
-                .push(std::path::PathBuf::from(value));
-            continue;
-        }
-        let slot = match flag.as_str() {
-            "--profile" => &mut profile,
-            "--access" => &mut options.access,
-            "--automation" => &mut options.automation,
-            "--cobs" => &mut options.cobs,
-            "--sources" => &mut options.sources,
-            "--reviews" => &mut options.reviews,
-            "--cache" => &mut options.cache,
-            "--workers" => &mut options.workers,
-            "--inventory" => &mut options.inventory,
-            "--implementation-work" => &mut options.implementation_work,
-            "--campaign-controls" => &mut options.campaign_controls,
-            "--dispatch-recovery" => &mut options.dispatch_recovery,
-            "--native-runtime-evidence" => &mut options.native_runtime_evidence,
-            "--execution-artifacts" => &mut options.execution_artifacts,
-            "--delivery-observations" => &mut options.delivery_observations,
-            "--artifact-previews" => &mut options.artifact_previews,
-            "--preview-observations" => &mut options.preview_observations,
-            "--work" => &mut options.work,
-            "--code-review" => &mut options.code_review,
-            "--fleet" => &mut options.fleet,
-            "--runbooks" => &mut options.runbooks,
-            "--runbooks-dir" => &mut options.runbooks_dir,
-            "--lattice-authoring" => &mut options.lattice_authoring,
-            "--lattice-drafts" => &mut options.lattice_drafts,
-            "--cairn-authoring" => &mut options.cairn_authoring,
-            _ => return usage(),
-        };
-        if slot.is_some() {
-            return usage();
-        }
-        let Some(value) = arguments.next().filter(|value| !value.starts_with("--")) else {
-            return usage();
-        };
-        *slot = Some(std::path::PathBuf::from(value));
-    }
-    let Some(profile) = profile else {
-        return usage();
-    };
-    status(if command == "check" {
-        kiln_web_service::server::check_with_options(&profile, &options)
-    } else {
-        kiln_web_service::server::run_with_options(&profile, &options)
-    })
+fn service(command: &str, arguments: impl Iterator<Item = String>) -> i32 {
+    kiln_web_service::workspace_config::run_service_cli(command, arguments)
 }
 
 fn extend_projects(mut arguments: impl Iterator<Item = String>) -> i32 {
@@ -362,6 +311,8 @@ mod tests {
         ] {
             assert!(USAGE.contains(section), "missing section {section}");
         }
+        assert!(USAGE.contains("kiln-web-service check --config DIR/kiln.json"));
+        assert!(USAGE.contains("kiln-web-service serve --config DIR/kiln.json"));
         assert!(USAGE.contains("kiln-web-service check --profile DIR/service.json"));
         assert!(USAGE.contains("kiln-web-service serve --profile DIR/service.json"));
         for command in [
@@ -387,6 +338,7 @@ mod tests {
             assert!(USAGE.contains(command), "missing command {command}");
         }
         for flag in [
+            "--config",
             "--profile",
             "--access",
             "--automation",

@@ -793,3 +793,74 @@ test("web.css styles Guide orientation strip and glossary cleanly for narrow vie
   assert.match(css, /\.guide-try-title\s*\{[^}]*overflow-wrap:\s*anywhere/);
   assert.match(css, /\.guide-terms\s*>\s*dt\s*\{[^}]*overflow-wrap:\s*anywhere/);
 });
+
+test("System & Source subnav hides Feeds tab when feeds_configured is false or absent, while direct ?page=feeds still renders", async () => {
+  const hiddenEnv = await setup({
+    initialSearch: "?page=source",
+    fetchHandler: async (target) => {
+      if (target === "/api/session") {
+        return jsonResponse({
+          principal: { id: "local:operator", label: "Operator", role: "operator" },
+          permissions: { read: true, operate: true, configure: true },
+          feeds_configured: false,
+        });
+      }
+      if (target === "/api/projects") return jsonResponse({ enrolled: [], available: [] });
+      return jsonResponse({});
+    },
+  });
+  try {
+    const tabIds = hiddenEnv.doc.querySelectorAll("#destination-tabs a").map((tab) => tab.dataset.tab);
+    assert.ok(tabIds.includes("source"));
+    assert.ok(tabIds.includes("automation"));
+    assert.equal(tabIds.includes("feeds"), false);
+  } finally {
+    hiddenEnv.cleanup();
+  }
+
+  const directEnv = await setup({
+    initialSearch: "?page=feeds",
+    fetchHandler: async (target) => {
+      if (target === "/api/session") {
+        return jsonResponse({
+          principal: { id: "local:operator", label: "Operator", role: "operator" },
+          permissions: { read: true, operate: true, configure: true },
+          feeds_configured: false,
+        });
+      }
+      if (target === "/api/projects") return jsonResponse({ enrolled: [], available: [] });
+      if (target === "/api/feeds") return jsonResponse({ configured: false, subscriptions: [] });
+      return jsonResponse({});
+    },
+  });
+  try {
+    const tabIds = directEnv.doc.querySelectorAll("#destination-tabs a").map((tab) => tab.dataset.tab);
+    assert.equal(tabIds.includes("feeds"), false);
+    assert.match(directEnv.doc.getElementById("feeds-content").textContent, /Feeds are not configured/);
+  } finally {
+    directEnv.cleanup();
+  }
+});
+
+test("System & Source subnav shows Feeds tab when feeds_configured is true", async () => {
+  const env = await setup({
+    initialSearch: "?page=source",
+    fetchHandler: async (target) => {
+      if (target === "/api/session") {
+        return jsonResponse({
+          principal: { id: "local:operator", label: "Operator", role: "operator" },
+          permissions: { read: true, operate: true, configure: true },
+          feeds_configured: true,
+        });
+      }
+      if (target === "/api/projects") return jsonResponse({ enrolled: [], available: [] });
+      return jsonResponse({});
+    },
+  });
+  try {
+    const tabIds = env.doc.querySelectorAll("#destination-tabs a").map((tab) => tab.dataset.tab);
+    assert.ok(tabIds.includes("feeds"));
+  } finally {
+    env.cleanup();
+  }
+});

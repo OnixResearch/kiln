@@ -18,7 +18,7 @@ use crate::profile::ServiceProfile;
 use zeroize::Zeroizing;
 
 /// Explicit runtime policies, never part of the canonical ServiceProfile identity.
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Options {
     pub access: Option<PathBuf>,
     pub automation: Option<PathBuf>,
@@ -1467,7 +1467,7 @@ fn route(
                 if let Some(snapshot) = fleet_snapshot {
                     engine.set_fleet_claims_snapshot(snapshot);
                 }
-                engine
+                let mut response = engine
                     .api_as_with_work(
                         &request.method,
                         &request.target,
@@ -1475,7 +1475,22 @@ fn route(
                         &principal,
                         &impl_work,
                     )
-                    .unwrap_or_else(|_| error_response(503, "service_unavailable"))
+                    .unwrap_or_else(|_| error_response(503, "service_unavailable"));
+                if request.method == "GET"
+                    && request.target == "/api/session"
+                    && request.body.is_empty()
+                    && response.status == 200
+                    && let Ok(mut session) =
+                        serde_json::from_slice::<serde_json::Value>(&response.body)
+                    && let Some(object) = session.as_object_mut()
+                {
+                    object.insert(
+                        "feeds_configured".to_owned(),
+                        serde_json::Value::Bool(context.profile.feeds.is_some()),
+                    );
+                    response.body = session.to_string().into_bytes();
+                }
+                response
             }
             Err(_) => error_response(503, "service_unavailable"),
         }

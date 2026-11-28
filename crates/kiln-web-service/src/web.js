@@ -54,7 +54,7 @@
     inspector: { open: false, kind: "", id: "", items: [], paneTimer: null, paneController: null, paneLines: 200, returnFocus: null },
     selectedRuns: new Set(),
     chordPrefix: "", chordTimer: null,
-    feedsTimer: null,
+    feedsTimer: null, feedsConfigured: false,
     logDigestCache: new Map(),
     logDigestProbed: new Set(),
     digestJump: null,
@@ -1632,6 +1632,7 @@
     // r[impl kiln.web.live_progress] Session clearing stops the elapsed ticker and drops per-run log defaults.
     window.KilnProject?.clear();
     $("project-content").replaceChildren();
+    state.feedsConfigured = false;
     stopFeedsTimer();
     stopLiveTicker();
     stopPanePolling();
@@ -1916,6 +1917,7 @@
     if (!result?.principal || result.permissions?.read !== true) throw new Error("No admitted readable principal was returned.");
     state.principal = result.principal;
     state.permissions = result.permissions;
+    state.feedsConfigured = result.feeds_configured === true;
     window.dispatchEvent(new Event("kiln-session-changed"));
   }
   // r[impl kiln.dashboard.time.local]
@@ -2040,6 +2042,7 @@
     bar.hidden = false;
     bar.replaceChildren();
     for (const tab of tabs) {
+      if (tab.id === "feeds" && !state.feedsConfigured) continue;
       const link = element("a", tab.label);
       link.dataset.tab = tab.id;
       link.href = routeHref({ page: route.page, tab: tab.id });

@@ -2277,6 +2277,18 @@ impl Workspace {
                 .ci
                 .engine
                 .api_as(&req.method, &req.target, &req.body, &principal)?;
+            if path == "/api/session"
+                && req.method == "GET"
+                && req.body.is_empty()
+                && (200..300).contains(&response.status)
+            {
+                if let Ok(mut parsed) = serde_json::from_slice::<Value>(&response.body) {
+                    if let Some(object) = parsed.as_object_mut() {
+                        object.insert("feeds_configured".to_owned(), Value::Bool(false));
+                        response.body = parsed.to_string().into_bytes();
+                    }
+                }
+            }
             if path == "/api/projects" && (200..300).contains(&response.status) {
                 if let Ok(mut parsed) = serde_json::from_slice::<Value>(&response.body) {
                     rewrite_project_repository_labels(&mut parsed);
@@ -2807,6 +2819,11 @@ mod tests {
         assert_eq!(case_resp.status, 200);
 
         // 2. /api/projects uses a clean synthetic label rather than the tempdir path.
+        let session_resp = ws.route(&get_req("/api/session"))?;
+        assert_eq!(session_resp.status, 200);
+        let session: Value = serde_json::from_slice(&session_resp.body)?;
+        assert_eq!(session["feeds_configured"], false);
+
         let projects_resp = ws.route(&get_req("/api/projects"))?;
         assert_eq!(projects_resp.status, 200);
         let projects: Value = serde_json::from_slice(&projects_resp.body)?;
