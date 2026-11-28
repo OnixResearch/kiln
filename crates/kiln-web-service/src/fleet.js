@@ -1043,7 +1043,7 @@
       if (typeof state.context.openInspector === "function") {
         const inspect = element("button", "Inspect", "quiet");
         inspect.type = "button";
-        inspect.addEventListener("click", () => state.context.openInspector("claim", claim.identity, { opener: inspect }));
+        inspect.addEventListener("click", () => state.context.openInspector("claim", claim.identity, claims.map((c) => ({ kind: "claim", id: c.identity })), inspect));
         actions.append(inspect);
       }
       const renew = element("button", "Renew", "quiet");
@@ -1201,7 +1201,7 @@
       if (typeof state.context.openInspector === "function") {
         const inspect = element("button", "Inspect", "quiet");
         inspect.type = "button";
-        inspect.addEventListener("click", () => state.context.openInspector("attempt", attempt.attempt, { opener: inspect }));
+        inspect.addEventListener("click", () => state.context.openInspector("attempt", attempt.attempt, attempts.map((a) => ({ kind: "attempt", id: a.attempt })), inspect));
         actions.append(inspect);
       }
       const cancel = element("button", "Cancel", "quiet");

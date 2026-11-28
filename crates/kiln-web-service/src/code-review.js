@@ -720,9 +720,10 @@
   // Access reads as a labelled pill with the exact principal as secondary monospace text; its boundary sentence moves to "About this view".
   const accessText = () => state.snapshot.can_write ? "Review writes admitted" : "Read-only review access";
   function access() {
-    // r[impl kiln.web.design_system] Access is a neutral classification, not an outcome: a plain chip with an icon, never a success tone.
-    const box = node("div", null, "cr-access"), who = node("span", "as ", "cr-muted"), badge = chip("", "cr-access-chip");
-    badge.replaceChildren(icon(state.snapshot.can_write ? "shield-check" : "eye"), node("span", accessText())); badge.dataset.access = state.snapshot.can_write ? "admitted" : "read_only";
+    const box = node("div", null, "cr-access");
+    if (state.snapshot.can_write) { box.hidden = true; return box; }
+    const who = node("span", "as ", "cr-muted"), badge = chip("", "cr-access-chip");
+    badge.replaceChildren(icon("eye"), node("span", accessText())); badge.dataset.access = "read_only";
     who.append(principalNode(state.context.principal, "cr-principal mono"));
     box.append(badge, who); return box;
   }

@@ -199,7 +199,7 @@
     panel.setAttribute("aria-label", "All target admission slots");
     const head = element("div", undefined, "workers-summary-head");
     head.append(element("h2", "Project admission slots"), element("p", `${plural(inventory.summary.targets, "target")} · ${countText(inventory.summary.enrolled_slots)}/${countText(inventory.summary.configured_slots)} slots enrolled`, "small"));
-    panel.append(head, metrics(capacity(inventory.summary)), element("p", "Free slots do not mean online workers.", "small"));
+    panel.append(head, metrics(capacity(inventory.summary)));
     return panel;
   }
   function latestCell(row) {
@@ -232,7 +232,7 @@
     const panel = element("section", undefined, "panel workers-register");
     panel.append(element("h2", "Execution targets"));
     if (!items.length) {
-      panel.append(emptyState("No targets configured", "This inventory has no configured workflow targets. It is not a discovery of physical workers."), aboutInventory(inventory));
+      panel.append(emptyState("No targets configured", "No workflow targets are configured for this service."));
       return panel;
     }
     const form = element("form", undefined, "workers-filters");
@@ -298,7 +298,7 @@
       const next = links[index + (event.key === "ArrowDown" ? 1 : -1)];
       if (next) { event.preventDefault(); next.focus(); }
     });
-    panel.append(form, tools, wrap, noMatch, aboutInventory(inventory));
+    panel.append(form, tools, wrap, noMatch);
     apply();
     return panel;
   }

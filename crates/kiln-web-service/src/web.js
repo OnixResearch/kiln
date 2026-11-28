@@ -1039,8 +1039,9 @@
     const waiting = WAITING_PHASES.has(run?.phase);
     const gate = ui.untrustedSummary(run?.untrusted);
     for (const action of ["cancel", "pause", "resume"]) $("control-" + action).disabled = !canOperate() || state.mutation || !fresh || !(exactIdentity(run) || (action === "cancel" && waiting)) || run.controls?.[action] !== true;
-    // Untrusted and runbook runs retry only their exact approved commit; the service refuses latest-source retries.
-    for (const mode of ["exact", "latest", "failed"]) $("rerun-" + mode).disabled = !canOperate() || state.mutation || !run || (mode === "latest" && (Boolean(gate) || Boolean(run.runbook))) || (mode === "failed" && !run.nodes?.some((node) => FAILED_NODE_STATE.test(node.state)));
+    const isUnknown = run?.outcome === "Unknown" || String(run?.phase || "").toLowerCase() === "unknown";
+    // Untrusted and runbook runs retry only their exact approved commit; Unknown runs must reconcile before rerun.
+    for (const mode of ["exact", "latest", "failed"]) $("rerun-" + mode).disabled = !canOperate() || state.mutation || !run || isUnknown || (mode === "latest" && (Boolean(gate) || Boolean(run.runbook))) || (mode === "failed" && !run.nodes?.some((node) => FAILED_NODE_STATE.test(node.state)));
     $("control-note").textContent = !canOperate() ? "Read-only principal. Execution mutations are disabled." : gate?.awaitingApproval ? "This untrusted pull-request run waits for an operator to approve its exact commit. Nothing has executed. Cancel removes it before dispatch." : run?.phase === "queued" ? "Queued work has no provider execution yet. Cancel removes this exact queued request before dispatch." : !run ? "Select a run to inspect controls." : !exactIdentity(run) ? "Exact control identity unavailable. No approximate identity will be sent." : !fresh ? "Snapshot stale or live observation disconnected. Refresh before control." : "Only advertised capabilities are enabled. Fresh reads and confirmation bind controls to the exact execution.";
     // r[impl kiln.web.failure_first_run] Header shortcuts mirror the disclosure controls: same enablement, same confirmation.
     const operate = canOperate() && Boolean(run);
@@ -3517,15 +3518,18 @@
     const attempts = Array.isArray(state.factory.attempts) ? state.factory.attempts : [];
     const claims = Array.isArray(state.factory.claims?.claims) ? state.factory.claims.claims : [];
     const reviews = Array.isArray(state.factory.codeReview?.changes) ? state.factory.codeReview.changes : [];
-    const spineItems = [];
-    for (const ch of changes.slice(0, 8)) {
+    const lanePriority = (lane) => ({ attention: 0, in_progress: 1, ready: 2, awaiting: 3, verified: 4, integrated: 5, recorded: 6 }[lane] ?? 7);
+    const ranked = changes.map((ch) => {
       const changeId = ch.change || ch.id || "";
-      const matchingClaim = claims.find((c) => JSON.stringify(c.scope || "").includes(changeId));
-      const matchingAttempt = attempts.find((a) => (a.title || "").includes(changeId) || (a.work || "").includes(changeId));
-      const matchingReview = reviews.find((r) => (r.title || "").includes(changeId) || (r.jj_change_id && r.jj_change_id === ch.jj_change_id));
+      const workIds = new Set(Array.isArray(ch.work_ids) ? ch.work_ids : (ch.work_id ? [ch.work_id] : []));
+      const matchingClaim = claims.find((c) => (ch.claim_id && c.identity === ch.claim_id) || (changeId && (c.scope?.path === changeId || c.scope?.change === changeId)));
+      const matchingAttempt = attempts.find((a) => (ch.attempt_id && a.attempt === ch.attempt_id) || (a.work && workIds.has(a.work)) || (changeId && a.change === changeId));
+      const matchingReview = reviews.find((r) => (ch.review_id && r.id === ch.review_id) || (ch.jj_change_id && r.jj_change_id === ch.jj_change_id));
       const inspectTarget = matchingAttempt ? { kind: "attempt", id: matchingAttempt.attempt } : { kind: "cairn", id: `${ch.repository || ""}/${changeId}` };
-      spineItems.push({ ch, changeId, matchingClaim, matchingAttempt, matchingReview, inspectTarget });
-    }
+      const score = (matchingAttempt ? -10 : 0) + (matchingClaim ? -5 : 0) + (ch.blockers > 0 ? -4 : 0) + lanePriority(ch.lane);
+      return { ch, changeId, matchingClaim, matchingAttempt, matchingReview, inspectTarget, score };
+    }).sort((a, b) => a.score - b.score || String(a.changeId).localeCompare(String(b.changeId)));
+    const spineItems = ranked.slice(0, 8);
     setSectionCount("factory-delivery", String(changes.length));
     if (!spineItems.length) {
       spine.append(element("p", "No Cairn changes listed in the active delivery spine.", "small"));
@@ -5752,9 +5756,25 @@
         const detail = await api(`/api/implementation/cairn/detail?${q}`, { quiet: true });
         if (!state.inspector.open || state.inspector.id !== id) return;
         titleEl.textContent = detail?.change || change;
+        const units = Array.isArray(detail?.units) ? detail.units : [];
+        const blockers = Array.isArray(detail?.blockers) ? detail.blockers : [];
+        const nextSteps = Array.isArray(detail?.next_steps) ? detail.next_steps : [];
         const facts = element("dl", undefined, "facts");
-        addFacts(facts, [["Repository", detail?.repository || repo], ["Lane", detail?.lane], ["Units", Array.isArray(detail?.units) ? detail.units.length : 0]]);
-        body.replaceChildren(facts);
+        addFacts(facts, [["Repository", detail?.repository || repo], ["Lane", detail?.lane], ["Units", units.length], ["Blockers", blockers.length]]);
+        const nodes = [facts];
+        if (nextSteps.length) {
+          nodes.push(element("h3", "Next steps"));
+          const list = element("ul", undefined, "slide-over-plan-steps");
+          for (const step of nextSteps.slice(0, 8)) list.append(element("li", typeof step === "string" ? step : (step?.summary || step?.operation || step?.unit || text(step))));
+          nodes.push(list);
+        }
+        if (units.length) {
+          nodes.push(element("h3", "Units"));
+          const list = element("ul", undefined, "slide-over-plan-steps");
+          for (const u of units.slice(0, 12)) list.append(element("li", `${u.unit || u.id || "unit"}${u.lane ? ` · ${u.lane}` : ""}`));
+          nodes.push(list);
+        }
+        body.replaceChildren(...nodes);
         return;
       }
       if (kind === "review") {
@@ -5774,7 +5794,37 @@
         titleEl.textContent = dec.question || id;
         const facts = element("dl", undefined, "facts");
         addFacts(facts, [["Decision", dec.identity], ["Question", dec.question], ["Raised", timestamp(dec.raised_ms)], ["Answer", dec.answer]]);
-        body.replaceChildren(facts);
+        const nodes = [facts];
+        if (dec.answer == null && dec.closed_ms == null && canOperate()) {
+          const form = element("form", undefined, "inline-form slide-over-decision-form");
+          const label = element("label", "Answer decision");
+          label.htmlFor = "slide-over-decision-input";
+          const input = element("input");
+          input.id = "slide-over-decision-input";
+          input.type = "text";
+          input.maxLength = 4096;
+          input.required = true;
+          input.placeholder = "Enter answer for the waiting agent…";
+          const submit = element("button", "Submit answer", "primary");
+          submit.type = "submit";
+          form.append(label, input, submit);
+          form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const answer = input.value.trim();
+            if (!answer || submit.disabled || state.mutation) return;
+            submit.disabled = true;
+            try {
+              const res = await mutate(`/api/fleet/decisions/${encodeURIComponent(dec.identity)}/answer`, { text: answer }, "Decision answered.");
+              if (res) {
+                if (state.route?.page === "overview") void loadOverview();
+                else if (state.route?.page === "inbox") void loadAttentionPage();
+                closeInspector();
+              }
+            } finally { submit.disabled = false; }
+          });
+          nodes.push(form);
+        }
+        body.replaceChildren(...nodes);
         return;
       }
       if (kind === "repo") {
@@ -5805,12 +5855,6 @@
           ["Admission", admLabels.join(" · ")],
         ]);
         const nodes = [facts];
-
-        if (Array.isArray(repo.non_claims) && repo.non_claims.length) {
-          const ncBox = element("div", undefined, "warning slide-over-repo-note");
-          for (const nc of repo.non_claims) ncBox.append(element("p", nc, "small"));
-          nodes.push(ncBox);
-        }
 
         // Remotes & Mirrors table
         nodes.push(element("h3", "Remotes & mirrors"));

@@ -1476,7 +1476,12 @@
     const statusBox = element("div", undefined, "repo-card-status");
     statusBox.append(syncBadge(repo.sync_status));
     const cairnCount = Number.isSafeInteger(repo.total_cairns) ? repo.total_cairns : 0;
-    statusBox.append(element("span", `${cairnCount} ${cairnCount === 1 ? "Cairn" : "Cairns"}`, "chip repo-cairn-chip"));
+    if (cairnCount > 0 && repo.identity) {
+      const cairnLink = routeLink(ctx, { page: "cairn", tab: "cairn", cairn_repository: repo.identity, cairn_change: "" }, `${cairnCount} ${cairnCount === 1 ? "Cairn" : "Cairns"}`, "chip repo-cairn-chip");
+      statusBox.append(cairnLink);
+    } else {
+      statusBox.append(element("span", `${cairnCount} ${cairnCount === 1 ? "Cairn" : "Cairns"}`, "chip repo-cairn-chip"));
+    }
     head.append(titleBox, statusBox);
 
     const admRow = renderAdmissionBadges(repo);
@@ -1538,6 +1543,9 @@
       addMirrorBtn.type = "button";
       withIcon(addMirrorBtn, icon("square-plus"), "Add Mirror");
       addMirrorBtn.addEventListener("click", () => {
+        const importCard = document.getElementById("repo-import-card");
+        const importDisclosure = importCard?.closest?.("details");
+        if (importDisclosure) importDisclosure.open = true;
         const attachEl = document.getElementById("repo-import-attach");
         const roleEl = document.getElementById("repo-import-role");
         const urlEl = document.getElementById("repo-import-url");
@@ -1548,6 +1556,7 @@
           attachEl.dispatchEvent(typeof Event === "function" ? new Event("change") : { type: "change" });
         }
         if (roleEl && (repo.canonical || remotes.some((r) => r.role === "canonical"))) roleEl.value = "mirror";
+        importCard?.scrollIntoView?.({ block: "nearest" });
         urlEl?.focus?.();
       });
       actions.append(addMirrorBtn);

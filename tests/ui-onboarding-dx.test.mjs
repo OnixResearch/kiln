@@ -1418,3 +1418,75 @@ test("Pass 4 nonsense removal: zero about-view/boundary clutter in shell, Fleet 
     runTabsEnv.cleanup();
   }
 });
+
+test("Phase 0 surgical fixes: Add Mirror opens collapsed import disclosure, Cairns chip links to Cairn, slide-over answers decisions and renders Cairn units", async () => {
+  const baseSession = {
+    principal: { id: "local:operator", label: "Operator", role: "operator" },
+    permissions: { read: true, operate: true, configure: true },
+    feeds_configured: false,
+    capabilities: { feeds: false, runbooks: false, inventory: false, campaign_controls: false, automation: false, cairn_authoring: false },
+  };
+  const repoId = "a".repeat(64);
+  const decId = "b".repeat(64);
+
+  // Add Mirror opens collapsed import disclosure & Cairns chip is a link.
+  const repoEnv = await setup({
+    initialSearch: "?page=source",
+    extraAssets: ["source.js"],
+    fetchHandler: async (target) => {
+      if (target === "/api/session") return jsonResponse(baseSession);
+      if (target === "/api/projects") return jsonResponse({ enrolled: [], available: [] });
+      if (target === "/api/repositories") {
+        return jsonResponse({
+          repositories: [{ identity: repoId, slug: "OnixResearch/kiln", label: "Kiln", sync_status: "synced", remotes: [], local_copies: [], total_cairns: 3 }],
+          summary: { total: 1, total_local_copies: 1, total_cairns: 3, synced: 1, diverged: 0, dirty: 0, unknown: 0, local_only: 0 },
+        });
+      }
+      if (target === "/api/sources") return jsonResponse({ sources: [] });
+      return jsonResponse({});
+    },
+  });
+  try {
+    const cairnChip = repoEnv.doc.querySelector(".repo-cairn-chip");
+    assert.equal(cairnChip.tagName, "A");
+    assert.match(cairnChip.href, new RegExp(`cairn_repository=${repoId}`));
+    const importDisclosure = repoEnv.doc.querySelectorAll("details.fleet-secondary-disclosure").find((d) => d.dataset.repoDisclosure === "import");
+    assert.equal(importDisclosure.open, false);
+    const addMirrorBtn = repoEnv.doc.querySelectorAll("button").find((b) => b.textContent.includes("Add Mirror"));
+    assert.ok(addMirrorBtn);
+    addMirrorBtn.click();
+    assert.equal(importDisclosure.open, true, "Add Mirror must open the collapsed import disclosure");
+  } finally {
+    repoEnv.cleanup();
+  }
+
+  // Slide-over renders an answer form for open decisions.
+  const decEnv = await setup({
+    initialSearch: `?page=overview&inspect=decision:${decId}`,
+    fetchHandler: async (target) => {
+      if (target === "/api/session") return jsonResponse(baseSession);
+      if (target === "/api/projects") return jsonResponse({ enrolled: [], available: [] });
+      if (target === "/api/overview") return jsonResponse({ totals: { runs: 0, failed: 0, active: 0, queued: 0, succeeded: 0, cancelled: 0, unknown: 0 }, projects: [], duration_trend: [], timing: { recorded: 0, total: 0 } });
+      if (target === "/api/fleet/decisions") {
+        return jsonResponse({ decisions: [{ identity: decId, question: "Ship Phase 0?", raised_ms: 1795800000000, answer: null, closed_ms: null }] });
+      }
+      if (target.startsWith("/api/activity")) return jsonResponse({ total: 0, bounded: true, items: [] });
+      if (target === "/api/implementation/attention") return jsonResponse({ items: [], total: 0 });
+      if (target === "/api/fleet/machines") return jsonResponse({ machines: [] });
+      if (target.startsWith("/api/fleet/claims")) return jsonResponse({ claims: [] });
+      if (target === "/api/fleet/dispatch/status") return jsonResponse({ state: "running", last_tick: { deferred_count: 0 } });
+      if (target === "/api/implementation/cairn") return jsonResponse({ changes: [] });
+      if (target === "/api/fleet/attempts") return jsonResponse({ attempts: [] });
+      if (target.startsWith("/api/code-review")) return jsonResponse({ changes: [] });
+      if (target === "/api/repositories") return jsonResponse({ repositories: [] });
+      return jsonResponse({});
+    },
+  });
+  try {
+    const form = decEnv.doc.querySelector(".slide-over-decision-form");
+    assert.ok(form, "Slide-over must render an answer form for open decisions");
+    assert.ok(decEnv.doc.getElementById("slide-over-decision-input"));
+  } finally {
+    decEnv.cleanup();
+  }
+});
