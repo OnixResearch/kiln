@@ -2515,7 +2515,7 @@
 
   async function pollProjection(state, poll) {
     const current = () => active === state && state.context.isCurrent() && currentPrincipal() === state.principal;
-    if (!current() || document.visibilityState === "hidden" || poll.controller) return;
+    if (!current() || document.visibilityState === "hidden" || poll.controller || poll.unconfigured) return;
     clearTimeout(poll.timer);
     const controller = new AbortController();
     poll.controller = controller;
@@ -2523,10 +2523,15 @@
       const value = await state.context.api(poll.path, { quiet: true, controller });
       if (current()) poll.apply(value);
     } catch (error) {
+      if (error?.status === 503 && typeof error?.code === "string" && error.code.endsWith("_not_configured")) {
+        poll.unconfigured = true;
+      }
       if (current() && error?.name !== "AbortError") poll.fail();
     } finally {
       poll.controller = null;
-      if (current() && document.visibilityState !== "hidden") poll.timer = setTimeout(() => { void pollProjection(state, poll); }, AGGREGATE_REFRESH_MS);
+      if (current() && !poll.unconfigured && document.visibilityState !== "hidden") {
+        poll.timer = setTimeout(() => { void pollProjection(state, poll); }, AGGREGATE_REFRESH_MS);
+      }
     }
   }
 
@@ -2568,9 +2573,15 @@
     if (!state.dispatchBar) return;
     if (!record(status)) { state.dispatchBar.hidden = true; return; }
     state.dispatchBar.hidden = false;
-    const paused = status.paused === true || text(status.state).toLowerCase() === "paused";
+    const paused = status.paused === true || status.enabled === false || text(status.state).toLowerCase() === "paused";
     state.dispatchPaused = paused;
-    const deferred = Number.isSafeInteger(status.deferred_count) ? status.deferred_count : 0;
+    const deferred = Number.isSafeInteger(status.deferred_count)
+      ? status.deferred_count
+      : Number.isSafeInteger(status.last_tick?.deferred_count)
+        ? status.last_tick.deferred_count
+        : record(status.last_tick?.deferral_counts)
+          ? Object.values(status.last_tick.deferral_counts).reduce((sum, n) => sum + (Number.isSafeInteger(n) ? n : 0), 0)
+          : 0;
     const badge = element("span", paused ? `DISPATCH PAUSED · ${deferred} deferred` : "DISPATCH RUNNING", "state-badge");
     badge.dataset.tone = paused ? "warning" : "good";
     const detail = element("span", status.reason ? `Reason: ${text(status.reason)}` : `${deferred} deferred attempt${deferred === 1 ? "" : "s"}`, "small");

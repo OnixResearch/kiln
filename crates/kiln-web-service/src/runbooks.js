@@ -662,7 +662,7 @@
     heading.append(element("h2", "Reviewed runbooks"));
     registerPanel.append(heading);
     if (!runbooks.length) {
-      registerPanel.append(emptyState("No runbooks configured", "This service was started without --runbooks or defines no runbooks."));
+      registerPanel.append(element("p", "0 reviewed runbooks configured.", "small"));
     } else {
       const list = element("div", undefined, "view-stack");
       for (const rb of runbooks) {
@@ -2399,7 +2399,7 @@
     }
 
     if (!runbooks.length) {
-      right.append(emptyState("No runbooks available", "Configure --runbooks on the service to expose reviewed runbooks."));
+      right.append(emptyState("No runbooks configured", "Add ci.runbooks in kiln.json (or pass --runbooks) to expose reviewed runbooks."));
     } else if (!selectedId) {
       right.append(emptyState("Select a runbook", "Choose a reviewed runbook from the register to inspect its parameters and dispatch a run."));
     } else {

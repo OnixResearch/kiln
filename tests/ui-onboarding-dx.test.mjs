@@ -864,3 +864,60 @@ test("System & Source subnav shows Feeds tab when feeds_configured is true", asy
     env.cleanup();
   }
 });
+
+test("1.1 Factory renders recent activity from items[] instead of showing Activity unavailable", async () => {
+  const env = await setup({
+    initialSearch: "?page=overview",
+    fetchHandler: async (target) => {
+      if (target === "/api/session") {
+        return jsonResponse({
+          principal: { id: "local:operator", label: "Operator", role: "operator" },
+          permissions: { read: true, operate: true, configure: true },
+          feeds_configured: false,
+        });
+      }
+      if (target === "/api/projects") return jsonResponse({ enrolled: [], available: [] });
+      if (target === "/api/overview") {
+        return jsonResponse({
+          totals: { runs: 1, failed: 0, active: 0, queued: 0, succeeded: 1, cancelled: 0, unknown: 0 },
+          projects: [],
+          duration_trend: [],
+          timing: { recorded: 0, total: 0 },
+        });
+      }
+      if (target === "/api/workers") {
+        return jsonResponse({ schema: "kiln.web-workers.v1", bounded: true, storage_failed: false, workers: [], summary: { free_slots: 1, active: 0, configured_slots: 1, queued: 0 } });
+      }
+      if (target.startsWith("/api/activity")) {
+        return jsonResponse({
+          total: 1,
+          bounded: true,
+          items: [
+            {
+              kind: "audit",
+              ordinal: 42,
+              recorded_at_ms: 1795800000000,
+              audit: { actor_label: "Operator", method: "POST", target: "/api/runs", decision: "accepted", status: 200 },
+            },
+          ],
+        });
+      }
+      if (target === "/api/implementation/attention") return jsonResponse({ items: [], total: 0, counts: {} });
+      if (target === "/api/fleet/machines") return jsonResponse({ machines: [] });
+      if (target.startsWith("/api/fleet/claims")) return jsonResponse({ claims: [] });
+      if (target === "/api/fleet/dispatch/status") return jsonResponse({ enabled: true, last_tick: { deferral_counts: { lattice: 5 } } });
+      if (target === "/api/implementation/cairn") return jsonResponse({ changes: [] });
+      if (target === "/api/fleet/attempts") return jsonResponse({ attempts: [] });
+      if (target === "/api/code-review") return jsonResponse({ changes: [] });
+      if (target === "/api/repositories") return jsonResponse({ repositories: [] });
+      return jsonResponse({});
+    },
+  });
+  try {
+    const text = env.doc.getElementById("overview-activity").textContent;
+    assert.doesNotMatch(text, /Activity unavailable/);
+    assert.match(text, /POST \/api\/runs/);
+  } finally {
+    env.cleanup();
+  }
+});

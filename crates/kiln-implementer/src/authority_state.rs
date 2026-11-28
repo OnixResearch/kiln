@@ -27,8 +27,8 @@ use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, 
 use serde::{Deserialize, Serialize};
 use ucan::{HolderInvocationReplayError, ProofReference, RevocationError};
 
-use crate::grant_issuance::{GRANT_ISSUANCE_SCHEMA, GrantIssuanceRecord, GrantIssuanceState};
 use super::{SQLITE_HEADER_BYTES, sqlite_header_names_wal, text};
+use crate::grant_issuance::{GRANT_ISSUANCE_SCHEMA, GrantIssuanceRecord, GrantIssuanceState};
 
 /// Suffix of the authority database beside the ledger file.
 pub const AUTHORITY_STATE_SUFFIX: &str = "authority";
@@ -485,9 +485,10 @@ impl SqliteAuthorityState {
                     GrantIssuanceRecord::Intended { grant } => {
                         (Some(grant.intent.as_str().to_string()), None)
                     }
-                    GrantIssuanceRecord::Issued { intent, grant_ref } => {
-                        (Some(intent.as_str().to_string()), Some(grant_ref.as_slice()))
-                    }
+                    GrantIssuanceRecord::Issued { intent, grant_ref } => (
+                        Some(intent.as_str().to_string()),
+                        Some(grant_ref.as_slice()),
+                    ),
                     GrantIssuanceRecord::Revoked { grant_ref, .. } => {
                         (None, Some(grant_ref.as_slice()))
                     }
@@ -517,7 +518,10 @@ impl SqliteAuthorityState {
     ///
     /// # Errors
     /// Returns a message when the database cannot be read or decoded.
-    pub fn grant_slots_for_work(&self, work: &ContentId) -> Result<Vec<PersistedGrantSlot>, String> {
+    pub fn grant_slots_for_work(
+        &self,
+        work: &ContentId,
+    ) -> Result<Vec<PersistedGrantSlot>, String> {
         let connection = self.connection.borrow();
         if !table_exists(&connection, "grant_issuance_slot")? {
             return Ok(Vec::new());
@@ -570,15 +574,15 @@ impl SqliteAuthorityState {
             ) = row.map_err(text)?;
             let grant_ref = match grant_ref_v {
                 Some(bytes) => {
-                    let array: [u8; REPLAY_DIGEST_BYTES] = bytes
-                        .try_into()
-                        .map_err(|_| "authority: malformed persisted grant_ref width".to_string())?;
+                    let array: [u8; REPLAY_DIGEST_BYTES] = bytes.try_into().map_err(|_| {
+                        "authority: malformed persisted grant_ref width".to_string()
+                    })?;
                     Some(array)
                 }
                 None => None,
             };
-            let phase: GrantLifecyclePhase = serde_json::from_str(&format!("\"{phase_s}\""))
-                .map_err(text)?;
+            let phase: GrantLifecyclePhase =
+                serde_json::from_str(&format!("\"{phase_s}\"")).map_err(text)?;
             let unknown_termination = term_s
                 .map(|raw| serde_json::from_str::<ExternalRef>(&raw).map_err(text))
                 .transpose()?;
@@ -700,17 +704,20 @@ impl SqliteAuthorityState {
             )
             .map_err(text)?;
         let rows = statement
-            .query_map(params![work.as_str(), i64::try_from(capped).map_err(text)?], |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, Option<String>>(1)?,
-                    row.get::<_, Option<i64>>(2)?,
-                    row.get::<_, String>(3)?,
-                    row.get::<_, i64>(4)?,
-                    row.get::<_, i64>(5)?,
-                    row.get::<_, i64>(6)?,
-                ))
-            })
+            .query_map(
+                params![work.as_str(), i64::try_from(capped).map_err(text)?],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, Option<String>>(1)?,
+                        row.get::<_, Option<i64>>(2)?,
+                        row.get::<_, String>(3)?,
+                        row.get::<_, i64>(4)?,
+                        row.get::<_, i64>(5)?,
+                        row.get::<_, i64>(6)?,
+                    ))
+                },
+            )
             .map_err(text)?;
         let mut out = Vec::new();
         for row in rows {
@@ -770,7 +777,9 @@ fn load_grant_state_from_conn(connection: &Connection) -> Result<GrantIssuanceSt
             .prepare("SELECT proof_ref, revocation_generation FROM authority_revocation")
             .map_err(text)?;
         let rows = statement
-            .query_map([], |row| Ok((row.get::<_, Vec<u8>>(0)?, row.get::<_, i64>(1)?)))
+            .query_map([], |row| {
+                Ok((row.get::<_, Vec<u8>>(0)?, row.get::<_, i64>(1)?))
+            })
             .map_err(text)?;
         for row in rows {
             let (bytes, gen_i) = row.map_err(text)?;
@@ -806,7 +815,10 @@ fn upsert_slot_for_intent(
         .as_ref()
         .and_then(|gr| state.revocation_generation_of(gr))
         .unwrap_or(grant.revocation_generation);
-    let term_json = termination.map(serde_json::to_string).transpose().map_err(text)?;
+    let term_json = termination
+        .map(serde_json::to_string)
+        .transpose()
+        .map_err(text)?;
     transaction
         .execute(
             "INSERT INTO grant_issuance_slot

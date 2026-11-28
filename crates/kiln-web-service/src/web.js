@@ -1117,7 +1117,7 @@
       state.events.cairn = payload;
       emitEvent("cairn", payload);
       if (state.route?.page === "overview") void refreshFactoryFromSse("cairn");
-      else if ((state.route?.tab || state.route?.page) === "cairn") void readAction(() => loadPage({ quiet: true }))();
+      else if ((state.route?.tab || state.route?.page) === "cairn") scheduleCairnSseRefresh();
       return true;
     }
     if (frame.event === "repositories") {
@@ -3693,38 +3693,64 @@
     updateGlobalLiveStrip();
     renderFactoryRibbon();
   }
+  const factorySseInFlight = new Set();
+  const factorySsePending = new Set();
+  let cairnSseTimer = null;
+  function scheduleCairnSseRefresh() {
+    if (cairnSseTimer !== null) return;
+    cairnSseTimer = setTimeout(() => {
+      cairnSseTimer = null;
+      if (state.session && (state.route?.tab || state.route?.page) === "cairn") {
+        void readAction(() => loadPage({ quiet: true }))();
+      }
+    }, 300);
+  }
   async function refreshFactoryFromSse(channel) {
     if (!state.session) return;
-    if (channel === "attention" || state.route?.page === "inbox") {
-      const att = await safeCall("/api/implementation/attention");
-      if (att.ok) {
-        state.factory.attention = att.value;
-        if (state.route?.page === "overview") renderFactoryAttention(att.value);
-        if (state.route?.page === "inbox" && activeSubPageFor(state.route) === "attention") {
-          renderAttentionPage(att.value);
+    if (factorySseInFlight.has(channel)) {
+      factorySsePending.add(channel);
+      return;
+    }
+    factorySseInFlight.add(channel);
+    try {
+      if (channel === "attention" || state.route?.page === "inbox") {
+        const att = await safeCall("/api/implementation/attention");
+        if (att.ok) {
+          state.factory.attention = att.value;
+          if (state.route?.page === "overview") renderFactoryAttention(att.value);
+          if (state.route?.page === "inbox" && activeSubPageFor(state.route) === "attention") {
+            renderAttentionPage(att.value);
+          }
+          updateGlobalLiveStrip();
         }
-        updateGlobalLiveStrip();
       }
-    }
-    if (activeSubPageFor(state.route) === "repositories" && (channel === "repositories" || channel === "fleet")) {
-      void readAction(() => loadPage({ quiet: true }))();
-    }
-    if (state.route?.page === "overview") {
-      if (channel === "fleet" || channel === "repositories") {
-        const [machines, claims, dispatch, repos] = await Promise.all([
-          safeCall("/api/fleet/machines"),
-          safeCall("/api/fleet/claims?include=foreign,expired"),
-          safeCall("/api/fleet/dispatch/status"),
-          safeCall("/api/repositories"),
-        ]);
-        if (machines.ok) renderFactoryMachines(machines.value);
-        if (claims.ok) renderFactoryClaims(claims.value);
-        if (dispatch.ok) { state.factory.dispatch = dispatch.value; }
-        if (repos.ok) state.factory.repositories = repos.value;
-        renderFactoryRibbon();
-      } else if (channel === "cairn") {
-        const cairn = await safeCall("/api/implementation/cairn");
-        if (cairn.ok) { state.factory.cairn = cairn.value; renderFactoryDeliverySpine(); }
+      if (activeSubPageFor(state.route) === "repositories" && (channel === "repositories" || channel === "fleet")) {
+        void readAction(() => loadPage({ quiet: true }))();
+      }
+      if (state.route?.page === "overview") {
+        if (channel === "fleet" || channel === "repositories") {
+          const [machines, claims, dispatch, repos] = await Promise.all([
+            safeCall("/api/fleet/machines"),
+            safeCall("/api/fleet/claims?include=foreign,expired"),
+            safeCall("/api/fleet/dispatch/status"),
+            safeCall("/api/repositories"),
+          ]);
+          if (state.route?.page !== "overview") return;
+          if (machines.ok) renderFactoryMachines(machines.value);
+          if (claims.ok) renderFactoryClaims(claims.value);
+          if (dispatch.ok) { state.factory.dispatch = dispatch.value; }
+          if (repos.ok) state.factory.repositories = repos.value;
+          renderFactoryRibbon();
+        } else if (channel === "cairn") {
+          const cairn = await safeCall("/api/implementation/cairn");
+          if (state.route?.page !== "overview") return;
+          if (cairn.ok) { state.factory.cairn = cairn.value; renderFactoryDeliverySpine(); }
+        }
+      }
+    } finally {
+      factorySseInFlight.delete(channel);
+      if (factorySsePending.delete(channel) && state.session) {
+        setTimeout(() => { void refreshFactoryFromSse(channel); }, 300);
       }
     }
   }
@@ -3750,7 +3776,7 @@
     if (workersRes.ok && workersRes.value?.summary) renderOverviewWorkers(workersRes.value);
     else if (workersRes.ok) $("overview-workers")?.replaceChildren(emptyState("Workers unavailable", "Worker snapshot is unavailable."));
     else $("overview-workers")?.replaceChildren(errorState(`${OVERVIEW_UNAVAILABLE.workers}: ${explain(workersRes.error)}`));
-    if (activityRes.ok && Array.isArray(activityRes.value?.events)) renderOverviewActivity(activityRes.value);
+    if (activityRes.ok && Array.isArray(activityRes.value?.items)) renderOverviewActivity(activityRes.value);
     else if (activityRes.ok) $("overview-activity")?.replaceChildren(emptyState("Activity unavailable", "Activity feed is unavailable."));
     else $("overview-activity")?.replaceChildren(errorState(`${OVERVIEW_UNAVAILABLE.activity}: ${explain(activityRes.error)}`));
 

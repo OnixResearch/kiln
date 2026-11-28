@@ -371,11 +371,7 @@ impl GrantIssuanceState {
         Ok(())
     }
 
-    fn unknown_resolve(
-        &mut self,
-        intent: &ContentId,
-        termination: &ExternalRef,
-    ) -> CoreResult<()> {
+    fn unknown_resolve(&mut self, intent: &ContentId, termination: &ExternalRef) -> CoreResult<()> {
         termination.validate()?;
         let state = self.intents.get_mut(intent).ok_or_else(|| {
             refusal(
@@ -835,7 +831,12 @@ impl GrantIssuanceState {
                 .get(&state.grant.attempt)
                 .is_some_and(|attempt| attempt.failure == Some(FailureClass::Unknown));
             match (&state.lifecycle, state.issued) {
-                (IntentLifecycle::Abandoned | IntentLifecycle::Released | IntentLifecycle::UnknownResolved { .. }, _) => {}
+                (
+                    IntentLifecycle::Abandoned
+                    | IntentLifecycle::Released
+                    | IntentLifecycle::UnknownResolved { .. },
+                    _,
+                ) => {}
                 (IntentLifecycle::UnknownFenced { .. }, Some(grant_ref)) => {
                     if !self.is_revoked(&grant_ref) {
                         actions.push(GrantIssuanceAction::Revoke {
@@ -938,19 +939,18 @@ pub fn explain_work_admission(
     let ledger = implementer.admission_snapshot()?;
     let admission = ledger.explanation(work, now_ms).ok();
     let state_path = crate::authority_state::authority_state_path(&implementer.database)?;
-    let (grant_state, rev_gen, denials) =
-        if let Some(authority_state) = crate::authority_state::SqliteAuthorityState::open_read_only(&state_path)? {
-            use crate::authority_state::AuthorityStateStore as _;
-            let gs = authority_state.load_grant_issuance_state()?;
-            let rg = authority_state.revocation_generation()?;
-            let ds = authority_state.grant_denials_for_work(
-                work,
-                crate::authority_state::MAX_GRANT_DENIALS_QUERY,
-            )?;
-            (gs, rg, ds)
-        } else {
-            (GrantIssuanceState::default(), 0, Vec::new())
-        };
+    let (grant_state, rev_gen, denials) = if let Some(authority_state) =
+        crate::authority_state::SqliteAuthorityState::open_read_only(&state_path)?
+    {
+        use crate::authority_state::AuthorityStateStore as _;
+        let gs = authority_state.load_grant_issuance_state()?;
+        let rg = authority_state.revocation_generation()?;
+        let ds = authority_state
+            .grant_denials_for_work(work, crate::authority_state::MAX_GRANT_DENIALS_QUERY)?;
+        (gs, rg, ds)
+    } else {
+        (GrantIssuanceState::default(), 0, Vec::new())
+    };
     let latest_denial = denials.first().map(|d| d.reason.as_str());
     let grant_authority = grant_state.explain_for_work(
         work,
@@ -987,7 +987,10 @@ pub(crate) fn fence_or_revoke_for_attempt(
     let state = crate::authority_state::SqliteAuthorityState::open(&state_path)?;
     use crate::authority_state::AuthorityStateStore as _;
     let current = state.load_grant_issuance_state()?;
-    let rev_gen = state.revocation_generation()?.max(current.max_revocation_generation()).saturating_add(1);
+    let rev_gen = state
+        .revocation_generation()?
+        .max(current.max_revocation_generation())
+        .saturating_add(1);
     let intents = current.intents_for_attempt(attempt);
     if intents.is_empty() {
         return Ok(());

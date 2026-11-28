@@ -83,6 +83,7 @@ pub struct Dispatcher {
     store: Implementer,
     herdr: Option<HerdrClient>,
     capturer: Option<Capturer>,
+    last_deferred: Vec<(String, String)>,
 }
 
 impl Dispatcher {
@@ -141,6 +142,7 @@ impl Dispatcher {
             service,
             herdr,
             capturer,
+            last_deferred: Vec::new(),
         })
     }
 
@@ -539,19 +541,24 @@ impl Dispatcher {
             self.store
                 .claim_next_deferred(now_ms, config.policy.attempt_lease_ms, &defer)?;
         if !selection.deferred.is_empty() {
-            log::info(
-                "dispatch.deferred",
-                json!({ "deferred": selection.deferred }),
-            );
+            if selection.deferred != self.last_deferred {
+                log::info(
+                    "dispatch.deferred",
+                    json!({ "deferred": selection.deferred }),
+                );
+                self.last_deferred = selection.deferred.clone();
+            }
             for (work, reason) in &selection.deferred {
                 deferred.push(DeferredItem {
                     work: Some(work.clone()),
                     reason: reason.clone(),
                 });
             }
+        } else if !self.last_deferred.is_empty() {
+            self.last_deferred.clear();
         }
         let Some(attempt) = selection.attempt else {
-            return Ok(true);
+            return Ok(false);
         };
         let Some((work_identity, machine)) = chosen.into_inner() else {
             return Err("claimed work had no chosen machine".to_owned());

@@ -1500,9 +1500,9 @@ impl Implementer {
         let (superseded, is_unknown) = self.with_ledgers(|_, attempts| {
             let superseded = attempts.supersede(canonical_key, new_revision, rule, now_ms)?;
             let is_unknown = superseded.as_ref().is_some_and(|attempt_id| {
-                attempts
-                    .get(attempt_id)
-                    .is_some_and(|a| a.failure == Some(kiln_core::implementation::FailureClass::Unknown))
+                attempts.get(attempt_id).is_some_and(|a| {
+                    a.failure == Some(kiln_core::implementation::FailureClass::Unknown)
+                })
             });
             Ok((superseded, is_unknown))
         })?;
@@ -1758,6 +1758,18 @@ fn save<T: serde::Serialize>(
     value: &T,
 ) -> Result<(), String> {
     let bytes = serde_json::to_vec(value).map_err(text)?;
+    if version > 0 {
+        let existing: Option<Vec<u8>> = transaction
+            .query_row(
+                "SELECT bytes FROM implementation_state WHERE kind = ?1",
+                params![kind],
+                |row| row.get(0),
+            )
+            .ok();
+        if existing.as_deref() == Some(bytes.as_slice()) {
+            return Ok(());
+        }
+    }
     let version = version
         .checked_add(1)
         .ok_or("implementation state version exhausted")?;
@@ -1807,4 +1819,56 @@ pub fn current_unix_ms() -> u64 {
         .ok()
         .and_then(|duration| u64::try_from(duration.as_millis()).ok())
         .unwrap_or(0)
+}
+
+#[cfg(test)]
+mod save_elision_tests {
+    use super::*;
+
+    #[test]
+    fn save_elides_noop_writes_without_bumping_version() {
+        let mut conn = match Connection::open_in_memory() {
+            Ok(conn) => conn,
+            Err(error) => unreachable!("in-memory sqlite failed: {error}"),
+        };
+        if let Err(error) = conn.execute_batch(
+            "CREATE TABLE implementation_state (kind TEXT PRIMARY KEY, version INTEGER NOT NULL, bytes BLOB NOT NULL);",
+        ) {
+            unreachable!("schema setup failed: {error}");
+        }
+        let tx = match conn.transaction() {
+            Ok(tx) => tx,
+            Err(error) => unreachable!("tx failed: {error}"),
+        };
+        let initial = serde_json::json!({"schema": "test.v1", "items": [1, 2]});
+        if let Err(error) = save(&tx, "fleet_state", 0, &initial) {
+            unreachable!("initial save failed: {error}");
+        }
+        let (_, v1) = match load::<serde_json::Value>(&tx, "fleet_state") {
+            Ok(loaded) => loaded,
+            Err(error) => unreachable!("load v1 failed: {error}"),
+        };
+        assert_eq!(v1, 1);
+
+        // Saving identical serialized state must not bump version.
+        if let Err(error) = save(&tx, "fleet_state", v1, &initial) {
+            unreachable!("noop save failed: {error}");
+        }
+        let (_, v2) = match load::<serde_json::Value>(&tx, "fleet_state") {
+            Ok(loaded) => loaded,
+            Err(error) => unreachable!("load v2 failed: {error}"),
+        };
+        assert_eq!(v2, 1);
+
+        // Saving changed state must bump version.
+        let changed = serde_json::json!({"schema": "test.v1", "items": [1, 2, 3]});
+        if let Err(error) = save(&tx, "fleet_state", v2, &changed) {
+            unreachable!("changed save failed: {error}");
+        }
+        let (_, v3) = match load::<serde_json::Value>(&tx, "fleet_state") {
+            Ok(loaded) => loaded,
+            Err(error) => unreachable!("load v3 failed: {error}"),
+        };
+        assert_eq!(v3, 2);
+    }
 }

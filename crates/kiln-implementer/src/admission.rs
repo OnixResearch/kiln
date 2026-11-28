@@ -446,7 +446,9 @@ impl Implementer {
                                     .clone(),
                             )
                         } else {
-                            if let Err(error) = check_work_not_unknown_fenced(&database, &selected, now_ms) {
+                            if let Err(error) =
+                                check_work_not_unknown_fenced(&database, &selected, now_ms)
+                            {
                                 return Err(refusal(&error));
                             }
                             let attempt = attempts.claim(current, now_ms, lease_ms)?;
@@ -923,7 +925,13 @@ impl Implementer {
         if !attempts.is_current(attempt, fence, now_ms) {
             return Err("admission: stale attempt/fence".to_string());
         }
-        ensure_attempt_grant_usable(&self.database, &facts.attempt.work_identity, attempt, fence, now_ms)?;
+        ensure_attempt_grant_usable(
+            &self.database,
+            &facts.attempt.work_identity,
+            attempt,
+            fence,
+            now_ms,
+        )?;
         let (mut ledger, version) = load::<AdmissionLedger>(&tx, ADMISSION_KIND)?;
         let Some(policy) = ledger.policy.as_ref() else {
             tx.commit().map_err(text)?;
@@ -1827,14 +1835,11 @@ fn apply_intend_root_grant(
     authority_generation: u64,
     now_ms: u64,
 ) -> Result<ContentId, Diagnostic> {
-    let lineage = resolve_current_lineage(work_ledger, attempts, work_id, campaign_revision, now_ms)?;
-    if let Err(err) = validate_grant_budget_against_ledger(
-        ledger,
-        work_id,
-        None,
-        &request.budget.account,
-        now_ms,
-    ) {
+    let lineage =
+        resolve_current_lineage(work_ledger, attempts, work_id, campaign_revision, now_ms)?;
+    if let Err(err) =
+        validate_grant_budget_against_ledger(ledger, work_id, None, &request.budget.account, now_ms)
+    {
         record_denial_if_present(
             database,
             work_id,
@@ -2016,27 +2021,28 @@ fn apply_intend_child_grant(
         ancestors: &ancestors,
         budget: Some(&budget_snapshot),
     };
-    let admitted = match issuance_state.check_child_admission(&parent_binding, request, &facts, limit) {
-        Ok(grant) => grant,
-        Err(err) => {
-            let code = err.redacted_code().to_string();
-            if code == "concurrency_full"
-                && let Some(item) = ledger.items.get_mut(&parent_binding.work)
-            {
-                item.reason = AdmissionReason::ConcurrencyFull;
+    let admitted =
+        match issuance_state.check_child_admission(&parent_binding, request, &facts, limit) {
+            Ok(grant) => grant,
+            Err(err) => {
+                let code = err.redacted_code().to_string();
+                if code == "concurrency_full"
+                    && let Some(item) = ledger.items.get_mut(&parent_binding.work)
+                {
+                    item.reason = AdmissionReason::ConcurrencyFull;
+                }
+                let _ = state.record_grant_denial(&RedactedGrantDenial::redacted(
+                    parent_binding.work.clone(),
+                    Some(parent_binding.attempt.clone()),
+                    Some(parent_binding.fence),
+                    &code,
+                    authority_generation,
+                    revocation_generation,
+                    now_ms,
+                ));
+                return Err(err.into_diagnostic());
             }
-            let _ = state.record_grant_denial(&RedactedGrantDenial::redacted(
-                parent_binding.work.clone(),
-                Some(parent_binding.attempt.clone()),
-                Some(parent_binding.fence),
-                &code,
-                authority_generation,
-                revocation_generation,
-                now_ms,
-            ));
-            return Err(err.into_diagnostic());
-        }
-    };
+        };
     let intent = admitted.intent.clone();
     state
         .record_grant_issuance(&GrantIssuanceRecord::Intended {
@@ -2093,13 +2099,7 @@ fn apply_record_issued_grant(
         ));
         return Err(refusal("cannot issue a revoked or fenced grant"));
     }
-    validate_grant_budget_against_ledger(
-        ledger,
-        &grant.work,
-        None,
-        &grant.budget.account,
-        now_ms,
-    )?;
+    validate_grant_budget_against_ledger(ledger, &grant.work, None, &grant.budget.account, now_ms)?;
     let mut probe = issuance_state;
     let issued_record = GrantIssuanceRecord::Issued {
         intent: intent.clone(),
@@ -2261,7 +2261,11 @@ fn apply_reconcile_grants(
             let campaign_revision = current
                 .intents_for_attempt(&attempt.identity)
                 .into_iter()
-                .find_map(|intent| current.grant(&intent).and_then(|g| g.campaign_revision.clone()));
+                .find_map(|intent| {
+                    current
+                        .grant(&intent)
+                        .and_then(|g| g.campaign_revision.clone())
+                });
             lineages.insert(
                 attempt.work_identity.clone(),
                 AttemptLineage {
