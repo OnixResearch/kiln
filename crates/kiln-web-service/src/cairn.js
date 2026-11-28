@@ -765,7 +765,7 @@
     const heading = element("h2", "Changes");
     heading.id = titleId;
     const intro = element("div");
-    intro.append(heading, element("p", "Each lane shows the change’s least-advanced unit. A stop in any unit needs attention.", "small"));
+    intro.append(heading);
     head.append(intro);
     panel.append(head);
     if (index.error) {
@@ -876,12 +876,20 @@
       for (const [key, entry] of columns) { entry.count.textContent = String(perLane.get(key)); entry.none.hidden = perLane.get(key) > 0; }
       const counts = filterCounts(rows, filters);
       allChip.lastChild.textContent = String(counts.all);
-      for (const node of laneChips.slice(1)) { node.lastChild.textContent = String(counts.lanes.get(node.dataset.value)); node.setAttribute("aria-pressed", String(applied.lane === node.dataset.value)); }
+      for (const node of laneChips.slice(1)) {
+        const laneCount = counts.lanes.get(node.dataset.value);
+        node.lastChild.textContent = String(laneCount);
+        node.hidden = laneCount === 0 && applied.lane !== node.dataset.value;
+        node.setAttribute("aria-pressed", String(applied.lane === node.dataset.value));
+      }
       allChip.setAttribute("aria-pressed", String(!applied.lane));
       blockedChip.lastChild.textContent = String(counts.blocked);
+      blockedChip.hidden = counts.blocked === 0 && !applied.blocked;
       blockedChip.setAttribute("aria-pressed", String(applied.blocked));
       decisionsChip.lastChild.textContent = String(counts.decisions);
+      decisionsChip.hidden = counts.decisions === 0 && !applied.decisions;
       decisionsChip.setAttribute("aria-pressed", String(applied.decisions));
+      flags.hidden = blockedChip.hidden && decisionsChip.hidden;
       for (const button of viewButtons) button.setAttribute("aria-pressed", String(applied.view === button.dataset.view));
       tableWrap.hidden = applied.view !== "list" || !visible;
       board.hidden = applied.view !== "board" || !visible;

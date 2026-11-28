@@ -388,6 +388,7 @@
     if (!admission.configured || !admission.policy) {
       const box = node("details", undefined, "panel fleet-secondary-disclosure");
       box.dataset.fleetDisclosure = "admission";
+      box.hidden = true;
       box.append(node("summary", "Fair-admission governance (not configured)"), panel);
       return box;
     }
@@ -469,6 +470,7 @@
       facts([["Ready and unclaimed (owner count)", number(work.ready_unclaimed)], ["Ranked entries listed", work.ranked.length], ["Blocked entries listed", work.blocked.length]]));
     if (work.ranked.length === WORK_LIMIT || work.blocked.length === WORK_LIMIT) panel.append(node("p", "Each list is bounded at 100 by the Fleet owner. More work may exist; the listed counts are not totals.", "small"));
     if (!work.ranked.length && !work.blocked.length) {
+      panel.hidden = true;
       panel.append(empty("No queued or blocked implementation work", "The Fleet owner returned no ranked or blocked work entries."));
     } else {
       for (const [heading, items, blocked] of [["Ranked work", work.ranked, false], ["Blocked work", work.blocked, true]]) {
@@ -512,6 +514,7 @@
     panel.append(link);
     const box = node("details", undefined, "panel fleet-secondary-disclosure");
     box.dataset.fleetDisclosure = "targets";
+    box.hidden = true;
     box.append(node("summary", "Configured execution targets (CI slots — also in Workers tab)"), panel);
     return box;
   }

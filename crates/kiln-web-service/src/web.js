@@ -156,7 +156,9 @@
     $("live-activity-unit").textContent = running === 1 ? "run" : "runs";
     $("live-activity").hidden = running === 0;
     if ($("global-firing-count")) $("global-firing-count").textContent = String(running);
+    if ($("global-firing-pill")) $("global-firing-pill").hidden = running === 0;
     document.documentElement.toggleAttribute("data-firing", running > 0);
+    updateGlobalLiveStrip();
   }
   function setSseHealth(status, label) {
     state.events.status = status;
@@ -165,16 +167,21 @@
       badge.dataset.sse = status;
       badge.textContent = label;
     }
+    updateGlobalLiveStrip();
   }
   function updateGlobalLiveStrip() {
     const strip = $("global-live-strip");
     if (!strip) return;
-    strip.hidden = !state.session;
+    const firing = Number($("global-firing-count")?.textContent || "0") || 0;
+    if ($("global-firing-pill")) $("global-firing-pill").hidden = firing === 0;
     const escalations = state.events.attention?.total ?? state.factory.attention?.total ?? 0;
     const escalationsEl = $("global-escalations-count");
     const escalationsPill = $("global-escalations-pill");
     if (escalationsEl) escalationsEl.textContent = String(escalations);
-    if (escalationsPill) escalationsPill.dataset.alert = String(escalations > 0);
+    if (escalationsPill) {
+      escalationsPill.dataset.alert = String(escalations > 0);
+      escalationsPill.hidden = escalations === 0;
+    }
     const now = Date.now();
     const claims = state.events.fleet?.claims?.claims || state.factory.claims?.claims || [];
     const foreign = state.factory.claims?.foreign_claims || [];
@@ -182,7 +189,12 @@
     const claimsEl = $("global-expiring-claims-count");
     const claimsPill = $("global-expiring-claims-pill");
     if (claimsEl) claimsEl.textContent = String(expiring);
-    if (claimsPill) claimsPill.dataset.alert = String(expiring > 0);
+    if (claimsPill) {
+      claimsPill.dataset.alert = String(expiring > 0);
+      claimsPill.hidden = expiring === 0;
+    }
+    const unhealthy = state.events.status && state.events.status !== "live";
+    strip.hidden = !state.session || (firing === 0 && escalations === 0 && expiring === 0 && !unhealthy);
   }
   function connection(message, healthy) {
     state.connected = healthy;
@@ -3380,7 +3392,7 @@
     if (!items.length) {
       if (compactHealthy) {
         const bar = element("div", undefined, "factory-attention-healthy");
-        bar.append(element("strong", "All clear · 0 items need operator attention"), element("span", "All monitored escalations, approvals, and claims are clear.", "small"));
+        bar.append(element("strong", "All clear · 0 items need operator attention"));
         container.append(bar);
       } else {
         container.append(emptyState(emptyTitle, emptyMsg));
@@ -3618,9 +3630,12 @@
     for (const fc of foreign) {
       const card = element("article", undefined, "factory-claim-card");
       card.dataset.kind = "foreign";
+      const holderLabel = fc.holder && typeof fc.holder === "object"
+        ? [fc.holder.tool, fc.holder.host ? `on ${fc.holder.host}` : "", fc.holder.session].filter(Boolean).join(" ") || "unknown"
+        : (fc.holder || fc.author || "unknown");
       card.append(
         element("strong", `Foreign conflict · ${fc.scope_text || fc.author || "unknown"}`),
-        element("p", `Holder: ${fc.holder || fc.author || "unknown"} · Mirror: ${fc.mirror_status || "foreign"}`, "small"),
+        element("p", `Holder: ${holderLabel} · Mirror: ${fc.mirror_status || "foreign"}`, "small"),
       );
       list.append(card);
     }
@@ -5251,8 +5266,17 @@
   $("cob-reset").addEventListener("click", () => navigate({ cob_repository: "", cob_type: "", cob_q: "", cob_cursor: "" }));
   $("cob-first").addEventListener("click", () => navigate({ cob_cursor: "" }));
   $("cob-next").addEventListener("click", () => { if (state.cobsNextCursor) navigate({ cob_cursor: state.cobsNextCursor }); });
-  $("source-mode").addEventListener("change", () => { const mode = $("source-mode").value; $("start-button").textContent = mode === "latest" ? "Run latest admitted reference" : mode === "exact" ? "Run exact reachable revision" : "Run selected admitted reference"; $("source-revision").required = mode === "exact"; $("source-revision").disabled = mode !== "exact"; $("source-reference").disabled = mode !== "reference"; });
-  $("source-revision").disabled = true; $("source-reference").disabled = true;
+  const syncSourceModeFields = () => {
+    const mode = $("source-mode").value;
+    $("start-button").textContent = mode === "latest" ? "Run latest admitted reference" : mode === "exact" ? "Run exact reachable revision" : "Run selected admitted reference";
+    $("source-revision").required = mode === "exact";
+    $("source-revision").disabled = mode !== "exact";
+    $("source-reference").disabled = mode !== "reference";
+    if ($("source-reference-field")) $("source-reference-field").hidden = mode !== "reference";
+    if ($("source-revision-field")) $("source-revision-field").hidden = mode !== "exact";
+  };
+  $("source-mode").addEventListener("change", syncSourceModeFields);
+  syncSourceModeFields();
   $("download-log").addEventListener("click", () => { void downloadLogs(); });
   window.addEventListener("popstate", () => { void readAction(restoreRoute)(); });
   window.addEventListener("hashchange", () => { void readAction(restoreRoute)(); });

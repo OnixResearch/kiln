@@ -1119,6 +1119,14 @@
   function renderAttempts(state, attempts) {
     state.metrics.attempts.textContent = String(attempts.length);
     state.listedAttempts = attempts;
+    if (state.placementDisclosure) {
+      const claimed = attempts.filter((a) => a.state === "claimed" && !a.session).length;
+      state.placementDisclosure.hidden = claimed < 2;
+    }
+    if (state.moveDisclosure) {
+      const movable = attempts.some((a) => a.queued_move_eligible === true);
+      state.moveDisclosure.hidden = !movable;
+    }
     loadRuntime(state);
     renderCairnWorkers(state);
     const focus = state.facets.map((facet) => renderFacet(state, facet, attempts)).find(Boolean);
@@ -1270,9 +1278,12 @@
       return [identityCell(decision.identity), text(decision.question), when(decision.raised_ms), action];
     });
     state.decisions.replaceChildren(table(["ID", "Question", "Raised", "Action"], rows, "No decisions", "The coordinator reports no decisions."));
-    if (rows.length > 0 && state.decisionsDisclosure && !state.decisionsAutoOpened) {
-      state.decisionsDisclosure.open = true;
-      state.decisionsAutoOpened = true;
+    if (state.decisionsDisclosure) {
+      state.decisionsDisclosure.hidden = rows.length === 0;
+      if (rows.length > 0 && !state.decisionsAutoOpened) {
+        state.decisionsDisclosure.open = true;
+        state.decisionsAutoOpened = true;
+      }
     }
   }
 
@@ -1456,9 +1467,12 @@
           ];
         });
         state.swarms.replaceChildren(table(["ID", "Title", "Phase", "Members", "Board", "Budget", "View"], rows, "No swarm runs", "The coordinator reports no swarm runs."));
-        if (rows.length > 0 && state.swarmsDisclosure && !state.swarmsAutoOpened) {
-          state.swarmsDisclosure.open = true;
-          state.swarmsAutoOpened = true;
+        if (state.swarmsDisclosure) {
+          state.swarmsDisclosure.hidden = rows.length === 0;
+          if (rows.length > 0 && !state.swarmsAutoOpened) {
+            state.swarmsDisclosure.open = true;
+            state.swarmsAutoOpened = true;
+          }
         }
       }
       if (state.selectedSwarm && swarms.some((r) => text(r.identity) === state.selectedSwarm)) {
@@ -2774,7 +2788,13 @@
     const attempts = element("div");
     attempts.id = "fleet-attempt-register";
     attemptsPanel.append(charts, filterBar, attemptsBulk, attempts);
-    if (state.context.canOperate?.() === true) attemptsPanel.append(placementPanel(state), movePanel(state));
+    if (state.context.canOperate?.() === true) {
+      state.placementDisclosure = placementPanel(state);
+      state.placementDisclosure.hidden = true;
+      state.moveDisclosure = movePanel(state);
+      state.moveDisclosure.hidden = true;
+      attemptsPanel.append(state.placementDisclosure, state.moveDisclosure);
+    }
     const decisionsPanel = element("section", undefined, "panel fleet-section");
     state.attention = element("div");
     decisionsPanel.append(element("h2", "Operator inbox"), element("p", "Listed Cairn blockers, claims due within 15 minutes, and Fleet decisions. Check the source status before acting on a retained observation.", "small"), state.attention, element("h3", "Fleet decisions"));
@@ -2848,9 +2868,13 @@
       return box;
     };
     const decisionsDisclosure = secondaryDisclosure("Operator inbox & Fleet decisions", "decisions", decisionsPanel);
+    decisionsDisclosure.hidden = true;
     const swarmsDisclosure = secondaryDisclosure("Swarm runs", "swarms", swarmsPanel);
+    swarmsDisclosure.hidden = true;
     const cairnDisclosure = secondaryDisclosure("Cairn progress", "cairn", cairnPanel);
+    cairnDisclosure.hidden = true;
     const issuesDisclosure = secondaryDisclosure("Native issues & work sources", "issues", issuesPanel, sourcesPanel);
+    issuesDisclosure.hidden = true;
     const campaignEnabled = context.capabilities?.campaign_controls !== false || Boolean(context.route?.worker_campaign);
     const campaignDisclosure = secondaryDisclosure("Implementation campaigns", "campaigns", state.campaign);
     if (!campaignEnabled) campaignDisclosure.hidden = true;
@@ -2871,7 +2895,9 @@
       campaignDisclosure,
     );
     if (state.context.canOperate?.() === true) {
-      page.append(secondaryDisclosure("Move running guest workload", "guest-move", guestMoveSection(state)));
+      const guestDisclosure = secondaryDisclosure("Move running guest workload", "guest-move", guestMoveSection(state));
+      guestDisclosure.hidden = true;
+      page.append(guestDisclosure);
     }
     root.replaceChildren(page);
     state.machine = machine;

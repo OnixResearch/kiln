@@ -783,7 +783,7 @@
       card.querySelector("h3")?.focus({ preventScroll: true });
     });
     meta.append(readiness);
-    heading.append(node("h2", c.title, "cr-change-name"), meta, access()); aboutPage(heading);
+    heading.append(node("h2", c.title, "cr-change-name"), meta, access());
     const rev = field(actions, "Review revision", "select", revision(), arr(c.revisions).map(item => [item.id, `Revision ${item.number} · ${short(item.commit)}${item.id === current()?.id ? " · current" : ""}`]));
     rev.dataset.crKey = "header-revision"; rev.addEventListener("change", () => route({ review_revision: rev.value, review_base: "base", review_file: "", review_side: "", review_line: "" }));
     header.append(heading, actions); return [detailNav(), header];
@@ -832,7 +832,7 @@
     }
     if (!selected()) {
       listActions();
-      begin(aboutPage(document.createDocumentFragment()));
+      begin();
       drawModeSwitcher(root);
       if (reviewTab() === "queue") drawMergeQueue(root);
       else drawList(root);
@@ -862,7 +862,6 @@
     const introTitle = node("h2", "Speculative Merge Train", "card-title");
     introHead.append(introTitle, chip(state.snapshot.queue_enabled === false ? "Disabled" : "Active"));
     intro.append(introHead);
-    about(intro, "About the merge train", "In speculative mode, candidates stack on assumed predecessors inside an adaptive window (floor..ceiling). Each candidate tests its exact combined commit; any predecessor ejection or target movement retires the superseded chain and triggers a fresh build in a new generation. Serial mode advances one head entry at a time without speculative window bounds.");
     wrap.append(intro);
     const targets = buildMergeTrainTargets(state.snapshot);
     if (!targets.length) {

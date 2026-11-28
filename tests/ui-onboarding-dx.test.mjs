@@ -1316,3 +1316,88 @@ test("Pass 3 pruning: healthy Factory ribbon deduplicates live strip, Operations
     crEnv.cleanup();
   }
 });
+
+test("Pass 4 nonsense removal: zero about-view/boundary clutter in shell, Fleet hides dead disclosures, live strip auto-hides when idle, Cairn & Repos hide zero chips", async () => {
+  const html = asset("web.html");
+  assert.doesNotMatch(html, /class="about-view"/);
+  assert.doesNotMatch(html, /menu-boundary/);
+  assert.doesNotMatch(html, /Recorded evidence is not acceptance authority/);
+
+  const baseSession = {
+    principal: { id: "local:operator", label: "Operator", role: "operator" },
+    permissions: { read: true, operate: true, configure: true },
+    feeds_configured: false,
+    capabilities: { feeds: false, runbooks: false, inventory: false, campaign_controls: false, automation: false, cairn_authoring: false },
+  };
+
+  // Fleet hides empty/duplicate/unconfigured disclosures completely (hidden=true).
+  const fleetEnv = await setup({
+    initialSearch: "?page=fleet",
+    extraAssets: ["inventory.js", "fleet-runtime.js", "fleet-capacity.js", "fleet.js"],
+    fetchHandler: async (target) => {
+      if (target === "/api/session") return jsonResponse(baseSession);
+      if (target === "/api/projects") return jsonResponse({ enrolled: [], available: [] });
+      if (target === "/api/fleet/machines") return jsonResponse({ machines: [] });
+      if (target === "/api/implementation/work") return jsonResponse({ items: [] });
+      if (target === "/api/implementation/cairn") return jsonResponse({ changes: [] });
+      if (target === "/api/fleet/dispatch/status") return jsonResponse({ enabled: true, last_tick: { deferral_counts: {} } });
+      if (target.startsWith("/api/fleet/claims")) return jsonResponse({ claims: [] });
+      if (target === "/api/fleet/work") return jsonResponse({ ready_unclaimed: 0, ranked: [], blocked: [] });
+      if (target === "/api/workers") return jsonResponse({ schema: "kiln.web-workers.v1", bounded: true, storage_failed: false, workers: [], summary: { targets: 0, enrolled_slots: 0, configured_slots: 0, active: 0, free_slots: 0, queued: 0 } });
+      if (target === "/api/implementation/admission") return jsonResponse({ schema: "kiln.implementation-admission.v1", configured: false, bounded: true, policy: null, accounts: [], serving: [], attempt_metrics: [] });
+      return jsonResponse({});
+    },
+  });
+  try {
+    const fleetContent = fleetEnv.doc.getElementById("fleet-content");
+    const byKey = new Map(fleetContent.querySelectorAll("details.fleet-secondary-disclosure").map((d) => [d.dataset.fleetDisclosure, d]));
+    for (const key of ["decisions", "swarms", "cairn", "issues", "campaigns", "guest-move", "admission", "targets", "placement"]) {
+      assert.equal(byKey.get(key)?.hidden, true, `Fleet ${key} disclosure should be hidden when empty/duplicate/unconfigured`);
+    }
+  } finally {
+    fleetEnv.cleanup();
+  }
+
+  // CI projects hides reference/revision inputs when source-mode is latest.
+  const projEnv = await setup({
+    initialSearch: "?page=projects",
+    fetchHandler: async (target) => {
+      if (target === "/api/session") return jsonResponse(baseSession);
+      if (target === "/api/projects") return jsonResponse({ enrolled: [], available: [] });
+      if (target === "/api/overview") return jsonResponse({ totals: { runs: 0, failed: 0, active: 0, queued: 0, succeeded: 0, cancelled: 0, unknown: 0 }, projects: [], duration_trend: [], timing: { recorded: 0, total: 0 } });
+      return jsonResponse({});
+    },
+  });
+  try {
+    assert.equal(projEnv.doc.getElementById("source-reference-field").hidden, true);
+    assert.equal(projEnv.doc.getElementById("source-revision-field").hidden, true);
+  } finally {
+    projEnv.cleanup();
+  }
+
+  // Repositories hides zero-count filter chips and clean KPI tiles.
+  const repoEnv = await setup({
+    initialSearch: "?page=source",
+    extraAssets: ["source.js"],
+    fetchHandler: async (target) => {
+      if (target === "/api/session") return jsonResponse(baseSession);
+      if (target === "/api/projects") return jsonResponse({ enrolled: [], available: [] });
+      if (target === "/api/repositories") {
+        return jsonResponse({
+          repositories: [{ identity: "a".repeat(64), slug: "OnixResearch/kiln", label: "Kiln", status: "synced", remotes: [], local_copies: [], active_cairns: 0 }],
+          summary: { total: 1, total_local_copies: 1, total_cairns: 0, synced: 1, diverged: 0, dirty: 0, unknown: 0, local_only: 0 },
+        });
+      }
+      if (target === "/api/sources") return jsonResponse({ sources: [] });
+      return jsonResponse({});
+    },
+  });
+  try {
+    const chips = repoEnv.doc.querySelectorAll(".repo-filter-chip");
+    const visibleChips = chips.filter((c) => !c.hidden).map((c) => c.dataset.filterStatus);
+    assert.deepEqual(visibleChips, ["all"]);
+    assert.equal(repoEnv.doc.querySelector(".repo-kpis"), null);
+  } finally {
+    repoEnv.cleanup();
+  }
+});

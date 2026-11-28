@@ -897,7 +897,7 @@
     const top = element("div", undefined, "src-header-top");
     top.append(repositoryPicker(ctx, route, sources));
     if (selected) top.append(sourceFacts(selected));
-    header.append(top, aboutView());
+    header.append(top);
     page.append(header);
     if (!inventory?.configured) { page.append(errorState("No source repositories are configured. The service operator must admit a separate --sources policy. This is not proof that no repository is readable.")); return page; }
     if (!route.src) {
@@ -1641,15 +1641,9 @@
       kpis.append(tile);
     }
 
-    const boundary = element("details", undefined, "about-view");
-    const boundaryBody = element("div", undefined, "about-view-body");
-    boundaryBody.append(
-      element("p", "Catalog imports record provider-neutral BLAKE3 repository identities and remote declarations. Importing never executes CI workflows, enrolls Fleet workers, or mutates Radicle state."),
-      element("p", RADICLE_NOTICE),
-    );
-    boundary.append(ui().disclosureSummary("About repository observation & Radicle discipline", "info"), boundaryBody);
-
-    header.append(top, kpis, boundary);
+    const hasIssues = (summary.diverged ?? 0) > 0 || (summary.dirty ?? 0) > 0 || (summary.unknown ?? 0) > 0;
+    if (hasIssues) header.append(top, kpis);
+    else header.append(top);
     page.append(header);
 
     const healthBanner = renderHealthBanner(catalog);
@@ -1707,16 +1701,17 @@
       for (const repo of matched) listWrap.append(renderRepositoryCard(ctx, repo, sources, onReload));
     };
 
-    for (const [statusKey, label] of [
-      ["all", `All (${repositories.length})`],
-      ["diverged", `Diverged (${summary.diverged ?? 0})`],
-      ["dirty", `Dirty (${summary.dirty ?? 0})`],
-      ["unknown", `Offline/Unknown (${summary.unknown ?? 0})`],
-      ["local_only", `Local Only (${summary.local_only ?? 0})`],
+    for (const [statusKey, label, count] of [
+      ["all", `All (${repositories.length})`, repositories.length],
+      ["diverged", `Diverged (${summary.diverged ?? 0})`, summary.diverged ?? 0],
+      ["dirty", `Dirty (${summary.dirty ?? 0})`, summary.dirty ?? 0],
+      ["unknown", `Offline/Unknown (${summary.unknown ?? 0})`, summary.unknown ?? 0],
+      ["local_only", `Local Only (${summary.local_only ?? 0})`, summary.local_only ?? 0],
     ]) {
       const btn = element("button", label, "chip repo-filter-chip");
       btn.type = "button";
       btn.dataset.filterStatus = statusKey;
+      btn.hidden = statusKey !== "all" && count === 0 && repoFilterState.status !== statusKey;
       btn.setAttribute("aria-pressed", String(repoFilterState.status === statusKey));
       btn.addEventListener("click", () => { repoFilterState.status = statusKey; renderList(); });
       chips.append(btn);
