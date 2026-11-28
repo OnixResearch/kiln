@@ -1,4 +1,6 @@
 mod dashboard;
+mod dispatch;
+mod doctor;
 mod init;
 mod native_git;
 mod qualification;
@@ -14,6 +16,11 @@ use kiln_standalone::{CommitMode, MemoryJournal};
 
 const COMMAND_DEMO: &str = "demo";
 const COMMAND_INIT: &str = "init";
+const COMMAND_DOCTOR: &str = "doctor";
+const COMMAND_CHECK: &str = "check";
+const COMMAND_SERVE: &str = "serve";
+const COMMAND_FLEET: &str = "fleet";
+const COMMAND_CI: &str = "ci";
 const COMMAND_EVIDENCE: &str = "evidence";
 const COMMAND_HOST_QUALIFY: &str = "host-qualify";
 const COMMAND_DASHBOARD: &str = "dashboard";
@@ -30,26 +37,41 @@ const VERSION: &str = concat!("kiln ", env!("CARGO_PKG_VERSION"));
 const USAGE: &str = "\
 usage: kiln <command> [arguments]
 
-commands:
+Factory & Web Console:
+  init --repo PATH --out DIR [--project ID]
+      generate a minimal, self-contained local workspace (kiln.json,
+      service.json, access.json, sources.json, START_HERE.txt) for a local Git repository
+  doctor [--config PATH] [--json]
+      validate a kiln.json workspace configuration and inspect local tool availability
+  check --config PATH | --profile PATH [...]
+      validate workspace or service configuration without starting the server
+  serve --config PATH | --profile PATH [...]
+      start the local HTTPS Factory OS web console
+
+Fleet & CI:
+  fleet [arguments]
+      multi-machine claims & agent dispatch (delegates to kiln-fleet)
+  ci --profile PATH --identity BLAKE3 <subcommand> [arguments]
+      explicit, profile-pinned HTTPS developer CI client
+  dashboard --journal PATH --profile PATH
+      render the read-only dashboard; `kiln dashboard --help` lists every option
+
+Verification & Core:
   demo
       commit one StartRun command to an in-memory journal and print the state;
       contacts no provider
-  init --repo PATH --out DIR [--project ID]
-      generate a minimal, self-contained local workspace (service.json,
-      access.json, sources.json, START_HERE.txt) for a local Git repository
   evidence INPUT OUTPUT
       write the JSON object INPUT to OUTPUT with its BLAKE3 receipt_hash and
       print the hash
   host-qualify COHORT RECEIPT ARTIFACT_ROOT
       check a host qualification receipt and its retained artifacts against
       the expected cohort
-  dashboard --journal PATH --profile PATH
-      render the read-only dashboard; `kiln dashboard --help` lists every option
   native-git qualify --request PATH --enrollment PATH --service-profile PATH --review-profile PATH --execute
       perform one explicitly authorized guarded native-Git delivery;
       no PR creation or force-push
   native-git lifecycle-receipt --request PATH --enrollment PATH --service-profile PATH --review-profile PATH --repository PATH --report PATH
       retain exact native Cairn lifecycle evidence without remote mutation
+
   help, --help, -h
       print this text
   --version, -V
@@ -72,6 +94,13 @@ const EXIT_USAGE: i32 = 2;
 // r[impl kiln.cli.version.scenario.version]
 // r[impl kiln.cli.version.scenario.refused]
 fn main() {
+    // The streaming helper must retain non-UTF-8 reviewed command arguments.
+    if std::env::args_os().nth(1).as_deref() == Some(std::ffi::OsStr::new("stream-child")) {
+        std::process::exit(kiln_web_service::worker::stream_child_main(
+            std::env::args_os().skip(2),
+        ));
+    }
+
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         fail(USAGE, EXIT_USAGE);
@@ -91,6 +120,32 @@ fn main() {
             Err(init::InitError::Usage(usage)) => fail(&usage, EXIT_USAGE),
             Err(init::InitError::Failed(message)) => Err(message),
         },
+        COMMAND_DOCTOR => {
+            std::process::exit(doctor::run(arguments));
+        }
+        COMMAND_CHECK | COMMAND_SERVE => {
+            std::process::exit(kiln_web_service::workspace_config::run_service_cli(
+                &command, arguments,
+            ));
+        }
+        COMMAND_FLEET => {
+            let args: Vec<String> = arguments.collect();
+            match dispatch::run_delegated("kiln-fleet", args) {
+                Ok(code) => std::process::exit(code),
+                Err(message) => fail(&format!("kiln fleet: {message}"), EXIT_FAILURE),
+            }
+        }
+        COMMAND_CI => {
+            let args: Vec<String> = arguments.collect();
+            let code = match kiln_web_service::developer::cli_main(&args) {
+                Ok(code) => code,
+                Err(message) => {
+                    eprintln!("kiln ci: {message}");
+                    EXIT_FAILURE
+                }
+            };
+            std::process::exit(code);
+        }
         COMMAND_EVIDENCE => {
             let Some(input) = arguments.next() else {
                 fail("usage: kiln evidence INPUT OUTPUT", EXIT_USAGE);

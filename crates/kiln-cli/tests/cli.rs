@@ -7,7 +7,19 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-const COMMANDS: [&str; 5] = ["demo", "init", "evidence", "host-qualify", "dashboard"];
+const COMMANDS: [&str; 11] = [
+    "init",
+    "doctor",
+    "check",
+    "serve",
+    "fleet",
+    "ci",
+    "dashboard",
+    "demo",
+    "evidence",
+    "host-qualify",
+    "native-git",
+];
 const USAGE_PREFIX: &str = "usage: kiln ";
 const EXIT_SUCCESS: i32 = 0;
 const EXIT_FAILURE: i32 = 1;
@@ -168,6 +180,16 @@ fn help_lists_related_binaries_for_newcomers() {
     let usage = kiln(&["--help"]);
     assert_eq!(usage.status.code(), Some(EXIT_SUCCESS));
     let stdout = text(&usage.stdout);
+    for section in [
+        "Factory & Web Console:",
+        "Fleet & CI:",
+        "Verification & Core:",
+    ] {
+        assert!(
+            stdout.contains(section),
+            "missing section {section}: {stdout}"
+        );
+    }
     assert!(stdout.contains("related binaries:"), "{stdout}");
     for binary in ["kiln-web-service", "kiln-fleet", "kiln-implementer"] {
         assert!(stdout.contains(binary), "missing {binary}: {stdout}");
@@ -200,16 +222,12 @@ fn init_generates_valid_local_workspace_accepted_by_web_service_check() {
     );
     assert!(output.stderr.is_empty());
     let stdout = text(&output.stdout);
-    assert!(
-        stdout.contains("kiln-web-service check --profile "),
-        "{stdout}"
-    );
-    assert!(
-        stdout.contains("kiln-web-service serve --profile "),
-        "{stdout}"
-    );
+    assert!(stdout.contains("kiln doctor --config "), "{stdout}");
+    assert!(stdout.contains("kiln check --config "), "{stdout}");
+    assert!(stdout.contains("kiln serve --config "), "{stdout}");
 
     for required in [
+        "kiln.json",
         "service.json",
         "access.json",
         "sources.json",
@@ -222,6 +240,34 @@ fn init_generates_valid_local_workspace_accepted_by_web_service_check() {
     ] {
         assert!(out.join(required).exists(), "missing generated {required}");
     }
+
+    let kiln_raw = fs::read_to_string(out.join("kiln.json"))
+        .unwrap_or_else(|error| unreachable!("failed to read kiln.json: {error}"));
+    let kiln_json: serde_json::Value = serde_json::from_str(&kiln_raw)
+        .unwrap_or_else(|error| unreachable!("invalid kiln.json: {error}"));
+    assert_eq!(
+        kiln_json.get("schema").and_then(serde_json::Value::as_str),
+        Some("kiln.factory-workspace.v1")
+    );
+    assert_eq!(
+        kiln_json.get("profile").and_then(serde_json::Value::as_str),
+        Some("service.json")
+    );
+    assert_eq!(
+        kiln_json.get("access").and_then(serde_json::Value::as_str),
+        Some("access.json")
+    );
+    assert_eq!(
+        kiln_json.get("sources").and_then(serde_json::Value::as_str),
+        Some("sources.json")
+    );
+
+    let start_here = fs::read_to_string(out.join("START_HERE.txt"))
+        .unwrap_or_else(|error| unreachable!("failed to read START_HERE.txt: {error}"));
+    assert!(start_here.contains("kiln.json"), "{start_here}");
+    assert!(start_here.contains("kiln doctor --config "), "{start_here}");
+    assert!(start_here.contains("kiln check --config "), "{start_here}");
+    assert!(start_here.contains("kiln serve --config "), "{start_here}");
 
     let options = kiln_web_service::server::Options {
         access: Some(out.join("access.json")),
@@ -349,4 +395,174 @@ fn init_refuses_existing_output_missing_repo_file_repo_and_invalid_inputs() {
     assert_eq!(init_help.status.code(), Some(EXIT_SUCCESS));
     assert!(text(&init_help.stdout).starts_with("usage: kiln init "));
     assert!(init_help.stderr.is_empty());
+}
+
+#[test]
+fn doctor_validates_init_workspace_in_text_and_json() {
+    let scratch = TempDirGuard::new("doctor-valid");
+    let repo = scratch.path().join("sample-repo");
+    init_git_repo(&repo);
+    let out = scratch.path().join("workspace");
+
+    let init_out = kiln(&[
+        "init",
+        "--repo",
+        &repo.to_string_lossy(),
+        "--out",
+        &out.to_string_lossy(),
+        "--project",
+        "doctor-proj",
+    ]);
+    assert_eq!(init_out.status.code(), Some(EXIT_SUCCESS));
+
+    let kiln_config = out.join("kiln.json");
+    let kiln_config_arg = kiln_config.to_string_lossy().into_owned();
+
+    let text_out = kiln(&["doctor", "--config", &kiln_config_arg]);
+    assert_eq!(
+        text_out.status.code(),
+        Some(EXIT_SUCCESS),
+        "stdout: {}\nstderr: {}",
+        text(&text_out.stdout),
+        text(&text_out.stderr)
+    );
+    assert!(text_out.stderr.is_empty());
+    let stdout = text(&text_out.stdout);
+    assert!(stdout.contains("[ok] config.schema:"), "{stdout}");
+    assert!(stdout.contains("[ok] config.path.profile:"), "{stdout}");
+    assert!(stdout.contains("[ok] config.profile.load:"), "{stdout}");
+    assert!(stdout.contains("status: ok"), "{stdout}");
+
+    let json_out = kiln(&["doctor", "--config", &kiln_config_arg, "--json"]);
+    assert_eq!(json_out.status.code(), Some(EXIT_SUCCESS));
+    assert!(json_out.stderr.is_empty());
+    let parsed: serde_json::Value = serde_json::from_slice(&json_out.stdout)
+        .unwrap_or_else(|error| unreachable!("doctor --json invalid JSON: {error}"));
+    assert_eq!(
+        parsed.get("schema").and_then(serde_json::Value::as_str),
+        Some("kiln.doctor-report.v1")
+    );
+    assert_eq!(
+        parsed.get("ok").and_then(serde_json::Value::as_bool),
+        Some(true)
+    );
+
+    let host_only = kiln(&["doctor", "--json"]);
+    assert_eq!(host_only.status.code(), Some(EXIT_SUCCESS));
+    let host_parsed: serde_json::Value = serde_json::from_slice(&host_only.stdout)
+        .unwrap_or_else(|error| unreachable!("doctor --json invalid JSON: {error}"));
+    assert_eq!(
+        host_parsed.get("ok").and_then(serde_json::Value::as_bool),
+        Some(true)
+    );
+}
+
+#[test]
+fn doctor_fails_cleanly_on_missing_config_broken_schema_missing_profile_and_bad_flags() {
+    let scratch = TempDirGuard::new("doctor-invalid");
+
+    // 1. Missing config file.
+    let missing = scratch.path().join("missing-kiln.json");
+    let missing_out = kiln(&["doctor", "--config", &missing.to_string_lossy(), "--json"]);
+    assert_eq!(missing_out.status.code(), Some(EXIT_FAILURE));
+    let missing_json: serde_json::Value = serde_json::from_slice(&missing_out.stdout)
+        .unwrap_or_else(|error| unreachable!("doctor --json invalid JSON: {error}"));
+    assert_eq!(
+        missing_json.get("ok").and_then(serde_json::Value::as_bool),
+        Some(false)
+    );
+
+    // 2. Broken schema in kiln.json.
+    let bad_schema = scratch.path().join("bad-schema.json");
+    if let Err(error) = fs::write(
+        &bad_schema,
+        br#"{"schema":"kiln.wrong.v0","profile":"service.json"}"#,
+    ) {
+        unreachable!("write bad-schema.json failed: {error}");
+    }
+    let bad_schema_out = kiln(&["doctor", "--config", &bad_schema.to_string_lossy()]);
+    assert_eq!(bad_schema_out.status.code(), Some(EXIT_FAILURE));
+    assert!(
+        text(&bad_schema_out.stdout).contains("[error] config.schema:"),
+        "{}",
+        text(&bad_schema_out.stdout)
+    );
+
+    // 3. Missing referenced profile.
+    let missing_profile = scratch.path().join("missing-profile.json");
+    if let Err(error) = fs::write(
+        &missing_profile,
+        br#"{"schema":"kiln.factory-workspace.v1","profile":"does-not-exist.json"}"#,
+    ) {
+        unreachable!("write missing-profile.json failed: {error}");
+    }
+    let missing_prof_out = kiln(&[
+        "doctor",
+        "--config",
+        &missing_profile.to_string_lossy(),
+        "--json",
+    ]);
+    assert_eq!(missing_prof_out.status.code(), Some(EXIT_FAILURE));
+    let missing_prof_json: serde_json::Value = serde_json::from_slice(&missing_prof_out.stdout)
+        .unwrap_or_else(|error| unreachable!("doctor --json invalid JSON: {error}"));
+    assert_eq!(
+        missing_prof_json
+            .get("ok")
+            .and_then(serde_json::Value::as_bool),
+        Some(false)
+    );
+
+    // 4. Unknown flag exits with EXIT_USAGE (2) and prints usage on stderr.
+    let bad_flag = kiln(&["doctor", "--unknown"]);
+    assert_eq!(bad_flag.status.code(), Some(EXIT_USAGE));
+    assert!(bad_flag.stdout.is_empty());
+    assert!(text(&bad_flag.stderr).starts_with("usage: kiln doctor "));
+
+    // 5. `kiln doctor --help` exits 0 and prints usage on stdout.
+    let help = kiln(&["doctor", "--help"]);
+    assert_eq!(help.status.code(), Some(EXIT_SUCCESS));
+    assert!(text(&help.stdout).starts_with("usage: kiln doctor "));
+    assert!(help.stderr.is_empty());
+}
+
+#[test]
+fn init_doctor_and_in_process_check_round_trip_with_single_kiln_json() {
+    let scratch = TempDirGuard::new("init-check-e2e");
+    let repo = scratch.path().join("sample-repo");
+    init_git_repo(&repo);
+    let out = scratch.path().join("workspace");
+
+    let init_out = kiln(&[
+        "init",
+        "--repo",
+        &repo.to_string_lossy(),
+        "--out",
+        &out.to_string_lossy(),
+        "--project",
+        "e2e-proj",
+    ]);
+    assert_eq!(init_out.status.code(), Some(EXIT_SUCCESS));
+
+    let kiln_config = out.join("kiln.json");
+    let kiln_config_arg = kiln_config.to_string_lossy().into_owned();
+
+    let check_out = kiln(&["check", "--config", &kiln_config_arg]);
+    assert_eq!(
+        check_out.status.code(),
+        Some(EXIT_SUCCESS),
+        "stdout: {}\nstderr: {}",
+        text(&check_out.stdout),
+        text(&check_out.stderr)
+    );
+
+    let missing = scratch.path().join("nope.json");
+    let missing_check = kiln(&["check", "--config", &missing.to_string_lossy()]);
+    assert_eq!(missing_check.status.code(), Some(EXIT_FAILURE));
+    assert!(
+        !missing_check.stderr.is_empty(),
+        "expected error diagnostic for missing --config"
+    );
+
+    let bad_flag = kiln(&["check", "--definitely-not-a-flag"]);
+    assert_eq!(bad_flag.status.code(), Some(EXIT_USAGE));
 }

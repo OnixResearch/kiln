@@ -69,6 +69,7 @@ pub struct WorkspacePlanInput {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PlannedWorkspace {
+    pub kiln_json: String,
     pub service_json: String,
     pub access_json: String,
     pub sources_json: String,
@@ -247,9 +248,7 @@ pub fn plan_workspace(input: &WorkspacePlanInput) -> Result<PlannedWorkspace, St
     let worker_token_path = input.out_dir.join("worker.token");
     let state_dir = input.out_dir.join("state");
     let socket_path = input.out_dir.join("lattice.sock");
-    let service_path = input.out_dir.join("service.json");
-    let access_path = input.out_dir.join("access.json");
-    let sources_path = input.out_dir.join("sources.json");
+    let kiln_path = input.out_dir.join("kiln.json");
 
     let listen_address = format!("127.0.0.1:{}", input.listen_port);
     let origin = format!("https://127.0.0.1:{}", input.listen_port);
@@ -352,6 +351,18 @@ pub fn plan_workspace(input: &WorkspacePlanInput) -> Result<PlannedWorkspace, St
         }]
     });
 
+    let kiln_value: Value = json!({
+        "schema": "kiln.factory-workspace.v1",
+        "profile": "service.json",
+        "access": "access.json",
+        "sources": "sources.json"
+    });
+
+    let kiln_json = format!(
+        "{}\n",
+        serde_json::to_string_pretty(&kiln_value)
+            .map_err(|error| format!("kiln.json serialization failed: {error}"))?
+    );
     let service_json = format!(
         "{}\n",
         serde_json::to_string_pretty(&service_value)
@@ -368,18 +379,9 @@ pub fn plan_workspace(input: &WorkspacePlanInput) -> Result<PlannedWorkspace, St
             .map_err(|error| format!("sources.json serialization failed: {error}"))?
     );
 
-    let check_cmd = format!(
-        "kiln-web-service check --profile {} --access {} --sources {}",
-        service_path.display(),
-        access_path.display(),
-        sources_path.display()
-    );
-    let serve_cmd = format!(
-        "kiln-web-service serve --profile {} --access {} --sources {}",
-        service_path.display(),
-        access_path.display(),
-        sources_path.display()
-    );
+    let doctor_cmd = format!("kiln doctor --config {}", kiln_path.display());
+    let check_cmd = format!("kiln check --config {}", kiln_path.display());
+    let serve_cmd = format!("kiln serve --config {}", kiln_path.display());
 
     let start_here_txt = format!(
         "\
@@ -391,6 +393,7 @@ Reference:  {}
 Console:    {origin}
 
 Generated files:
+  kiln.json        Unified factory workspace configuration (kiln.factory-workspace.v1)
   service.json     Service profile (HTTPS listen address, project allowlist, bounds)
   access.json      Viewer access policy (operator uses operator.token by default)
   sources.json     Read-only local source browser configuration
@@ -400,20 +403,23 @@ Generated files:
   worker.token     Worker bearer credential (mode 0600)
   state/           Private SQLite + artifact directory (mode 0700)
 
-1. Validate the workspace (offline; contacts no external providers):
+1. Run workspace diagnostics:
+   {doctor_cmd}
+
+2. Validate the workspace (offline; contacts no external providers):
    {check_cmd}
 
-2. Start the local HTTPS web console:
+3. Start the local HTTPS web console:
    {serve_cmd}
 
    (If running from a source checkout instead of installed binaries, prefix with:
-    cargo run --locked -p kiln-web-service -- ...)
+    cargo run --locked -p onix-kiln-cli -- ...)
 
-3. Open {origin} in your browser (accept the local self-signed certificate
+4. Open {origin} in your browser (accept the local self-signed certificate
    from {cert}) and sign in with the token inside:
    {op_token}
 
-Note: `kiln-web-service` owns CI state and local read-only source browsing.
+Note: `kiln` delegates service checks/serving to `kiln-web-service`.
 Starting real workflow jobs also requires a separate Lattice worker listening at:
   {sock}
 ",
@@ -431,11 +437,13 @@ Initialized local Kiln workspace at {}
   Project: {} ({} @ {})
 
 Next steps:
-  1. Validate configuration (no network or providers contacted):
+  1. Run workspace diagnostics:
+     {doctor_cmd}
+  2. Validate configuration (no network or providers contacted):
      {check_cmd}
-  2. Start the local web console:
+  3. Start the local web console:
      {serve_cmd}
-  3. Open {origin} and sign in with the operator token in:
+  4. Open {origin} and sign in with the operator token in:
      {}
      (See {} for file details.)",
         input.out_dir.display(),
@@ -447,6 +455,7 @@ Next steps:
     );
 
     Ok(PlannedWorkspace {
+        kiln_json,
         service_json,
         access_json,
         sources_json,
@@ -582,6 +591,11 @@ fn populate_workspace(
         &out_abs.join("key.pem"),
     )?;
 
+    write_new_file(
+        &out_abs.join("kiln.json"),
+        planned.kiln_json.as_bytes(),
+        0o600,
+    )?;
     write_new_file(
         &out_abs.join("service.json"),
         planned.service_json.as_bytes(),
@@ -867,6 +881,26 @@ mod tests {
             unreachable!("unexpected plan failure: {planned:?}");
         };
 
+        let Ok(kiln_cfg) = serde_json::from_str::<Value>(&planned.kiln_json) else {
+            unreachable!("kiln_json invalid");
+        };
+        assert_eq!(
+            kiln_cfg.get("schema").and_then(Value::as_str),
+            Some("kiln.factory-workspace.v1")
+        );
+        assert_eq!(
+            kiln_cfg.get("profile").and_then(Value::as_str),
+            Some("service.json")
+        );
+        assert_eq!(
+            kiln_cfg.get("access").and_then(Value::as_str),
+            Some("access.json")
+        );
+        assert_eq!(
+            kiln_cfg.get("sources").and_then(Value::as_str),
+            Some("sources.json")
+        );
+
         let Ok(service) = serde_json::from_str::<Value>(&planned.service_json) else {
             unreachable!("service_json invalid");
         };
@@ -922,12 +956,36 @@ mod tests {
             Some("git")
         );
 
-        assert!(planned.summary_text.contains(
-            "kiln-web-service check --profile /tmp/sample-kiln/service.json --access /tmp/sample-kiln/access.json --sources /tmp/sample-kiln/sources.json"
-        ));
-        assert!(planned.summary_text.contains(
-            "kiln-web-service serve --profile /tmp/sample-kiln/service.json --access /tmp/sample-kiln/access.json --sources /tmp/sample-kiln/sources.json"
-        ));
+        assert!(
+            planned
+                .summary_text
+                .contains("kiln doctor --config /tmp/sample-kiln/kiln.json")
+        );
+        assert!(
+            planned
+                .summary_text
+                .contains("kiln check --config /tmp/sample-kiln/kiln.json")
+        );
+        assert!(
+            planned
+                .summary_text
+                .contains("kiln serve --config /tmp/sample-kiln/kiln.json")
+        );
+        assert!(
+            planned
+                .start_here_txt
+                .contains("kiln doctor --config /tmp/sample-kiln/kiln.json")
+        );
+        assert!(
+            planned
+                .start_here_txt
+                .contains("kiln check --config /tmp/sample-kiln/kiln.json")
+        );
+        assert!(
+            planned
+                .start_here_txt
+                .contains("kiln serve --config /tmp/sample-kiln/kiln.json")
+        );
         assert!(planned.start_here_txt.contains("https://127.0.0.1:9443"));
     }
 
