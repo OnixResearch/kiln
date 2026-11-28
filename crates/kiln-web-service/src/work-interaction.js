@@ -97,7 +97,7 @@
   function ensurePalette() {
     if (palette) return palette;
     const shell = dialog("Search and commands", "work-command-palette");
-    const label = node("label", "Search Kiln — work, runs, claims, repos, commands (>)", "work-command-label");
+    const label = node("label", "Search Factory — runs, claims, Cairn, reviews, repos, > commands", "work-command-label");
     const input = node("input");
     input.id = "work-command-query";
     input.type = "search";
@@ -215,12 +215,13 @@
     const entries = (kiln?.destinations || []).filter((place) => !place.parent).map((place) => ({
       label: `Go to ${place.number} ${place.title}`, group: "Go to", detail: kiln.destinationGroup(place.group).name, run: () => bridge().navigate({ page: place.page }),
     }));
-    if (writable() && typeof ui()?.create === "function") {
+    const onWorkPage = ["work", "planning", "inbox", "triage", "workviews"].includes(bridge()?.route()?.tab || bridge()?.route()?.page);
+    if (onWorkPage && writable() && typeof ui()?.create === "function") {
       for (const kind of KINDS) entries.push({ label: `New ${kind === "view" ? "saved view" : kind === "personal" ? "attention preferences" : kind}…`, group: "Create", detail: "Open creation form", run: () => ui().create(kind) });
     }
     const filtered = query.startsWith(">") ? [] : entries.filter((entry) => matches(raw, entry.label));
     if (raw && !query.startsWith(">")) {
-      filtered.unshift({ label: `Search all work for “${raw}”`, group: "Search", detail: "Open filtered work list", run: () => bridge().navigate({ page: "work", work_q: raw, work_id: "" }) });
+      if (onWorkPage) filtered.unshift({ label: `Search all work for “${raw}”`, group: "Search", detail: "Open filtered work list", run: () => bridge().navigate({ page: "work", work_q: raw, work_id: "" }) });
       filtered.push({ label: `Search CI runs for “${raw}”`, group: "Search", detail: "Open server-filtered run browser", run: () => bridge().navigate({ page: "runs", q: raw, cursor: "", run: "" }) });
     }
     return filtered;
@@ -270,8 +271,9 @@
     const safeFetch = async (path) => {
       try { return await bridge().api(path, apiOpts); } catch { return null; }
     };
+    const onWorkPage = ["work", "planning", "inbox", "triage", "workviews"].includes(bridge()?.route()?.tab || bridge()?.route()?.page);
     const coreSources = isVerbQuery ? [] : [
-      ["Work", "/api/work", (data) => {
+      ...(onWorkPage ? [["Work", "/api/work", (data) => {
         if (!Array.isArray(data.objects)) throw new Error("Invalid work inventory");
         const favorites = new Set(data.objects.filter((record) => record.kind === "personal" && record.fields?.owner === who).flatMap((record) => record.fields?.personal?.favorites || []));
         return data.objects.filter((record) => matches(searchTerm, record.id, record.kind, record.fields?.title, record.fields?.description, ...(record.fields?.labels || []))).map((record) => ({
@@ -281,7 +283,7 @@
           rank: favorites.has(record.id) ? 0 : record.kind === "view" ? 1 : 2,
           run: () => record.kind === "view" ? bridge().navigate({ page: "work", work_view: record.id, work_id: "", work_kind: "", work_q: "", work_status: "", work_assignee: "", work_project: "", work_ci_project: "", work_ci_repository: "", work_sort: "", work_group: "", work_layout: "" }) : ui().open(record.id),
         })).sort((a, b) => a.rank - b.rank || a.label.localeCompare(b.label));
-      }],
+      }]] : []),
       ["CI projects", "/api/projects", (data) => {
         if (!Array.isArray(data.available) || !Array.isArray(data.enrolled)) throw new Error("Invalid project inventory");
         const projects = new Map([...data.available, ...data.enrolled].map((project) => [project.id, project]));
@@ -295,7 +297,7 @@
       }],
     ];
     const caps = fac?.capabilities?.();
-    const [coreResults, claimsData, attemptsData, decisionsData, machinesData, cairnData, campaignsData, workersData, reviewData, attentionData, reposData, receiptsData] = await Promise.all([
+    const [coreResults, claimsData, attemptsData, decisionsData, machinesData, cairnData, campaignsData, workersData, reviewData, attentionData, reposData] = await Promise.all([
       Promise.allSettled(coreSources.map(async ([, target, project]) => project(await bridge().api(target, apiOpts)))),
       safeFetch("/api/fleet/claims?include=foreign,expired"),
       safeFetch("/api/fleet/attempts"),
@@ -307,7 +309,6 @@
       safeFetch("/api/code-review"),
       safeFetch("/api/implementation/attention"),
       safeFetch("/api/repositories"),
-      isVerbQuery ? Promise.resolve(null) : safeFetch("/api/reviews"),
     ]);
     if (signal?.aborted || !current()) return;
     const errors = [];
@@ -316,11 +317,6 @@
       if (result.status === "fulfilled") entries.push(...result.value.map((entry) => ({ ...entry, group: coreSources[index][0] })));
       else errors.push(`${coreSources[index][0]} unavailable: ${errorText(result.reason)}`);
     });
-    if (Array.isArray(receiptsData?.receipts)) {
-      for (const receipt of receiptsData.receipts.filter((r) => matches(searchTerm, r.name, r.provider_profile, ...Object.keys(r.decision_counts || {})))) {
-        entries.push({ group: "Retained reviews", label: receipt.name, detail: `Retained review · ${receipt.provider_profile || "profile unavailable"}`, run: () => bridge().navigate({ page: "reviews", receipt: receipt.name }) });
-      }
-    }
 
     // Operational verbs (> renew, > release, > approve, > reconcile, > wake, > drain, > cancel) routed through Tier 1-3 safety rails.
     if (isVerbQuery || (searchTerm && canOp)) {

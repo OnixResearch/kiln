@@ -2051,8 +2051,8 @@
     history.pushState(null, "", `${location.pathname}?${params}`);
     void readAction(restoreRoute)();
   }
-  // Secondary/legacy tabs hidden from default navigation unless visited directly by URL.
-  const HIDDEN_DEFAULT_TABS = new Set(["inbox", "triage", "planning", "workviews", "evidence", "reviews", "cobs"]);
+  // Non-factory / legacy tabs hidden from default navigation unless visited directly by URL.
+  const HIDDEN_DEFAULT_TABS = new Set(["inbox", "triage", "work", "planning", "workviews", "evidence", "reviews", "cobs", "source"]);
   function tabVisibleInNav(tab, activeTab) {
     if (tab.id === "feeds") return state.feedsConfigured;
     if (tab.id === "runbooks" && state.capabilities?.runbooks === false) return activeTab === "runbooks";
@@ -2143,7 +2143,13 @@
     $("workspace").classList.toggle("page-frame-wide", ["overview", "runs", "code-review"].includes(route.page));
     $("run-split").classList.toggle("has-run", Boolean(route.run));
     applyRunPanels();
-    for (const node of document.querySelectorAll("[data-view]")) { if (node.dataset.view === route.view) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
+    const HIDDEN_RUN_VIEWS = new Set(["reviews", "compare", "evidence"]);
+    for (const node of document.querySelectorAll("[data-view]")) {
+      const isCurrent = node.dataset.view === route.view;
+      if (isCurrent) node.setAttribute("aria-current", "page");
+      else node.removeAttribute("aria-current");
+      if (HIDDEN_RUN_VIEWS.has(node.dataset.view)) node.hidden = !isCurrent;
+    }
     // r[impl kiln.web.wayfinding] The title block reads the destination register: section number and group, title, purpose.
     const place = ui.destination(route.page);
     const subPlace = nextSub !== route.page ? ui.destination(nextSub) : null;
@@ -3172,6 +3178,8 @@
     const deliveryBody = deliverySection.querySelector(".dashboard-section-body");
     deliveryBody?.append(mergeTrainStrip, spineList);
     const ciDetails = element("details", undefined, "panel overview-timing");
+    ciDetails.id = "factory-ci-details";
+    ciDetails.hidden = true;
     const ciSummary = element("summary", "CI project health & retained runs");
     const ciStack = element("div", undefined, "view-stack");
     dashboardSection(ciStack, "overview-health", "Project health", "card health-hero");
@@ -4014,6 +4022,8 @@
     groups.failing.sort(newestFirst);
     groups.healthy.sort(newestFirst);
     renderHealthHero($("overview-health"), groups, result.projects.length, result.totals);
+    const ciDetails = $("factory-ci-details");
+    if (ciDetails) ciDetails.hidden = (result.totals?.failed || 0) === 0 && (result.totals?.active || 0) === 0;
     const attention = $("overview-attention");
     attention.replaceChildren();
     setSectionCount("overview-attention", groups.failing.length ? String(groups.failing.length) : "");

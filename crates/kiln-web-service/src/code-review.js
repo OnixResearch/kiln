@@ -827,8 +827,8 @@
     const begin = (...head) => { root.append(...head, notice); drawNotice(); };
     if (!state.snapshot) { headerActions(null); begin(); if (!state.error) { root.append(loading("Loading review workspace…")); return; } const box = stateBox("The review workspace could not be loaded", "The observed error is shown above. Retry to observe it again; nothing was changed.", "error-state"); box.append(button("Retry", refresh, "quiet")); root.append(box); return; }
     if (!state.snapshot.configured) {
-      headerActions(null); begin(); const box = stateBox("Interactive review is not configured", "A separately admitted collaboration provider, actors, policy and durable store are required. Existing review receipts remain available in the receipts section.");
-      const receipts = node("a", "Open Patchgate receipts", "cr-state-link"); receipts.href = "?page=reviews"; box.append(receipts); root.append(box); return;
+      headerActions(null); begin(); const box = stateBox("Code review is not configured", "Configure a collaboration provider and review store in the service profile to enable code review.");
+      root.append(box); return;
     }
     if (!selected()) {
       listActions();

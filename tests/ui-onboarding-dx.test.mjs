@@ -812,7 +812,7 @@ test("System & Source subnav hides Feeds tab when feeds_configured is false or a
   });
   try {
     const tabIds = hiddenEnv.doc.querySelectorAll("#destination-tabs a").map((tab) => tab.dataset.tab);
-    assert.ok(tabIds.includes("source"));
+    assert.ok(tabIds.includes("repositories"));
     assert.ok(tabIds.includes("automation"));
     assert.equal(tabIds.includes("feeds"), false);
   } finally {
@@ -955,11 +955,11 @@ test("Capability-aware subnav hides unconfigured and secondary tabs while keepin
     directReviewsEnv.cleanup();
   }
 
-  // Delivery & Cairn: hides planning, workviews, evidence.
+  // Delivery & Cairn: hides non-factory Linear-clone tabs (work, planning, workviews, evidence) and collapses single-tab bar.
   const cairnEnv = await setup({ initialSearch: "?page=cairn", fetchHandler: makeFetch() });
   try {
-    const tabIds = cairnEnv.doc.querySelectorAll("#destination-tabs a").map((tab) => tab.dataset.tab);
-    assert.deepEqual(tabIds, ["cairn", "work"]);
+    assert.equal(cairnEnv.doc.getElementById("destination-tabs").hidden, true);
+    assert.equal(cairnEnv.doc.querySelectorAll("#destination-tabs a").length, 0);
   } finally {
     cairnEnv.cleanup();
   }
@@ -973,11 +973,11 @@ test("Capability-aware subnav hides unconfigured and secondary tabs while keepin
     inboxEnv.cleanup();
   }
 
-  // System & Source: puts repositories first, hides automation and feeds when unconfigured.
+  // System & Source: keeps only factory tabs (repositories, activity, operations); hides raw source browser, automation, feeds.
   const sourceEnv = await setup({ initialSearch: "?page=source", fetchHandler: makeFetch() });
   try {
     const tabIds = sourceEnv.doc.querySelectorAll("#destination-tabs a").map((tab) => tab.dataset.tab);
-    assert.deepEqual(tabIds, ["repositories", "source", "activity", "operations"]);
+    assert.deepEqual(tabIds, ["repositories", "activity", "operations"]);
   } finally {
     sourceEnv.cleanup();
   }
@@ -1399,5 +1399,22 @@ test("Pass 4 nonsense removal: zero about-view/boundary clutter in shell, Fleet 
     assert.equal(repoEnv.doc.querySelector(".repo-kpis"), null);
   } finally {
     repoEnv.cleanup();
+  }
+
+  // Run Detail hides non-factory tabs (reviews, compare, evidence) unless directly active.
+  const runTabsEnv = await setup({
+    initialSearch: "?page=runs",
+    fetchHandler: async (target) => {
+      if (target === "/api/session") return jsonResponse(baseSession);
+      if (target === "/api/projects") return jsonResponse({ enrolled: [], available: [] });
+      if (target.startsWith("/api/runs")) return jsonResponse({ runs: [], total: 0, next_cursor: null });
+      return jsonResponse({});
+    },
+  });
+  try {
+    const visibleRunViews = runTabsEnv.doc.querySelectorAll("#run-tabs a[data-view]").filter((a) => !a.hidden).map((a) => a.dataset.view);
+    assert.deepEqual(visibleRunViews, ["pipeline", "logs", "artifacts", "tests", "activity"]);
+  } finally {
+    runTabsEnv.cleanup();
   }
 });
