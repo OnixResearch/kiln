@@ -3726,6 +3726,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-ui-core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "kiln-web-service"
 version = "0.1.0"
 dependencies = [

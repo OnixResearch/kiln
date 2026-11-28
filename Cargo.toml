@@ -7,6 +7,7 @@ members = [
   "crates/kiln-codec",
   "crates/kiln-observe-core",
   "crates/kiln-dashboard",
+  "crates/kiln-ui-core",
   "crates/kiln-highlight",
   "crates/kiln-web-service",
   "crates/kiln-hosted",
@@ -65,6 +66,7 @@ default-members = [
   "crates/kiln-codec",
   "crates/kiln-observe-core",
   "crates/kiln-dashboard",
+  "crates/kiln-ui-core",
   "crates/kiln-highlight",
   "crates/kiln-web-service",
   "crates/kiln-hosted",
@@ -201,6 +203,7 @@ kiln-implementer = { path = "crates/kiln-implementer" }
 kiln-codec = { path = "crates/kiln-codec" }
 kiln-observe-core = { path = "crates/kiln-observe-core" }
 kiln-dashboard = { path = "crates/kiln-dashboard" }
+kiln-ui-core = { path = "crates/kiln-ui-core" }
 kiln-highlight = { path = "crates/kiln-highlight" }
 kiln-adapter-http-observe = { path = "crates/kiln-adapter-http-observe" }
 kiln-adapter-iroh-observe = { path = "crates/kiln-adapter-iroh-observe" }
