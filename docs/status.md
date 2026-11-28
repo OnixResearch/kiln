@@ -12,7 +12,13 @@ For navigation by topic, use the [documentation index](README.md).
 
 ## Implemented areas
 
-Kiln has an initial functional core and standalone reference shell. The implementation includes these areas:
+Kiln is the OnixResearch AI Software Factory control plane—unifying multi-machine agent fleet coordination (`kiln-fleet` + Herdr + swarms), deterministic exact-revision CI gating (`kiln-core` + Nix/Lattice/Aspen), and `jj`/Cairn/Code-Review delivery behind one pure `no_std + alloc` state machine.
+
+**Adapter tiers and UI freeze:**
+- `Cargo.toml` `default-members` includes the live Factory workspace crates and excludes four experimental/off-by-default adapters (`kiln-adapter-slurm`, `kiln-adapter-tangled`, `kiln-adapter-pijul`, and `kiln-adapter-gitea`); those remain in `members` and are built or tested explicitly via `-p <crate>` or `--workspace`.
+- `crates/kiln-web-service/src/*.js` is under a **Vanilla-JS Frontend Freeze** (bug-fixes-only) while `#67`/`#68` (Rats/Meteorite) remains the target UI architecture; RSS/Atom repository feeds remain opt-in and hidden from default console navigation unless explicitly configured.
+
+The implementation includes these areas:
 
 - deterministic CI commands, events, effects, and replay;
 - versioned provider capability admission;
@@ -21,25 +27,25 @@ Kiln has an initial functional core and standalone reference shell. The implemen
 - versioned Lattice workflow dispatch, lifecycle, controls, logs, and reconciliation;
 - authenticated Iroh workflow transport through a private local Unix proxy and worker-local Lattice endpoint;
 - exact Cairn gate request, process, result, and reconciliation admission;
-- bounded isolated Patchgate review evidence with exact candidate/configuration admission, one-command atomic receipt production, a run-bound worker step, and retained-report reconciliation, separate from acceptance authority; see the [operator procedure](operator.md#isolated-patchgate-review);
+- bounded isolated Patchgate review evidence with exact candidate/configuration admission, one-command atomic receipt production, a run-bound worker step, and retained-report reconciliation, separate from acceptance authority; see the [operator procedure](operator/ci-and-providers.md#isolated-patchgate-review);
 - exact Mantle build request, bounded process, product, log, and reconciliation admission;
 - exact stock and separately selected Onix Nix job discovery, bounded stream admission, task mapping, and GC-root handoff;
 - bounded local `xyz.radworks.job` publication for one exact commit, with deterministic run UUID replay, start/finish actions, and multi-writer extension of an existing job; see [job publication](radicle-jobs.md);
 - source, gating, fairness, task-operation, hosting, remote, interchange, and COB decisions;
-- optional repository Atom feeds plus operator-managed external RSS/Atom subscriptions with a dedicated read-only token, DNS-pinned bounded HTTPS, and a console Feeds page; see [repository feeds](repository-feeds.md);
+- optional repository Atom feeds plus operator-managed external RSS/Atom subscriptions with a dedicated read-only token, DNS-pinned bounded HTTPS, and an opt-in console Feeds view hidden from default navigation unless configured; see [repository feeds](repository-feeds.md);
 - packed Preserves and BLAKE3 canonical identity;
 - bounded, deterministic, read-only observation projection over admitted state with typed profiles, paging and window admission, redaction, and `kiln.observe.view.v1` identities, including review-friction and suggestion-anchor views over self-declared, unverified change authorship;
 - a bounded HTTPS observation shell with canonical JSON views, a bounded SSE event leg, Ed25519 or UCAN holder-invocation authentication, TLS, and no control surface;
 - a bounded iroh observation shell for allowlisted peers with BLAKE3-verified payloads and maintained HTTP/iroh view equivalence;
 - a local operator dashboard over a canonical Kiln journal or SQLite event store with recomputed event identities, canonical replay, bounded paged views, a SaaS-style offline workspace with overview/projects/runs/activity/evidence/settings, metadata search, per-history run filters and inspection, URL-restored navigation and appearance, a pinned Rats/Ratzilla repository/history index with accessible HTML navigation, read-only GitHub observation export, separately configured atomic HTML delivery, a source-reloading developer preview, and property-based terminal/browser rails without provider effects or hosted accounts;
-- an independently packaged single-tenant HTTPS web workspace with run search and stable paging, URL-restored navigation, overview/timing, configured worker-target inventory and slot availability, dependency-graph inspection, continuous bounded worker logs and full-stream download, exact/latest/subgraph reruns, structured test/coverage/comparison and evidence views, durable queue/capacity/retention observations, signed branch- or tag-bound triggers, branch-bound schedules, configurable branch/tag/type/changed-path filters and calendar expressions in explicit time zones with hashed spreading, HTTPS notifications, operator-approved untrusted pull-request runs held in a durable blocked state and confined to declared untrusted-capable runners without secrets, workload token or cache, attributable viewer/operator access, and supervised deployment; see the [operator procedure](operator.md#single-tenant-live-web-service) for exact-profile, authority and evidence boundaries;
+- an independently packaged single-tenant HTTPS web workspace with run search and stable paging, URL-restored navigation, overview/timing, configured worker-target inventory and slot availability, dependency-graph inspection, continuous bounded worker logs and full-stream download, exact/latest/subgraph reruns, structured test/coverage/comparison and evidence views, durable queue/capacity/retention observations, signed branch- or tag-bound triggers, branch-bound schedules, configurable branch/tag/type/changed-path filters and calendar expressions in explicit time zones with hashed spreading, HTTPS notifications, operator-approved untrusted pull-request runs held in a durable blocked state and confined to declared untrusted-capable runners without secrets, workload token or cache, attributable viewer/operator access, and supervised deployment; see the [operator procedure](operator/deploy-and-upgrade.md#single-tenant-live-web-service) for exact-profile, authority and evidence boundaries;
 - a [Web → native Lattice → hosted execution route](hosted-ci.md#web-approval-through-lattice-to-hosted-execution), carrying persisted exact-source approvals through genuine saved workflows and a fixed hosted task, with independent Web-authority/Git verification and once-only backend recovery;
-- an optional [internal developer loop](operator.md#internal-developer-loop) with source-bound per-step timing and resource observations, expiring authenticated worker capacity, fail-closed reviewed namespace isolation, verified shared cache transfers, and an HTTPS submit/watch/logs/cancel/retry CLI with explicitly selected content-addressed dirty inputs;
-- an explicit offline [append-only project-registry extension](operator.md#extend-an-existing-project-registry) that preserves existing history and authority, plus a typed catalog of reviewed OnixResearch committed-ref CI commands;
-- optional [monorepo project scopes](operator.md#monorepo-projects) for several projects on one repository, with a deterministic affected-project decision over exact tree diffs, declared dependencies and Cargo/Nix path graphs, conservative fallbacks, affected-only push/pull-request dispatch from each project root, and scope-bound run identities and per-project required CI in change review;
-- an optional separately admitted [read-only COB browser](operator.md#optional-read-only-cob-browser) in the live workspace, with explicit local Git stores, six Cairn decision types plus three native Radicle observation types, typed list metadata, bounded inventory and exact raw-history inspection, without signature verification, lifecycle reduction or Radicle mutation;
-- an optional [signed COB work workspace](operator.md#optional-signed-cob-workspace) with issues, planning, discussion, triage, principal-owned attention, durable private/shared views with Kanban boards that move only canonical issue status, monorepo-aware exact CI-project and repository filters, CI-project grouping and lanes, keyboard search/preview/bulk interaction and exact source/CI evidence joins; application collaboration is separately admitted and grants no CI operator or release authority;
-- an optional [interactive change-review workspace](operator.md#optional-interactive-change-review) with stable branch, Jujutsu change-ID and stack contribution intake, patch sets, syntax-highlighted exact diffs with rebase-aware interdiff and hunk-level viewed markers, a syntax-aware structural mode, safe Markdown, whitespace comparisons, display-only noise globs for generated, vendored and lock files, keyboard navigation and actions with a help overlay, private atomic publication, immutable anchored suggestions, path/team ownership, revision-bound approvals, non-binding advisory approvals that never count, personal attention and bounded external HTTPS delivery; exact-candidate required-CI merge automation, including a separate speculative merge queue, uses durable provider journals and target CAS, independently of retained Patchgate receipts and deployment-level branch protection;
+- an optional [internal developer loop](operator/deploy-and-upgrade.md#internal-developer-loop) with source-bound per-step timing and resource observations, expiring authenticated worker capacity, fail-closed reviewed namespace isolation, verified shared cache transfers, and an HTTPS submit/watch/logs/cancel/retry CLI with explicitly selected content-addressed dirty inputs;
+- an explicit offline [append-only project-registry extension](operator/deploy-and-upgrade.md#extend-an-existing-project-registry) that preserves existing history and authority, plus a typed catalog of reviewed OnixResearch committed-ref CI commands;
+- optional [monorepo project scopes](operator/deploy-and-upgrade.md#monorepo-projects) for several projects on one repository, with a deterministic affected-project decision over exact tree diffs, declared dependencies and Cargo/Nix path graphs, conservative fallbacks, affected-only push/pull-request dispatch from each project root, and scope-bound run identities and per-project required CI in change review;
+- an optional separately admitted [read-only COB browser](operator/deploy-and-upgrade.md#optional-read-only-cob-browser) in the live workspace, with explicit local Git stores, six Cairn decision types plus three native Radicle observation types, typed list metadata, bounded inventory and exact raw-history inspection, without signature verification, lifecycle reduction or Radicle mutation;
+- an optional [signed COB work workspace](operator/deploy-and-upgrade.md#optional-signed-cob-workspace) with issues, planning, discussion, triage, principal-owned attention, durable private/shared views with Kanban boards that move only canonical issue status, monorepo-aware exact CI-project and repository filters, CI-project grouping and lanes, keyboard search/preview/bulk interaction and exact source/CI evidence joins; application collaboration is separately admitted and grants no CI operator or release authority;
+- an optional [interactive change-review workspace](operator/deploy-and-upgrade.md#optional-interactive-change-review) with stable branch, Jujutsu change-ID and stack contribution intake, patch sets, syntax-highlighted exact diffs with rebase-aware interdiff and hunk-level viewed markers, a syntax-aware structural mode, safe Markdown, whitespace comparisons, display-only noise globs for generated, vendored and lock files, keyboard navigation and actions with a help overlay, private atomic publication, immutable anchored suggestions, path/team ownership, revision-bound approvals, non-binding advisory approvals that never count, personal attention and bounded external HTTPS delivery; exact-candidate required-CI merge automation, including a separate speculative merge queue, uses durable provider journals and target CAS, independently of retained Patchgate receipts and deployment-level branch protection;
 
 - optional review ownership evidence with project-CI binding, ordered change classes and explicit evidence-only approval, interface-scoped dependent CI and owner acknowledgement with policy-declared dependents, advisory or binding agent vote policy, attested agent submissions with declared harness/model metadata, agent identity in sessions and audit records, read-only agent-attestation, declared-harness and declared-model review search, and default-off exact-revision session-trace pointers from local Git notes, shown as untrusted context without review authority;
 - an exact Aspen/Molten runtime profile, atomic event-store mapping, bounded content and callback contracts, and fail-closed ingress;
@@ -69,7 +75,7 @@ Provision its separate pinned cohort and run the real discovery rail using the
 the imported OnixOS source. Core and stock-only builds do not acquire the Onix
 evaluator or plugin; passing discovery does not prove a build or deployment.
 
-The [isolated maintained-cohort OnixOS pilot](operator.md#isolated-maintained-cohort-onixos-pilot)
+The [isolated maintained-cohort OnixOS pilot](operator/recovery-and-qualification.md#isolated-maintained-cohort-onixos-pilot)
 exercises authenticated construction of the real launcher, activation script
 and generated home files, duplicate delivery, host restart/reconciliation and
 genuine evaluation/home-file build failures. Only external tools are prepared
@@ -81,7 +87,7 @@ retains the measured construction boundary and repeatability evidence.
 The [historical launcher-only qualification](../.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/verification.json)
 retains its original narrower claim and does not qualify the new construction rail.
 
-The [Radicle source-to-build composition](operator.md#radicle-source-to-build-composition)
+The [Radicle source-to-build composition](operator/ci-and-providers.md#radicle-source-to-build-composition)
 accepts an admitted push without fabricating an operator-signed pilot request.
 Its fixed reviewed workflow builds the verified event source and retains a
 revision-bound status intent. The native proof uses the real `cibtool` producer
@@ -95,7 +101,7 @@ For GitHub CI, use the typed builders `config/github-ci.ncl` and
 `config/github-job.ncl` with real operator-supplied repository IDs, SecretSpec
 references, executable/profile inputs, and exact reviewed workflow identities.
 The default package installs `kiln-adapter-github` and `kiln-github-job`, also
-available as Nix apps. Follow the [end-to-end operator setup](operator.md#github-ci-adapter)
+available as Nix apps. Follow the [end-to-end operator setup](operator/ci-and-providers.md#github-ci-adapter)
 for HTTPS webhook ingress, Lattice `route_exact`/`shell_environment` routing,
 job JSON byte pinning, permissions, status, and recovery. `fixtures/github/`
 contains isolated synthetic conformance inputs, not production configuration.
@@ -116,7 +122,7 @@ GitHub-only in this change.
 
 For remote workflow execution over Iroh, use `kiln-adapter-iroh` with the existing
 consumer's Lattice socket setting. Follow [peer enrollment, private keys, profiles,
-startup, and recovery](operator.md#iroh-remote-workflow-execution). The
+startup, and recovery](operator/ci-and-providers.md#iroh-remote-workflow-execution). The
 [change-local evidence](../.cairn/archive/1970-01-01-add-iroh-workflow-transport/evidence/verification.json)
 records actual local execution and exact recovery after both bridges restart,
 not WAN/relay availability or deployment authority.
@@ -126,7 +132,7 @@ joins genuine GitHub deliveries to exact-source compile/test jobs on a separate
 Iroh worker, canonical passing/failing results, and matching Published GitHub
 statuses. It also records controller/bridge restart recovery of the original
 still-running execution and genuine redelivery suppression. Follow the
-[bounded live exercise](operator.md#bounded-combined-live-ci-exercise) for
+[bounded live exercise](operator/ci-and-providers.md#bounded-combined-live-ci-exercise) for
 the recorded cohort, repetition, credential retirement, and claim limits.
 
 The [live Radicle CI canary](../.cairn/archive/1970-01-01-qualify-live-radicle-ci/evidence/verification.json)
@@ -136,7 +142,7 @@ dedicated exact-revision status from observer storage. It records canonical
 `Success` and source-controlled `DomainFailure`, an in-flight execution surviving
 host kill and reconciliation without redispatch, duplicate-fetch suppression, and
 bounded nonterminal uncertainty when the provider is unavailable. Follow the
-[native Radicle peer and broker canary](operator.md#native-radicle-peer-and-broker-canary)
+[native Radicle peer and broker canary](operator/ci-and-providers.md#native-radicle-peer-and-broker-canary)
 for the recorded cohort, repeat command, retirement, and claim limits.
 
 The [distinct-host Radicle canary](../.cairn/archive/1970-01-01-qualify-distinct-host-radicle-ci/evidence/verification.json)
@@ -146,7 +152,7 @@ crossed a direct private-tailnet TCP connection; success, genuine failure,
 controller host-kill recovery, remote publisher restart and unavailable-provider
 uncertainty all passed. Status dissemination remained same-host; the run is not
 WAN, hostile-network or production qualification. See the
-[distinct-host procedure](operator.md#distinct-host-publisher-canary).
+[distinct-host procedure](operator/ci-and-providers.md#distinct-host-publisher-canary).
 
 The [distinct-host status canary](../.cairn/archive/1970-01-01-qualify-distinct-host-radicle-status/evidence/verification.json)
 moves the observer node and status storage to the second host while status
@@ -154,7 +160,7 @@ creation and signing stay local. The remote observer fetched and reduced the
 exact success/failure statuses with the pinned read path, and the unavailable
 case retained no status. This is private-tailnet dissemination and readback,
 not WAN, hostile-node isolation or production qualification. See the
-[status observer procedure](operator.md#distinct-host-status-observer).
+[status observer procedure](operator/ci-and-providers.md#distinct-host-status-observer).
 
 ## Publication record
 

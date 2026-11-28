@@ -214,7 +214,7 @@ peer or permit a different bootstrap identity.
 There is no repository upload/move or new forge requirement. This hosted source
 composition currently admits the existing GitHub adapter's exact remote HTTPS
 source profiles. Other existing core adapters do not automatically become
-hosted connection providers. Follow [the GitHub procedure](operator.md#github-ci-adapter)
+hosted connection providers. Follow [the GitHub procedure](operator/ci-and-providers.md#github-ci-adapter)
 for actual credential references, reviewed source job and worker transport.
 An installation credential is not synthesized by account enrollment.
 
@@ -782,7 +782,7 @@ IDs were replaced with per-evidence `REDACTED` OS-instance labels preserving onl
 equality. Raw samples, serial, rates and historical cohort hashes are unchanged;
 the redaction and corrected non-hardware classifications are explicit metadata.
 
-The separate [2026-11-06 aspen1 maintenance experiment](operator.md#readiness-reconciliation-and-qualification-2026-11-06)
+The separate [2026-11-06 aspen1 maintenance experiment](operator/recovery-and-qualification.md#readiness-reconciliation-and-qualification-2026-11-06)
 booted host Linux 7.3.0, disabled SMT, and used exclusive operator-created CAT
 groups with independent live membership/affinity sampling. Three pinned-core
 rows at an offered 10 symbols/s had held-out errors of 3/64 (cache), 34/64 (CPU),

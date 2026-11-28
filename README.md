@@ -1,12 +1,18 @@
 # Kiln
 
-Kiln is a provider-neutral control plane for continuous integration. It owns CI meaning and delegates external effects to replaceable adapters.
+Kiln is the **OnixResearch AI Software Factory control plane**: multi-machine
+agent fleet coordination (`kiln-fleet` + Herdr + swarms), deterministic
+exact-revision CI gating (`kiln-core` + Nix/Lattice/Aspen), and
+`jj`/Cairn/Code-Review delivery—all backed by one pure `no_std + alloc` state
+machine.
 
-**Exact-revision CI with replayable state and replaceable providers.** A pure
-core turns each command into events and requested effects. Adapters for Git,
-Jujutsu, Pijul, Radicle, GitHub, Gitea/Forgejo, Lattice and Nix perform those
-effects. Every result binds to an exact revision, unknown outcomes stay
-explicit, and recorded state can be replayed.
+**Exact-revision Factory & CI state with replayable history and replaceable
+providers.** A pure core turns each command into events and requested effects.
+Live Factory adapters for Git, Jujutsu, Radicle, GitHub, Lattice, Aspen, Nix,
+Cairn, Patchgate, Mantle, and Iroh perform those effects (with experimental
+adapters for Slurm, Tangled, Pijul, and Gitea/Forgejo kept off by default). Every
+result binds to an exact revision, unknown outcomes stay explicit, and recorded
+state can be replayed.
 
 | Item | State |
 | --- | --- |
@@ -92,15 +98,30 @@ cargo test --locked --workspace
 cargo run --locked -p onix-kiln-cli -- demo
 ```
 
-To initialize a minimal local workspace (`service.json`, `access.json`, `sources.json`, `START_HERE.txt`) for one of your own Git repositories without touching external providers, run `cargo run --locked -p onix-kiln-cli -- init --repo /path/to/repo --out /tmp/my-kiln`.
+Initialize a single-config local workspace (`kiln.json` with schema
+`kiln.factory-workspace.v1`, `service.json`, `access.json`, `sources.json`,
+`START_HERE.txt`, tokens, and a local TLS cert) for one of your own Git
+repositories without touching external providers, then diagnose, check, and serve
+it through the unified `kiln` CLI:
+
+```console
+cargo run --locked -p onix-kiln-cli -- init --repo /path/to/repo --out /tmp/my-kiln
+cargo run --locked -p onix-kiln-cli -- doctor --config /tmp/my-kiln/kiln.json
+cargo run --locked -p onix-kiln-cli -- check --config /tmp/my-kiln/kiln.json
+cargo run --locked -p onix-kiln-cli -- serve --config /tmp/my-kiln/kiln.json
+```
+
+When built onto `$PATH` (e.g., via `nix build`), invoke `kiln init`,
+`kiln doctor`, `kiln check`, `kiln serve`, `kiln fleet ...`, and `kiln ci ...`
+directly.
 
 ### Which binary do I run?
 
 | Binary | Package | Role |
 | --- | --- | --- |
-| `kiln` | `onix-kiln-cli` | Operator & onboarding CLI (`demo`, `init`, `evidence`, `host-qualify`, `dashboard`, `native-git`) |
-| `kiln-web-service` | `kiln-web-service` | Single-tenant HTTPS web console, local CI & runbooks (`check`, `serve`, `ci`) |
-| `kiln-fleet` | `kiln-fleet` | Multi-machine claim authority & agent dispatch |
+| `kiln` | `onix-kiln-cli` | Unified Factory & onboarding CLI (`init`, `doctor`, `check`, `serve`, `fleet`, `ci`, `dashboard`, `demo`, `evidence`, `host-qualify`, `native-git`) |
+| `kiln-web-service` | `kiln-web-service` | Single-tenant HTTPS web console, local CI & runbook CLI (`check`, `serve`, `ci`) |
+| `kiln-fleet` | `kiln-fleet` | Multi-machine claim authority, work coordination & agent swarm dispatch |
 | `kiln-implementer` | `kiln-adapter-github` | Durable implementation ledger for queued deliveries, attempts & verification |
 | `kiln-dashboard` | `kiln-dashboard` | Standalone read-only terminal/HTML dashboard report |
 
@@ -130,7 +151,7 @@ Open <http://127.0.0.1:18787/examples> for the linked feature index and what to
 try. CI, work/planning, review, source, receipts, feeds and administration are
 populated. Local edits use disposable stores; execution and feed observations
 are simulated. No provider is contacted or source command executed. Stop with
-Ctrl-C; restart to reset. See [website exploration](docs/operator.md#explore-the-website-without-providers)
+Ctrl-C; restart to reset. See [website exploration](docs/operator/deploy-and-upgrade.md#explore-the-website-without-providers)
 for coverage and boundaries. This is separate from the read-only report below.
 
 Alternatively run
@@ -141,13 +162,13 @@ supervised loopback user service; these never replace the authenticated website.
 The `kiln-web-exploration-bombadil` flake app runs bounded, read-only browser
 properties with the existing pinned Bombadil tool. It owns a disposable example
 by default; an explicit URL attaches only after native example admission.
-See [browser exploration commands and evidence](docs/operator.md#property-based-browser-exploration).
+See [browser exploration commands and evidence](docs/operator/deploy-and-upgrade.md#property-based-browser-exploration).
 
 The operated private-tailnet examples are at
 <https://britton-desktop.bison-tailor.ts.net:9444/examples>. Access uses existing
 registered Tailscale identities and the same private Kiln CA as the CI website;
 the client device must trust that CA. See
-[private-tailnet access](docs/operator.md#optional-private-tailnet-access).
+[private-tailnet access](docs/operator/deploy-and-upgrade.md#optional-private-tailnet-access).
 
 Render the local dashboard over synthetic sample data, then open the printed
 `dashboard.html` in a browser:
@@ -161,16 +182,16 @@ The sample is developer rehearsal, not evidence of real CI execution. The
 also supports source rebuilds with browser reload.
 
 The full local release gate list, including `cairn release-readiness`, is in
-[the operator guide](docs/operator.md#local-reference-run).
+[the CI & providers runbook](docs/operator/ci-and-providers.md#local-reference-run).
 
 The committed, revision-verified imports cover direct and transitive workspace Cargo producer dependencies and Cairn/Mantle fixture inputs. Normal workspace builds require neither sibling checkouts nor operator Git credentials. See [build source acquisition](docs/reference-pins.md#build-source-acquisition) for exact pins and drift-refusing imports. Standalone runtime products retain their separately reviewed source cohorts and acquisition boundaries.
 
 The [fresh standalone contributor check](.cairn/archive/1970-01-01-prepare-public-release/evidence/verification.md#current-standalone-contributor-recheck) records the exact public revision, acquisition environment, test/demo results, and bounded source-hygiene review.
 
-To connect real sources, start with the [GitHub CI adapter](docs/operator.md#github-ci-adapter),
+To connect real sources, start with the [GitHub CI adapter](docs/operator/ci-and-providers.md#github-ci-adapter),
 the [Gitea and Forgejo adapter](docs/gitea-ci.md), the
-[Radicle source-to-build composition](docs/operator.md#radicle-source-to-build-composition)
-or the [single-tenant web service](docs/operator.md#single-tenant-live-web-service).
+[Radicle source-to-build composition](docs/operator/ci-and-providers.md#radicle-source-to-build-composition)
+or the [single-tenant web service](docs/operator/deploy-and-upgrade.md#single-tenant-live-web-service).
 
 ## What runs today
 
@@ -179,19 +200,27 @@ remote exercise for one recorded cohort; **exercised locally** means real
 tools on one host; **fixture-tested** means tests and fixtures only. None is
 a production claim, and no receipt validates later source.
 
+**Workspace adapter tiers:** `Cargo.toml` `default-members` selects the live
+Factory workspace crates and excludes four experimental/off-by-default adapters
+(`kiln-adapter-slurm`, `kiln-adapter-tangled`, `kiln-adapter-pijul`, and
+`kiln-adapter-gitea`). All 52 crates remain in `workspace.members` so
+`cargo test --locked --workspace` and explicit `-p <crate>` builds/tests keep
+exercising them.
+
 | Area | What exists | Evidence | Start here |
 | --- | --- | --- | --- |
 | Deterministic core | Commands, events, requested effects and replay in a pure `no_std + alloc` crate; packed Preserves and BLAKE3 identities | Workspace tests | [Architecture](docs/architecture.md) |
-| Sources | Bounded read-only snapshots from local Git, Pijul and Jujutsu repositories; exact Radicle signed-reference acquisition | Fixture-tested, with native Pijul, Jujutsu and Radicle tool rails | [Git](docs/git-source.md), [Pijul](docs/pijul-source-adapter.md), [Radicle](docs/radicle-source-shell.md) |
-| GitHub CI | Authenticated push and pull-request intake, polling recovery, exact-source jobs through reviewed Lattice workflows, commit statuses | Exercised live for one recorded cohort | [Operator guide](docs/operator.md#github-ci-adapter) |
-| Gitea and Forgejo CI | Signed webhooks, exact-source jobs, durable replay, commit statuses | Fixture-tested | [Procedure](docs/gitea-ci.md) |
-| Radicle CI | Broker compatibility, source-to-build with Nix, exact-revision status, patch reviews, tag-triggered CI | Exercised live on one host and across two owned hosts on a private tailnet | [Operator guide](docs/operator.md#radicle-source-to-build-composition) |
-| Tangled | Spindle-compatible service | Fixture-tested; no live knot has called it | [Integration notes](docs/tangled-integration.md) |
-| Workflow execution | Lattice dispatch, lifecycle, logs and reconciliation; authenticated Iroh transport to a remote worker | Exercised live with the GitHub cohort | [Lattice](docs/lattice-workflow.md), [Iroh](docs/operator.md#iroh-remote-workflow-execution) |
+| Fleet & agent coordination | Multi-machine claim authority (`kiln-fleet`), `herdr` agent dispatch, swarm observations, durable implementation work ledger | Exercised locally | [Fleet orchestration](docs/fleet-orchestration.md), [Implementation runbook](docs/implementation-runbook.md) |
+| Sources | Bounded read-only snapshots from local Git and Jujutsu repositories (plus experimental Pijul); exact Radicle signed-reference acquisition | Fixture-tested, with native Pijul, Jujutsu and Radicle tool rails | [Git](docs/git-source.md), [Pijul](docs/pijul-source-adapter.md), [Radicle](docs/radicle-source-shell.md) |
+| GitHub CI | Authenticated push and pull-request intake, polling recovery, exact-source jobs through reviewed Lattice workflows, commit statuses | Exercised live for one recorded cohort | [CI & providers](docs/operator/ci-and-providers.md#github-ci-adapter) |
+| Gitea and Forgejo CI (experimental) | Signed webhooks, exact-source jobs, durable replay, commit statuses (`kiln-adapter-gitea`, off by default) | Fixture-tested | [Procedure](docs/gitea-ci.md) |
+| Radicle CI | Broker compatibility, source-to-build with Nix, exact-revision status, patch reviews, tag-triggered CI | Exercised live on one host and across two owned hosts on a private tailnet | [CI & providers](docs/operator/ci-and-providers.md#radicle-source-to-build-composition) |
+| Tangled (experimental) | Spindle-compatible service (`kiln-adapter-tangled`, off by default) | Fixture-tested; no live knot has called it | [Integration notes](docs/tangled-integration.md) |
+| Workflow execution | Lattice dispatch, lifecycle, logs and reconciliation; authenticated Iroh transport to a remote worker | Exercised live with the GitHub cohort | [Lattice](docs/lattice-workflow.md), [Iroh](docs/operator/ci-and-providers.md#iroh-remote-workflow-execution) |
 | Nix | `nix-eval-jobs` job discovery; exact local derivation builds with rooted outputs and a read-only cache projection | Exercised locally | [Discovery](docs/nix-eval-jobs-adapter.md), [Build](docs/nix-build-adapter.md) |
 | Gates and evidence | Cairn gates, Mantle builds, unsigned in-toto/SLSA statements, CDEvents, OpenTelemetry, Valence evidence | Fixture-tested | [Integration contracts](docs/integrations.md) |
-| Web workspace | Single-tenant HTTPS service: run search, logs, reruns, signed triggers, schedules, notifications, operator-approved untrusted pull-request runs | Exercised locally | [Operator guide](docs/operator.md#single-tenant-live-web-service) |
-| Change review | Patch sets, exact diffs with interdiff, Jujutsu change-ID and stack intake, revision-bound approvals, exact-candidate required-CI merge automation | Exercised locally | [Operator guide](docs/operator.md#optional-interactive-change-review) |
+| Web workspace | Single-tenant HTTPS service: run search, logs, reruns, signed triggers, schedules, notifications, operator-approved untrusted pull-request runs (vanilla JS frozen to bug-fixes-only for `#67`/`#68` Rats/Meteorite port) | Exercised locally | [Deploy & upgrade](docs/operator/deploy-and-upgrade.md#single-tenant-live-web-service) |
+| Change review | Patch sets, exact diffs with interdiff, Jujutsu change-ID and stack intake, revision-bound approvals, exact-candidate required-CI merge automation | Exercised locally | [Deploy & upgrade](docs/operator/deploy-and-upgrade.md#optional-interactive-change-review) |
 | Observation | Bounded read-only views over HTTPS or iroh; local terminal and HTML dashboard | Fixture-tested and exercised locally | [Projection](docs/observation-projection.md), [Dashboard](docs/observation-dashboard.md) |
 | Hosted composition (optional) | Scoped accounts, GitHub repository connections, reviewed pipelines, spend admission, per-job microVM execution profiles | Exercised locally; not a qualified service | [Operator procedure](docs/hosted-ci.md) |
 | Implementation work | Durable GitHub/Cairn intake, exact claims and recovery, admitted isolated Lattice dispatch, independent canonical CI verification, and journaled PR/integration observations; unattended GitHub landing fails closed | Live-worker and remote-effect qualification remain separate | [Runbook](docs/implementation-runbook.md), [qualification](docs/implementation-qualification.md) |
@@ -199,18 +228,6 @@ a production claim, and no receipt validates later source.
 [Detailed status](docs/status.md) keeps the complete ledger: every implemented
 area, each integration procedure with its retained receipt, and the
 publication record.
-
-## Hosted CI direction
-
-The commercial plan keeps Kiln free/open source and proposes paid hosted CI
-connected to customers' existing remote repositories, plus separately enabled
-inference. It does not propose source hosting, repository migration, or a software
-license/seat paywall. This is planning, not an available paid service. See the
-[hosted compute launch plan](docs/commercial-launch.md) for remote-source onboarding,
-accounting/payment architecture, company prerequisites and launch gates.
-
-[Design-partner discovery](docs/gtm/design-partners.md) for the proposed pilot
-is preparation for that plan's first gate, not an offer.
 
 ## Claim boundary
 
@@ -286,8 +303,6 @@ Kiln uses BLAKE3 for its content identities, event fingerprints, and determinist
 - Support: use the issue tracker on the
   [GitHub projection](https://github.com/OnixResearch/kiln/issues). No
   response time or support commitment is offered.
-- [Launch kit](docs/gtm/README.md): positioning, release notes and the launch
-  checklist.
 
 ## Lifecycle
 

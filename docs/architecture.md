@@ -86,7 +86,7 @@ and replays the event journal for HTTPS observation. The worker retains build
 roots until durable handoff and explicit release. An operator-signed request is
 not a forge webhook; neither the pilot nor its observation server grants
 production control, status-publication or deployment authority. See the
-[repeatable operator procedure](operator.md#isolated-maintained-cohort-onixos-pilot).
+[repeatable operator procedure](operator/recovery-and-qualification.md#isolated-maintained-cohort-onixos-pilot).
 
 The Radicle source-event composition is distinct from the signed operator pilot.
 It pins the configured repository/signer/branch once, persists canonical start
@@ -98,7 +98,7 @@ Duplicate and restart paths reconcile the original operation; status uses its
 own exact-revision intent and authority. Bounded polling retains the original
 submit reply, latest progress and distinct terminal decisions rather than
 eventually exhausting recovery. See the
-[adoption and proof procedure](operator.md#radicle-source-to-build-composition).
+[adoption and proof procedure](operator/ci-and-providers.md#radicle-source-to-build-composition).
 
 The Iroh bridge preserves the existing Lattice exchange contract, peer-pins the
 worker, enrolls controllers, and checks the exact native capability profile
@@ -191,7 +191,7 @@ Kiln maintainers own adapter compatibility and the local repeatability rail;
 operators own HTTPS ingress, live tokens, route installation, replay retention,
 and deployment. Test-only local Git and loopback status transports require the
 explicit `protocol-fixtures` feature, absent from normal packages. See the
-[GitHub operator procedure](operator.md#github-ci-adapter) for real configuration
+[GitHub operator procedure](operator/ci-and-providers.md#github-ci-adapter) for real configuration
 inputs and the local-evidence claim boundary.
 
 ## Claim boundary

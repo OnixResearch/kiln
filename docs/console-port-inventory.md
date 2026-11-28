@@ -10,6 +10,12 @@ authoritative, until each route cohort passes its own port gate.
 `tests/console-inventory.test.mjs` checks it against the served console and runs
 in the `live-console-ui` Nix check.
 
+> **Vanilla-JS Frontend Freeze:** `crates/kiln-web-service/src/*.js` is frozen to
+> bug-fixes-only while `#67`/`#68` (Rats/Meteorite) remains the target UI
+> architecture. Do not introduce new vanilla-JS routes or features; RSS/Atom
+> repository feeds remain opt-in and hidden from the default console navigation
+> unless explicitly configured.
+
 ## What a route records
 
 | Field | Meaning | Checked against |

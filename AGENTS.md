@@ -72,3 +72,24 @@ Use native `.cairn/` lifecycle packages. Validate proposal, design, and task
 gates before implementation. Use `jj` for version-control operations.
 
 Do not edit `flake.lock` manually. Do not push without an explicit request.
+
+## Path A Factory OS and adapter tiers
+
+Kiln is the OnixResearch AI Software Factory control plane: multi-machine agent
+fleet coordination (`kiln-fleet` + Herdr + swarms), deterministic exact-revision
+CI gating (`kiln-core` + Nix/Lattice/Aspen), and `jj`/Cairn/Code-Review
+delivery backed by one pure `no_std + alloc` state machine.
+
+`Cargo.toml` `default-members` selects the live Factory crates and excludes four
+experimental/off-by-default adapters (`kiln-adapter-slurm`,
+`kiln-adapter-tangled`, `kiln-adapter-pijul`, and `kiln-adapter-gitea`). Keep
+all 52 crates in `workspace.members` and exercise excluded adapters explicitly
+via `-p <crate>` or `--workspace`.
+
+## Vanilla-JS frontend freeze
+
+`crates/kiln-web-service/src/*.js` is frozen to bug-fixes-only while `#67`/`#68`
+(Rats/Meteorite) remains the target UI architecture (see
+`docs/console-port-inventory.md`). Do not add new JS features or pages; RSS/Atom
+repository feeds remain opt-in and hidden from default console navigation
+unless explicitly configured.

@@ -582,7 +582,7 @@ uses `{"command":"start","contract":...}`. Inspect the same owner with an
 `inspect` command to obtain its current `store_version`; `pause`, `continue`,
 `cancel`, `issue_decision` and `resolve_decision` take that version. An
 authenticated operator can do the same from the console through
-[campaign controls](operator.md#campaign-controls-and-decision-inbox), which
+[campaign controls](operator/recovery-and-qualification.md#campaign-controls-and-decision-inbox), which
 start only configured, previewed definitions and record each command with its
 request ID in the campaign database. A decision answer is refused once the
 member's work, policy or candidate no longer matches the decision. The separate

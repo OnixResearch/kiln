@@ -7,7 +7,7 @@ merging canonical state. The dashboard remains read only: no new view vocabulary
 projection semantics, control intake, canonical state or provider effect.
 
 For authenticated enrollment, source-bound execution, logs, artifacts and controls,
-use the separate [single-tenant live web service](operator.md#single-tenant-live-web-service).
+use the separate [single-tenant live web service](operator/deploy-and-upgrade.md#single-tenant-live-web-service).
 Its authority and runtime prerequisites do not change this offline report's
 read-only contract.
 

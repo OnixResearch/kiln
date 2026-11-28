@@ -41,7 +41,7 @@ The `local` and `remote` adapter labels admit capabilities and bind the exact
 reviewed graph; a label does not select placement. Remote whole-workflow execution
 uses the existing enrolled Iroh proxy/worker bridge, with the same exact native
 Lattice route. The live web worker can use a separately provisioned Git clone via
-its explicit v2 source binding; see [remote Lattice workers](operator.md#remote-lattice-workers).
+its explicit v2 source binding; see [remote Lattice workers](operator/deploy-and-upgrade.md#remote-lattice-workers).
 No per-node mixed-host placement is implied.
 
 The adapter receives no ambient endpoint, credential, clock, filesystem, or process authority. It never starts a Lattice process.
@@ -66,7 +66,7 @@ v2 request identity. A reviewed `shell_environment` handler route injects only
 the fixed `LATTICE_SOURCE_PROVIDER`, `LATTICE_SOURCE_REPOSITORY`, and
 `LATTICE_SOURCE_REVISION` keys into exact mapped shell nodes; source context
 itself does not fetch or materialize source. The GitHub source helper and
-`route_exact` setup are described in the [operator guide](operator.md#github-ci-adapter).
+`route_exact` setup are described in the [operator guide](operator/ci-and-providers.md#github-ci-adapter).
 
 Equal admitted plans produce equal Lattice requests. A changed graph, profile, capability, or identity requires a new request.
 

@@ -1,19 +1,31 @@
 # Kiln documentation
 
+Kiln is the OnixResearch AI Software Factory control plane: multi-machine agent
+fleet coordination (`kiln-fleet` + Herdr + swarms), deterministic exact-revision
+CI gating (`kiln-core` + Nix/Lattice/Aspen), and `jj`/Cairn/Code-Review
+delivery backed by one pure `no_std + alloc` state machine.
+
 Start with the [README](../README.md) for the project overview and quick start.
 Each linked document states its own claim boundary, and `status.md` is the
 detailed ledger of implemented areas, retained evidence and the publication
-record.
+record. `Cargo.toml` `default-members` selects the live Factory tier and
+excludes four experimental/off-by-default adapters (`kiln-adapter-slurm`,
+`kiln-adapter-tangled`, `kiln-adapter-pijul`, `kiln-adapter-gitea`), which
+remain available via `-p` and `--workspace`.
 
 The sections below group the maintained documents by the question they answer.
 
 ## Start here
 
-- [5-minute quickstart](quickstart.md): clone, run the zero-setup interactive console, and initialize your own local repo workspace.
+- [5-minute quickstart](quickstart.md): clone, run the zero-setup interactive console, and initialize a `kiln.json` workspace.
 - [README](../README.md): project overview, quick start and what runs today.
 - [Implementation status and evidence index](status.md): the detailed ledger of implemented areas and evidence.
 - [Architecture](architecture.md): Kiln owns CI meaning; providers own external effects.
-- [Operator guide](operator.md): local reference run and the operating procedure for each composition.
+- [Operator guide](operator.md): index of focused operator runbooks:
+  - [Deploy & upgrade](operator/deploy-and-upgrade.md): `kiln.json` workspace manifest, `kiln-web-service` TLS/auth/tailnet, console navigation & GPUI tokens, supervised deployment, developer loop, and interactive change review.
+  - [Fleet & Factory](operator/fleet-and-factory.md): Factory status, observation projection, logs/wait/capacity/controls, and SQLite event store.
+  - [CI & providers](operator/ci-and-providers.md): local reference rail, Patchgate, Nix discovery, Aspen runtime, GitHub/Gitea/Iroh/Radicle providers, and experimental adapter tier.
+  - [Recovery & qualification](operator/recovery-and-qualification.md): journal/outbox recovery, OnixOS pilot, readiness reconciliation, campaign controls/blockers, fan-out runbooks, and Cairn changes.
 - [Security and non-claims](security-and-non-claims.md): validates bounded facts, not ambient trust.
 - [Integration contracts](integrations.md): source mapping, change gating and fairness rules.
 - [Provider authoring](provider-authoring.md): narrow, versioned ports, not one universal interface.
@@ -36,7 +48,7 @@ The sections below group the maintained documents by the question they answer.
 - [GitHub publication](github-publication.md): idempotent verified-PR delivery and opt-in ordered stacks; never force-pushes or merges.
 - [GitHub landing observation](github-landing-observation.md): reads one pull request and its check runs into bounded landing evidence, and recovers exact stacked merges; strictly read-only.
 - [Repository feeds](repository-feeds.md): read-only Atom and RSS observations, not CI evidence.
-- [GitHub CI adapter](operator.md#github-ci-adapter): operator procedure for webhook intake and exact-source jobs.
+- [GitHub CI adapter](operator/ci-and-providers.md#github-ci-adapter): operator procedure for webhook intake and exact-source jobs.
 - [iMessage receiver feasibility](imessage-receiver-feasibility.md): documented no-go for an OpenBubbles receiver; a typed contract kept for a separately licensed one.
 
 ## Execution and builds
@@ -59,8 +71,8 @@ The sections below group the maintained documents by the question they answer.
 - [Cairn convergence campaigns](cairn-convergence.md): admits a convergence receipt, selects unsatisfied evidence and plans Verify-stage builds; advisory only.
 - [Cairn selected-work consumer](cairn-selected-work.md): admits `cairn.selected-work.v1` snapshots, retains them per attempt, decides obligation completion and normalizes Lattice workflow intent.
 - [Semantic merge orchestration](semantic-merge-orchestration.md): opt-in, fixture-only check of a proposed merge.
-- [Isolated Patchgate review](operator.md#isolated-patchgate-review): isolated review evidence; never a source mutation.
-- [Optional interactive change review](operator.md#optional-interactive-change-review): human change review in the live workspace, separately admitted.
+- [Isolated Patchgate review](operator/ci-and-providers.md#isolated-patchgate-review): isolated review evidence; never a source mutation.
+- [Optional interactive change review](operator/deploy-and-upgrade.md#optional-interactive-change-review): human change review in the live workspace, separately admitted.
 
 ## Observation
 
@@ -70,15 +82,14 @@ The sections below group the maintained documents by the question they answer.
 - [Swarm claim mirror](swarm-news.md): optional renews-over-iroh claim and release mirror; articles coordinate, never authorize.
 - [HTTP API contract](http-api-contract.md): bounded OpenAPI contract for runs, bindings, artifacts and reviewed runbook dispatch, validated against real responses; lockstep only.
 - [Operator dashboard](observation-dashboard.md): local terminal or offline HTML report; read only.
-- [Resource inventories](operator.md#agent-worker-compute-and-serving-observations): separate read-only definitions, instances, shared compute and serving observations; no dispatch authority.
+- [Resource inventories](operator/deploy-and-upgrade.md#agent-worker-compute-and-serving-observations): separate read-only definitions, instances, shared compute and serving observations; no dispatch authority.
 - [Inventory producer collection](inventory-producers.md): Lattice, compute allocation and Animus serving observations mapped into inventory v2 with explicit unknowns; read only, fixture-tested.
-- [Console port inventory](console-port-inventory.md): checked route, shell and state inventory of the live console, the reference for its Rats/Meteorite port; no route is migrated.
+- [Console port inventory](console-port-inventory.md): checked route, shell and state inventory of the live console (frozen to bug-fixes-only), the reference for its Rats/Meteorite port; no route is migrated.
 - [Atlas view note](atlas-view.md): planned default-off isometric topology view in which every payload stays labeled declared or observed; nothing is implemented.
 
-## Hosted composition and commercial plan
+## Hosted composition
 
 - [Hosted CI](hosted-ci.md): bounded operator procedure for the optional composition, not a paid service.
-- [Commercial launch](commercial-launch.md): charge for compute, not features; not a launched paid service.
 
 ## Implementation-work service
 
@@ -98,18 +109,6 @@ The sections below group the maintained documents by the question they answer.
 - [Design reference pins](reference-pins.md): exact review pins that create no runtime dependency.
 - [License map](../LICENSES.md): mixed-license tree; the workspace default is not every artifact.
 - [Fuzzing](fuzzing.md): fuzz targets outside the workspace; normal builds need no nightly toolchain.
-
-## Launch kit
-
-- [Launch kit index](gtm/README.md): entry point to the launch documents.
-- [Positioning](gtm/positioning.md): message source for every external asset; copy, not evidence.
-- [Launch plan](gtm/launch-plan.md): phases, channels, metrics, risks and go/no-go criteria.
-- [Launch checklist](gtm/launch-checklist.md): dated observations and open owner-only actions.
-- [Release notes 0.1.0](gtm/release-notes-0.1.0.md): draft release body for 0.1.0.
-- [Announcement](gtm/announcement.md): long-form launch post draft.
-- [Outreach](gtm/outreach.md): channel-specific copy.
-- [Demo](gtm/demo.md): ten-minute demo script with exercised commands.
-- [Design partners](gtm/design-partners.md): discovery guide for the hosted-CI pilot.
 
 ## Project files
 

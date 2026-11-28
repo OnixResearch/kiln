@@ -82,7 +82,7 @@ JavaScript ABI exposes keyboard, paste and selection input.
 Upstream declares `rust-version = "1.100.0"` only at workspace level; no
 imported package inherits it, and the pinned browser toolchain (Rust 1.90.0)
 builds the selection. The viewer's own lock and the
-[Herdr viewer asset check](operator.md#native-sdlc-operator-controls) own
+[Herdr viewer asset check](operator/recovery-and-qualification.md#native-sdlc-operator-controls) own
 registry and compiled-output identities; the root Cargo lock is unchanged.
 
 These are selected upstream Git-object archives, not copies of mutable working
@@ -456,7 +456,7 @@ mutable checkout or store prefix alone is not source authority. Source content
 identity means the imported flake file's BLAKE3, separately from source NARs,
 plugin-tree NAR and executable/manifest BLAKE3 identities.
 
-Use the [explicit provisioning and live-rail commands](operator.md#explicit-onix-selection-and-provisioning).
+Use the [explicit provisioning and live-rail commands](operator/ci-and-providers.md#explicit-onix-selection-and-provisioning).
 The [adapter contract](nix-eval-jobs-adapter.md#frozen-source-and-measured-runtime)
 lists the exact runtime paths and hashes. The optional artifact check and real
 Kiln API rail are distinct evidence: source acquisition or successful hashing
