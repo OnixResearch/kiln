@@ -1655,7 +1655,15 @@
     const healthBanner = renderHealthBanner(catalog);
     if (healthBanner) page.append(healthBanner);
 
-    page.append(renderImportCard(ctx, repositories, onReload));
+    const importCard = renderImportCard(ctx, repositories, onReload);
+    if (repositories.length > 0 && ctx.route?.repo_focus !== "import") {
+      const importDisclosure = element("details", undefined, "panel fleet-secondary-disclosure");
+      importDisclosure.dataset.repoDisclosure = "import";
+      importDisclosure.append(element("summary", "Import repository or attach mirror"), importCard);
+      page.append(importDisclosure);
+    } else {
+      page.append(importCard);
+    }
 
     // Filter toolbar & Matrix
     const matrixPanel = element("section", undefined, "card repo-matrix-panel view-stack");

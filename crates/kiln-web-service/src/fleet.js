@@ -1562,11 +1562,12 @@
   }
 
   function placementPanel(state) {
-    const section = element("section", undefined, "panel");
+    const section = element("details", undefined, "panel fleet-secondary-disclosure");
+    section.dataset.fleetDisclosure = "placement";
     const open = element("button", "Place independent work units", "quiet");
     open.type = "button";
     const content = element("div");
-    section.append(open, content);
+    section.append(element("summary", "Split / place independent work units"), open, content);
     const current = () => active === state && state.context.isCurrent() && state.context.canOperate?.() === true;
     const base = "/api/fleet/placement";
     open.addEventListener("click", async () => {
@@ -1742,7 +1743,9 @@
       if (minutes.value !== "" && Number.isSafeInteger(Number(minutes.value)) && Number(minutes.value) > 0) body.lease_minutes = Number(minutes.value);
       void mutate(state, button, "/api/fleet/claims", body, form);
     });
-    state.acquire.replaceChildren(form);
+    const disclosure = element("details", undefined, "fleet-acquire-disclosure");
+    disclosure.append(element("summary", "Acquire claim"), form);
+    state.acquire.replaceChildren(disclosure);
   }
 
   function notice(node, message = "") {

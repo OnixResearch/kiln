@@ -380,6 +380,7 @@
     const available = result.available.filter((row) => !enrolledIds.has(row.id));
     const prevEnrolled = $("enrolled-project").value;
     options($("available-project"), available, available.length ? "Select an allowlisted repository" : "No unenrolled repositories available", $("available-project").value);
+    if ($("enroll-panel")) $("enroll-panel").hidden = available.length === 0;
     options($("enrolled-project"), result.enrolled, result.enrolled.length ? "Select an enrolled project" : "No enrolled projects", $("enrolled-project").value);
     options($("run-filter"), result.enrolled, "All projects", state.route?.project || "");
     if (result.enrolled.length === 1) $("enrolled-project").value = result.enrolled[0].id;
@@ -1765,7 +1766,7 @@
     $("account-avatar").textContent = ([...principalLabel.trim()][0] || "?").toUpperCase();
     $("account-name").textContent = principalLabel;
     $("account-role").textContent = `${text(state.principal?.role)} · ${admission}`;
-    $("connection-status").hidden = false;
+    $("connection-status").hidden = Boolean($("global-live-strip"));
     const principalFacts = [["Principal", state.principal?.label], ["ID", state.principal?.id], ["Role", state.principal?.role], ["Admission", admission]];
     if (state.principal?.agent) principalFacts.push(["Agent", `${text(state.principal.agent.harness)}${state.principal.agent.model ? ` · ${text(state.principal.agent.model)}` : ""} (declared)`]);
     addFacts($("principal-facts"), principalFacts);
@@ -1945,7 +1946,8 @@
     const page = alias ? alias.page : requestedPage;
     const rawTab = params.get("tab") || "";
     const allowedTabs = ALLOWED_TABS[page];
-    const defaultTab = alias ? alias.tab : (page === "inbox" ? (params.get("work_id") ? "inbox" : "attention") : allowedTabs ? page : "");
+    const hasSourceParams = ["src", "rev", "spath", "sfile", "sq", "sview"].some((k) => Boolean(params.get(k)));
+    const defaultTab = alias ? alias.tab : (page === "inbox" ? (params.get("work_id") ? "inbox" : "attention") : page === "source" ? (hasSourceParams ? "source" : "repositories") : allowedTabs ? page : "");
     const tab = allowedTabs ? (allowedTabs.has(rawTab) ? rawTab : defaultTab) : "";
     return {
       page,
@@ -2226,17 +2228,6 @@
     ["Cancelled", "", "Stopped on request before it finished."],
     ["Unknown", "", "Kiln cannot confirm what happened, for example after a lost connection. Unknown is neither a pass nor a failure: observe or reconcile before acting."],
   ]);
-  const GUIDE_TERMS = Object.freeze([
-    ["Project", "A repository reference with a reviewed pipeline that this service may run."],
-    ["Run", "One execution of a project's pipeline at one exact source revision. A rerun is a new run."],
-    ["Exact revision", "The full commit identity a run is bound to. A branch that moves needs a new run; results never carry over."],
-    ["Node", "One step of a run's workflow graph, such as build or test. Each node has its own logs."],
-    ["Worker target", "A configured execution target with project admission slots. It is not a discovered machine or a health check."],
-    ["Retained", "Kept by this service within its bounds. Views show retained records, not a complete history."],
-    ["Evidence", "Recorded source, execution, report, review and provenance facts for a run. Evidence is not acceptance or release authority."],
-    ["Receipt", "Patchgate's recorded review of inbox changes: one decision per change and Patchgate's own report, kept byte for byte. A receipt never accepts or merges a change."],
-    ["Viewer and operator", "Viewers read. Operators can also enroll projects and start, cancel, approve and rerun runs; the service checks every request again."],
-  ]);
   const GUIDE_GLOSSARY = Object.freeze([
     ["Cairn", "Lifecycle and specification manager whose .cairn/ packages organize proposals, designs, tasks and release gates tracked in Delivery & Cairn."],
     ["Lattice", "Standalone workflow runner that executes admitted CI jobs and agent attempts across local or remote machines."],
@@ -2315,15 +2306,6 @@
       tryList.append(card);
     }
     onboarding.append(tryList);
-    const start = guideSheet(parent, "Start here");
-    const steps = element("ol", undefined, "contents-list guide-steps");
-    for (const [page, text] of [
-      ["overview", "Live Factory cockpit: escalations, delivery spine, speculative merge train, machine slots and expiring claims. (CI projects and build runs live in 2.2 Runs & Evidence.)"],
-      ["runs", "Every retained run, newest first. Select a run to see its pipeline, logs, artifacts, tests and evidence."],
-      ["projects", "Start a run: choose a project, then its latest reference, a named reference or an exact revision."],
-      ["code-review", "Review a change at its exact revision; its submit requirements show the CI results that apply to it."],
-    ]) steps.append(guideEntry(page, text));
-    start.append(steps);
     const contents = element("div", undefined, "contents-groups");
     contents.setAttribute("role", "group");
     contents.setAttribute("aria-label", "Contents");
@@ -2353,10 +2335,6 @@
     const glossaryList = element("dl", undefined, "guide-terms guide-glossary");
     for (const [term, meaning] of GUIDE_GLOSSARY) glossaryList.append(element("dt", term), element("dd", meaning));
     glossary.append(glossaryList);
-    const terms = guideSheet(parent, "Words Kiln uses");
-    const vocabulary = element("dl", undefined, "guide-terms");
-    for (const [term, meaning] of GUIDE_TERMS) vocabulary.append(element("dt", term), element("dd", meaning));
-    terms.append(vocabulary);
     const keys = guideSheet(parent, "Keyboard");
     const reference = element("dl", undefined, "contents-keys");
     const keyRow = (list, combo, meaning) => {
@@ -2849,7 +2827,7 @@
     // r[impl kiln.cairn.workspace] The Cairn changes page renders through cairn.js.
     if (subPage === "cairn") {
       if (!window.KilnCairn) { $("cairn-content").replaceChildren(element("p", "Cairn changes are loading.", "small")); return; }
-      await window.KilnCairn.load($("cairn-content"), { api: pageApi, navigate, route, runLink, confirmControl, canOperate });
+      await window.KilnCairn.load($("cairn-content"), { api: pageApi, navigate, route, runLink, confirmControl, canOperate, capabilities: state.capabilities });
     }
     // The Fleet page owns its bounded reads and coordinator commands; leaving the
     // page aborts its refresh cycle.
@@ -3142,12 +3120,10 @@
   const OVERVIEW_ACTIVITY_LIMIT = 5;
   const OVERVIEW_SECTIONS = Object.freeze({
     overview: ["overview-health", "overview-attention", "overview-passed", "overview-other", "overview-trend"],
-    workers: ["overview-workers"],
     activity: ["overview-activity"],
   });
   const OVERVIEW_UNAVAILABLE = Object.freeze({
     overview: "Project health unavailable",
-    workers: "Worker capacity unavailable",
     activity: "Recent activity unavailable",
   });
   function dashboardSection(parent, id, title, className, link) {
@@ -3297,9 +3273,11 @@
         dd.append(btn);
       }
     });
-    addCell("Swarm mirror", (dd) => {
-      dd.append(statePill(mirror === "ok" ? "success" : mirror === "unavailable" ? "failure" : "unknown", mirror.toUpperCase()));
-    });
+    if (mirror !== "unconfigured") {
+      addCell("Swarm mirror", (dd) => {
+        dd.append(statePill(mirror === "ok" ? "success" : mirror === "unavailable" ? "failure" : "unknown", mirror.toUpperCase()));
+      });
+    }
     addCell("Escalations", (dd) => {
       dd.append(element("span", String(escalations)), workspaceLink({ page: "inbox", tab: "attention" }, "View ->", "row-link"));
     });
@@ -3494,9 +3472,10 @@
       ? window.KilnCodeReview.summarizeMergeTrains(codeReviewSnapshot)
       : [];
     if (!trains.length) {
-      strip.append(element("p", "No active speculative merge trains.", "small"));
+      strip.hidden = true;
       return;
     }
+    strip.hidden = false;
     for (const train of trains) {
       const row = element("div", undefined, "factory-merge-train-line");
       const link = workspaceLink({ page: "code-review", review_tab: "queue" }, train.target_ref || "Merge queue", "row-link");
@@ -4043,26 +4022,6 @@
     if (runningFirst && otherSection.nextElementSibling !== passedSection) passedSection.before(otherSection);
     else if (!runningFirst && passedSection.nextElementSibling !== otherSection) passedSection.after(otherSection);
     renderDurationTrend($("overview-trend"), result);
-  }
-  function renderOverviewWorkers(result) {
-    window.KilnWorkers.validate(result);
-    const body = $("overview-workers");
-    body.replaceChildren();
-    setSectionCount("overview-workers", `${result.workers.length} target${result.workers.length === 1 ? "" : "s"}`);
-    if (result.storage_failed) body.append(element("p", "Durable storage is failed. Mutating admission is unavailable; no healthy state is inferred.", "warning"));
-    if (!result.workers.length) { body.append(emptyState("No targets configured", "No workflow targets are configured in this bounded snapshot. This is not a discovery of physical workers.")); return; }
-    const metrics = element("dl", undefined, "side-metrics");
-    for (const [label, value] of [["Free project slots", result.summary.free_slots], ["Active / occupied", result.summary.active], ["Configured slots", result.summary.configured_slots], ["Queued runs", result.summary.queued]]) {
-      const metric = element("div", undefined, "side-metric");
-      metric.append(element("dt", label), element("dd", text(value)));
-      metrics.append(metric);
-    }
-    const counts = new Map();
-    for (const worker of result.workers) counts.set(worker.status, (counts.get(worker.status) || 0) + 1);
-    const statuses = element("div", undefined, "cluster");
-    statuses.setAttribute("aria-label", "Targets by slot status");
-    for (const [status, count] of counts) { const badge = window.KilnWorkers.statusBadge(status); badge.append(document.createTextNode(` · ${count}`)); statuses.append(badge); }
-    body.append(metrics, statuses, element("p", "Configured targets and admission slots, not discovered machines. Physical liveness is unknown.", "small"));
   }
   // r[impl kiln.web.page_consistency] Readable activity rows: long identity segments are shortened in the title, the exact target stays secondary mono text.
   function compactTarget(target) { return typeof target === "string" ? target.split("/").map((part) => part.length > 22 ? shortIdentity(part) : part).join("/") : text(target); }

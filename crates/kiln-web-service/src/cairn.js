@@ -2841,7 +2841,7 @@
 
   // r[impl kiln.sdlc.cairn_authoring] The canonical workspace selection never authorizes a native root.
   function nativeAuthoringPanel(route) {
-    if (!context?.canOperate?.()) { authoringPanel = null; return null; }
+    if (!context?.canOperate?.() || context?.capabilities?.cairn_authoring === false) { authoringPanel = null; return null; }
     if (authoringPanel && sameSelection(authoringPanel.route, route)) return authoringPanel.node;
     const panel = element("details", undefined, "panel cairn-authoring");
     const status = element("p", "Open to read configured authoring roots.", "small");

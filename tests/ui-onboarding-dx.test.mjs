@@ -1062,7 +1062,9 @@ test("Fleet and Workers skip unconfigured 503 inventory/campaign endpoints and c
       if (target === "/api/implementation/cairn") return jsonResponse({ changes: [] });
       if (target === "/api/fleet/dispatch/status") return jsonResponse({ enabled: true, last_tick: { deferral_counts: {} } });
       if (target.startsWith("/api/fleet/claims")) return jsonResponse({ claims: [] });
-      if (target === "/api/fleet/admission/status") return jsonResponse({ configured: false });
+      if (target === "/api/fleet/work") return jsonResponse({ ready_unclaimed: 0, ranked: [], blocked: [] });
+      if (target === "/api/workers") return jsonResponse({ schema: "kiln.web-workers.v1", bounded: true, storage_failed: false, workers: [], summary: { targets: 0, enrolled_slots: 0, configured_slots: 0, active: 0, free_slots: 0, queued: 0 } });
+      if (target === "/api/implementation/admission") return jsonResponse({ schema: "kiln.implementation-admission.v1", configured: false, bounded: true, policy: null, accounts: [], serving: [], attempt_metrics: [] });
       return jsonResponse({});
     },
   });
@@ -1077,7 +1079,125 @@ test("Fleet and Workers skip unconfigured 503 inventory/campaign endpoints and c
       assert.equal(byKey.get(key).open, false, `Fleet secondary disclosure ${key} should start collapsed`);
     }
     assert.equal(byKey.get("campaigns").hidden, true, "Fleet campaigns disclosure should be hidden when campaign_controls is false");
+    assert.ok(byKey.has("admission"), "Unconfigured fair-admission should collapse into secondary disclosure");
+    assert.equal(byKey.get("admission").open, false);
+    assert.ok(byKey.has("targets"), "Duplicate configured execution targets should collapse into secondary disclosure");
+    assert.equal(byKey.get("targets").open, false);
+    assert.ok(byKey.has("placement"), "Placement controls should collapse into secondary disclosure");
+    assert.equal(byKey.get("placement").open, false);
+    const acquireDisclosure = fleetContent.querySelector("details.fleet-acquire-disclosure");
+    assert.ok(acquireDisclosure, "Acquire claim form should sit in a collapsed disclosure");
+    assert.equal(acquireDisclosure.open, false);
   } finally {
     fleetEnv.cleanup();
+  }
+});
+
+test("Pass 2 pruning: Factory, Guide, Projects, Cairn authoring, and Source/Repositories default cleanly", async () => {
+  const capabilities = { feeds: false, runbooks: false, inventory: false, campaign_controls: false, automation: false, cairn_authoring: false };
+  const baseSession = {
+    principal: { id: "local:operator", label: "Operator", role: "operator" },
+    permissions: { read: true, operate: true, configure: true },
+    feeds_configured: false,
+    capabilities,
+  };
+
+  // Factory hides unconfigured Swarm mirror, empty merge train strip, and duplicate #connection-status.
+  const factoryEnv = await setup({
+    initialSearch: "?page=overview",
+    fetchHandler: async (target) => {
+      if (target === "/api/session") return jsonResponse(baseSession);
+      if (target === "/api/projects") return jsonResponse({ enrolled: [], available: [] });
+      if (target === "/api/overview") return jsonResponse({ totals: { runs: 0, failed: 0, active: 0, queued: 0, succeeded: 0, cancelled: 0, unknown: 0 }, projects: [], duration_trend: [], timing: { recorded: 0, total: 0 } });
+      if (target.startsWith("/api/activity")) return jsonResponse({ total: 0, bounded: true, items: [] });
+      if (target === "/api/implementation/attention") return jsonResponse({ items: [], total: 0 });
+      if (target === "/api/fleet/machines") return jsonResponse({ machines: [] });
+      if (target.startsWith("/api/fleet/claims")) return jsonResponse({ claims: [], foreign_mirror: { status: "unconfigured" } });
+      if (target === "/api/fleet/dispatch/status") return jsonResponse({ state: "running", last_tick: { deferred_count: 0 } });
+      if (target === "/api/implementation/cairn") return jsonResponse({ changes: [] });
+      if (target === "/api/fleet/attempts") return jsonResponse({ attempts: [] });
+      if (target.startsWith("/api/code-review")) return jsonResponse({ changes: [] });
+      if (target === "/api/repositories") return jsonResponse({ repositories: [] });
+      return jsonResponse({});
+    },
+  });
+  try {
+    assert.doesNotMatch(factoryEnv.doc.getElementById("factory-ribbon").textContent, /Swarm mirror/);
+    assert.equal(factoryEnv.doc.getElementById("factory-merge-train").hidden, true);
+    assert.equal(factoryEnv.doc.getElementById("connection-status").hidden, true);
+  } finally {
+    factoryEnv.cleanup();
+  }
+
+  // Guide omits redundant Start here and Words Kiln uses sections.
+  const guideEnv = await setup({ initialSearch: "?page=guide" });
+  try {
+    const guideText = guideEnv.doc.getElementById("guide-content").textContent;
+    assert.doesNotMatch(guideText, /Words Kiln uses/);
+    assert.equal(guideEnv.doc.getElementById("guide-start-here"), null);
+  } finally {
+    guideEnv.cleanup();
+  }
+
+  // CI Projects hides Enroll panel when no unenrolled allowlisted repos exist.
+  const projEnv = await setup({
+    initialSearch: "?page=projects",
+    fetchHandler: async (target) => {
+      if (target === "/api/session") return jsonResponse(baseSession);
+      if (target === "/api/projects") return jsonResponse({ enrolled: [{ id: "p1", label: "Kiln", reference: "refs/heads/main" }], available: [] });
+      if (target === "/api/overview") return jsonResponse({ totals: { runs: 0, failed: 0, active: 0, queued: 0, succeeded: 0, cancelled: 0, unknown: 0 }, projects: [], duration_trend: [], timing: { recorded: 0, total: 0 } });
+      return jsonResponse({});
+    },
+  });
+  try {
+    assert.equal(projEnv.doc.getElementById("enroll-panel").hidden, true);
+  } finally {
+    projEnv.cleanup();
+  }
+
+  // System & Source defaults to Repositories tab and collapses import form when repos already exist.
+  const repoEnv = await setup({
+    initialSearch: "?page=source",
+    extraAssets: ["source.js"],
+    fetchHandler: async (target) => {
+      if (target === "/api/session") return jsonResponse(baseSession);
+      if (target === "/api/projects") return jsonResponse({ enrolled: [], available: [] });
+      if (target === "/api/repositories") {
+        return jsonResponse({
+          repositories: [{ identity: "a".repeat(64), slug: "OnixResearch/kiln", label: "Kiln", status: "synced", remotes: [], local_copies: [], active_cairns: 0 }],
+          summary: { total: 1, total_local_copies: 1, total_cairns: 0, synced: 1, diverged: 0, dirty: 0, unknown: 0, local_only: 0 },
+        });
+      }
+      if (target === "/api/sources") return jsonResponse({ sources: [] });
+      return jsonResponse({});
+    },
+  });
+  try {
+    const activeTab = repoEnv.doc.querySelector('#destination-tabs a[aria-current="page"]');
+    assert.equal(activeTab?.dataset?.tab, "repositories");
+    const importDisclosure = repoEnv.doc.querySelectorAll("details.fleet-secondary-disclosure").find((d) => d.dataset.repoDisclosure === "import");
+    assert.ok(importDisclosure, "Import form should collapse when repositories already exist");
+    assert.equal(importDisclosure.open, false);
+  } finally {
+    repoEnv.cleanup();
+  }
+
+  // Cairn omits nativeAuthoringPanel when capabilities.cairn_authoring is false.
+  const cairnEnv = await setup({
+    initialSearch: "?page=cairn",
+    extraAssets: ["cairn.js"],
+    fetchHandler: async (target) => {
+      if (target === "/api/session") return jsonResponse(baseSession);
+      if (target === "/api/projects") return jsonResponse({ enrolled: [], available: [] });
+      if (target === "/api/implementation/cairn") {
+        return jsonResponse({ schema: "kiln.cairn-workspace-index.v2", snapshot: { observed_at_ms: 1795800000000 }, repositories: [], changes: [], bounded: true, truncated: false });
+      }
+      return jsonResponse({});
+    },
+  });
+  try {
+    assert.equal(cairnEnv.doc.querySelector("details.cairn-authoring"), null);
+  } finally {
+    cairnEnv.cleanup();
   }
 });

@@ -2293,6 +2293,7 @@ impl Workspace {
                                 "inventory": false,
                                 "campaign_controls": false,
                                 "automation": false,
+                                "cairn_authoring": false,
                             }),
                         );
                         response.body = parsed.to_string().into_bytes();

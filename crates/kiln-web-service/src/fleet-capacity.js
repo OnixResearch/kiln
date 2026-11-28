@@ -385,6 +385,12 @@
       for (const item of admission.non_claims) nc.append(node("p", text(item), "small"));
       panel.append(nc);
     }
+    if (!admission.configured || !admission.policy) {
+      const box = node("details", undefined, "panel fleet-secondary-disclosure");
+      box.dataset.fleetDisclosure = "admission";
+      box.append(node("summary", "Fair-admission governance (not configured)"), panel);
+      return box;
+    }
     return panel;
   }
 
@@ -462,15 +468,19 @@
       node("p", "Fleet owner ranking is priority descending, then canonical identity. Ranked work is eligible in the work ledger, but can already be claimed. This is not a fairness score, dispatch grant or availability forecast.", "small"),
       facts([["Ready and unclaimed (owner count)", number(work.ready_unclaimed)], ["Ranked entries listed", work.ranked.length], ["Blocked entries listed", work.blocked.length]]));
     if (work.ranked.length === WORK_LIMIT || work.blocked.length === WORK_LIMIT) panel.append(node("p", "Each list is bounded at 100 by the Fleet owner. More work may exist; the listed counts are not totals.", "small"));
-    for (const [heading, items, blocked] of [["Ranked work", work.ranked, false], ["Blocked work", work.blocked, true]]) {
-      const section = node("section", undefined, "fleet-capacity-group");
-      section.append(node("h3", heading));
-      if (items.length) {
-        const list = node("ol", undefined, "fleet-capacity-list");
-        items.forEach((item, index) => list.append(workRow(state, item, index, blocked)));
-        section.append(list);
-      } else section.append(empty(`No ${blocked ? "blocked" : "ranked"} work listed`, "The Fleet owner returned no entries in this category; other inventories are independent."));
-      panel.append(section);
+    if (!work.ranked.length && !work.blocked.length) {
+      panel.append(empty("No queued or blocked implementation work", "The Fleet owner returned no ranked or blocked work entries."));
+    } else {
+      for (const [heading, items, blocked] of [["Ranked work", work.ranked, false], ["Blocked work", work.blocked, true]]) {
+        const section = node("section", undefined, "fleet-capacity-group");
+        section.append(node("h3", heading));
+        if (items.length) {
+          const list = node("ol", undefined, "fleet-capacity-list");
+          items.forEach((item, index) => list.append(workRow(state, item, index, blocked)));
+          section.append(list);
+        } else section.append(empty(`No ${blocked ? "blocked" : "ranked"} work listed`, "The Fleet owner returned no entries in this category; other inventories are independent."));
+        panel.append(section);
+      }
     }
     return panel;
   }
@@ -500,7 +510,10 @@
       event.preventDefault(); state.context.navigate({ page: "workers" });
     });
     panel.append(link);
-    return panel;
+    const box = node("details", undefined, "panel fleet-secondary-disclosure");
+    box.dataset.fleetDisclosure = "targets";
+    box.append(node("summary", "Configured execution targets (CI slots — also in Workers tab)"), panel);
+    return box;
   }
 
   function validateInventory(value, requested) {

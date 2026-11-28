@@ -1499,6 +1499,7 @@ fn route(
                             "inventory": context.inventory.is_some(),
                             "campaign_controls": context.campaign_controls.is_some(),
                             "automation": automation_configured,
+                            "cairn_authoring": context.cairn_authoring.is_some(),
                         }),
                     );
                     response.body = session.to_string().into_bytes();
