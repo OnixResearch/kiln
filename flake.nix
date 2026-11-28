@@ -270,6 +270,7 @@
           nativeCheckInputs = [
             pkgs.python3
             pkgs.git
+            pkgs.openssl
           ];
           buildInputs = [
             pkgs.zlib
