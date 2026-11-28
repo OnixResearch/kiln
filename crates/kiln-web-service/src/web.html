@@ -74,7 +74,7 @@
       <a id="global-firing-pill" class="live-strip-pill" href="?page=runs&amp;outcome=Pending"><span class="live-strip-dot" aria-hidden="true"></span><span id="global-firing-count">0</span> firing</a>
       <a id="global-escalations-pill" class="live-strip-pill" href="?page=inbox"><span id="global-escalations-count">0</span> escalations</a>
       <a id="global-expiring-claims-pill" class="live-strip-pill" href="?page=fleet"><span id="global-expiring-claims-count">0</span> expiring claims</a>
-      <button id="global-command-trigger" class="quiet live-strip-cmd" type="button" aria-label="Open command palette"><kbd>Ctrl+K</kbd> Commands</button>
+      <button id="global-command-trigger" class="quiet live-strip-cmd" type="button" aria-label="Open command palette" hidden><kbd>Ctrl+K</kbd> Commands</button>
     </div>
   </div>
   <main id="main" class="app-main" tabindex="-1">
@@ -101,7 +101,7 @@
       <section data-panel="fleet" hidden class="view-stack"><div id="fleet-content" class="view-stack"></div></section>
       <section data-panel="code-review" hidden class="view-stack"><div id="code-review-content" class="view-stack"></div></section>
       <section data-panel="projects" hidden class="view-stack">
-        <p class="meta">Project actions require operator access. Viewers can browse inventory and retained runs without changing execution.</p>
+        <p id="projects-viewer-note" class="meta">Project actions require operator access. Viewers can browse inventory and retained runs without changing execution.</p>
         <!-- r[impl kiln.web.wayfinding] Projects lead with the inventory a reader came for; enrollment and the start form follow it. -->
         <section class="panel"><div class="section-heading"><h2>Project inventory</h2></div><div id="project-cards" class="project-grid"></div></section>
         <div class="project-forms">

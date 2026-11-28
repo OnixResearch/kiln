@@ -110,6 +110,25 @@ pub(crate) fn read_only_code_review_ci(
 }
 
 impl Engine {
+    /// Whether this service has at least one reviewed runbook configured.
+    #[must_use]
+    pub fn has_runbooks(&self) -> bool {
+        self.runbook_profile
+            .as_ref()
+            .is_some_and(|registry| !registry.runbooks.is_empty())
+    }
+
+    /// Whether this service has an automation policy with at least one trigger,
+    /// schedule, or notification registered.
+    #[must_use]
+    pub fn has_active_automation(&self) -> bool {
+        self.automation_profile.as_ref().is_some_and(|profile| {
+            !profile.triggers.is_empty()
+                || !profile.schedules.is_empty()
+                || !profile.notifications.is_empty()
+        })
+    }
+
     /// Bounded derived CI facts for the Work API. Reads only the admitted
     /// project profile and retained run records; it dispatches nothing, reads
     /// no clock and mutates no state.

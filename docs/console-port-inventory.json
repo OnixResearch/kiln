@@ -248,7 +248,6 @@
       "stylesheets": [],
       "api": [
         "/api/overview",
-        "/api/workers",
         "/api/activity",
         "/api/events",
         "/api/implementation/attention",

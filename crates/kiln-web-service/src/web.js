@@ -365,6 +365,7 @@
     $("project-description").textContent = enrolled ? `${text(enrolled.repository)} · ${text(enrolled.reference)}\nPipeline: ${text(enrolled.pipeline_identity)}` : "Enroll or select a project before starting a run.";
     $("enroll-button").disabled = !canOperate() || state.mutation || !available;
     $("start-button").disabled = !canOperate() || state.mutation || !enrolled;
+    if ($("projects-viewer-note")) $("projects-viewer-note").hidden = canOperate();
   }
   async function loadProjects() {
     const epoch = state.epoch;
@@ -1633,6 +1634,7 @@
     window.KilnProject?.clear();
     $("project-content").replaceChildren();
     state.feedsConfigured = false;
+    state.capabilities = null;
     stopFeedsTimer();
     stopLiveTicker();
     stopPanePolling();
@@ -1842,8 +1844,8 @@
       Object.freeze({ id: "workers", label: "Worker targets", panel: "workers", title: "Inspect configured execution targets, project admission slots and latest execution state." }),
     ]),
     source: Object.freeze([
-      Object.freeze({ id: "source", label: "Source browser", panel: "source", title: "Browse committed repository trees, diffs and commit history without running workspace commands." }),
       Object.freeze({ id: "repositories", label: "Repositories", panel: "repositories", title: "Multi-forge repository catalog, canonical Radicle/GitHub/Gitea remotes, mirrors and local working copies." }),
+      Object.freeze({ id: "source", label: "Source browser", panel: "source", title: "Browse committed repository trees, diffs and commit history without running workspace commands." }),
       Object.freeze({ id: "activity", label: "Activity", panel: "activity", title: "Browse retained canonical events and attributable audit decisions." }),
       Object.freeze({ id: "feeds", label: "Feeds", panel: "feeds", title: "Subscribe to Atom feeds of retained runs and follow external repository feeds (read-only projections)." }),
       Object.freeze({ id: "automation", label: "Automation", panel: "automation", title: "Inspect registered webhook triggers, schedules and delivery outcomes." }),
@@ -1918,6 +1920,7 @@
     state.principal = result.principal;
     state.permissions = result.permissions;
     state.feedsConfigured = result.feeds_configured === true;
+    state.capabilities = result.capabilities && typeof result.capabilities === "object" ? result.capabilities : null;
     window.dispatchEvent(new Event("kiln-session-changed"));
   }
   // r[impl kiln.dashboard.time.local]
@@ -2033,16 +2036,26 @@
     history.pushState(null, "", `${location.pathname}?${params}`);
     void readAction(restoreRoute)();
   }
+  // Secondary/legacy tabs hidden from default navigation unless visited directly by URL.
+  const HIDDEN_DEFAULT_TABS = new Set(["inbox", "triage", "planning", "workviews", "evidence", "reviews", "cobs"]);
+  function tabVisibleInNav(tab, activeTab) {
+    if (tab.id === "feeds") return state.feedsConfigured;
+    if (tab.id === "runbooks" && state.capabilities?.runbooks === false) return activeTab === "runbooks";
+    if (tab.id === "automation" && state.capabilities?.automation === false) return activeTab === "automation";
+    if (HIDDEN_DEFAULT_TABS.has(tab.id)) return activeTab === tab.id;
+    return true;
+  }
   function renderDestinationTabs(route, routeHref) {
     const bar = $("destination-tabs");
     if (!bar) return;
     const tabs = DESTINATION_TABS[route.page];
     if (!tabs || !tabs.length) { bar.hidden = true; bar.replaceChildren(); return; }
     const activeTab = activeSubPageFor(route) === "project" ? "projects" : activeSubPageFor(route);
+    const visibleTabs = tabs.filter((tab) => tabVisibleInNav(tab, activeTab));
+    if (visibleTabs.length <= 1) { bar.hidden = true; bar.replaceChildren(); return; }
     bar.hidden = false;
     bar.replaceChildren();
-    for (const tab of tabs) {
-      if (tab.id === "feeds" && !state.feedsConfigured) continue;
+    for (const tab of visibleTabs) {
       const link = element("a", tab.label);
       link.dataset.tab = tab.id;
       link.href = routeHref({ page: route.page, tab: tab.id });
@@ -2792,7 +2805,7 @@
       await Promise.all([loadRefs(), loadProjectHealth()]);
     }
     // r[impl kiln.dashboard.workers.view] The Workers module owns its register, local filters and exact detail.
-    if (subPage === "workers") await window.KilnWorkers.load($("workers-content"), { api: pageApi, navigate, route, isCurrent: () => state.route === route && !!state.session, runLink, projectLink });
+    if (subPage === "workers") await window.KilnWorkers.load($("workers-content"), { api: pageApi, navigate, route, capabilities: state.capabilities, isCurrent: () => state.route === route && !!state.session, runLink, projectLink });
     if (subPage === "runbooks") {
       if (!window.KilnRunbooks) { $("runbooks-content").replaceChildren(element("p", "Runbooks are loading.", "small")); return; }
       await window.KilnRunbooks.load($("runbooks-content"), {
@@ -2851,6 +2864,7 @@
         runLink,
         canOperate,
         confirmControl,
+        capabilities: state.capabilities,
         route,
         isCurrent: () => state.route === route && !!state.session,
       });
@@ -3185,7 +3199,6 @@
 
     dashboardSection(side, "factory-machines", "Machine & slot census", "card side-card", workspaceLink({ page: "fleet", tab: "fleet" }, "Open Fleet"));
     dashboardSection(side, "factory-claims", "Claims & budget", "card side-card", workspaceLink({ page: "fleet", tab: "fleet" }, "All claims"));
-    dashboardSection(side, "overview-workers", "Workers", "card side-card", workspaceLink({ page: "workers", worker_q: "", worker_status: "", worker: "" }, "All workers"));
     dashboardSection(side, "overview-activity", "Recent activity", "card side-card", workspaceLink({ page: "activity", activity_cursor: "" }, "All activity"));
     grid.append(main, side);
     cockpit.append(ribbon, grid);
@@ -3756,9 +3769,8 @@
   }
   async function loadOverview() {
     if (!$("overview-content")?.querySelector?.(".factory-cockpit")) buildOverview($("overview-content"));
-    const [overviewRes, workersRes, activityRes, attentionRes, machinesRes, claimsRes, dispatchRes, cairnRes, attemptsRes, reviewRes, reposRes] = await Promise.all([
+    const [overviewRes, activityRes, attentionRes, machinesRes, claimsRes, dispatchRes, cairnRes, attemptsRes, reviewRes, reposRes] = await Promise.all([
       safeCall("/api/overview"),
-      safeCall("/api/workers"),
       safeCall(`/api/activity?${new URLSearchParams({ limit: String(OVERVIEW_ACTIVITY_LIMIT) })}`),
       safeCall("/api/implementation/attention"),
       safeCall("/api/fleet/machines"),
@@ -3773,9 +3785,6 @@
     if (overviewRes.ok && overviewRes.value?.totals) renderOverviewHealth(overviewRes.value);
     else if (overviewRes.ok) $("overview-health")?.replaceChildren(emptyState("Overview unavailable", "Project overview payload is incomplete."));
     else $("overview-health")?.replaceChildren(errorState(`${OVERVIEW_UNAVAILABLE.overview}: ${explain(overviewRes.error)}`));
-    if (workersRes.ok && workersRes.value?.summary) renderOverviewWorkers(workersRes.value);
-    else if (workersRes.ok) $("overview-workers")?.replaceChildren(emptyState("Workers unavailable", "Worker snapshot is unavailable."));
-    else $("overview-workers")?.replaceChildren(errorState(`${OVERVIEW_UNAVAILABLE.workers}: ${explain(workersRes.error)}`));
     if (activityRes.ok && Array.isArray(activityRes.value?.items)) renderOverviewActivity(activityRes.value);
     else if (activityRes.ok) $("overview-activity")?.replaceChildren(emptyState("Activity unavailable", "Activity feed is unavailable."));
     else $("overview-activity")?.replaceChildren(errorState(`${OVERVIEW_UNAVAILABLE.activity}: ${explain(activityRes.error)}`));

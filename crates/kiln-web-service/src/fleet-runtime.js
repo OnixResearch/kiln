@@ -197,8 +197,13 @@
   async function load(root, ctx, attempts) {
     const current = ++generation;
     controller?.abort();
-    const request = new AbortController(); controller = request;
     mounted = root;
+    if (ctx?.capabilities?.inventory === false) {
+      root.replaceChildren();
+      root.removeAttribute("aria-busy");
+      return;
+    }
+    const request = new AbortController(); controller = request;
     root.setAttribute("aria-busy", "true");
     if (!root.querySelector(".fleet-runtime")) {
       root.replaceChildren(element("p", "Reading admitted runtime inventory…", "small"));

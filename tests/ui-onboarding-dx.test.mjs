@@ -447,7 +447,7 @@ class FakeEvent {
   }
 }
 
-async function setup({ initialSearch = "", fetchHandler, nowMs } = {}) {
+async function setup({ initialSearch = "", fetchHandler, nowMs, extraAssets = [] } = {}) {
   const windowListeners = new Map();
   const docListeners = new Map();
   const doc = {
@@ -572,6 +572,7 @@ async function setup({ initialSearch = "", fetchHandler, nowMs } = {}) {
 
   vm.runInNewContext(asset("icons.js"), context);
   vm.runInNewContext(asset("ui.js"), context);
+  for (const name of extraAssets) vm.runInNewContext(asset(name), context);
   vm.runInNewContext(asset("workers.js"), context);
   vm.runInNewContext(asset("web.js"), context);
 
@@ -919,5 +920,164 @@ test("1.1 Factory renders recent activity from items[] instead of showing Activi
     assert.match(text, /POST \/api\/runs/);
   } finally {
     env.cleanup();
+  }
+});
+
+test("Capability-aware subnav hides unconfigured and secondary tabs while keeping direct URLs reachable", async () => {
+  const unconfiguredSession = {
+    principal: { id: "local:operator", label: "Operator", role: "operator" },
+    permissions: { read: true, operate: true, configure: true },
+    feeds_configured: false,
+    capabilities: { feeds: false, runbooks: false, inventory: false, campaign_controls: false, automation: false },
+  };
+  const makeFetch = (session = unconfiguredSession) => async (target) => {
+    if (target === "/api/session") return jsonResponse(session);
+    if (target === "/api/projects") return jsonResponse({ enrolled: [], available: [] });
+    if (target === "/api/overview") return jsonResponse({ totals: { runs: 0, failed: 0, active: 0, queued: 0, succeeded: 0, cancelled: 0, unknown: 0 }, projects: [], duration_trend: [], timing: { recorded: 0, total: 0 } });
+    return jsonResponse({});
+  };
+
+  // Runs & Evidence: hides runbooks, reviews, cobs.
+  const runsEnv = await setup({ initialSearch: "?page=runs", fetchHandler: makeFetch() });
+  try {
+    const tabIds = runsEnv.doc.querySelectorAll("#destination-tabs a").map((tab) => tab.dataset.tab);
+    assert.deepEqual(tabIds, ["runs", "projects"]);
+  } finally {
+    runsEnv.cleanup();
+  }
+
+  // Direct deep-link to hidden tab still works and displays itself in subnav.
+  const directReviewsEnv = await setup({ initialSearch: "?page=runs&tab=reviews", fetchHandler: makeFetch() });
+  try {
+    const tabIds = directReviewsEnv.doc.querySelectorAll("#destination-tabs a").map((tab) => tab.dataset.tab);
+    assert.ok(tabIds.includes("reviews"));
+  } finally {
+    directReviewsEnv.cleanup();
+  }
+
+  // Delivery & Cairn: hides planning, workviews, evidence.
+  const cairnEnv = await setup({ initialSearch: "?page=cairn", fetchHandler: makeFetch() });
+  try {
+    const tabIds = cairnEnv.doc.querySelectorAll("#destination-tabs a").map((tab) => tab.dataset.tab);
+    assert.deepEqual(tabIds, ["cairn", "work"]);
+  } finally {
+    cairnEnv.cleanup();
+  }
+
+  // Attention: hides single-tab bar completely.
+  const inboxEnv = await setup({ initialSearch: "?page=inbox", fetchHandler: makeFetch() });
+  try {
+    assert.equal(inboxEnv.doc.getElementById("destination-tabs").hidden, true);
+    assert.equal(inboxEnv.doc.querySelectorAll("#destination-tabs a").length, 0);
+  } finally {
+    inboxEnv.cleanup();
+  }
+
+  // System & Source: puts repositories first, hides automation and feeds when unconfigured.
+  const sourceEnv = await setup({ initialSearch: "?page=source", fetchHandler: makeFetch() });
+  try {
+    const tabIds = sourceEnv.doc.querySelectorAll("#destination-tabs a").map((tab) => tab.dataset.tab);
+    assert.deepEqual(tabIds, ["repositories", "source", "activity", "operations"]);
+  } finally {
+    sourceEnv.cleanup();
+  }
+
+  // Projects viewer note hidden for operators, shown for viewers.
+  const opProjEnv = await setup({ initialSearch: "?page=projects", fetchHandler: makeFetch(unconfiguredSession) });
+  try {
+    assert.equal(opProjEnv.doc.getElementById("projects-viewer-note").hidden, true);
+  } finally {
+    opProjEnv.cleanup();
+  }
+  const viewerProjEnv = await setup({
+    initialSearch: "?page=projects",
+    fetchHandler: makeFetch({ ...unconfiguredSession, principal: { id: "local:viewer", label: "Viewer", role: "viewer" }, permissions: { read: true, operate: false, configure: false } }),
+  });
+  try {
+    assert.equal(viewerProjEnv.doc.getElementById("projects-viewer-note").hidden, false);
+  } finally {
+    viewerProjEnv.cleanup();
+  }
+});
+
+test("Fleet and Workers skip unconfigured 503 inventory/campaign endpoints and collapse secondary Fleet panels", async () => {
+  const calls = [];
+  const capabilities = { feeds: false, runbooks: false, inventory: false, campaign_controls: false, automation: false };
+
+  // Exercise Workers directly with real KilnInventory loaded.
+  const workersEnv = await setup({
+    initialSearch: "?page=workers",
+    extraAssets: ["inventory.js"],
+    fetchHandler: async (target) => {
+      calls.push(target);
+      if (target === "/api/session") {
+        return jsonResponse({
+          principal: { id: "local:operator", label: "Operator", role: "operator" },
+          permissions: { read: true, operate: true, configure: true },
+          feeds_configured: false,
+          capabilities,
+        });
+      }
+      if (target === "/api/projects") return jsonResponse({ enrolled: [], available: [] });
+      if (target === "/api/workers") {
+        return jsonResponse({ schema: "kiln.web-workers.v1", bounded: true, storage_failed: false, workers: [], summary: { free_slots: 0, active: 0, configured_slots: 0, queued: 0 } });
+      }
+      if (target === "/api/inventory" || target === "/api/implementation/campaign-definitions") {
+        throw new Error(`Unexpected unconfigured call to ${target}`);
+      }
+      return jsonResponse({});
+    },
+  });
+  try {
+    assert.equal(calls.includes("/api/inventory"), false, "Workers must not call /api/inventory when capabilities.inventory is false");
+    assert.equal(calls.includes("/api/implementation/campaign-definitions"), false, "Workers must not call campaign-definitions when capabilities.campaign_controls is false");
+    const workersContent = workersEnv.doc.getElementById("workers-content");
+    assert.equal(workersContent.querySelector("[data-inventory-root]"), null);
+    assert.equal(workersContent.querySelector("details.workers-campaign-definitions"), null);
+  } finally {
+    workersEnv.cleanup();
+  }
+
+  // Exercise Fleet directly with real KilnInventory, KilnFleetRuntime, KilnFleetCapacity, and KilnFleet loaded.
+  const fleetCalls = [];
+  const fleetEnv = await setup({
+    initialSearch: "?page=fleet",
+    extraAssets: ["inventory.js", "fleet-runtime.js", "fleet-capacity.js", "fleet.js"],
+    fetchHandler: async (target) => {
+      fleetCalls.push(target);
+      if (target === "/api/session") {
+        return jsonResponse({
+          principal: { id: "local:operator", label: "Operator", role: "operator" },
+          permissions: { read: true, operate: true, configure: true },
+          feeds_configured: false,
+          capabilities,
+        });
+      }
+      if (target === "/api/projects") return jsonResponse({ enrolled: [], available: [] });
+      if (target === "/api/inventory" || target === "/api/implementation/campaign-definitions") {
+        throw new Error(`Unexpected unconfigured call to ${target}`);
+      }
+      if (target === "/api/fleet/machines") return jsonResponse({ machines: [] });
+      if (target === "/api/implementation/work") return jsonResponse({ items: [] });
+      if (target === "/api/implementation/cairn") return jsonResponse({ changes: [] });
+      if (target === "/api/fleet/dispatch/status") return jsonResponse({ enabled: true, last_tick: { deferral_counts: {} } });
+      if (target.startsWith("/api/fleet/claims")) return jsonResponse({ claims: [] });
+      if (target === "/api/fleet/admission/status") return jsonResponse({ configured: false });
+      return jsonResponse({});
+    },
+  });
+  try {
+    assert.equal(fleetCalls.includes("/api/inventory"), false, "Fleet must not call /api/inventory when capabilities.inventory is false");
+    assert.equal(fleetCalls.includes("/api/implementation/campaign-definitions"), false, "Fleet must not call campaign-definitions when capabilities.campaign_controls is false");
+    const fleetContent = fleetEnv.doc.getElementById("fleet-content");
+    const disclosures = fleetContent.querySelectorAll("details.fleet-secondary-disclosure");
+    const byKey = new Map(disclosures.map((d) => [d.dataset.fleetDisclosure, d]));
+    for (const key of ["decisions", "swarms", "cairn", "issues", "guest-move"]) {
+      assert.ok(byKey.has(key), `Fleet should wrap ${key} in a secondary disclosure`);
+      assert.equal(byKey.get(key).open, false, `Fleet secondary disclosure ${key} should start collapsed`);
+    }
+    assert.equal(byKey.get("campaigns").hidden, true, "Fleet campaigns disclosure should be hidden when campaign_controls is false");
+  } finally {
+    fleetEnv.cleanup();
   }
 });

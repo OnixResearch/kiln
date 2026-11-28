@@ -1270,6 +1270,10 @@
       return [identityCell(decision.identity), text(decision.question), when(decision.raised_ms), action];
     });
     state.decisions.replaceChildren(table(["ID", "Question", "Raised", "Action"], rows, "No decisions", "The coordinator reports no decisions."));
+    if (rows.length > 0 && state.decisionsDisclosure && !state.decisionsAutoOpened) {
+      state.decisionsDisclosure.open = true;
+      state.decisionsAutoOpened = true;
+    }
   }
 
   function formatMention(mention) {
@@ -1452,6 +1456,10 @@
           ];
         });
         state.swarms.replaceChildren(table(["ID", "Title", "Phase", "Members", "Board", "Budget", "View"], rows, "No swarm runs", "The coordinator reports no swarm runs."));
+        if (rows.length > 0 && state.swarmsDisclosure && !state.swarmsAutoOpened) {
+          state.swarmsDisclosure.open = true;
+          state.swarmsAutoOpened = true;
+        }
       }
       if (state.selectedSwarm && swarms.some((r) => text(r.identity) === state.selectedSwarm)) {
         void inspectSwarm(state, state.selectedSwarm, { fromRefresh: true });
@@ -2826,11 +2834,42 @@
       element("p", "Dispatch bindings describe the plan, not the running host or model that served a request. Session freshness follows Fleet status above.", "small"),
       state.cairnCoverage, state.cairnRows, fleetAtlasToggle, fleetAtlasHost);
     state.runtime = element("div");
+    if (context.capabilities?.inventory === false) state.runtime.hidden = true;
     state.campaign = element("div", undefined, "fleet-work");
     state.capacity = element("div");
-    page.append(head, machinesPanel, decisionsPanel, cairnPanel, state.inspector, issuesPanel, attemptsPanel, state.runtime,
-      claimsPanel, window.KilnFleetCapacity ? state.capacity : work, sourcesPanel, state.campaign, swarmsPanel);
-    if (state.context.canOperate?.() === true) page.append(guestMoveSection(state));
+    const secondaryDisclosure = (label, key, ...children) => {
+      const box = element("details", undefined, "panel fleet-secondary-disclosure");
+      box.dataset.fleetDisclosure = key;
+      const summary = element("summary", label);
+      box.append(summary, ...children);
+      return box;
+    };
+    const decisionsDisclosure = secondaryDisclosure("Operator inbox & Fleet decisions", "decisions", decisionsPanel);
+    const swarmsDisclosure = secondaryDisclosure("Swarm runs", "swarms", swarmsPanel);
+    const cairnDisclosure = secondaryDisclosure("Cairn progress", "cairn", cairnPanel);
+    const issuesDisclosure = secondaryDisclosure("Native issues & work sources", "issues", issuesPanel, sourcesPanel);
+    const campaignEnabled = context.capabilities?.campaign_controls !== false || Boolean(context.route?.worker_campaign);
+    const campaignDisclosure = secondaryDisclosure("Implementation campaigns", "campaigns", state.campaign);
+    if (!campaignEnabled) campaignDisclosure.hidden = true;
+    state.decisionsDisclosure = decisionsDisclosure;
+    state.swarmsDisclosure = swarmsDisclosure;
+    page.append(
+      head,
+      machinesPanel,
+      claimsPanel,
+      attemptsPanel,
+      state.inspector,
+      state.runtime,
+      window.KilnFleetCapacity ? state.capacity : work,
+      decisionsDisclosure,
+      swarmsDisclosure,
+      cairnDisclosure,
+      issuesDisclosure,
+      campaignDisclosure,
+    );
+    if (state.context.canOperate?.() === true) {
+      page.append(secondaryDisclosure("Move running guest workload", "guest-move", guestMoveSection(state)));
+    }
     root.replaceChildren(page);
     state.machine = machine;
     state.updated = updated;
@@ -2904,7 +2943,7 @@
       isFresh: () => isSnapshotFresh(state),
       confirmControl: (opts) => confirmGuardedFleetMutation(state, opts),
     });
-    if (window.KilnInventory?.loadFleetCampaign) {
+    if (window.KilnInventory?.loadFleetCampaign && campaignEnabled) {
       let selectedCampaign = context.route?.worker_campaign || "";
       void window.KilnInventory.loadFleetCampaign(state.campaign, context, selectedCampaign, (campaign) => {
         if (!context.isCurrent() || campaign === selectedCampaign) return;

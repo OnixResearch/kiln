@@ -414,7 +414,11 @@
       if (!definitions.open || !context?.isCurrent() || definitionsRoot.childElementCount) return;
       void window.KilnInventory?.loadDefinitions(definitionsRoot, context, (id) => navigate({ worker: route.worker, worker_q: route.q, worker_status: route.status, worker_campaign: id }));
     });
-    panel.append(controls, campaignRoot, definitions);
+    if (context?.capabilities?.campaign_controls !== false) {
+      panel.append(controls, campaignRoot, definitions);
+    } else {
+      panel.append(controls, campaignRoot);
+    }
     return panel;
   }
   function render(inventory, items, route) {
@@ -426,8 +430,10 @@
       browser.classList.add("workers-browse");
       page.append(browser);
     }
-    page.append(campaignCard(route));
-    if (window.KilnInventory) {
+    if (context?.capabilities?.campaign_controls !== false || route.campaign) {
+      page.append(campaignCard(route));
+    }
+    if (window.KilnInventory && context?.capabilities?.inventory !== false) {
       const observed = element("div", undefined, "workers-observed-inventories");
       observed.dataset.inventoryRoot = "true";
       page.append(disclosure("Observed resource inventories", "observed-inventories", observed));
@@ -553,8 +559,10 @@
       const failure = element("p", `Workers unavailable: ${sentence} No presence, absence or worker health is inferred.`, "error-state"); failure.setAttribute("role", "alert");
       const retry = element("button", "Try again"); retry.type = "button";
       retry.addEventListener("click", () => { if (context?.isCurrent()) void load(root, context); });
-      panel.append(element("h2", "Workers unavailable"), failure, retry, campaignCard(route)); root.replaceChildren(panel);
-      if (window.KilnInventory) {
+      const fallbackItems = [element("h2", "Workers unavailable"), failure, retry];
+      if (context?.capabilities?.campaign_controls !== false || route.campaign) fallbackItems.push(campaignCard(route));
+      panel.append(...fallbackItems); root.replaceChildren(panel);
+      if (window.KilnInventory && context?.capabilities?.inventory !== false) {
         const observed = element("div", undefined, "workers-observed-inventories");
         observed.dataset.inventoryRoot = "true";
         root.append(disclosure("Observed resource inventories", "observed-inventories", observed));

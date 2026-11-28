@@ -1484,9 +1484,22 @@ fn route(
                         serde_json::from_slice::<serde_json::Value>(&response.body)
                     && let Some(object) = session.as_object_mut()
                 {
+                    let feeds_configured = context.profile.feeds.is_some();
+                    let runbooks_configured = engine.has_runbooks();
+                    let automation_configured = engine.has_active_automation();
                     object.insert(
                         "feeds_configured".to_owned(),
-                        serde_json::Value::Bool(context.profile.feeds.is_some()),
+                        serde_json::Value::Bool(feeds_configured),
+                    );
+                    object.insert(
+                        "capabilities".to_owned(),
+                        serde_json::json!({
+                            "feeds": feeds_configured,
+                            "runbooks": runbooks_configured,
+                            "inventory": context.inventory.is_some(),
+                            "campaign_controls": context.campaign_controls.is_some(),
+                            "automation": automation_configured,
+                        }),
                     );
                     response.body = session.to_string().into_bytes();
                 }

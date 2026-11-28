@@ -1040,3 +1040,9 @@ a.count-chip:hover { border-color: var(--frame); background: var(--accent); box-
 @media (max-width: 60rem) {
   .slide-over-mirror-form button, .slide-over-mirror-form select, .slide-over-mirror-form input { min-height: 2.75rem; }
 }
+
+/* ---------- Collapsible secondary Fleet sections ---------- */
+.fleet-secondary-disclosure > summary { cursor: pointer; font-weight: 600; color: var(--foreground); list-style-position: outside; }
+.fleet-secondary-disclosure[open] > summary { padding-bottom: var(--space-2); border-bottom: 1px solid var(--border); margin-bottom: var(--space-3); }
+.fleet-secondary-disclosure > .panel { border: 0; padding: 0; background: transparent; box-shadow: none; }
+.fleet-secondary-disclosure > .panel + .panel { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border); }

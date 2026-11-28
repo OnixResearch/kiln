@@ -841,6 +841,10 @@
     }
     let definitionsGeneration = 0;
     async function definitions(notice = "") {
+      if (ctx?.capabilities?.campaign_controls === false) {
+        definitionsRoot.replaceChildren();
+        return;
+      }
       const readGeneration = ++definitionsGeneration;
       const definitionsLive = () => live() && definitionsGeneration === readGeneration;
       definitionsRoot.setAttribute("aria-busy", "true");

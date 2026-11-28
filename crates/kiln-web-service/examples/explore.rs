@@ -2285,6 +2285,16 @@ impl Workspace {
                 if let Ok(mut parsed) = serde_json::from_slice::<Value>(&response.body) {
                     if let Some(object) = parsed.as_object_mut() {
                         object.insert("feeds_configured".to_owned(), Value::Bool(false));
+                        object.insert(
+                            "capabilities".to_owned(),
+                            json!({
+                                "feeds": false,
+                                "runbooks": false,
+                                "inventory": false,
+                                "campaign_controls": false,
+                                "automation": false,
+                            }),
+                        );
                         response.body = parsed.to_string().into_bytes();
                     }
                 }

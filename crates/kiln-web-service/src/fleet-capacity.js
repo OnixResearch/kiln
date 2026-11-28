@@ -608,7 +608,8 @@
     });
     const exact = node("div", undefined, "fleet-capacity-region");
     exactPanel.append(form, exact);
-    page.append(admissionRoot, workRoot, workerRoot, exactPanel);
+    if (context?.capabilities?.inventory === false) exactPanel.hidden = true;
+    page.append(workRoot, workerRoot, admissionRoot, exactPanel);
     root.replaceChildren(page);
     Object.assign(state, { admissionRoot, workRoot, workerRoot, exact, input, status });
     admissionRoot.replaceChildren(node("p", "Reading fair-admission governance…", "small"));
